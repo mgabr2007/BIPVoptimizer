@@ -2,7 +2,7 @@ modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["gcc", "glibc", "glibcLocales", "libstdcxx5"]
+packages = ["gcc", "gcc-unwrapped", "glibc", "glibcLocales", "libgcc", "libstdcxx5"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -20,6 +20,10 @@ author = "agent"
 task = "workflow.run"
 args = "BIPV Platform Final"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Dependencies"
+
 [[workflows.workflow]]
 name = "BIPV Platform Final"
 author = "agent"
@@ -29,6 +33,19 @@ task = "shell.exec"
 args = "streamlit run app_fixed.py --server.port 5000"
 waitForPort = 5000
 
+[[workflows.workflow]]
+name = "Test Dependencies"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run app_minimal_test.py --server.port 5001"
+waitForPort = 5001
+
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3000
