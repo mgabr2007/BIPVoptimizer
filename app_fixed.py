@@ -430,12 +430,14 @@ def render_weather_environment():
         # Shading factors with comprehensive help
         tree_shading = st.slider(
             "Tree Shading Factor", 0.0, 0.5, 0.1, 0.05,
-            help="Fraction of solar irradiance blocked by vegetation. Accounts for seasonal variation, tree height, canopy density. Deciduous trees: 0.05-0.15 (seasonal), Evergreen: 0.10-0.25 (year-round), Dense urban forest: 0.15-0.30."
+            help="Fraction of solar irradiance blocked by vegetation. Accounts for seasonal variation, tree height, canopy density. Deciduous trees: 0.05-0.15 (seasonal), Evergreen: 0.10-0.25 (year-round), Dense urban forest: 0.15-0.30.",
+            key="tree_shading_slider"
         )
         
         building_shading = st.slider(
             "Building Shading Factor", 0.0, 0.3, 0.05, 0.05,
-            help="Fraction of solar irradiance blocked by neighboring structures. Consider building height, distance, and orientation relative to sun path. Typical urban settings: 0.05-0.15, Dense urban core: 0.15-0.30."
+            help="Fraction of solar irradiance blocked by neighboring structures. Consider building height, distance, and orientation relative to sun path. Typical urban settings: 0.05-0.15, Dense urban core: 0.15-0.30.",
+            key="building_shading_slider"
         )
         
         st.session_state.project_data['shading_factors'] = {
@@ -586,7 +588,7 @@ def render_facade_extraction():
         st.warning("⚠️ Please upload a BIM model in Step 1 before proceeding.")
         return
     
-    if st.button("Analyze Building Elements"):
+    if st.button("Analyze Building Elements", key="analyze_building_elements"):
         with st.spinner("Extracting facade and window elements from BIM model..."):
             building_elements = simulate_building_extraction()
             st.session_state.project_data['building_elements'] = building_elements
@@ -742,7 +744,7 @@ def render_radiation_grid():
         st.warning("⚠️ Please complete Steps 3 and 4 before proceeding.")
         return
     
-    if st.button("Calculate Solar Radiation Grid"):
+    if st.button("Calculate Solar Radiation Grid", key="calc_radiation_grid"):
         with st.spinner("Calculating solar radiation for all building elements..."):
             radiation_analysis = calculate_radiation_analysis()
             st.session_state.project_data['radiation_analysis'] = radiation_analysis
@@ -949,7 +951,8 @@ def render_pv_specification():
         panel_type = st.selectbox(
             "Panel Technology",
             ["Monocrystalline Silicon", "Polycrystalline Silicon", "Thin-Film CdTe", "Bifacial"],
-            help="Select the PV panel technology"
+            help="Select the PV panel technology",
+            key="panel_technology_select"
         )
         
         # Get panel specifications
@@ -965,17 +968,20 @@ def render_pv_specification():
         
         spacing_factor = st.slider(
             "Panel Spacing Factor", 0.02, 0.15, 0.05, 0.01,
-            help="Spacing between panels as fraction of panel dimensions. Accounts for structural framing, maintenance access, and thermal expansion. Typical range: 0.02-0.10 for optimal installations."
+            help="Spacing between panels as fraction of panel dimensions. Accounts for structural framing, maintenance access, and thermal expansion. Typical range: 0.02-0.10 for optimal installations.",
+            key="panel_spacing_factor"
         )
         
         min_system_size = st.number_input(
             "Minimum System Size (kW)", 1.0, 20.0, 3.0, 0.5,
-            help="Minimum DC system capacity for economic viability. Smaller systems have higher per-kW costs due to fixed installation expenses. Recommended minimum: 3-5 kW for cost-effectiveness."
+            help="Minimum DC system capacity for economic viability. Smaller systems have higher per-kW costs due to fixed installation expenses. Recommended minimum: 3-5 kW for cost-effectiveness.",
+            key="min_system_size"
         )
         
         system_losses = st.slider(
             "Total System Losses (%)", 10, 25, 15, 1,
-            help="Combined system efficiency losses including: inverter losses (2-5%), DC/AC wiring (2-3%), soiling/dust (2-5%), temperature effects (3-8%), mismatch losses (1-3%). Typical total: 12-18%."
+            help="Combined system efficiency losses including: inverter losses (2-5%), DC/AC wiring (2-3%), soiling/dust (2-5%), temperature effects (3-8%), mismatch losses (1-3%). Typical total: 12-18%.",
+            key="system_losses_slider"
         )
     
     if st.button("Calculate PV System Specifications"):
