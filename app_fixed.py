@@ -4,31 +4,18 @@ import json
 from datetime import datetime, timedelta
 import io
 
-# Import plotly for 3D visualization
-try:
-    import plotly.graph_objects as go
-    import plotly.express as px
-    from plotly.subplots import make_subplots
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    PLOTLY_AVAILABLE = False
-    # Create placeholder classes to prevent import errors
-    class PlotlyPlaceholder:
-        def __init__(self, *args, **kwargs): pass
-        def add_trace(self, *args, **kwargs): pass
-        def update_layout(self, *args, **kwargs): pass
-        def add_annotation(self, *args, **kwargs): pass
-        def __call__(self, *args, **kwargs): return self
-        
-    go = type('go', (), {
-        'Figure': PlotlyPlaceholder,
-        'Mesh3d': PlotlyPlaceholder,
-        'Scatter3d': PlotlyPlaceholder,
-        'Scatter': PlotlyPlaceholder,
-        'Bar': PlotlyPlaceholder
-    })()
-    px = PlotlyPlaceholder()
-    make_subplots = PlotlyPlaceholder()
+# Check if plotly is available and import
+def get_plotly_modules():
+    try:
+        import plotly.graph_objects as go
+        import plotly.express as px
+        from plotly.subplots import make_subplots
+        return go, px, make_subplots, True
+    except ImportError:
+        return None, None, None, False
+
+# Try to import plotly
+go, px, make_subplots, PLOTLY_AVAILABLE = get_plotly_modules()
 
 def main():
     st.set_page_config(
@@ -3778,6 +3765,10 @@ def generate_conclusion_section(best_config, energy_balance, project_name):
 def create_interactive_3d_bim_model(model_data, show_building=True, show_pv_panels=True, show_wireframe=False, transparency=0.7, view_mode="Perspective View"):
     """Create interactive 3D BIM model with zoom and rotate capabilities"""
     
+    if not PLOTLY_AVAILABLE or go is None:
+        st.error("Plotly is not available for 3D visualization")
+        return None
+    
     # Extract building dimensions from model data
     building_dims = model_data['building_dimensions']
     height = building_dims['height']
@@ -4220,6 +4211,63 @@ def create_building_cross_sections(model_data):
     )
     
     return fig
+
+def create_text_based_3d_representation(model_data):
+    """Create a text-based 3D representation when Plotly is not available"""
+    building_dims = model_data['building_dimensions']
+    height = building_dims['height']
+    width = building_dims['width']
+    depth = building_dims['depth']
+    
+    st.subheader("Building 3D ASCII Representation")
+    
+    # Create ASCII art representation
+    ascii_building = f"""
+    Building Dimensions: {width}m × {depth}m × {height}m
+    
+    3D Building Wireframe:
+    
+           {width}m
+         ┌─────────────┐  ← {height}m
+        ╱             ╱│
+       ╱             ╱ │
+      ╱             ╱  │
+     ┌─────────────┐   │ {depth}m
+     │   BUILDING  │   │
+     │             │   │
+     │  PV PANELS  │   ╱
+     │             │  ╱
+     │             │ ╱
+     └─────────────┘╱
+    
+    PV System Layout:
+    """
+    
+    # Add facade information
+    for facade in model_data['facade_systems']:
+        orientation = facade['orientation']
+        panel_count = facade['panel_count']
+        coverage = facade['coverage']
+        
+        if panel_count > 0:
+            ascii_building += f"\n    {orientation} Facade: {panel_count} panels ({coverage:.1f}% coverage)"
+            # Add visual representation
+            if panel_count > 0:
+                panel_visual = "■" * min(panel_count // 5, 20)  # Scale down for display
+                ascii_building += f"\n    PV Layout: {panel_visual}"
+    
+    st.code(ascii_building)
+    
+    # Add building metrics
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Building Volume", f"{model_data['building_volume']:,.0f} m³")
+    with col2:
+        st.metric("Total PV Power", f"{sum(f['system_power'] for f in model_data['facade_systems']):.1f} kW")
+    with col3:
+        st.metric("PV Coverage", f"{model_data['pv_coverage']:.1f}%")
+    
+    st.info("Interactive 3D visualization will be available once Plotly loads properly. Please refresh the page.")
 
 if __name__ == "__main__":
     main()
