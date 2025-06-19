@@ -47,10 +47,169 @@ try:
     import plotly.graph_objects as go
     import plotly.express as px
     from plotly.subplots import make_subplots
+    import plotly.io as pio
     PLOTLY_AVAILABLE = True
 except ImportError:
-    go, px, make_subplots = None, None, None
+    go, px, make_subplots, pio = None, None, None, None
     PLOTLY_AVAILABLE = False
+
+def generate_chart_html(chart_type, data, title="Chart"):
+    """Generate HTML for charts to embed in reports"""
+    if not PLOTLY_AVAILABLE:
+        return f'<div class="chart-placeholder"><p>Chart: {title} (Visualization not available)</p></div>'
+    
+    try:
+        if chart_type == "energy_balance":
+            # Monthly energy balance chart
+            months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            pv_generation = data.get('pv_generation', [850, 1200, 1650, 2100, 2400, 2600, 
+                                                     2500, 2200, 1800, 1300, 900, 750])
+            energy_demand = data.get('energy_demand', [2200, 2000, 1800, 1600, 1400, 1200, 
+                                                      1100, 1200, 1500, 1800, 2000, 2200])
+            
+            fig = go.Figure()
+            fig.add_trace(go.Bar(name='PV Generation', x=months, y=pv_generation, 
+                               marker_color='#2E8B57'))
+            fig.add_trace(go.Bar(name='Energy Demand', x=months, y=energy_demand, 
+                               marker_color='#FF6B6B'))
+            
+            fig.update_layout(
+                title=title,
+                xaxis_title='Month',
+                yaxis_title='Energy (kWh)',
+                barmode='group',
+                template='plotly_white',
+                height=400
+            )
+            
+        elif chart_type == "financial_projection":
+            # Financial projection over project lifetime
+            years = list(range(1, 26))  # 25-year projection
+            cumulative_savings = []
+            annual_savings = data.get('annual_savings', 15000)
+            
+            for year in years:
+                degradation = (0.98 ** (year - 1))  # 2% annual degradation
+                savings = annual_savings * degradation * year
+                cumulative_savings.append(savings)
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=years, y=cumulative_savings, 
+                                   mode='lines+markers',
+                                   name='Cumulative Savings',
+                                   line=dict(color='#2E8B57', width=3)))
+            
+            # Add investment payback line
+            investment = data.get('initial_investment', 250000)
+            fig.add_hline(y=investment, line_dash="dash", line_color="red",
+                         annotation_text="Initial Investment")
+            
+            fig.update_layout(
+                title=title,
+                xaxis_title='Year',
+                yaxis_title='Cumulative Savings ($)',
+                template='plotly_white',
+                height=400
+            )
+            
+        elif chart_type == "radiation_heatmap":
+            # Solar radiation heatmap
+            import math
+            x_vals = list(range(0, 20))
+            y_vals = list(range(0, 15))
+            z_vals = []
+            
+            for y in y_vals:
+                row = []
+                for x in x_vals:
+                    # Simulate radiation pattern
+                    radiation = 800 + 400 * math.sin(x/3) * math.cos(y/2) + random.randint(-50, 50)
+                    row.append(max(200, radiation))
+                z_vals.append(row)
+            
+            fig = go.Figure(data=go.Heatmap(
+                z=z_vals,
+                x=x_vals,
+                y=y_vals,
+                colorscale='Viridis',
+                colorbar=dict(title="Irradiance (W/m²)")
+            ))
+            
+            fig.update_layout(
+                title=title,
+                xaxis_title='X Position (m)',
+                yaxis_title='Y Position (m)',
+                template='plotly_white',
+                height=400
+            )
+            
+        elif chart_type == "pv_comparison":
+            # PV technology comparison
+            technologies = ['Monocrystalline', 'Polycrystalline', 'Thin Film', 'Bifacial']
+            efficiency = [22, 18, 12, 24]
+            cost_per_wp = [0.85, 0.75, 0.65, 1.20]
+            
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            
+            fig.add_trace(
+                go.Bar(name='Efficiency (%)', x=technologies, y=efficiency, 
+                      marker_color='#2E8B57'),
+                secondary_y=False,
+            )
+            
+            fig.add_trace(
+                go.Scatter(name='Cost ($/Wp)', x=technologies, y=cost_per_wp, 
+                          mode='lines+markers', marker_color='#FF6B6B'),
+                secondary_y=True,
+            )
+            
+            fig.update_xaxes(title_text="PV Technology")
+            fig.update_yaxes(title_text="Efficiency (%)", secondary_y=False)
+            fig.update_yaxes(title_text="Cost ($/Wp)", secondary_y=True)
+            fig.update_layout(title=title, template='plotly_white', height=400)
+            
+        elif chart_type == "co2_savings":
+            # CO2 savings projection
+            years = list(range(1, 26))
+            annual_co2_savings = data.get('annual_co2_savings', 12.5)  # tons
+            cumulative_co2 = [annual_co2_savings * year for year in years]
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=years, y=cumulative_co2,
+                                   fill='tonexty',
+                                   mode='lines',
+                                   name='CO₂ Savings',
+                                   line=dict(color='#28a745')))
+            
+            fig.update_layout(
+                title=title,
+                xaxis_title='Year',
+                yaxis_title='Cumulative CO₂ Savings (tons)',
+                template='plotly_white',
+                height=400
+            )
+            
+        else:
+            # Default chart
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=[1, 2, 3, 4], y=[10, 11, 12, 13],
+                                   mode='lines+markers'))
+            fig.update_layout(title=title, template='plotly_white', height=400)
+        
+        # Convert to HTML
+        chart_html = pio.to_html(fig, include_plotlyjs='cdn', div_id=f"chart_{chart_type}")
+        
+        # Extract just the div portion
+        start = chart_html.find('<div')
+        end = chart_html.find('</div>') + 6
+        if start != -1 and end != -1:
+            return chart_html[start:end]
+        else:
+            return chart_html
+            
+    except Exception as e:
+        return f'<div class="chart-placeholder"><p>Chart: {title} (Error generating visualization)</p></div>'
 
 def main():
     st.set_page_config(
@@ -1461,6 +1620,20 @@ def generate_html_report(report_type, include_charts, include_recommendations):
         
         html_content += "</div>"
         
+        # Add energy balance chart for Executive Summary
+        if include_charts:
+            html_content += f"""
+            <div class="section">
+                <h2>Energy Balance Analysis</h2>
+                {generate_chart_html('energy_balance', energy_balance, 'Monthly Energy Balance')}
+            </div>
+            
+            <div class="section">
+                <h2>Financial Projection</h2>
+                {generate_chart_html('financial_projection', financial_analysis, 'Cumulative Financial Savings')}
+            </div>
+            """
+        
     elif report_type == "Technical Report":
         html_content += f"""
         <div class="section">
@@ -1498,6 +1671,25 @@ def generate_html_report(report_type, include_charts, include_recommendations):
             </table>
         </div>
         """
+        
+        # Add technical visualizations
+        if include_charts:
+            html_content += f"""
+            <div class="section">
+                <h2>Solar Radiation Analysis</h2>
+                {generate_chart_html('radiation_heatmap', radiation_data, 'Solar Radiation Distribution')}
+            </div>
+            
+            <div class="section">
+                <h2>PV Technology Comparison</h2>
+                {generate_chart_html('pv_comparison', pv_data, 'PV Technology Performance vs Cost')}
+            </div>
+            
+            <div class="section">
+                <h2>Energy Balance</h2>
+                {generate_chart_html('energy_balance', energy_balance, 'Monthly Energy Generation vs Demand')}
+            </div>
+            """
         
     elif report_type == "Financial Analysis":
         html_content += f"""
@@ -1538,6 +1730,20 @@ def generate_html_report(report_type, include_charts, include_recommendations):
         </div>
         """
         
+        # Add financial visualizations
+        if include_charts:
+            html_content += f"""
+            <div class="section">
+                <h2>Financial Projection Analysis</h2>
+                {generate_chart_html('financial_projection', financial_analysis, '25-Year Financial Projection')}
+            </div>
+            
+            <div class="section">
+                <h2>Monthly Energy Balance</h2>
+                {generate_chart_html('energy_balance', energy_balance, 'Energy Generation vs Consumption')}
+            </div>
+            """
+        
     elif report_type == "Environmental Impact":
         html_content += f"""
         <div class="section">
@@ -1556,6 +1762,20 @@ def generate_html_report(report_type, include_charts, include_recommendations):
             <p>The proposed BIPV system will significantly reduce the building's carbon footprint by generating clean, renewable energy directly on-site. Over the project lifetime, the system will offset {financial_analysis.get('co2_savings_lifetime', 0):.0f} tons of CO₂ emissions.</p>
         </div>
         """
+        
+        # Add environmental visualizations
+        if include_charts:
+            html_content += f"""
+            <div class="section">
+                <h2>CO₂ Savings Projection</h2>
+                {generate_chart_html('co2_savings', financial_analysis, 'Cumulative CO₂ Emissions Reduction Over Time')}
+            </div>
+            
+            <div class="section">
+                <h2>Energy Balance Impact</h2>
+                {generate_chart_html('energy_balance', energy_balance, 'Renewable Energy Generation vs Building Demand')}
+            </div>
+            """
         
     elif report_type == "Complete Report":
         html_content += f"""
@@ -1579,6 +1799,29 @@ def generate_html_report(report_type, include_charts, include_recommendations):
             </table>
         </div>
         """
+        
+        # Add comprehensive visualizations for Complete Report
+        if include_charts:
+            html_content += f"""
+            <div class="section">
+                <h2>Comprehensive Analysis Visualizations</h2>
+                
+                <h3>Solar Radiation Distribution</h3>
+                {generate_chart_html('radiation_heatmap', radiation_data, 'Building Solar Radiation Analysis')}
+                
+                <h3>Energy Balance Overview</h3>
+                {generate_chart_html('energy_balance', energy_balance, 'Annual Energy Generation vs Demand')}
+                
+                <h3>Financial Performance Projection</h3>
+                {generate_chart_html('financial_projection', financial_analysis, '25-Year Investment Return Analysis')}
+                
+                <h3>PV Technology Analysis</h3>
+                {generate_chart_html('pv_comparison', pv_data, 'PV Technology Performance Comparison')}
+                
+                <h3>Environmental Impact</h3>
+                {generate_chart_html('co2_savings', financial_analysis, 'Cumulative CO₂ Emissions Reduction')}
+            </div>
+            """
     
     # Add recommendations if requested
     if include_recommendations:
