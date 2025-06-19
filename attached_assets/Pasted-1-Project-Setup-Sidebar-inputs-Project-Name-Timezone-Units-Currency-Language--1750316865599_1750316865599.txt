@@ -1,0 +1,56 @@
+1. **Project Setup**  
+   - Sidebar inputs: Project Name, Timezone, Units, Currency, Language.  
+   - File uploaders for:  
+     - Revit models (.rvt at LOD 200 and LOD 100 context) via `st.file_uploader`.  
+   - Generate Project ID; display default settings.
+
+2. **Historical Data & AI Model**  
+   - CSV uploader for monthly consumption.
+   - Display trend chart; train and save a `RandomForestRegressor` baseline demand model.
+
+3. **Weather & Environment**  
+   - API key and coordinates inputs; fetch TMY from OpenWeatherMap.  
+   - Parse hourly DNI/DHI/GHI; show data-quality report.  
+   - Optional tree dataset upload (position, height, canopy); calculate shading factors.
+
+4. **Facade & Window Extraction**  
+   - Use `pythonnet` + Revit API to extract walls/windows.  
+   - Filter for PV-replaceable elements; list in a table with geometry metadata.
+
+5. **Radiation & Shading Grid**  
+   - Generate spatial radiation grid on selected surfaces using `pvlib`.  
+   - Apply orientation/tilt and tree shading corrections; display heatmap and stats.
+
+6. **PV Panel Specification**  
+   - Inputs for panel type, dimensions, efficiency, cost.  
+   - Calculate panel count/layout per element; show spec table.
+
+7. **Yield vs. Demand Calculation**  
+   - Predict baseline demand with trained model.  
+   - Compute PV yield per element; net import = demand – generation.  
+   - Plot monthly/annual profiles using `plotly`.
+
+8. **Optimization**  
+   - GA settings inputs (population, generations, mutation rate, objective weights).  
+   - Use `DEAP` to minimize net import & maximize ROI.  
+   - Show fitness evolution; output best + top 3 alternatives.
+
+9. **Financial & Environmental Analysis**  
+   - Inputs: electricity price, discount rate, incentives, lifetime.  
+   - Compute NPV, IRR, payback; estimate CO₂ savings.  
+   - Display cash flow and emissions charts.
+
+10. **3D Visualization**  
+    - Render interactive Plotly 3D model of BIM facades with PV overlays.
+
+11. **Reporting & Export**  
+    - PDF/HTML report (Executive, Technical, Financial).  
+    - Download raw CSV/JSON; export updated BIM model with PV placements.
+
+**Implementation Details:**  
+- Use `st.cache_data` and `st.spinner` for heavy computations and loading states.  
+- Structure code into modular Python files or classes (one per step).  
+- Include comments explaining each function and how to extend it.  
+- After initial generation, run **“Improve Prompt”** to refine edge cases, then iterate.
+
+Create **checkpoints** after steps 3, 6, and 9 for easy rollback. Do not proceed to the next module until the previous one is fully functional and tested.
