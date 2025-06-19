@@ -1380,6 +1380,236 @@ def render_3d_visualization():
     else:
         st.warning("Please complete optimization analysis first.")
 
+def generate_html_report(report_type, include_charts, include_recommendations):
+    """Generate comprehensive HTML report with project data"""
+    project_data = st.session_state.project_data
+    
+    # Get project information
+    project_name = project_data.get('project_name', 'BIPV Optimization Project')
+    location = project_data.get('location', 'Unknown Location')
+    generation_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Get analysis data
+    pv_data = project_data.get('pv_data', {})
+    energy_balance = project_data.get('energy_balance', {})
+    financial_analysis = project_data.get('financial_analysis', {})
+    optimization_results = project_data.get('optimization_results', {})
+    facade_data = project_data.get('facade_data', {})
+    radiation_data = project_data.get('radiation_data', {})
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>{report_type} - {project_name}</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }}
+            .header {{ text-align: center; border-bottom: 2px solid #2E8B57; padding-bottom: 20px; }}
+            .section {{ margin: 30px 0; }}
+            .metric {{ display: inline-block; margin: 10px 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }}
+            .metric-value {{ font-size: 24px; font-weight: bold; color: #2E8B57; }}
+            .metric-label {{ font-size: 14px; color: #666; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+            th, td {{ border: 1px solid #ddd; padding: 12px; text-align: left; }}
+            th {{ background-color: #f2f2f2; }}
+            .recommendation {{ background-color: #f9f9f9; padding: 15px; border-left: 4px solid #2E8B57; margin: 10px 0; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>{report_type}</h1>
+            <h2>{project_name}</h2>
+            <p><strong>Location:</strong> {location}</p>
+            <p><strong>Generated:</strong> {generation_date}</p>
+        </div>
+    """
+    
+    if report_type == "Executive Summary":
+        html_content += f"""
+        <div class="section">
+            <h2>Project Overview</h2>
+            <p>This executive summary presents the key findings and recommendations for the Building Integrated Photovoltaic (BIPV) optimization analysis conducted for {project_name}.</p>
+        </div>
+        
+        <div class="section">
+            <h2>Key Performance Metrics</h2>
+        """
+        
+        if pv_data:
+            html_content += f"""
+            <div class="metric">
+                <div class="metric-value">{pv_data.get('system_capacity', 0):.1f} kW</div>
+                <div class="metric-label">System Capacity</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">{pv_data.get('annual_yield', 0):,.0f} kWh</div>
+                <div class="metric-label">Annual Generation</div>
+            </div>
+            """
+        
+        if financial_analysis:
+            html_content += f"""
+            <div class="metric">
+                <div class="metric-value">${financial_analysis.get('initial_investment', 0):,.0f}</div>
+                <div class="metric-label">Initial Investment</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">{financial_analysis.get('payback_period', 0):.1f} years</div>
+                <div class="metric-label">Payback Period</div>
+            </div>
+            """
+        
+        html_content += "</div>"
+        
+    elif report_type == "Technical Report":
+        html_content += f"""
+        <div class="section">
+            <h2>Building Analysis</h2>
+            <table>
+                <tr><th>Parameter</th><th>Value</th></tr>
+                <tr><td>Total Facades</td><td>{facade_data.get('total_facades', 'N/A')}</td></tr>
+                <tr><td>Suitable Facades</td><td>{facade_data.get('suitable_facades', 'N/A')}</td></tr>
+                <tr><td>Total Facade Area</td><td>{facade_data.get('total_area', 'N/A')} m²</td></tr>
+                <tr><td>Suitable Area</td><td>{facade_data.get('suitable_area', 'N/A')} m²</td></tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>Solar Radiation Analysis</h2>
+            <table>
+                <tr><th>Parameter</th><th>Value</th></tr>
+                <tr><td>Average Irradiance</td><td>{radiation_data.get('avg_irradiance', 'N/A')} kWh/m²/year</td></tr>
+                <tr><td>Peak Irradiance</td><td>{radiation_data.get('peak_irradiance', 'N/A')} W/m²</td></tr>
+                <tr><td>Shading Factor</td><td>{radiation_data.get('shading_factor', 'N/A'):.1%}</td></tr>
+                <tr><td>Grid Points Analyzed</td><td>{radiation_data.get('grid_points', 'N/A'):,}</td></tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>PV System Specifications</h2>
+            <table>
+                <tr><th>Parameter</th><th>Value</th></tr>
+                <tr><td>Panel Technology</td><td>{pv_data.get('panel_type', 'N/A')}</td></tr>
+                <tr><td>Panel Efficiency</td><td>{pv_data.get('efficiency', 'N/A')}%</td></tr>
+                <tr><td>Total Panels</td><td>{pv_data.get('total_panels', 'N/A'):,}</td></tr>
+                <tr><td>System Capacity</td><td>{pv_data.get('system_capacity', 'N/A'):.1f} kW</td></tr>
+                <tr><td>Annual Yield</td><td>{pv_data.get('annual_yield', 'N/A'):,.0f} kWh</td></tr>
+                <tr><td>Specific Yield</td><td>{pv_data.get('specific_yield', 'N/A'):.0f} kWh/kW</td></tr>
+            </table>
+        </div>
+        """
+        
+    elif report_type == "Financial Analysis":
+        html_content += f"""
+        <div class="section">
+            <h2>Investment Summary</h2>
+            <table>
+                <tr><th>Financial Metric</th><th>Value</th></tr>
+                <tr><td>Initial Investment</td><td>${financial_analysis.get('initial_investment', 0):,.0f}</td></tr>
+                <tr><td>Annual Savings</td><td>${financial_analysis.get('annual_savings', 0):,.0f}</td></tr>
+                <tr><td>Annual Export Revenue</td><td>${financial_analysis.get('annual_export_revenue', 0):,.0f}</td></tr>
+                <tr><td>Annual O&M Cost</td><td>${financial_analysis.get('annual_om_cost', 0):,.0f}</td></tr>
+                <tr><td>Net Annual Benefit</td><td>${financial_analysis.get('net_annual_benefit', 0):,.0f}</td></tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>Performance Indicators</h2>
+            <table>
+                <tr><th>Indicator</th><th>Value</th></tr>
+                <tr><td>Net Present Value (NPV)</td><td>${financial_analysis.get('npv', 0):,.0f}</td></tr>
+                <tr><td>Internal Rate of Return (IRR)</td><td>{financial_analysis.get('irr', 0):.1%}</td></tr>
+                <tr><td>Payback Period</td><td>{financial_analysis.get('payback_period', 0):.1f} years</td></tr>
+                <tr><td>Levelized Cost of Energy (LCOE)</td><td>${financial_analysis.get('lcoe', 0):.3f}/kWh</td></tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>Energy Balance</h2>
+            <table>
+                <tr><th>Energy Component</th><th>Annual Value (kWh)</th></tr>
+                <tr><td>Building Demand</td><td>{energy_balance.get('annual_demand', 0):,.0f}</td></tr>
+                <tr><td>PV Generation</td><td>{energy_balance.get('annual_generation', 0):,.0f}</td></tr>
+                <tr><td>Self Consumption</td><td>{energy_balance.get('self_consumption', 0):,.0f}</td></tr>
+                <tr><td>Grid Export</td><td>{energy_balance.get('grid_export', 0):,.0f}</td></tr>
+                <tr><td>Grid Import</td><td>{energy_balance.get('grid_import', 0):,.0f}</td></tr>
+                <tr><td>Self Sufficiency</td><td>{energy_balance.get('self_sufficiency', 0):.1f}%</td></tr>
+            </table>
+        </div>
+        """
+        
+    elif report_type == "Environmental Impact":
+        html_content += f"""
+        <div class="section">
+            <h2>Carbon Footprint Reduction</h2>
+            <table>
+                <tr><th>Environmental Metric</th><th>Value</th></tr>
+                <tr><td>Annual CO₂ Savings</td><td>{financial_analysis.get('co2_savings_annual', 0):.1f} tons</td></tr>
+                <tr><td>Lifetime CO₂ Savings</td><td>{financial_analysis.get('co2_savings_lifetime', 0):.0f} tons</td></tr>
+                <tr><td>Carbon Value</td><td>${financial_analysis.get('carbon_value', 0):,.0f}</td></tr>
+                <tr><td>REC Value</td><td>${financial_analysis.get('rec_value', 0):,.0f}</td></tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>Sustainability Impact</h2>
+            <p>The proposed BIPV system will significantly reduce the building's carbon footprint by generating clean, renewable energy directly on-site. Over the project lifetime, the system will offset {financial_analysis.get('co2_savings_lifetime', 0):.0f} tons of CO₂ emissions.</p>
+        </div>
+        """
+        
+    elif report_type == "Complete Report":
+        html_content += f"""
+        <div class="section">
+            <h2>Executive Summary</h2>
+            <p>This comprehensive report presents the complete BIPV optimization analysis for {project_name}, including technical specifications, financial analysis, and environmental impact assessment.</p>
+        </div>
+        
+        <div class="section">
+            <h2>Building Analysis Summary</h2>
+            <table>
+                <tr><th>Parameter</th><th>Value</th></tr>
+                <tr><td>Total Facades</td><td>{facade_data.get('total_facades', 'N/A')}</td></tr>
+                <tr><td>Suitable Area</td><td>{facade_data.get('suitable_area', 'N/A')} m²</td></tr>
+                <tr><td>Average Irradiance</td><td>{radiation_data.get('avg_irradiance', 'N/A')} kWh/m²/year</td></tr>
+                <tr><td>System Capacity</td><td>{pv_data.get('system_capacity', 'N/A'):.1f} kW</td></tr>
+                <tr><td>Annual Generation</td><td>{pv_data.get('annual_yield', 'N/A'):,.0f} kWh</td></tr>
+                <tr><td>Initial Investment</td><td>${financial_analysis.get('initial_investment', 0):,.0f}</td></tr>
+                <tr><td>Payback Period</td><td>{financial_analysis.get('payback_period', 0):.1f} years</td></tr>
+                <tr><td>Annual CO₂ Savings</td><td>{financial_analysis.get('co2_savings_annual', 0):.1f} tons</td></tr>
+            </table>
+        </div>
+        """
+    
+    # Add recommendations if requested
+    if include_recommendations:
+        html_content += f"""
+        <div class="section">
+            <h2>Recommendations</h2>
+            <div class="recommendation">
+                <strong>System Optimization:</strong> The analysis indicates optimal PV system performance with {pv_data.get('total_panels', 0):,} panels providing {pv_data.get('system_capacity', 0):.1f} kW capacity.
+            </div>
+            <div class="recommendation">
+                <strong>Financial Viability:</strong> With a payback period of {financial_analysis.get('payback_period', 0):.1f} years and NPV of ${financial_analysis.get('npv', 0):,.0f}, the project demonstrates strong financial returns.
+            </div>
+            <div class="recommendation">
+                <strong>Environmental Benefits:</strong> The system will save {financial_analysis.get('co2_savings_annual', 0):.1f} tons of CO₂ annually, contributing significantly to sustainability goals.
+            </div>
+            <div class="recommendation">
+                <strong>Implementation:</strong> Proceed with detailed engineering design and permitting process. Consider phased implementation to manage cash flow and construction complexity.
+            </div>
+        </div>
+        """
+    
+    html_content += """
+        <div class="section">
+            <p><em>This report was generated by the BIPV Optimizer platform. For technical support or questions about this analysis, please contact your project team.</em></p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return html_content
+
 def render_reporting():
     st.header("Step 11: Reporting & Export")
     st.write("Generate comprehensive reports and export analysis results for stakeholders and implementation.")
@@ -1402,7 +1632,9 @@ def render_reporting():
             
             if st.button("Generate Report", key="generate_report"):
                 with st.spinner(f"Generating {report_type}..."):
-                    # Simulate report generation
+                    # Generate actual HTML report content
+                    html_content = generate_html_report(report_type, include_charts, include_recommendations)
+                    
                     page_counts = {
                         "Executive Summary": 8,
                         "Technical Report": 15,
@@ -1416,7 +1648,8 @@ def render_reporting():
                         'generation_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         'pages': page_counts.get(report_type, 15),
                         'includes_charts': include_charts,
-                        'includes_recommendations': include_recommendations
+                        'includes_recommendations': include_recommendations,
+                        'html_content': html_content
                     }
                     
                     st.session_state.project_data['generated_reports'] = st.session_state.project_data.get('generated_reports', [])
@@ -1426,6 +1659,19 @@ def render_reporting():
                 
                 # Show report details
                 st.info(f"📄 Report Details: {report_data['pages']} pages, generated on {report_data['generation_date']}")
+                
+                # Download button for the report
+                st.download_button(
+                    label=f"📥 Download {report_type}",
+                    data=html_content,
+                    file_name=f"BIPV_{report_type.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                    mime="text/html",
+                    key=f"download_report_{len(st.session_state.project_data.get('generated_reports', []))}"
+                )
+                
+                # Preview section
+                with st.expander("📋 Report Preview"):
+                    st.markdown(html_content[:2000] + "..." if len(html_content) > 2000 else html_content, unsafe_allow_html=True)
         
         with col2:
             st.subheader("Data Export")
