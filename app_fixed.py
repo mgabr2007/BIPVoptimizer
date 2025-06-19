@@ -143,14 +143,16 @@ def render_project_setup():
                 "Latitude", 
                 value=st.session_state.project_data.get('latitude', 40.7128),
                 format="%.4f",
-                help="Geographic latitude in decimal degrees (-90 to +90). Northern latitudes are positive. Critical for solar angle calculations and seasonal irradiance modeling."
+                help="Geographic latitude in decimal degrees (-90 to +90). Northern latitudes are positive. Critical for solar angle calculations and seasonal irradiance modeling.",
+                key="project_latitude"
             )
         with col_lon:
             longitude = st.number_input(
                 "Longitude", 
                 value=st.session_state.project_data.get('longitude', -74.0060),
                 format="%.4f",
-                help="Geographic longitude in decimal degrees (-180 to +180). Eastern longitudes are positive. Used for time zone corrections and sun path calculations."
+                help="Geographic longitude in decimal degrees (-180 to +180). Eastern longitudes are positive. Used for time zone corrections and sun path calculations.",
+                key="project_longitude"
             )
     
     with col2:
