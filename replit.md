@@ -155,7 +155,9 @@ modules/
 
 ## Changelog
 
-- June 19, 2025. Initial setup
+- June 19, 2025: Initial setup
+- June 19, 2025: Enhanced documentation with detailed equation explanations and comprehensive HTML reports
+- June 19, 2025: Implemented interactive 3D BIM model visualization with zoom and rotate capabilities
 
 ## User Preferences
 

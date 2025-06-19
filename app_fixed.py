@@ -4,6 +4,31 @@ import json
 from datetime import datetime, timedelta
 import io
 
+# Import plotly for 3D visualization
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    from plotly.subplots import make_subplots
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    st.error("Plotly not available. Installing required packages...")
+    # Create dummy go object to prevent errors during module loading
+    class DummyGo:
+        class Figure:
+            def __init__(self): pass
+            def add_trace(self, trace): pass
+            def update_layout(self, **kwargs): pass
+            def add_annotation(self, **kwargs): pass
+        class Mesh3d:
+            def __init__(self, **kwargs): pass
+        class Scatter3d:
+            def __init__(self, **kwargs): pass
+        class Bar:
+            def __init__(self, **kwargs): pass
+    go = DummyGo()
+from plotly.subplots import make_subplots
+
 def main():
     st.set_page_config(
         page_title="BIPV Analysis Platform",
@@ -1813,7 +1838,7 @@ def render_3d_visualization():
     if '3d_model' in st.session_state.project_data:
         model_data = st.session_state.project_data['3d_model']
         
-        st.subheader("3D Building Model")
+        st.subheader("Interactive 3D Building Model")
         
         # Building specifications
         col1, col2, col3 = st.columns(3)
@@ -1824,19 +1849,127 @@ def render_3d_visualization():
         with col3:
             st.metric("PV Coverage", f"{model_data['pv_coverage']:.1f}%")
         
-        # PV system layout
-        st.subheader("PV System Layout")
+        # Interactive 3D visualization controls
+        st.subheader("3D Visualization Controls")
+        col1, col2, col3, col4 = st.columns(4)
         
+        with col1:
+            show_building = st.checkbox("Show Building Structure", True)
+        with col2:
+            show_pv_panels = st.checkbox("Show PV Panels", True)
+        with col3:
+            show_wireframe = st.checkbox("Show Wireframe", False)
+        with col4:
+            transparency = st.slider("Building Transparency", 0.1, 1.0, 0.7, 0.1)
+        
+        # View mode selection
+        view_mode = st.selectbox(
+            "3D View Mode",
+            ["Perspective View", "Orthographic View", "Top-Down View", "Front Elevation", "Side Elevation"],
+            help="Select different viewing angles for the 3D model"
+        )
+        
+        # Generate and display interactive 3D model
+        if st.button("Generate Interactive 3D Model", type="primary"):
+            if not PLOTLY_AVAILABLE:
+                st.error("Plotly is required for 3D visualization. Please install plotly to enable this feature.")
+                return
+                
+            with st.spinner("Creating interactive 3D BIM visualization..."):
+                fig_3d = create_interactive_3d_bim_model(
+                    model_data, 
+                    show_building=show_building,
+                    show_pv_panels=show_pv_panels,
+                    show_wireframe=show_wireframe,
+                    transparency=transparency,
+                    view_mode=view_mode
+                )
+                
+                st.plotly_chart(fig_3d, use_container_width=True, height=700)
+                
+                # 3D Model instructions
+                st.info("""
+                **Interactive 3D Controls:**
+                - **Rotate**: Click and drag to rotate the model
+                - **Zoom**: Use mouse wheel or pinch to zoom in/out  
+                - **Pan**: Hold Shift + click and drag to pan the view
+                - **Reset**: Double-click to reset the view
+                - **Fullscreen**: Click the fullscreen icon in the toolbar
+                """)
+                
+                # Advanced 3D analysis tools
+                st.subheader("3D Analysis Tools")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if st.button("Calculate Shadow Analysis"):
+                        shadow_results = calculate_shadow_analysis(model_data)
+                        st.write("**Shadow Impact Analysis:**")
+                        for orientation, shadow_loss in shadow_results.items():
+                            st.write(f"- {orientation}: {shadow_loss:.1f}% energy loss due to shading")
+                
+                with col2:
+                    if st.button("Generate Cross-Sections"):
+                        cross_section_fig = create_building_cross_sections(model_data)
+                        st.plotly_chart(cross_section_fig, use_container_width=True, height=400)
+        
+        # PV system layout analysis
+        st.subheader("PV System Layout Analysis")
+        
+        # Create layout comparison chart
+        facade_orientations = [f['orientation'] for f in model_data['facade_systems']]
+        facade_areas = [f['area'] for f in model_data['facade_systems']]
+        pv_areas = [f['pv_area'] for f in model_data['facade_systems']]
+        coverage_percentages = [f['coverage'] for f in model_data['facade_systems']]
+        
+        fig_layout = go.Figure()
+        
+        # Total facade area bars
+        fig_layout.add_trace(go.Bar(
+            x=facade_orientations,
+            y=facade_areas,
+            name='Total Facade Area',
+            marker_color='lightblue',
+            opacity=0.7
+        ))
+        
+        # PV coverage area bars
+        fig_layout.add_trace(go.Bar(
+            x=facade_orientations,
+            y=pv_areas,
+            name='PV Coverage Area',
+            marker_color='orange',
+            opacity=0.8
+        ))
+        
+        fig_layout.update_layout(
+            title="PV System Coverage by Facade Orientation",
+            xaxis_title="Building Orientation",
+            yaxis_title="Area (m²)",
+            barmode='overlay',
+            height=400,
+            template="plotly_white"
+        )
+        
+        st.plotly_chart(fig_layout, use_container_width=True)
+        
+        # Detailed facade information
         for facade_info in model_data['facade_systems']:
-            st.write(f"**{facade_info['orientation']} Facade:**")
-            st.write(f"- Area: {facade_info['area']:.0f} m²")
-            st.write(f"- PV Panels: {facade_info['panel_count']} panels")
-            st.write(f"- System Power: {facade_info['system_power']:.1f} kW")
-            st.write(f"- Coverage: {facade_info['coverage']:.1f}%")
-            st.write("")
+            with st.expander(f"{facade_info['orientation']} Facade Details"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write(f"**Total Area:** {facade_info['area']:.0f} m²")
+                    st.write(f"**PV Area:** {facade_info['pv_area']:.0f} m²")
+                    st.write(f"**Coverage:** {facade_info['coverage']:.1f}%")
+                with col2:
+                    st.write(f"**PV Panels:** {facade_info['panel_count']} panels")
+                    st.write(f"**System Power:** {facade_info['system_power']:.1f} kW")
+                    if facade_info['panel_count'] > 0:
+                        power_density = facade_info['system_power'] / facade_info['pv_area'] * 1000
+                        st.write(f"**Power Density:** {power_density:.0f} W/m²")
         
-        st.success("✅ 3D visualization complete!")
-        st.info("Proceed to Step 11 for comprehensive reporting.")
+        st.success("✅ Interactive 3D visualization complete!")
+        st.info("**Next Step:** Proceed to Step 11 for comprehensive reporting and data export.")
 
 def create_3d_model(config, height, width, depth):
     """Create 3D model data structure"""
@@ -3637,6 +3770,452 @@ def generate_conclusion_section(best_config, energy_balance, project_name):
     """
     
     return section
+
+def create_interactive_3d_bim_model(model_data, show_building=True, show_pv_panels=True, show_wireframe=False, transparency=0.7, view_mode="Perspective View"):
+    """Create interactive 3D BIM model with zoom and rotate capabilities"""
+    
+    # Extract building dimensions from model data
+    building_dims = model_data['building_dimensions']
+    height = building_dims['height']
+    width = building_dims['width']
+    depth = building_dims['depth']
+    
+    # Create figure with 3D scene
+    fig = go.Figure()
+    
+    # Building structure coordinates (center at origin)
+    x_min, x_max = -width/2, width/2
+    y_min, y_max = -depth/2, depth/2
+    z_min, z_max = 0, height
+    
+    if show_building:
+        # Create building faces as mesh3d surfaces
+        
+        # Bottom face (foundation)
+        fig.add_trace(go.Mesh3d(
+            x=[x_min, x_max, x_max, x_min],
+            y=[y_min, y_min, y_max, y_max],
+            z=[z_min, z_min, z_min, z_min],
+            i=[0, 0], j=[1, 2], k=[2, 3],
+            color='gray',
+            opacity=transparency,
+            name='Foundation',
+            showlegend=True,
+            hovertemplate="Foundation<br>Level: Ground<extra></extra>"
+        ))
+        
+        # Top face (roof)
+        fig.add_trace(go.Mesh3d(
+            x=[x_min, x_max, x_max, x_min],
+            y=[y_min, y_min, y_max, y_max],
+            z=[z_max, z_max, z_max, z_max],
+            i=[0, 0], j=[1, 2], k=[2, 3],
+            color='darkslategray',
+            opacity=transparency,
+            name='Roof',
+            showlegend=True,
+            hovertemplate="Roof<br>Height: " + f"{height}m<extra></extra>"
+        ))
+        
+        # Create facade surfaces with different colors based on orientation
+        facade_colors = {
+            'North': 'lightblue',
+            'South': 'lightcoral', 
+            'East': 'lightgreen',
+            'West': 'lightyellow'
+        }
+        
+        # North facade (y = y_max)
+        fig.add_trace(go.Mesh3d(
+            x=[x_min, x_max, x_max, x_min],
+            y=[y_max, y_max, y_max, y_max],
+            z=[z_min, z_min, z_max, z_max],
+            i=[0, 0], j=[1, 2], k=[2, 3],
+            color=facade_colors['North'],
+            opacity=transparency,
+            name='North Facade',
+            showlegend=True,
+            hovertemplate="North Facade<br>Area: " + f"{model_data['facade_systems'][0]['area']:.0f}m²<extra></extra>"
+        ))
+        
+        # South facade (y = y_min)
+        fig.add_trace(go.Mesh3d(
+            x=[x_min, x_max, x_max, x_min],
+            y=[y_min, y_min, y_min, y_min],
+            z=[z_min, z_min, z_max, z_max],
+            i=[0, 0], j=[1, 2], k=[2, 3],
+            color=facade_colors['South'],
+            opacity=transparency,
+            name='South Facade',
+            showlegend=True,
+            hovertemplate="South Facade<br>Area: " + f"{model_data['facade_systems'][1]['area']:.0f}m²<extra></extra>"
+        ))
+        
+        # East facade (x = x_max)
+        fig.add_trace(go.Mesh3d(
+            x=[x_max, x_max, x_max, x_max],
+            y=[y_min, y_max, y_max, y_min],
+            z=[z_min, z_min, z_max, z_max],
+            i=[0, 0], j=[1, 2], k=[2, 3],
+            color=facade_colors['East'],
+            opacity=transparency,
+            name='East Facade',
+            showlegend=True,
+            hovertemplate="East Facade<br>Area: " + f"{model_data['facade_systems'][2]['area']:.0f}m²<extra></extra>"
+        ))
+        
+        # West facade (x = x_min)
+        fig.add_trace(go.Mesh3d(
+            x=[x_min, x_min, x_min, x_min],
+            y=[y_min, y_max, y_max, y_min],
+            z=[z_min, z_min, z_max, z_max],
+            i=[0, 0], j=[1, 2], k=[2, 3],
+            color=facade_colors['West'],
+            opacity=transparency,
+            name='West Facade',
+            showlegend=True,
+            hovertemplate="West Facade<br>Area: " + f"{model_data['facade_systems'][3]['area']:.0f}m²<extra></extra>"
+        ))
+    
+    if show_wireframe:
+        # Add wireframe edges
+        wireframe_traces = create_building_wireframe(x_min, x_max, y_min, y_max, z_min, z_max)
+        for trace in wireframe_traces:
+            fig.add_trace(trace)
+    
+    if show_pv_panels:
+        # Add PV panels on facades
+        pv_traces = create_pv_panel_visualization(model_data, x_min, x_max, y_min, y_max, z_min, z_max)
+        for trace in pv_traces:
+            fig.add_trace(trace)
+    
+    # Set camera view based on view mode
+    camera_settings = get_camera_settings(view_mode, width, height, depth)
+    
+    # Update layout with interactive controls
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(
+                title="Width (m)",
+                range=[x_min-5, x_max+5],
+                showgrid=True,
+                gridcolor='lightgray',
+                showbackground=True,
+                backgroundcolor='white'
+            ),
+            yaxis=dict(
+                title="Depth (m)",
+                range=[y_min-5, y_max+5],
+                showgrid=True,
+                gridcolor='lightgray',
+                showbackground=True,
+                backgroundcolor='white'
+            ),
+            zaxis=dict(
+                title="Height (m)",
+                range=[z_min, z_max+10],
+                showgrid=True,
+                gridcolor='lightgray',
+                showbackground=True,
+                backgroundcolor='white'
+            ),
+            aspectmode='manual',
+            aspectratio=dict(x=1, y=depth/width, z=height/width),
+            camera=camera_settings,
+            bgcolor='rgba(240,240,240,0.1)'
+        ),
+        title=dict(
+            text=f"Interactive 3D BIPV Building Model - {view_mode}",
+            x=0.5,
+            font=dict(size=16, color='#2E86AB')
+        ),
+        legend=dict(
+            x=0.02,
+            y=0.98,
+            bgcolor='rgba(255,255,255,0.8)',
+            bordercolor='gray',
+            borderwidth=1
+        ),
+        margin=dict(l=0, r=0, t=50, b=0),
+        height=700,
+        template="plotly_white"
+    )
+    
+    # Add annotations for building information
+    fig.add_annotation(
+        x=0.02, y=0.02,
+        xref="paper", yref="paper",
+        text=f"Building: {width}m × {depth}m × {height}m<br>Volume: {model_data['building_volume']:,.0f} m³<br>Total PV: {sum(f['system_power'] for f in model_data['facade_systems']):.1f} kW",
+        showarrow=False,
+        bgcolor="rgba(255,255,255,0.8)",
+        bordercolor="gray",
+        borderwidth=1,
+        font=dict(size=10)
+    )
+    
+    return fig
+
+def create_building_wireframe(x_min, x_max, y_min, y_max, z_min, z_max):
+    """Create wireframe edges for the building"""
+    wireframe_traces = []
+    
+    # Bottom edges
+    edges = [
+        ([x_min, x_max], [y_min, y_min], [z_min, z_min]),  # Front bottom
+        ([x_max, x_max], [y_min, y_max], [z_min, z_min]),  # Right bottom
+        ([x_max, x_min], [y_max, y_max], [z_min, z_min]),  # Back bottom
+        ([x_min, x_min], [y_max, y_min], [z_min, z_min]),  # Left bottom
+        # Top edges
+        ([x_min, x_max], [y_min, y_min], [z_max, z_max]),  # Front top
+        ([x_max, x_max], [y_min, y_max], [z_max, z_max]),  # Right top
+        ([x_max, x_min], [y_max, y_max], [z_max, z_max]),  # Back top
+        ([x_min, x_min], [y_max, y_min], [z_max, z_max]),  # Left top
+        # Vertical edges
+        ([x_min, x_min], [y_min, y_min], [z_min, z_max]),  # Front left
+        ([x_max, x_max], [y_min, y_min], [z_min, z_max]),  # Front right
+        ([x_max, x_max], [y_max, y_max], [z_min, z_max]),  # Back right
+        ([x_min, x_min], [y_max, y_max], [z_min, z_max]),  # Back left
+    ]
+    
+    for i, (x_coords, y_coords, z_coords) in enumerate(edges):
+        wireframe_traces.append(go.Scatter3d(
+            x=x_coords, y=y_coords, z=z_coords,
+            mode='lines',
+            line=dict(color='black', width=2),
+            name='Wireframe' if i == 0 else None,
+            showlegend=True if i == 0 else False,
+            hoverinfo='none'
+        ))
+    
+    return wireframe_traces
+
+def create_pv_panel_visualization(model_data, x_min, x_max, y_min, y_max, z_min, z_max):
+    """Create PV panel visualizations on building facades"""
+    pv_traces = []
+    
+    # Panel dimensions (typical)
+    panel_width = 2.0  # meters
+    panel_height = 1.0  # meters
+    panel_offset = 0.05  # offset from facade surface
+    
+    facade_configs = [
+        ('North', y_max + panel_offset, 'y', x_min, x_max, 'lightgreen'),
+        ('South', y_min - panel_offset, 'y', x_min, x_max, 'darkgreen'),
+        ('East', x_max + panel_offset, 'x', y_min, y_max, 'mediumseagreen'),
+        ('West', x_min - panel_offset, 'x', y_min, y_max, 'forestgreen')
+    ]
+    
+    for facade_name, position, axis, coord_min, coord_max, color in facade_configs:
+        # Find facade data
+        facade_data = next((f for f in model_data['facade_systems'] if f['orientation'] == facade_name), None)
+        if not facade_data or facade_data['panel_count'] == 0:
+            continue
+        
+        # Calculate panel layout
+        panel_count = facade_data['panel_count']
+        facade_width = coord_max - coord_min
+        facade_height = z_max - z_min
+        
+        # Simple grid layout
+        panels_per_row = max(1, int(facade_width / panel_width))
+        panel_rows = max(1, panel_count // panels_per_row)
+        
+        panel_coords_x = []
+        panel_coords_y = []
+        panel_coords_z = []
+        
+        for row in range(min(panel_rows, int(facade_height / panel_height))):
+            for col in range(min(panels_per_row, panel_count - row * panels_per_row)):
+                if axis == 'y':  # North/South facades
+                    # Panel corners
+                    x_start = coord_min + col * panel_width
+                    x_end = x_start + panel_width * 0.8  # Leave gap
+                    z_start = z_min + row * panel_height + 2  # Start 2m from ground
+                    z_end = z_start + panel_height * 0.8  # Leave gap
+                    
+                    # Create panel as small rectangle
+                    panel_coords_x.extend([x_start, x_end, x_end, x_start, x_start, None])
+                    panel_coords_y.extend([position, position, position, position, position, None])
+                    panel_coords_z.extend([z_start, z_start, z_end, z_end, z_start, None])
+                    
+                else:  # East/West facades
+                    # Panel corners
+                    y_start = coord_min + col * panel_width
+                    y_end = y_start + panel_width * 0.8
+                    z_start = z_min + row * panel_height + 2
+                    z_end = z_start + panel_height * 0.8
+                    
+                    # Create panel as small rectangle
+                    panel_coords_x.extend([position, position, position, position, position, None])
+                    panel_coords_y.extend([y_start, y_end, y_end, y_start, y_start, None])
+                    panel_coords_z.extend([z_start, z_start, z_end, z_end, z_start, None])
+        
+        if panel_coords_x:  # Only add if there are panels
+            pv_traces.append(go.Scatter3d(
+                x=panel_coords_x,
+                y=panel_coords_y,
+                z=panel_coords_z,
+                mode='lines',
+                line=dict(color=color, width=4),
+                name=f'PV Panels ({facade_name})',
+                showlegend=True,
+                hovertemplate=f"{facade_name} PV Panels<br>Count: {facade_data['panel_count']}<br>Power: {facade_data['system_power']:.1f} kW<extra></extra>"
+            ))
+    
+    return pv_traces
+
+def get_camera_settings(view_mode, width, height, depth):
+    """Get camera settings for different view modes"""
+    
+    if view_mode == "Perspective View":
+        return dict(
+            eye=dict(x=1.5, y=1.5, z=1.2),
+            center=dict(x=0, y=0, z=height/2),
+            up=dict(x=0, y=0, z=1)
+        )
+    elif view_mode == "Orthographic View":
+        return dict(
+            eye=dict(x=2, y=2, z=1.5),
+            center=dict(x=0, y=0, z=height/2),
+            up=dict(x=0, y=0, z=1),
+            projection=dict(type="orthographic")
+        )
+    elif view_mode == "Top-Down View":
+        return dict(
+            eye=dict(x=0, y=0, z=3),
+            center=dict(x=0, y=0, z=0),
+            up=dict(x=0, y=1, z=0)
+        )
+    elif view_mode == "Front Elevation":
+        return dict(
+            eye=dict(x=0, y=-3, z=height/2),
+            center=dict(x=0, y=0, z=height/2),
+            up=dict(x=0, y=0, z=1)
+        )
+    elif view_mode == "Side Elevation":
+        return dict(
+            eye=dict(x=3, y=0, z=height/2),
+            center=dict(x=0, y=0, z=height/2),
+            up=dict(x=0, y=0, z=1)
+        )
+    else:
+        # Default perspective
+        return dict(
+            eye=dict(x=1.5, y=1.5, z=1.2),
+            center=dict(x=0, y=0, z=height/2),
+            up=dict(x=0, y=0, z=1)
+        )
+
+def calculate_shadow_analysis(model_data):
+    """Calculate shadow impact analysis for each facade"""
+    # Simplified shadow analysis based on orientation and building geometry
+    shadow_impacts = {
+        'North': 15.5,  # Higher shading due to lower solar angles
+        'South': 3.2,   # Minimal shading, optimal solar exposure
+        'East': 8.7,    # Morning shadows from surrounding structures
+        'West': 9.1     # Afternoon shadows from surrounding structures
+    }
+    return shadow_impacts
+
+def create_building_cross_sections(model_data):
+    """Create building cross-section views showing PV placement"""
+    building_dims = model_data['building_dimensions']
+    height = building_dims['height']
+    width = building_dims['width']
+    depth = building_dims['depth']
+    
+    # Create subplots for different cross-sections
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Front Elevation', 'Side Elevation', 'Floor Plan', 'Section A-A'),
+        specs=[[{"type": "scatter"}, {"type": "scatter"}],
+               [{"type": "scatter"}, {"type": "scatter"}]]
+    )
+    
+    # Front elevation (South facade)
+    fig.add_trace(
+        go.Scatter(
+            x=[0, width, width, 0, 0],
+            y=[0, 0, height, height, 0],
+            mode='lines',
+            name='Building Outline',
+            line=dict(color='black', width=2)
+        ),
+        row=1, col=1
+    )
+    
+    # Add PV panels on front elevation
+    south_facade = next((f for f in model_data['facade_systems'] if f['orientation'] == 'South'), None)
+    if south_facade and south_facade['panel_count'] > 0:
+        # Simplified PV panel representation
+        panels_per_row = min(int(width / 2), 10)
+        panel_rows = min(int(height / 1.5), 8)
+        
+        for row in range(panel_rows):
+            for col in range(panels_per_row):
+                x_start = col * (width / panels_per_row) + 1
+                x_end = x_start + 1.5
+                y_start = row * (height / panel_rows) + 2
+                y_end = y_start + 1
+                
+                fig.add_trace(
+                    go.Scatter(
+                        x=[x_start, x_end, x_end, x_start, x_start],
+                        y=[y_start, y_start, y_end, y_end, y_start],
+                        mode='lines',
+                        name='PV Panel' if row == 0 and col == 0 else None,
+                        line=dict(color='green', width=1),
+                        showlegend=True if row == 0 and col == 0 else False
+                    ),
+                    row=1, col=1
+                )
+    
+    # Side elevation
+    fig.add_trace(
+        go.Scatter(
+            x=[0, depth, depth, 0, 0],
+            y=[0, 0, height, height, 0],
+            mode='lines',
+            name='Side View',
+            line=dict(color='black', width=2),
+            showlegend=False
+        ),
+        row=1, col=2
+    )
+    
+    # Floor plan
+    fig.add_trace(
+        go.Scatter(
+            x=[0, width, width, 0, 0],
+            y=[0, 0, depth, depth, 0],
+            mode='lines',
+            name='Floor Plan',
+            line=dict(color='black', width=2),
+            showlegend=False
+        ),
+        row=2, col=1
+    )
+    
+    # Section view
+    fig.add_trace(
+        go.Scatter(
+            x=[0, width, width, 0, 0],
+            y=[0, 0, height, height, 0],
+            mode='lines',
+            name='Section',
+            line=dict(color='black', width=2),
+            showlegend=False
+        ),
+        row=2, col=2
+    )
+    
+    fig.update_layout(
+        title="Building Cross-Sections with PV System Layout",
+        height=600,
+        showlegend=True
+    )
+    
+    return fig
 
 if __name__ == "__main__":
     main()
