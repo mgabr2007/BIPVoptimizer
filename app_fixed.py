@@ -984,7 +984,7 @@ def render_pv_specification():
             key="system_losses_slider"
         )
     
-    if st.button("Calculate PV System Specifications"):
+    if st.button("Calculate PV System Specifications", key="calc_pv_specs"):
         with st.spinner("Calculating PV system layouts for all suitable elements..."):
             pv_systems = calculate_pv_systems(panel_specs, spacing_factor, min_system_size, system_losses)
             st.session_state.project_data['pv_systems'] = pv_systems
@@ -1186,7 +1186,7 @@ def render_yield_demand():
         st.warning("⚠️ Please complete Steps 2 and 6 before proceeding.")
         return
     
-    if st.button("Calculate Energy Balance"):
+    if st.button("Calculate Energy Balance", key="calc_energy_balance"):
         with st.spinner("Analyzing energy yield vs demand balance..."):
             energy_balance = calculate_energy_balance_analysis()
             st.session_state.project_data['energy_balance'] = energy_balance
@@ -1404,8 +1404,8 @@ def render_optimization():
         st.subheader("Optimization Objectives")
         
         # Objective weights
-        energy_weight = st.slider("Energy Independence Weight", 0.0, 1.0, 0.6, 0.1)
-        financial_weight = st.slider("Financial Return Weight", 0.0, 1.0, 0.4, 0.1)
+        energy_weight = st.slider("Energy Independence Weight", 0.0, 1.0, 0.6, 0.1, key="energy_weight")
+        financial_weight = st.slider("Financial Return Weight", 0.0, 1.0, 0.4, 0.1, key="financial_weight")
         
         # Normalize weights
         total_weight = energy_weight + financial_weight
@@ -1418,11 +1418,11 @@ def render_optimization():
     with col2:
         st.subheader("Financial Parameters")
         
-        electricity_rate = st.number_input("Electricity Rate ($/kWh)", 0.05, 0.50, 0.12, 0.01)
-        project_lifetime = st.slider("Project Lifetime (years)", 15, 30, 25, 1)
-        discount_rate = st.slider("Discount Rate (%)", 3.0, 10.0, 6.0, 0.5) / 100
+        electricity_rate = st.number_input("Electricity Rate ($/kWh)", 0.05, 0.50, 0.12, 0.01, key="electricity_rate")
+        project_lifetime = st.slider("Project Lifetime (years)", 15, 30, 25, 1, key="project_lifetime")
+        discount_rate = st.slider("Discount Rate (%)", 3.0, 10.0, 6.0, 0.5, key="discount_rate") / 100
     
-    if st.button("Run Optimization Analysis"):
+    if st.button("Run Optimization Analysis", key="run_optimization"):
         with st.spinner("Analyzing system configurations and optimizing..."):
             optimization_results = run_optimization_analysis(
                 energy_weight, financial_weight, electricity_rate, project_lifetime, discount_rate
@@ -2133,13 +2133,14 @@ def render_reporting():
         report_type = st.selectbox(
             "Report Type",
             ["Executive Summary", "Technical Report", "Financial Analysis", "Complete Report"],
-            help="Select the type of report to generate"
+            help="Select the type of report to generate",
+            key="report_type_select"
         )
         
-        include_charts = st.checkbox("Include Data Visualizations", True)
-        include_recommendations = st.checkbox("Include Recommendations", True)
+        include_charts = st.checkbox("Include Data Visualizations", True, key="include_charts")
+        include_recommendations = st.checkbox("Include Recommendations", True, key="include_recommendations")
         
-        if st.button("Generate Report"):
+        if st.button("Generate Report", key="generate_report"):
             with st.spinner("Generating comprehensive BIPV analysis report..."):
                 report_content = generate_enhanced_comprehensive_report(report_type, include_charts, include_recommendations)
                 st.session_state.project_data['final_report'] = report_content
@@ -2216,10 +2217,11 @@ IRR,12.8,percent,Internal rate of return""")
         export_format = st.selectbox(
             "Export Format",
             ["JSON", "CSV Summary", "Technical Specifications"],
-            help="Select format for data export following the structures above"
+            help="Select format for data export following the structures above",
+            key="export_format_select"
         )
         
-        if st.button("Prepare Export"):
+        if st.button("Prepare Export", key="prepare_export"):
             with st.spinner("Preparing data export..."):
                 export_data = prepare_export_data(export_format)
                 st.session_state.project_data['export_package'] = export_data
