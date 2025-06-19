@@ -19,13 +19,13 @@ go, px, make_subplots, PLOTLY_AVAILABLE = get_plotly_modules()
 
 def main():
     st.set_page_config(
-        page_title="BIPV Analysis Platform",
+        page_title="BIPV Optimizer",
         page_icon="🏢",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
-    st.title("🏢 Building Integrated Photovoltaics (BIPV) Analysis Platform")
+    st.title("🏢 BIPV Optimizer")
     st.markdown("---")
     
     # Initialize session state
@@ -126,8 +126,8 @@ def render_project_setup():
         
         project_name = st.text_input(
             "Project Name",
-            value=st.session_state.project_data.get('project_name', 'BIPV Analysis Project'),
-            help="Enter a descriptive name for your BIPV analysis project. This will appear in all reports and documentation."
+            value=st.session_state.project_data.get('project_name', 'BIPV Optimization Project'),
+            help="Enter a descriptive name for your BIPV optimization project. This will appear in all reports and documentation."
         )
         
         location = st.text_input(
@@ -2246,7 +2246,7 @@ IRR,12.8,percent,Internal rate of return""")
     st.subheader("BIPV Analysis Summary Dashboard")
     
     # Key project metrics
-    project_name = st.session_state.project_data.get('project_name', 'BIPV Analysis Project')
+    project_name = st.session_state.project_data.get('project_name', 'BIPV Optimization Project')
     optimization_results = st.session_state.project_data['optimization_results']
     energy_balance = st.session_state.project_data['energy_balance']
     
@@ -2302,12 +2302,12 @@ IRR,12.8,percent,Internal rate of return""")
         if completion_percentage == 100:
             st.success("Comprehensive BIPV analysis complete! Your building is ready for solar integration.")
     
-    st.success("✅ BIPV Analysis Platform workflow complete!")
+    st.success("✅ BIPV Optimizer workflow complete!")
 
 def generate_enhanced_comprehensive_report(report_type, include_charts, include_recommendations):
     """Generate enhanced comprehensive HTML report with detailed analysis and all visualizations"""
     project_data = st.session_state.project_data
-    project_name = project_data.get('project_name', 'BIPV Analysis Project')
+    project_name = project_data.get('project_name', 'BIPV Optimization Project')
     location = project_data.get('location', 'Unknown Location')
     latitude = project_data.get('latitude', 40.7128)
     longitude = project_data.get('longitude', -74.0060)
