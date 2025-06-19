@@ -2,9 +2,19 @@ import streamlit as st
 import sys
 import os
 
-# Add modules directory to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'modules'))
-sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
+# Add modules directory to path (but remove workspace root to avoid numpy conflicts)
+modules_path = os.path.join(os.path.dirname(__file__), 'modules')
+utils_path = os.path.join(os.path.dirname(__file__), 'utils')
+
+if modules_path not in sys.path:
+    sys.path.insert(0, modules_path)
+if utils_path not in sys.path:
+    sys.path.insert(0, utils_path)
+
+# Remove workspace root from sys.path to prevent numpy import conflicts
+workspace_root = os.path.dirname(__file__)
+if workspace_root in sys.path:
+    sys.path.remove(workspace_root)
 
 # Import all modules
 from project_setup import render_project_setup
