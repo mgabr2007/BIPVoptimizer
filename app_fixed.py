@@ -114,13 +114,13 @@ def render_project_setup():
         project_name = st.text_input(
             "Project Name",
             value=st.session_state.project_data.get('project_name', 'BIPV Analysis Project'),
-            help="Enter a descriptive name for your project"
+            help="Enter a descriptive name for your BIPV analysis project. This will appear in all reports and documentation."
         )
         
         location = st.text_input(
             "Project Location",
             value=st.session_state.project_data.get('location', ''),
-            help="Building location (city, country)"
+            help="Building location (city, country). This affects solar resource calculations and climate data modeling."
         )
         
         # Coordinates
@@ -130,14 +130,14 @@ def render_project_setup():
                 "Latitude", 
                 value=st.session_state.project_data.get('latitude', 40.7128),
                 format="%.4f",
-                help="Building latitude in decimal degrees"
+                help="Geographic latitude in decimal degrees (-90 to +90). Northern latitudes are positive. Critical for solar angle calculations and seasonal irradiance modeling."
             )
         with col_lon:
             longitude = st.number_input(
                 "Longitude", 
                 value=st.session_state.project_data.get('longitude', -74.0060),
                 format="%.4f",
-                help="Building longitude in decimal degrees"
+                help="Geographic longitude in decimal degrees (-180 to +180). Eastern longitudes are positive. Used for time zone corrections and sun path calculations."
             )
     
     with col2:
@@ -427,7 +427,35 @@ def render_weather_environment():
         st.info("Proceed to Step 4 for building facade extraction.")
 
 def generate_simple_weather_data(lat, lon):
-    """Generate simplified weather data for location"""
+    """
+    Generate simplified weather data for location using empirical solar radiation models
+    
+    Equations Used:
+    1. Base Annual GHI = 1000 + (40 - |latitude|) × 20 [kWh/m²/year]
+       - Input: latitude (degrees) - Geographic latitude coordinate
+       - Purpose: Estimates annual global horizontal irradiance based on latitude
+       - Result: Higher values at lower latitudes (equatorial regions)
+    
+    2. Seasonal Factor = 0.7 + 0.6 × sin(2π × (month - 3) / 12)
+       - Input: month (1-12) - Calendar month number
+       - Purpose: Models seasonal solar variation with summer peak
+       - Result: Multiplicative factor for monthly distribution
+    
+    3. Monthly GHI = (Base Annual GHI / 12) × Seasonal Factor [kWh/m²/month]
+       - Input: Base annual GHI, seasonal factor
+       - Purpose: Distributes annual irradiance across months
+       - Result: Monthly solar energy availability
+    
+    4. Base Temperature = 15 - |latitude| × 0.3 [°C]
+       - Input: latitude (degrees)
+       - Purpose: Estimates average temperature based on latitude
+       - Result: Cooler temperatures at higher latitudes
+    
+    5. Heating Degree Days = max(0, (18 - avg_temperature) × 365) [°C·days]
+       - Input: average temperature (°C)
+       - Purpose: Calculates annual heating energy requirement
+       - Result: Zero for warm climates, higher for cold climates
+    """
     # Base solar irradiance varies by latitude
     base_annual_ghi = 1000 + (40 - abs(lat)) * 20  # Higher at lower latitudes
     
@@ -696,7 +724,35 @@ def render_radiation_grid():
         st.info("Proceed to Step 6 for PV panel specification.")
 
 def calculate_radiation_analysis():
-    """Calculate solar radiation for building elements"""
+    """
+    Calculate solar radiation for building elements using established solar engineering methods
+    
+    Equations Used:
+    1. Element Irradiance = Base GHI × Orientation Factor × Shading Factor × Tilt Factor [kWh/m²/year]
+       - Input: Base GHI (kWh/m²/year) - Global horizontal irradiance
+       - Input: Orientation Factor (0-1) - Directional solar access coefficient
+       - Input: Shading Factor (0-1) - Reduction due to obstructions
+       - Input: Tilt Factor (0-1) - Vertical surface correction factor
+       - Purpose: Calculates incident solar radiation on each building element
+       - Result: Annual solar energy available per unit area
+    
+    2. Total Shading Factor = 1 - (Tree Shading + Building Shading)
+       - Input: Tree Shading (0-1) - Fraction blocked by vegetation
+       - Input: Building Shading (0-1) - Fraction blocked by structures
+       - Purpose: Combines multiple shading sources
+       - Result: Net solar access factor after obstructions
+    
+    3. Orientation Factors (empirical coefficients for vertical surfaces):
+       - South: 0.95 (optimal in Northern Hemisphere)
+       - SE/SW: 0.85 (good morning/afternoon exposure)
+       - East/West: 0.75 (half-day exposure)
+       - NE/NW: 0.55 (limited exposure)
+       - North: 0.35 (minimal direct solar access)
+    
+    4. Vertical Factor = 0.8
+       - Purpose: Accounts for reduced irradiance on vertical vs. optimal tilt surfaces
+       - Result: 20% reduction compared to optimally tilted surfaces
+    """
     elements = st.session_state.project_data['building_elements']
     weather = st.session_state.project_data['weather_data']
     shading_factors = st.session_state.project_data.get('shading_factors', {'trees': 0.1, 'buildings': 0.05})
@@ -784,17 +840,17 @@ def render_pv_specification():
         
         spacing_factor = st.slider(
             "Panel Spacing Factor", 0.02, 0.15, 0.05, 0.01,
-            help="Spacing between panels as fraction of panel size"
+            help="Spacing between panels as fraction of panel dimensions. Accounts for structural framing, maintenance access, and thermal expansion. Typical range: 0.02-0.10 for optimal installations."
         )
         
         min_system_size = st.number_input(
             "Minimum System Size (kW)", 1.0, 20.0, 3.0, 0.5,
-            help="Minimum system size for economic viability"
+            help="Minimum DC system capacity for economic viability. Smaller systems have higher per-kW costs due to fixed installation expenses. Recommended minimum: 3-5 kW for cost-effectiveness."
         )
         
         system_losses = st.slider(
             "Total System Losses (%)", 10, 25, 15, 1,
-            help="Inverter, wiring, soiling, and other losses"
+            help="Combined system efficiency losses including: inverter losses (2-5%), DC/AC wiring (2-3%), soiling/dust (2-5%), temperature effects (3-8%), mismatch losses (1-3%). Typical total: 12-18%."
         )
     
     if st.button("Calculate PV System Specifications"):
@@ -883,7 +939,52 @@ def get_panel_database():
     }
 
 def calculate_pv_systems(panel_specs, spacing_factor, min_system_size, system_losses):
-    """Calculate PV system specifications for suitable elements"""
+    """
+    Calculate PV system specifications for suitable elements using industry-standard methods
+    
+    Equations Used:
+    1. Effective Panel Area = Panel Area × (1 + Spacing Factor)² [m²]
+       - Input: Panel Area (m²) - Physical panel dimensions
+       - Input: Spacing Factor (0-1) - Inter-panel spacing coefficient
+       - Purpose: Accounts for required spacing between panels
+       - Result: Total area including spacing per panel
+    
+    2. Panel Count = floor(Available Area / Effective Panel Area)
+       - Input: Available Area (m²) - Usable surface area
+       - Input: Effective Panel Area (m²) - Panel area with spacing
+       - Purpose: Determines maximum panels that can be installed
+       - Result: Integer number of panels that physically fit
+    
+    3. System Power = (Panel Count × Panel Power) / 1000 [kW]
+       - Input: Panel Count (units) - Number of installed panels
+       - Input: Panel Power (W) - Rated power per panel under STC
+       - Purpose: Calculates total DC system capacity
+       - Result: System power rating in kilowatts
+    
+    4. Annual Energy = System Power × Annual Irradiance × Performance Ratio [kWh/year]
+       - Input: System Power (kW) - DC system capacity
+       - Input: Annual Irradiance (kWh/m²/year) - Solar resource
+       - Input: Performance Ratio (0-1) - System efficiency factor
+       - Purpose: Estimates annual energy production
+       - Result: Expected yearly electricity generation
+    
+    5. Performance Ratio = (100 - System Losses) / 100
+       - Input: System Losses (%) - Combined inverter, wiring, soiling losses
+       - Purpose: Accounts for real-world efficiency reductions
+       - Result: Fraction of theoretical maximum energy output
+    
+    6. Specific Yield = Annual Energy / System Power [kWh/kW/year]
+       - Input: Annual Energy (kWh/year) - Total energy production
+       - Input: System Power (kW) - System capacity
+       - Purpose: Normalizes energy output per unit capacity
+       - Result: Performance metric for system comparison
+    
+    7. Total Cost = Panel Cost + Installation Cost [USD]
+       - Input: Panel Cost = Panel Count × Unit Panel Cost
+       - Input: Installation Cost = System Power × Cost per kW
+       - Purpose: Estimates total project investment
+       - Result: Capital expenditure for system installation
+    """
     radiation_data = st.session_state.project_data['radiation_analysis']
     
     pv_systems = []
@@ -1075,7 +1176,44 @@ def render_yield_demand():
         st.info("Proceed to Step 8 for system optimization.")
 
 def calculate_energy_balance_analysis():
-    """Calculate energy balance between PV generation and building demand"""
+    """
+    Calculate energy balance between PV generation and building demand using energy flow analysis
+    
+    Energy Balance Equations Used:
+    1. Annual Demand = Σ(Monthly Consumption) [kWh/year]
+       - Input: Monthly Consumption (kWh) - Historical energy usage data
+       - Purpose: Determines total building energy requirements
+       - Result: Baseline annual electricity consumption
+    
+    2. Total Annual Generation = Σ(System Annual Energy) [kWh/year]
+       - Input: System Annual Energy (kWh) - PV system production estimates
+       - Purpose: Sums generation from all installed PV systems
+       - Result: Total renewable energy production capacity
+    
+    3. Monthly Generation Fraction = Monthly GHI / Total Annual GHI
+       - Input: Monthly GHI (kWh/m²/month) - Solar resource distribution
+       - Input: Total Annual GHI (kWh/m²/year) - Annual solar resource
+       - Purpose: Distributes annual generation across months
+       - Result: Seasonal generation profile
+    
+    4. Monthly Generation = Total Annual Generation × Monthly Fraction [kWh/month]
+       - Input: Total Annual Generation (kWh/year) - System capacity
+       - Input: Monthly Fraction (0-1) - Seasonal distribution factor
+       - Purpose: Estimates monthly PV energy production
+       - Result: Time-series generation profile
+    
+    5. Net Energy Import = Annual Demand - Annual Generation [kWh/year]
+       - Input: Annual Demand (kWh) - Building energy requirements
+       - Input: Annual Generation (kWh) - PV system production
+       - Purpose: Calculates remaining grid dependency
+       - Result: Positive = grid import, Negative = grid export
+    
+    6. Energy Self-Sufficiency = (Annual Generation / Annual Demand) × 100 [%]
+       - Input: Annual Generation (kWh) - PV energy production
+       - Input: Annual Demand (kWh) - Building energy consumption
+       - Purpose: Measures renewable energy independence
+       - Result: Percentage of demand met by on-site generation
+    """
     historical_data = st.session_state.project_data['historical_data']
     pv_systems = st.session_state.project_data['pv_systems']
     weather_data = st.session_state.project_data['weather_data']
@@ -1252,7 +1390,51 @@ def run_optimization_analysis(energy_weight, financial_weight, electricity_rate,
     }
 
 def analyze_configuration(systems, baseline_energy_balance, electricity_rate, project_lifetime, discount_rate):
-    """Analyze a specific configuration of PV systems"""
+    """
+    Analyze a specific configuration of PV systems using multi-criteria decision analysis
+    
+    Configuration Analysis Equations Used:
+    1. Total System Power = Σ(Individual System Power) [kW]
+       - Input: Individual System Power (kW) - Power rating of each PV system
+       - Purpose: Aggregates total installed capacity
+       - Result: Combined DC power rating of all systems
+    
+    2. Total Investment Cost = Σ(System Total Cost) [USD]
+       - Input: System Total Cost (USD) - Capital cost per system
+       - Purpose: Calculates total project investment
+       - Result: Combined capital expenditure requirement
+    
+    3. Total Annual Generation = Σ(System Annual Energy) [kWh/year]
+       - Input: System Annual Energy (kWh/year) - Energy production per system
+       - Purpose: Aggregates total renewable energy production
+       - Result: Combined annual electricity generation
+    
+    4. Energy Independence = min(100, (Total Generation / Annual Demand) × 100) [%]
+       - Input: Total Generation (kWh/year) - Combined PV production
+       - Input: Annual Demand (kWh/year) - Building electricity consumption
+       - Purpose: Measures degree of energy self-sufficiency
+       - Result: Percentage capped at 100% for practical interpretation
+    
+    5. Annual Savings = Total Generation × Electricity Rate [USD/year]
+       - Input: Total Generation (kWh/year) - PV energy production
+       - Input: Electricity Rate (USD/kWh) - Grid electricity price
+       - Purpose: Calculates monetary value of energy offset
+       - Result: Annual reduction in electricity bills
+    
+    6. Net Present Value = -Initial Cost + Σ(Annual Savings / (1 + r)^t) [USD]
+       - Input: Initial Cost (USD) - Total system investment
+       - Input: Annual Savings (USD/year) - Yearly cash benefit
+       - Input: r - Discount rate (decimal)
+       - Input: t - Project year (1 to lifetime)
+       - Purpose: Time-value adjusted investment analysis
+       - Result: Present value of investment returns
+    
+    7. Simple Payback Period = Initial Cost / Annual Savings [years]
+       - Input: Initial Cost (USD) - Capital investment
+       - Input: Annual Savings (USD/year) - Yearly cash benefit
+       - Purpose: Time required to recover investment
+       - Result: Break-even point in years
+    """
     # System metrics
     total_power_kw = sum(s['system_power_kw'] for s in systems)
     total_cost = sum(s['total_cost'] for s in systems)
@@ -1367,7 +1549,60 @@ def render_financial_analysis():
 
 def calculate_detailed_analysis(config, electricity_rate, feed_in_tariff, o_m_rate, 
                               degradation_rate, grid_co2_factor, carbon_price, project_lifetime, discount_rate):
-    """Calculate detailed financial and environmental analysis"""
+    """
+    Calculate detailed financial and environmental analysis using standard financial models
+    
+    Financial Equations Used:
+    1. Annual Generation (Year t) = Initial Generation × (1 - Degradation Rate)^t [kWh]
+       - Input: Initial Generation (kWh/year) - First year energy production
+       - Input: Degradation Rate (%) - Annual performance decline
+       - Input: Year t - Project year (0 to lifetime)
+       - Purpose: Models declining PV performance over time
+       - Result: Energy production accounting for aging effects
+    
+    2. Annual Revenue = Generation × Electricity Rate [USD]
+       - Input: Generation (kWh) - Annual energy production
+       - Input: Electricity Rate (USD/kWh) - Grid electricity price
+       - Purpose: Calculates value of energy savings/sales
+       - Result: Annual monetary benefit from PV system
+    
+    3. Net Present Value (NPV) = -Initial Cost + Σ(Cash Flow_t / (1 + r)^t) [USD]
+       - Input: Initial Cost (USD) - Capital investment
+       - Input: Cash Flow_t (USD) - Annual net cash flow in year t
+       - Input: r - Discount rate (decimal)
+       - Purpose: Time value of money analysis
+       - Result: Present value of investment returns
+    
+    4. Simple Payback Period = Initial Cost / Average Annual Cash Flow [years]
+       - Input: Initial Cost (USD) - Capital investment
+       - Input: Average Annual Cash Flow (USD) - Mean yearly benefit
+       - Purpose: Time to recover initial investment
+       - Result: Years until break-even point
+    
+    5. Return on Investment (ROI) = (Total Benefits - Initial Cost) / Initial Cost × 100 [%]
+       - Input: Total Benefits (USD) - Sum of all cash flows
+       - Input: Initial Cost (USD) - Capital investment
+       - Purpose: Overall profitability measure
+       - Result: Percentage return on invested capital
+    
+    Environmental Equations Used:
+    6. Annual CO₂ Avoided = Generation × Grid CO₂ Factor [kg CO₂]
+       - Input: Generation (kWh) - Annual energy production
+       - Input: Grid CO₂ Factor (kg CO₂/kWh) - Grid emission intensity
+       - Purpose: Quantifies emissions displacement
+       - Result: Annual carbon footprint reduction
+    
+    7. Lifetime CO₂ Avoided = Σ(Annual CO₂ Avoided_t) / 1000 [tons CO₂]
+       - Input: Annual CO₂ Avoided (kg) - Yearly emissions reduction
+       - Purpose: Total environmental impact over project life
+       - Result: Cumulative carbon savings in metric tons
+    
+    8. Carbon Credit Value = Lifetime CO₂ Avoided × Carbon Price [USD]
+       - Input: Lifetime CO₂ Avoided (tons) - Total emissions reduction
+       - Input: Carbon Price (USD/ton) - Market value of carbon credits
+       - Purpose: Monetizes environmental benefits
+       - Result: Economic value of carbon offset
+    """
     
     initial_cost = config['total_cost']
     annual_generation = config['annual_generation']
@@ -1701,8 +1936,7 @@ def render_reporting():
             st.write(f"**{i}.** {recommendation}")
         
         if completion_percentage == 100:
-            st.balloons()
-            st.success("🎉 Comprehensive BIPV analysis complete! Your building is ready for solar integration.")
+            st.success("Comprehensive BIPV analysis complete! Your building is ready for solar integration.")
     
     st.success("✅ BIPV Analysis Platform workflow complete!")
 
