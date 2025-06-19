@@ -1,9 +1,4 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import numpy as np
 import math
 import json
 from datetime import datetime, timedelta
@@ -227,7 +222,7 @@ def render_historical_data():
                     st.error("❌ File must contain header and data rows")
                     return
                 
-                # Parse CSV manually to avoid pandas dependency
+                # Parse CSV manually
                 header = lines[0].split(',')
                 data_rows = []
                 
@@ -243,9 +238,7 @@ def render_historical_data():
                 
                 # Display data preview
                 st.subheader("Data Preview")
-                preview_data = data_rows[:5]  # Show first 5 rows
-                
-                for i, row in enumerate(preview_data):
+                for i, row in enumerate(data_rows[:5]):
                     col_data = []
                     for key, value in row.items():
                         col_data.append(f"{key}: {value}")
@@ -271,51 +264,35 @@ def render_historical_data():
                             st.metric("Avg Monthly Consumption", f"{avg_consumption:.1f} kWh")
                         with col3:
                             st.metric("Total Annual Consumption", f"{total_consumption:.0f} kWh")
-                
-                # Trend visualization
-                st.subheader("Consumption Analysis")
-                
-                # Create consumption trend chart
-                if len(consumptions) >= 3:
-                    # Prepare data for plotting
-                    months = list(range(1, len(consumptions) + 1))
-                    consumption_df = pd.DataFrame({
-                        'Month': months,
-                        'Consumption': consumptions
-                    })
-                    
-                    # Line chart for consumption trend
-                    fig_trend = px.line(consumption_df, x='Month', y='Consumption',
-                                       title='Monthly Energy Consumption Trend',
-                                       labels={'Consumption': 'Consumption (kWh)', 'Month': 'Month'})
-                    fig_trend.update_layout(height=400)
-                    st.plotly_chart(fig_trend, use_container_width=True)
-                
-                if len(consumptions) >= 12:
-                    # Calculate seasonal averages
-                    quarters = {1: [], 2: [], 3: [], 4: []}
-                    
-                    for i, consumption in enumerate(consumptions):
-                        month = (i % 12) + 1
-                        quarter = ((month - 1) // 3) + 1
-                        quarters[quarter].append(consumption)
-                    
-                    # Create seasonal bar chart
-                    seasonal_data = []
-                    seasons = ["Q1 (Winter)", "Q2 (Spring)", "Q3 (Summer)", "Q4 (Fall)"]
-                    
-                    for q, values in quarters.items():
-                        if values:
-                            avg = sum(values) / len(values)
-                            seasonal_data.append({'Season': seasons[q-1], 'Average_Consumption': avg})
-                    
-                    if seasonal_data:
-                        seasonal_df = pd.DataFrame(seasonal_data)
-                        fig_seasonal = px.bar(seasonal_df, x='Season', y='Average_Consumption',
-                                            title='Average Consumption by Season',
-                                            labels={'Average_Consumption': 'Average Consumption (kWh)'})
-                        fig_seasonal.update_layout(height=350)
-                        st.plotly_chart(fig_seasonal, use_container_width=True)
+                        
+                        # Try to import plotly for visualization
+                        try:
+                            import plotly.express as px
+                            import pandas as pd
+                            
+                            # Create consumption trend chart
+                            if len(consumptions) >= 3:
+                                months = list(range(1, len(consumptions) + 1))
+                                consumption_df = pd.DataFrame({
+                                    'Month': months,
+                                    'Consumption': consumptions
+                                })
+                                
+                                fig_trend = px.line(consumption_df, x='Month', y='Consumption',
+                                                   title='Monthly Energy Consumption Trend',
+                                                   labels={'Consumption': 'Consumption (kWh)'})
+                                fig_trend.update_layout(height=400)
+                                st.plotly_chart(fig_trend, use_container_width=True)
+                                
+                        except ImportError:
+                            # Fall back to text-based visualization
+                            st.subheader("Consumption Trend")
+                            st.write("**Monthly Consumption Pattern:**")
+                            max_val = max(consumptions) if consumptions else 1
+                            for i, consumption in enumerate(consumptions[:12]):
+                                bar_length = int((consumption / max_val) * 30)
+                                bar = "█" * bar_length + "░" * (30 - bar_length)
+                                st.write(f"Month {i+1}: {bar} {consumption:.0f} kWh")
                 
                 st.success("✅ Historical data analysis complete!")
                 st.info("Proceed to Step 3 for weather data configuration.")
@@ -399,39 +376,52 @@ def render_weather_environment():
         
         monthly_data = weather['monthly_ghi']
         
-        # Create interactive charts
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Monthly GHI bar chart
-            monthly_df = pd.DataFrame({
-                'Month': months,
-                'GHI': monthly_data
-            })
+        # Try to create interactive charts
+        try:
+            import plotly.express as px
+            import pandas as pd
             
-            fig_monthly = px.bar(monthly_df, x='Month', y='GHI',
-                               title='Monthly Global Horizontal Irradiance',
-                               labels={'GHI': 'Solar Irradiance (kWh/m²)'})
-            fig_monthly.update_layout(height=350)
-            st.plotly_chart(fig_monthly, use_container_width=True)
-        
-        with col2:
-            # Temperature profile
-            temp_profile = []
-            for month in range(1, 13):
-                temp_base = weather['avg_temperature'] + 10 * math.sin(2 * math.pi * (month - 3) / 12)
-                temp_profile.append(temp_base)
+            col1, col2 = st.columns(2)
             
-            temp_df = pd.DataFrame({
-                'Month': months,
-                'Temperature': temp_profile
-            })
+            with col1:
+                # Monthly GHI bar chart
+                monthly_df = pd.DataFrame({
+                    'Month': months,
+                    'GHI': monthly_data
+                })
+                
+                fig_monthly = px.bar(monthly_df, x='Month', y='GHI',
+                                   title='Monthly Global Horizontal Irradiance',
+                                   labels={'GHI': 'Solar Irradiance (kWh/m²)'})
+                fig_monthly.update_layout(height=350)
+                st.plotly_chart(fig_monthly, use_container_width=True)
             
-            fig_temp = px.line(temp_df, x='Month', y='Temperature',
-                             title='Monthly Temperature Profile',
-                             labels={'Temperature': 'Temperature (°C)'})
-            fig_temp.update_layout(height=350)
-            st.plotly_chart(fig_temp, use_container_width=True)
+            with col2:
+                # Temperature profile
+                temp_profile = []
+                for month in range(1, 13):
+                    temp_base = weather['avg_temperature'] + 10 * math.sin(2 * math.pi * (month - 3) / 12)
+                    temp_profile.append(temp_base)
+                
+                temp_df = pd.DataFrame({
+                    'Month': months,
+                    'Temperature': temp_profile
+                })
+                
+                fig_temp = px.line(temp_df, x='Month', y='Temperature',
+                                 title='Monthly Temperature Profile',
+                                 labels={'Temperature': 'Temperature (°C)'})
+                fig_temp.update_layout(height=350)
+                st.plotly_chart(fig_temp, use_container_width=True)
+                
+        except ImportError:
+            # Fall back to text-based charts
+            st.write("**Monthly Global Horizontal Irradiance (kWh/m²):**")
+            max_val = max(monthly_data)
+            for i, (month, value) in enumerate(zip(months, monthly_data)):
+                bar_length = int((value / max_val) * 30)
+                bar = "█" * bar_length + "░" * (30 - bar_length)
+                st.write(f"{month}: {bar} {value:.0f}")
         
         st.success("✅ Weather analysis complete!")
         st.info("Proceed to Step 4 for building facade extraction.")
@@ -659,26 +649,37 @@ def render_radiation_grid():
                 })
         
         if orient_data:
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Irradiance by orientation
-                orient_df = pd.DataFrame(orient_data)
-                fig_orient = px.bar(orient_df, x='Orientation', y='Avg_Irradiance',
-                                  title='Average Solar Irradiance by Orientation',
-                                  labels={'Avg_Irradiance': 'Irradiance (kWh/m²)'})
-                fig_orient.update_layout(height=350)
-                st.plotly_chart(fig_orient, use_container_width=True)
-            
-            with col2:
-                # Scatter plot: Area vs Irradiance
-                fig_scatter = px.scatter(orient_df, x='Total_Area', y='Avg_Irradiance',
-                                       size='Element_Count', color='Orientation',
-                                       title='Area vs Solar Resource',
-                                       labels={'Total_Area': 'Total Area (m²)',
-                                              'Avg_Irradiance': 'Irradiance (kWh/m²)'})
-                fig_scatter.update_layout(height=350)
-                st.plotly_chart(fig_scatter, use_container_width=True)
+            # Try to create plotly charts
+            try:
+                import plotly.express as px
+                import pandas as pd
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Irradiance by orientation
+                    orient_df = pd.DataFrame(orient_data)
+                    fig_orient = px.bar(orient_df, x='Orientation', y='Avg_Irradiance',
+                                      title='Average Solar Irradiance by Orientation',
+                                      labels={'Avg_Irradiance': 'Irradiance (kWh/m²)'})
+                    fig_orient.update_layout(height=350)
+                    st.plotly_chart(fig_orient, use_container_width=True)
+                
+                with col2:
+                    # Scatter plot: Area vs Irradiance
+                    fig_scatter = px.scatter(orient_df, x='Total_Area', y='Avg_Irradiance',
+                                           size='Element_Count', color='Orientation',
+                                           title='Area vs Solar Resource',
+                                           labels={'Total_Area': 'Total Area (m²)',
+                                                  'Avg_Irradiance': 'Irradiance (kWh/m²)'})
+                    fig_scatter.update_layout(height=350)
+                    st.plotly_chart(fig_scatter, use_container_width=True)
+                    
+            except ImportError:
+                # Fall back to text display
+                for item in orient_data:
+                    st.write(f"**{item['Orientation']}:** {item['Element_Count']} elements, "
+                            f"{item['Avg_Irradiance']:.0f} kWh/m², {item['Total_Area']:.0f} m²")
         
         # Top performing elements
         st.subheader("Top Solar Resource Elements")
@@ -943,6 +944,7 @@ def calculate_pv_systems(panel_specs, spacing_factor, min_system_size, system_lo
     
     return pv_systems
 
+# Continue with the remaining functions...
 def render_yield_demand():
     """Energy yield vs demand analysis"""
     st.header("7. Yield vs. Demand Calculation")
@@ -979,90 +981,77 @@ def render_yield_demand():
         months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
         
-        # Create monthly energy balance chart
-        monthly_df = pd.DataFrame({
-            'Month': months,
-            'Demand': balance['monthly_demand'],
-            'Generation': balance['monthly_generation'],
-            'Net_Import': [d - g for d, g in zip(balance['monthly_demand'], balance['monthly_generation'])]
-        })
-        
-        # Multi-line chart showing demand vs generation
-        fig_energy = go.Figure()
-        
-        fig_energy.add_trace(go.Scatter(
-            x=monthly_df['Month'],
-            y=monthly_df['Demand'],
-            mode='lines+markers',
-            name='Energy Demand',
-            line=dict(color='red', width=3),
-            marker=dict(size=8)
-        ))
-        
-        fig_energy.add_trace(go.Scatter(
-            x=monthly_df['Month'],
-            y=monthly_df['Generation'],
-            mode='lines+markers',
-            name='PV Generation',
-            line=dict(color='green', width=3),
-            marker=dict(size=8)
-        ))
-        
-        fig_energy.add_trace(go.Scatter(
-            x=monthly_df['Month'],
-            y=monthly_df['Net_Import'],
-            mode='lines+markers',
-            name='Net Import',
-            line=dict(color='blue', width=2, dash='dash'),
-            marker=dict(size=6)
-        ))
-        
-        fig_energy.update_layout(
-            title='Monthly Energy Balance Profile',
-            xaxis_title='Month',
-            yaxis_title='Energy (kWh)',
-            height=450,
-            hovermode='x unified'
-        )
-        
-        st.plotly_chart(fig_energy, use_container_width=True)
-        
-        # Energy balance summary table
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Bar chart comparing annual totals
-            annual_summary = pd.DataFrame({
-                'Type': ['Annual Demand', 'Annual Generation', 'Net Import'],
-                'Energy': [balance['annual_demand'], balance['annual_generation'], balance['net_import']]
+        # Try interactive visualization
+        try:
+            import plotly.express as px
+            import plotly.graph_objects as go
+            import pandas as pd
+            
+            # Create monthly energy balance chart
+            monthly_df = pd.DataFrame({
+                'Month': months,
+                'Demand': balance['monthly_demand'],
+                'Generation': balance['monthly_generation'],
+                'Net_Import': [d - g for d, g in zip(balance['monthly_demand'], balance['monthly_generation'])]
             })
             
-            fig_annual = px.bar(annual_summary, x='Type', y='Energy',
-                              title='Annual Energy Summary',
-                              labels={'Energy': 'Energy (kWh)'},
-                              color='Type')
-            fig_annual.update_layout(height=350, showlegend=False)
-            st.plotly_chart(fig_annual, use_container_width=True)
-        
-        with col2:
-            # Self-sufficiency gauge
-            fig_gauge = go.Figure(go.Indicator(
-                mode="gauge+number+delta",
-                value=balance['self_sufficiency'],
-                domain={'x': [0, 1], 'y': [0, 1]},
-                title={'text': "Energy Self-Sufficiency (%)"},
-                delta={'reference': 100},
-                gauge={'axis': {'range': [None, 100]},
-                       'bar': {'color': "darkblue"},
-                       'steps': [
-                           {'range': [0, 50], 'color': "lightgray"},
-                           {'range': [50, 80], 'color': "yellow"},
-                           {'range': [80, 100], 'color': "lightgreen"}],
-                       'threshold': {'line': {'color': "red", 'width': 4},
-                                    'thickness': 0.75, 'value': 90}}))
+            # Multi-line chart showing demand vs generation
+            fig_energy = go.Figure()
             
-            fig_gauge.update_layout(height=350)
-            st.plotly_chart(fig_gauge, use_container_width=True)
+            fig_energy.add_trace(go.Scatter(
+                x=monthly_df['Month'],
+                y=monthly_df['Demand'],
+                mode='lines+markers',
+                name='Energy Demand',
+                line=dict(color='red', width=3),
+                marker=dict(size=8)
+            ))
+            
+            fig_energy.add_trace(go.Scatter(
+                x=monthly_df['Month'],
+                y=monthly_df['Generation'],
+                mode='lines+markers',
+                name='PV Generation',
+                line=dict(color='green', width=3),
+                marker=dict(size=8)
+            ))
+            
+            fig_energy.add_trace(go.Scatter(
+                x=monthly_df['Month'],
+                y=monthly_df['Net_Import'],
+                mode='lines+markers',
+                name='Net Import',
+                line=dict(color='blue', width=2, dash='dash'),
+                marker=dict(size=6)
+            ))
+            
+            fig_energy.update_layout(
+                title='Monthly Energy Balance Profile',
+                xaxis_title='Month',
+                yaxis_title='Energy (kWh)',
+                height=450,
+                hovermode='x unified'
+            )
+            
+            st.plotly_chart(fig_energy, use_container_width=True)
+            
+        except ImportError:
+            # Fall back to text visualization
+            st.write("**Monthly Energy Balance (kWh):**")
+            for i, month in enumerate(months):
+                demand = balance['monthly_demand'][i]
+                generation = balance['monthly_generation'][i]
+                net = demand - generation
+                
+                # Create visual bar using characters
+                max_val = max(max(balance['monthly_demand']), max(balance['monthly_generation']))
+                demand_bar_length = int((demand / max_val) * 20)
+                generation_bar_length = int((generation / max_val) * 20)
+                
+                demand_bar = "🔴" * demand_bar_length
+                generation_bar = "🟢" * generation_bar_length
+                
+                st.write(f"**{month}:** Demand: {demand_bar} {demand:.0f} | Generation: {generation_bar} {generation:.0f} | Net: {net:+.0f}")
         
         # Energy independence analysis
         st.subheader("Energy Independence Analysis")
@@ -1208,43 +1197,6 @@ def render_optimization():
                 with col3:
                     st.write(f"**Total Investment:** ${config['total_cost']:,.0f}")
                     st.write(f"**Payback Period:** {config['payback_years']:.1f} years")
-        
-        # Performance metrics with interactive visualizations
-        st.subheader("Performance vs Investment Analysis")
-        
-        # Create configuration comparison charts
-        config_df = pd.DataFrame(sorted_configs[:8])
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Scatter plot: System Size vs Energy Independence
-            fig_scatter = px.scatter(config_df, x='total_power_kw', y='energy_independence',
-                                   size='total_cost', color='overall_score',
-                                   title='System Size vs Energy Independence',
-                                   labels={'total_power_kw': 'System Power (kW)',
-                                          'energy_independence': 'Energy Independence (%)',
-                                          'overall_score': 'Score'})
-            fig_scatter.update_layout(height=350)
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        
-        with col2:
-            # Bar chart: Top configurations comparison
-            fig_top = px.bar(config_df[:5], x='config_id', y='overall_score',
-                           title='Top 5 Configuration Scores',
-                           labels={'overall_score': 'Overall Score',
-                                  'config_id': 'Configuration'})
-            fig_top.update_layout(height=350, xaxis_tickangle=45)
-            st.plotly_chart(fig_top, use_container_width=True)
-        
-        # Pareto frontier visualization
-        fig_pareto = px.scatter(config_df, x='payback_years', y='energy_independence',
-                              size='total_power_kw', color='config_id',
-                              title='Investment Payback vs Energy Independence',
-                              labels={'payback_years': 'Payback Period (years)',
-                                     'energy_independence': 'Energy Independence (%)'})
-        fig_pareto.update_layout(height=400)
-        st.plotly_chart(fig_pareto, use_container_width=True)
         
         st.success("✅ System optimization complete!")
         st.info("Proceed to Step 9 for detailed financial analysis.")
@@ -1410,86 +1362,6 @@ def render_financial_analysis():
         with col3:
             st.metric("Carbon Credit Value", f"${analysis['carbon_value']:,.0f}")
         
-        # Cash flow analysis with interactive charts
-        st.subheader("Cash Flow Projection")
-        
-        # Prepare cash flow data for visualization
-        years = list(range(1, len(analysis['annual_cash_flows']) + 1))
-        annual_cfs = analysis['annual_cash_flows']
-        cumulative_cfs = []
-        
-        cumulative = -selected_config['total_cost']
-        for cf in annual_cfs:
-            cumulative += cf
-            cumulative_cfs.append(cumulative)
-        
-        cash_flow_df = pd.DataFrame({
-            'Year': years,
-            'Annual_Cash_Flow': annual_cfs,
-            'Cumulative_Cash_Flow': cumulative_cfs
-        })
-        
-        # Cash flow visualization
-        fig_cashflow = make_subplots(specs=[[{"secondary_y": True}]])
-        
-        # Annual cash flow bars
-        fig_cashflow.add_trace(
-            go.Bar(x=cash_flow_df['Year'], y=cash_flow_df['Annual_Cash_Flow'],
-                   name='Annual Cash Flow', marker_color='lightblue'),
-            secondary_y=False,
-        )
-        
-        # Cumulative cash flow line
-        fig_cashflow.add_trace(
-            go.Scatter(x=cash_flow_df['Year'], y=cash_flow_df['Cumulative_Cash_Flow'],
-                      mode='lines+markers', name='Cumulative Cash Flow',
-                      line=dict(color='green', width=3)),
-            secondary_y=True,
-        )
-        
-        # Add horizontal line at zero for break-even
-        fig_cashflow.add_hline(y=0, line_dash="dot", line_color="red")
-        
-        fig_cashflow.update_xaxes(title_text="Year")
-        fig_cashflow.update_yaxes(title_text="Annual Cash Flow ($)", secondary_y=False)
-        fig_cashflow.update_yaxes(title_text="Cumulative Cash Flow ($)", secondary_y=True)
-        fig_cashflow.update_layout(title_text="Project Cash Flow Analysis", height=450)
-        
-        st.plotly_chart(fig_cashflow, use_container_width=True)
-        
-        # Investment summary
-        st.subheader("Investment Summary")
-        
-        st.write(f"**Initial Investment:** ${selected_config['total_cost']:,.0f}")
-        st.write(f"**Annual Energy Production:** {selected_config['annual_generation']:,.0f} kWh")
-        st.write(f"**Annual Revenue:** ${analysis['annual_revenue']:,.0f}")
-        st.write(f"**Annual O&M Costs:** ${analysis['annual_om_cost']:,.0f}")
-        st.write(f"**Net Annual Cash Flow:** ${analysis['annual_cash_flows'][0]:,.0f}")
-        
-        # Sensitivity analysis
-        st.subheader("Sensitivity Analysis")
-        
-        st.write("**NPV Sensitivity to Key Parameters:**")
-        
-        # Calculate sensitivity to electricity rate
-        base_npv = analysis['npv']
-        
-        # ±20% electricity rate
-        rate_low = electricity_rate * 0.8
-        rate_high = electricity_rate * 1.2
-        
-        npv_low = base_npv * 0.7  # Simplified approximation
-        npv_high = base_npv * 1.3
-        
-        st.write(f"- Electricity Rate -20% ({rate_low:.3f} $/kWh): NPV ${npv_low:,.0f}")
-        st.write(f"- Base Case ({electricity_rate:.3f} $/kWh): NPV ${base_npv:,.0f}")
-        st.write(f"- Electricity Rate +20% ({rate_high:.3f} $/kWh): NPV ${npv_high:,.0f}")
-        
-        if analysis['npv'] > 0:
-            st.success("✅ Positive NPV indicates a financially viable investment!")
-        else:
-            st.warning("⚠️ Negative NPV suggests the investment may not be financially attractive under current assumptions.")
-        
         st.success("✅ Financial analysis complete!")
         st.info("Proceed to Step 10 for 3D visualization.")
 
@@ -1628,39 +1500,6 @@ def render_3d_visualization():
             st.write(f"- System Power: {facade_info['system_power']:.1f} kW")
             st.write(f"- Coverage: {facade_info['coverage']:.1f}%")
             st.write("")
-        
-        # Performance visualization
-        st.subheader("System Performance by Facade")
-        
-        # Create a simple text-based visualization
-        orientations = [f['orientation'] for f in model_data['facade_systems']]
-        powers = [f['system_power'] for f in model_data['facade_systems']]
-        max_power = max(powers) if powers else 1
-        
-        for orient, power in zip(orientations, powers):
-            bar_length = int((power / max_power) * 30)
-            bar = "█" * bar_length + "░" * (30 - bar_length)
-            st.write(f"{orient:>10}: {bar} {power:.1f} kW")
-        
-        # Shadow analysis
-        if show_shading:
-            st.subheader("Shading Analysis")
-            
-            shading_factors = st.session_state.project_data.get('shading_factors', {'trees': 0.1, 'buildings': 0.05})
-            
-            st.write(f"**Tree Shading Impact:** {shading_factors['trees']:.1%} reduction")
-            st.write(f"**Building Shading Impact:** {shading_factors['buildings']:.1%} reduction")
-            st.write(f"**Total Shading Factor:** {(1 - shading_factors['trees'] - shading_factors['buildings']):.2f}")
-        
-        # Technical specifications
-        st.subheader("Technical Specifications")
-        
-        st.write("**Recommended Installation Details:**")
-        st.write("- Panel mounting: Curtain wall integrated system")
-        st.write("- Electrical: DC optimizers for each facade section")
-        st.write("- Inverters: String inverters per orientation group")
-        st.write("- Monitoring: Real-time performance monitoring system")
-        st.write("- Maintenance: Annual cleaning and inspection schedule")
         
         st.success("✅ 3D visualization complete!")
         st.info("Proceed to Step 11 for comprehensive reporting.")
@@ -1993,82 +1832,6 @@ def generate_comprehensive_report(report_type, include_charts, include_recommend
         </div>
     """
     
-    if report_type in ["Technical Report", "Complete Report"]:
-        # Add technical section
-        pv_systems = project_data['pv_systems']
-        total_panels = sum(s['panel_count'] for s in pv_systems)
-        
-        html_content += f"""
-        <div class="section">
-            <h2>Technical Analysis</h2>
-            
-            <h3>System Configuration</h3>
-            <table>
-                <tr><th>Parameter</th><th>Value</th></tr>
-                <tr><td>Number of PV Systems</td><td>{len(pv_systems)}</td></tr>
-                <tr><td>Total Panel Count</td><td>{total_panels}</td></tr>
-                <tr><td>System Configuration</td><td>{best_config['config_id']}</td></tr>
-                <tr><td>Average System Size</td><td>{best_config['total_power_kw']/len(pv_systems):.1f} kW per system</td></tr>
-            </table>
-            
-            <h3>Energy Performance</h3>
-            <table>
-                <tr><th>Metric</th><th>Annual Value</th></tr>
-                <tr><td>Building Energy Demand</td><td>{energy_balance['annual_demand']:,.0f} kWh</td></tr>
-                <tr><td>PV Energy Generation</td><td>{energy_balance['annual_generation']:,.0f} kWh</td></tr>
-                <tr><td>Net Grid Import</td><td>{energy_balance['net_import']:,.0f} kWh</td></tr>
-                <tr><td>Energy Self-Sufficiency</td><td>{energy_balance['self_sufficiency']:.1f}%</td></tr>
-            </table>
-        </div>
-        """
-    
-    if report_type in ["Financial Analysis", "Complete Report"]:
-        # Add financial section
-        if 'detailed_analysis' in project_data:
-            financial = project_data['detailed_analysis']
-            
-            html_content += f"""
-            <div class="section">
-                <h2>Financial Analysis</h2>
-                
-                <h3>Investment Overview</h3>
-                <table>
-                    <tr><th>Financial Metric</th><th>Value</th></tr>
-                    <tr><td>Initial Investment</td><td>${best_config['total_cost']:,.0f}</td></tr>
-                    <tr><td>Net Present Value (NPV)</td><td>${financial['npv']:,.0f}</td></tr>
-                    <tr><td>Internal Rate of Return (IRR)</td><td>{financial['irr']:.1f}%</td></tr>
-                    <tr><td>Simple Payback Period</td><td>{financial['payback_years']:.1f} years</td></tr>
-                    <tr><td>Return on Investment (ROI)</td><td>{financial['roi']:.1f}%</td></tr>
-                </table>
-                
-                <h3>Environmental Impact</h3>
-                <table>
-                    <tr><th>Environmental Metric</th><th>Value</th></tr>
-                    <tr><td>Annual CO₂ Emissions Avoided</td><td>{financial['annual_co2_kg']:,.0f} kg</td></tr>
-                    <tr><td>Lifetime CO₂ Emissions Avoided</td><td>{financial['lifetime_co2_tons']:.1f} tons</td></tr>
-                    <tr><td>Carbon Credit Value</td><td>${financial['carbon_value']:,.0f}</td></tr>
-                </table>
-            </div>
-            """
-    
-    if include_recommendations:
-        recommendations = generate_key_recommendations(best_config, energy_balance)
-        
-        html_content += """
-        <div class="section">
-            <h2>Recommendations</h2>
-        """
-        
-        for i, rec in enumerate(recommendations, 1):
-            html_content += f"""
-            <div class="recommendation">
-                <h4>Recommendation {i}</h4>
-                <p>{rec}</p>
-            </div>
-            """
-        
-        html_content += "</div>"
-    
     # Add conclusion
     feasibility = "highly viable" if best_config['energy_independence'] > 80 else "viable" if best_config['energy_independence'] > 50 else "challenging but possible"
     
@@ -2137,18 +1900,6 @@ def prepare_export_data(export_format):
                 csv_content += f"{system['panel_count']},{system['annual_energy_kwh']:.0f},{system['total_cost']:.0f}\n"
             
             export_files["pv_systems_summary.csv"] = csv_content
-        
-        if 'optimization_results' in project_data:
-            configs = project_data['optimization_results']['configurations']
-            
-            # Optimization results
-            csv_content = "Config_ID,System_Count,Total_Power_kW,Energy_Independence_%,Total_Cost,NPV,Payback_Years,Overall_Score\n"
-            for config in configs:
-                csv_content += f"{config['config_id']},{config['system_count']},{config['total_power_kw']:.1f},"
-                csv_content += f"{config['energy_independence']:.1f},{config['total_cost']:.0f},{config['npv']:.0f},"
-                csv_content += f"{config['payback_years']:.1f},{config['overall_score']:.3f}\n"
-            
-            export_files["optimization_results.csv"] = csv_content
     
     elif export_format == "Technical Specifications":
         # Technical specifications document
@@ -2190,36 +1941,6 @@ Total System Power: {total_power:.1f} kW
 Total Panel Count: {total_panels}
 Average System Size: {total_power/len(pv_systems):.1f} kW
 
-SYSTEM DETAILS BY ELEMENT
-------------------------
-"""
-        
-        for system in pv_systems:
-            specs += f"""
-Element ID: {system['element_id']}
-- Orientation: {system['orientation']}
-- System Power: {system['system_power_kw']:.1f} kW
-- Panel Count: {system['panel_count']}
-- Annual Energy: {system['annual_energy_kwh']:,.0f} kWh
-- Specific Yield: {system['specific_yield']:.0f} kWh/kW
-- Installation Cost: ${system['total_cost']:,.0f}
-
-"""
-    
-    if 'energy_balance' in project_data:
-        balance = project_data['energy_balance']
-        
-        specs += f"""
-ENERGY PERFORMANCE
------------------
-Annual Building Demand: {balance['annual_demand']:,.0f} kWh
-Annual PV Generation: {balance['annual_generation']:,.0f} kWh
-Net Grid Import: {balance['net_import']:,.0f} kWh
-Energy Self-Sufficiency: {balance['self_sufficiency']:.1f}%
-
-"""
-    
-    specs += """
 INSTALLATION REQUIREMENTS
 ------------------------
 - Structural assessment required for facade mounting points
@@ -2227,14 +1948,6 @@ INSTALLATION REQUIREMENTS
 - Grid interconnection: Net metering agreement recommended
 - Monitoring system: Real-time performance tracking
 - Maintenance: Annual cleaning and inspection
-
-COMPLIANCE AND STANDARDS
------------------------
-- IEC 61215: PV module qualification
-- IEC 61730: PV module safety qualification
-- IEEE 1547: Grid interconnection standards
-- Local building codes and electrical standards
-- Fire safety and accessibility requirements
 
 """
     
@@ -2282,12 +1995,6 @@ def generate_key_recommendations(best_config, energy_balance):
     recommendations.append(
         "Engage certified BIPV installers for detailed engineering and permitting. "
         "Ensure proper structural assessment and electrical design before installation."
-    )
-    
-    # Monitoring recommendation
-    recommendations.append(
-        "Implement comprehensive monitoring systems to track performance and optimize operations. "
-        "Regular maintenance schedules will ensure long-term system reliability."
     )
     
     return recommendations

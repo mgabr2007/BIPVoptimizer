@@ -7,6 +7,7 @@ dependencies = [
     "abqpy>=2025.8",
     "deap>=1.4.3",
     "django-reporting>=0.21",
+    "numpy>=2.3.0",
     "openpyxl>=3.1.5",
     "pandas>=2.3.0",
     "plotly>=6.1.2",
