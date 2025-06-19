@@ -340,12 +340,16 @@ def render_weather_environment():
     with col2:
         st.subheader("Environmental Conditions")
         
-        # Shading factors
-        tree_shading = st.slider("Tree Shading Factor", 0.0, 0.5, 0.1, 0.05,
-                                help="Fraction of sunlight blocked by trees")
+        # Shading factors with comprehensive help
+        tree_shading = st.slider(
+            "Tree Shading Factor", 0.0, 0.5, 0.1, 0.05,
+            help="Fraction of solar irradiance blocked by vegetation. Accounts for seasonal variation, tree height, canopy density. Deciduous trees: 0.05-0.15 (seasonal), Evergreen: 0.10-0.25 (year-round), Dense urban forest: 0.15-0.30."
+        )
         
-        building_shading = st.slider("Building Shading Factor", 0.0, 0.3, 0.05, 0.05,
-                                   help="Fraction of sunlight blocked by nearby buildings")
+        building_shading = st.slider(
+            "Building Shading Factor", 0.0, 0.3, 0.05, 0.05,
+            help="Fraction of solar irradiance blocked by neighboring structures. Consider building height, distance, and orientation relative to sun path. Typical urban settings: 0.05-0.15, Dense urban core: 0.15-0.30."
+        )
         
         st.session_state.project_data['shading_factors'] = {
             'trees': tree_shading,
@@ -560,7 +564,41 @@ def render_facade_extraction():
         st.info("Proceed to Step 5 for solar radiation analysis.")
 
 def simulate_building_extraction():
-    """Simulate extraction of building elements from BIM model"""
+    """
+    Simulate extraction of building elements from BIM model using geometric analysis
+    
+    Building Element Analysis Equations:
+    1. Element Area Distribution = Base Area + (Element Index × Area Increment) [m²]
+       - Input: Base Area (m²) - Minimum element size
+       - Input: Area Increment (m²) - Size variation between elements
+       - Input: Element Index - Sequential element number
+       - Purpose: Creates realistic size distribution across building elements
+       - Result: Varied element areas representing diverse facade conditions
+    
+    2. Element Dimensions from Area:
+       - Width = √(Area × Aspect Ratio) [m]
+       - Height = √(Area / Aspect Ratio) [m]
+       - Input: Area (m²) - Element surface area
+       - Input: Aspect Ratio - Width/height ratio (facades: 1.5, windows: 1.2)
+       - Purpose: Derives realistic proportions from area constraints
+       - Result: Width and height maintaining typical building proportions
+    
+    3. PV Suitability Criteria:
+       - Orientation Suitability = Element Orientation ∈ {South, SE, SW, East, West}
+       - Size Suitability = Element Area > Minimum Threshold
+       - Overall Suitability = Orientation AND Size criteria
+       - Input: Element Orientation - Cardinal/ordinal direction
+       - Input: Element Area (m²) - Available surface area
+       - Purpose: Filters elements suitable for PV installation
+       - Result: Boolean suitability flag for system design
+    
+    4. Geometric Properties:
+       - Tilt Angle = 90° (vertical building surfaces)
+       - Aspect Ratios: Facades 1.5:1, Windows 1.2:1
+       - Minimum Areas: Facades 100 m², Windows 6 m²
+       - Purpose: Establishes standard building element characteristics
+       - Result: Realistic geometric parameters for solar calculations
+    """
     orientations = ['North', 'South', 'East', 'West', 'Northeast', 'Northwest', 'Southeast', 'Southwest']
     
     facades = []
@@ -1219,16 +1257,17 @@ def calculate_energy_balance_analysis():
     weather_data = st.session_state.project_data['weather_data']
     
     # Extract annual demand from historical data
-    annual_demand = 0
-    monthly_demand = [0] * 12
+    annual_demand = 0.0
+    monthly_demand = [0.0] * 12
     
     for row in historical_data:
         try:
             consumption = float(row['Consumption'])
             annual_demand += consumption
             # Distribute to months (simplified)
+            monthly_portion = consumption / 12.0
             for i in range(12):
-                monthly_demand[i] += consumption / 12
+                monthly_demand[i] += monthly_portion
         except:
             pass
     
@@ -1340,7 +1379,43 @@ def render_optimization():
         st.info("Proceed to Step 9 for detailed financial analysis.")
 
 def run_optimization_analysis(energy_weight, financial_weight, electricity_rate, project_lifetime, discount_rate):
-    """Run optimization analysis on different system configurations"""
+    """
+    Run multi-objective optimization analysis using weighted scoring methodology
+    
+    Optimization Algorithm Equations:
+    1. Configuration Generation Strategy:
+       - Single System Configs = Individual PV systems
+       - Combined Config = All suitable systems
+       - Orientation-Filtered Config = Best orientations only
+       - Purpose: Creates diverse solution space for comparison
+       - Result: Multiple feasible system configurations
+    
+    2. Energy Performance Score = Energy Independence / 100 [0-1]
+       - Input: Energy Independence (%) - Self-sufficiency ratio
+       - Purpose: Normalizes energy performance to unit scale
+       - Result: Dimensionless score for multi-criteria analysis
+    
+    3. Financial Performance Score = max(0, NPV / Max_NPV) [0-1]
+       - Input: NPV (USD) - Net present value of configuration
+       - Input: Max_NPV (USD) - Best NPV among all configurations
+       - Purpose: Normalizes financial performance relative to best option
+       - Result: Dimensionless score scaled to best performer
+    
+    4. Multi-Objective Score = w₁ × Energy_Score + w₂ × Financial_Score [0-1]
+       - Input: w₁ - Energy objective weight (0-1)
+       - Input: w₂ - Financial objective weight (0-1)
+       - Input: Energy_Score - Normalized energy performance
+       - Input: Financial_Score - Normalized financial performance
+       - Constraint: w₁ + w₂ = 1 (normalized weights)
+       - Purpose: Combines competing objectives using preference weights
+       - Result: Single composite score for configuration ranking
+    
+    5. Pareto Frontier Identification:
+       - Pareto Optimal = No other solution dominates in all objectives
+       - Dominance Check: Solution A dominates B if A ≥ B in all criteria and A > B in ≥1 criterion
+       - Purpose: Identifies trade-off solutions between energy and financial goals
+       - Result: Set of non-dominated optimal configurations
+    """
     pv_systems = st.session_state.project_data['pv_systems']
     energy_balance = st.session_state.project_data['energy_balance']
     
@@ -1494,18 +1569,42 @@ def render_financial_analysis():
     with col1:
         st.subheader("Financial Parameters")
         
-        electricity_rate = st.number_input("Electricity Rate ($/kWh)", 0.05, 0.50, 0.12, 0.01)
-        feed_in_tariff = st.number_input("Feed-in Tariff ($/kWh)", 0.00, 0.20, 0.08, 0.01)
-        o_m_rate = st.slider("O&M Cost (% of investment/year)", 1.0, 5.0, 2.0, 0.1) / 100
-        degradation_rate = st.slider("Annual Degradation (%)", 0.2, 1.0, 0.5, 0.1) / 100
+        electricity_rate = st.number_input(
+            "Electricity Rate ($/kWh)", 0.05, 0.50, 0.12, 0.01,
+            help="Current grid electricity price including all utility charges, taxes, and fees. This represents the value of energy savings from PV generation. Check recent utility bills for accurate rates."
+        )
+        feed_in_tariff = st.number_input(
+            "Feed-in Tariff ($/kWh)", 0.00, 0.20, 0.08, 0.01,
+            help="Rate paid by utility for excess PV energy exported to grid. Often lower than retail electricity rate. Check with local utility for current net metering policies and rates."
+        )
+        o_m_rate = st.slider(
+            "O&M Cost (% of investment/year)", 1.0, 5.0, 2.0, 0.1,
+            help="Annual operation and maintenance costs as percentage of initial investment. Includes cleaning, monitoring, inverter replacement, insurance. Typical range: 1.5-3.0% for commercial systems."
+        ) / 100
+        degradation_rate = st.slider(
+            "Annual Degradation (%)", 0.2, 1.0, 0.5, 0.1,
+            help="Annual decline in PV panel performance due to aging. Modern panels typically degrade 0.4-0.7% per year. Manufacturer warranties often guarantee <0.8% annual degradation."
+        ) / 100
     
     with col2:
         st.subheader("Environmental Parameters")
         
-        grid_co2_factor = st.number_input("Grid CO₂ Factor (kg CO₂/kWh)", 0.2, 1.0, 0.5, 0.05)
-        carbon_price = st.number_input("Carbon Price ($/ton CO₂)", 10, 100, 25, 5)
-        project_lifetime = st.slider("Project Lifetime (years)", 15, 30, 25, 1)
-        discount_rate = st.slider("Discount Rate (%)", 3.0, 10.0, 6.0, 0.5) / 100
+        grid_co2_factor = st.number_input(
+            "Grid CO₂ Factor (kg CO₂/kWh)", 0.2, 1.0, 0.5, 0.05,
+            help="Carbon emission intensity of regional electricity grid in kg CO₂ per kWh. Varies by region based on fuel mix. US average: ~0.4-0.5, Coal-heavy: 0.8-1.0, Renewable-heavy: 0.1-0.3 kg CO₂/kWh."
+        )
+        carbon_price = st.number_input(
+            "Carbon Price ($/ton CO₂)", 10, 100, 25, 5,
+            help="Market value of carbon credits or social cost of carbon. Used to monetize environmental benefits. Current ranges: EU ETS ~$80-100, California ~$30-40, Social cost estimates $50-200 per ton CO₂."
+        )
+        project_lifetime = st.slider(
+            "Project Lifetime (years)", 15, 30, 25, 1,
+            help="Expected operational lifespan for financial analysis. PV panels typically have 25-30 year warranties with expected life >30 years. Consider inverter replacement at 10-15 years for lifecycle costing."
+        )
+        discount_rate = st.slider(
+            "Discount Rate (%)", 3.0, 10.0, 6.0, 0.5,
+            help="Time value of money for NPV calculations. Reflects investment risk and opportunity cost. Typical ranges: Low-risk projects 3-5%, Commercial investments 6-8%, High-risk ventures 8-12%."
+        ) / 100
     
     if st.button("Perform Detailed Analysis"):
         with st.spinner("Calculating detailed financial and environmental metrics..."):
