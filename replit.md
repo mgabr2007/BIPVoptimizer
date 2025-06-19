@@ -197,6 +197,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 19, 2025: Enhanced documentation with detailed equation explanations and comprehensive HTML reports
 - June 19, 2025: Implemented interactive 3D BIM model visualization with zoom and rotate capabilities
 - June 19, 2025: Added comprehensive CSV file structure documentation for all upload modules
+- June 19, 2025: Fixed Streamlit duplicate element ID errors by adding unique keys to all interactive elements
+- June 19, 2025: Rebranded application to "BIPV Optimizer" with updated titles and project references
 
 ## User Preferences
 
