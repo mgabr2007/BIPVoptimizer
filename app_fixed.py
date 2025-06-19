@@ -191,12 +191,48 @@ def render_project_setup():
     
     # BIM Model Upload Section
     st.subheader("BIM Model Upload")
-    st.info("Upload your Revit model for facade and window extraction")
+    
+    # BIM Model Format Documentation
+    with st.expander("📋 Supported BIM File Formats", expanded=False):
+        st.markdown("""
+        **Primary Format:**
+        - **Revit Models (.rvt)**: Native Autodesk Revit files
+          - Minimum LOD 200 (Level of Development)
+          - Recommended LOD 300 for detailed analysis
+          - Must include facade and window elements
+          - Building geometry with proper orientations
+        
+        **Alternative Formats (Future Support):**
+        - **IFC Files (.ifc)**: Industry Foundation Classes
+        - **DWG Files (.dwg)**: AutoCAD drawings with 3D geometry
+        - **3DS Files (.3ds)**: 3D Studio Max models
+        
+        **Model Requirements:**
+        - Building must be properly oriented (North direction defined)
+        - Facade elements should be categorized as walls
+        - Windows should be properly embedded in facades
+        - Building height and dimensions must be realistic
+        - No missing or corrupted geometry
+        
+        **Quality Guidelines:**
+        - Clean geometry without overlapping elements
+        - Proper material assignments for facades and windows
+        - Consistent naming conventions for building elements
+        - Coordinate system aligned with geographic orientation
+        """)
+        
+        st.warning("⚠️ **Important Notes:**")
+        st.markdown("""
+        - File size limit: 50MB maximum
+        - Processing time depends on model complexity
+        - Ensure model is saved in the latest Revit format
+        - Models with complex geometry may require longer processing
+        """)
     
     uploaded_file = st.file_uploader(
         "Upload Revit Model (.rvt)",
         type=['rvt'],
-        help="Upload a Revit model file at LOD 200 or LOD 100"
+        help="Upload a Revit model file following the requirements above"
     )
     
     if uploaded_file is not None:
@@ -218,10 +254,45 @@ def render_historical_data():
     # Historical data upload section
     st.subheader("Historical Energy Consumption Data")
     
+    # CSV Structure Documentation
+    with st.expander("📋 Required CSV File Structure", expanded=True):
+        st.markdown("""
+        **File Format Requirements:**
+        
+        **Required Columns:**
+        - `Date`: Date in YYYY-MM-DD format (e.g., 2023-01-01)
+        - `Consumption`: Monthly energy consumption in kWh (numeric values only)
+        
+        **Optional Columns (recommended for better accuracy):**
+        - `Temperature`: Average monthly temperature in °C
+        - `Humidity`: Average monthly humidity percentage (0-100)
+        - `Solar_Irradiance`: Monthly solar irradiance in kWh/m²
+        - `Occupancy`: Building occupancy percentage (0-100)
+        
+        **Example CSV Structure:**
+        """)
+        
+        st.code("""Date,Consumption,Temperature,Humidity,Solar_Irradiance,Occupancy
+2023-01-01,1250.5,5.2,65,85.3,95
+2023-02-01,1100.8,8.1,62,105.7,90
+2023-03-01,980.3,12.5,58,145.2,85
+2023-04-01,850.7,16.8,55,180.4,80
+2023-05-01,720.2,22.1,52,210.6,75
+2023-06-01,680.9,26.5,48,235.8,70""")
+        
+        st.warning("⚠️ **Important Notes:**")
+        st.markdown("""
+        - Use comma-separated values (CSV format)
+        - Do not include spaces in column names
+        - Numeric values should not contain currency symbols or units
+        - Minimum 12 months of data required for seasonal analysis
+        - Date format must be consistent throughout the file
+        """)
+    
     uploaded_file = st.file_uploader(
         "Upload Monthly Consumption Data (CSV)",
         type=['csv'],
-        help="Upload a CSV file with columns: Date, Consumption (kWh), Temperature (°C)"
+        help="Upload a CSV file following the structure shown above"
     )
     
     if uploaded_file is not None:
@@ -2076,10 +2147,66 @@ def render_reporting():
     with col2:
         st.subheader("Data Export")
         
+        # Export Format Documentation
+        with st.expander("📋 Export Data Formats & Structure", expanded=False):
+            st.markdown("""
+            **Available Export Formats:**
+            
+            **1. JSON Export (Complete Dataset)**
+            - Contains all project data in structured JSON format
+            - Includes project configuration, analysis results, and metadata
+            - Suitable for data backup and system integration
+            - File extension: `.json`
+            
+            **2. CSV Summary (Spreadsheet Compatible)**
+            - Multiple CSV files with analysis summaries
+            - PV Systems Summary with performance metrics
+            - Energy Balance monthly data
+            - Financial analysis results
+            - Suitable for Excel analysis and reporting
+            
+            **3. Technical Specifications (Engineering Data)**
+            - Detailed technical parameters and calculations
+            - System specifications and performance data
+            - Equipment lists and installation requirements
+            - Compliance documentation
+            
+            **CSV Export File Structure:**
+            """)
+            
+            st.code("""# PV_Systems_Summary.csv
+Element_ID,Orientation,System_Power_kW,Panel_Count,Annual_Energy_kWh,Total_Cost,Specific_Yield
+FAC_01,South,25.2,84,32580,45200,1292
+FAC_02,Southeast,18.7,62,23940,33500,1280
+FAC_03,Southwest,22.1,74,28350,39800,1283
+
+# Energy_Balance_Monthly.csv
+Month,Demand_kWh,Generation_kWh,Net_Import_kWh,Self_Sufficiency_Percent
+January,2150,1890,-260,87.9
+February,1980,2340,360,118.2
+March,1820,2980,1160,163.7
+
+# Financial_Analysis.csv
+Parameter,Value,Unit,Description
+Total_Investment,118500,USD,Initial system cost
+Annual_Savings,14250,USD,Yearly electricity savings
+Payback_Period,8.3,years,Simple payback time
+NPV_25_years,67400,USD,Net present value
+IRR,12.8,percent,Internal rate of return""")
+            
+            st.warning("⚠️ **Export Guidelines:**")
+            st.markdown("""
+            - All monetary values in selected project currency
+            - Energy values in kWh unless specified
+            - Power values in kW unless specified
+            - Dates in YYYY-MM-DD format
+            - Numeric values use decimal points (not commas)
+            """)
+        
         export_format = st.selectbox(
             "Export Format",
             ["JSON", "CSV Summary", "Technical Specifications"],
-            help="Select format for data export"
+            help="Select format for data export following the structures above"
         )
         
         if st.button("Prepare Export"):

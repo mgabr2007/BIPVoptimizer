@@ -153,11 +153,50 @@ modules/
 - **Memory Management**: Modular loading of large datasets
 - **API Rate Limiting**: Weather API calls optimized for usage limits
 
+## CSV File Upload Requirements
+
+The platform now includes comprehensive CSV file structure documentation for all upload modules:
+
+### 1. Historical Energy Data Upload (Step 2)
+**Required Columns:**
+- `Date`: YYYY-MM-DD format (e.g., 2023-01-01)
+- `Consumption`: Monthly energy consumption in kWh (numeric values only)
+
+**Optional Columns:**
+- `Temperature`: Average monthly temperature in °C
+- `Humidity`: Average monthly humidity percentage (0-100)
+- `Solar_Irradiance`: Monthly solar irradiance in kWh/m²
+- `Occupancy`: Building occupancy percentage (0-100)
+
+### 2. BIM Model Upload (Step 1)
+**Primary Format:**
+- Revit Models (.rvt): Minimum LOD 200, recommended LOD 300
+- Must include facade and window elements with proper orientations
+- File size limit: 50MB maximum
+
+**Alternative Formats (Future Support):**
+- IFC Files (.ifc): Industry Foundation Classes
+- DWG Files (.dwg): AutoCAD drawings with 3D geometry
+- 3DS Files (.3ds): 3D Studio Max models
+
+### 3. Data Export Formats (Step 11)
+**CSV Export Structure:**
+- PV_Systems_Summary.csv: Element data with performance metrics
+- Energy_Balance_Monthly.csv: Monthly demand/generation analysis
+- Financial_Analysis.csv: Economic parameters and projections
+
+**Export Guidelines:**
+- All monetary values in selected project currency
+- Energy values in kWh, power values in kW
+- Dates in YYYY-MM-DD format
+- Numeric values use decimal points (not commas)
+
 ## Changelog
 
 - June 19, 2025: Initial setup
 - June 19, 2025: Enhanced documentation with detailed equation explanations and comprehensive HTML reports
 - June 19, 2025: Implemented interactive 3D BIM model visualization with zoom and rotate capabilities
+- June 19, 2025: Added comprehensive CSV file structure documentation for all upload modules
 
 ## User Preferences
 
