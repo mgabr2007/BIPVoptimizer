@@ -104,13 +104,13 @@ def main():
     
     with col1:
         if st.session_state.workflow_step > 1:
-            if st.button("⬅️ Previous Step"):
+            if st.button("⬅️ Previous Step", key="nav_prev"):
                 st.session_state.workflow_step -= 1
                 st.rerun()
     
     with col3:
         if st.session_state.workflow_step < len(steps):
-            if st.button("Next Step ➡️"):
+            if st.button("Next Step ➡️", key="nav_next"):
                 st.session_state.workflow_step += 1
                 st.rerun()
 
@@ -161,21 +161,24 @@ def render_project_setup():
             ["UTC", "US/Eastern", "US/Central", "US/Mountain", "US/Pacific", 
              "Europe/London", "Europe/Berlin", "Asia/Tokyo"],
             index=0,
-            help="Select the project timezone"
+            help="Select the project timezone",
+            key="project_timezone"
         )
         
         units = st.selectbox(
             "Units System",
             ["Metric (kW, m², °C)", "Imperial (kW, ft², °F)"],
             index=0,
-            help="Choose measurement units"
+            help="Choose measurement units",
+            key="project_units"
         )
         
         currency = st.selectbox(
             "Currency",
             ["USD ($)", "EUR (€)", "GBP (£)", "JPY (¥)"],
             index=0,
-            help="Select currency for financial analysis"
+            help="Select currency for financial analysis",
+            key="project_currency"
         )
     
     # Save data
@@ -415,7 +418,7 @@ def render_weather_environment():
         st.write(f"**Longitude:** {longitude:.4f}°")
         
         # TMY data generation
-        if st.button("Generate Weather Data"):
+        if st.button("Generate Weather Data", key="generate_weather"):
             with st.spinner("Generating simplified weather data for solar analysis..."):
                 weather_data = generate_simple_weather_data(latitude, longitude)
                 st.session_state.project_data['weather_data'] = weather_data
@@ -1913,23 +1916,24 @@ def render_3d_visualization():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            show_building = st.checkbox("Show Building Structure", True)
+            show_building = st.checkbox("Show Building Structure", True, key="3d_show_building")
         with col2:
-            show_pv_panels = st.checkbox("Show PV Panels", True)
+            show_pv_panels = st.checkbox("Show PV Panels", True, key="3d_show_pv_panels")
         with col3:
-            show_wireframe = st.checkbox("Show Wireframe", False)
+            show_wireframe = st.checkbox("Show Wireframe", False, key="3d_show_wireframe")
         with col4:
-            transparency = st.slider("Building Transparency", 0.1, 1.0, 0.7, 0.1)
+            transparency = st.slider("Building Transparency", 0.1, 1.0, 0.7, 0.1, key="3d_transparency")
         
         # View mode selection
         view_mode = st.selectbox(
             "3D View Mode",
             ["Perspective View", "Orthographic View", "Top-Down View", "Front Elevation", "Side Elevation"],
-            help="Select different viewing angles for the 3D model"
+            help="Select different viewing angles for the 3D model",
+            key="3d_view_mode"
         )
         
         # Generate and display interactive 3D model
-        if st.button("Generate Interactive 3D Model", type="primary"):
+        if st.button("Generate Interactive 3D Model", type="primary", key="generate_3d_model"):
             if not PLOTLY_AVAILABLE:
                 st.error("3D visualization is currently unavailable. The plotly package is being loaded.")
                 with st.spinner("Loading 3D visualization components..."):
