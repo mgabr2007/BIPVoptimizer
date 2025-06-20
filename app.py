@@ -718,8 +718,11 @@ def render_facade_extraction():
             with st.spinner("Processing BIM elements data..."):
                 # Read and parse CSV content
                 try:
-                    content = uploaded_csv.getvalue().decode('utf-8')
+                    content = uploaded_csv.getvalue().decode('utf-8-sig')  # Handle BOM
                     headers, data = parse_csv_content(content)
+                    
+                    # Clean headers from any BOM or extra characters
+                    headers = [h.strip().replace('\ufeff', '') for h in headers]
                     
                     # Process building elements
                     windows = []
@@ -744,12 +747,12 @@ def render_facade_extraction():
                             try:
                                 element_data = dict(zip(headers, row))
                                 
-                                # Extract key information
-                                element_id = element_data.get('ElementId', '')
-                                host_wall_id = element_data.get('HostWallId', '')
-                                category = element_data.get('Category', '')
-                                family = element_data.get('Family', '')
-                                level = element_data.get('Level', '')
+                                # Extract key information with proper type conversion
+                                element_id = str(element_data.get('ElementId', '')).strip()
+                                host_wall_id = str(element_data.get('HostWallId', '')).strip()
+                                category = element_data.get('Category', '').strip()
+                                family = element_data.get('Family', '').strip()
+                                level = element_data.get('Level', '').strip()
                                 azimuth = float(element_data.get('Azimuth (°)', 0))
                                 glass_area = float(element_data.get('Glass Area (m²)', 0))
                                 
@@ -961,14 +964,9 @@ def render_radiation_grid():
                 if facade_data.get('csv_processed') and 'windows' in facade_data:
                     windows = facade_data['windows']
                     
-                    # Debug: Show what keys are available in the window data
-                    if windows:
-                        st.write(f"Debug: First window keys: {list(windows[0].keys())}")
-                        st.write(f"Debug: Sample element_id value: '{windows[0].get('element_id', 'NOT_FOUND')}'")
-                    
                     for window in windows:
                         if window.get('suitable', False):
-                            element_id = window.get('element_id', '')
+                            element_id = str(window.get('element_id', ''))
                             orientation = window['orientation']
                             azimuth = window['azimuth']
                             window_area = window['window_area']
