@@ -2938,6 +2938,32 @@ def render_reporting():
         st.subheader("Complete Analysis Report")
         st.info("This comprehensive report includes all calculations, equations, visualizations, and detailed explanations of the BIPV optimization process.")
         
+        # Highlight visualization improvements
+        with st.expander("📊 Enhanced Visualization Features", expanded=False):
+            st.markdown("""
+            ### Professional Chart Visualizations
+            
+            The exported reports now include **CSS-based charts and graphs** that display reliably across all browsers and devices:
+            
+            #### **Available Visualizations:**
+            - **Energy Balance Charts**: Monthly PV generation vs building demand with visual bar comparisons
+            - **Financial Projection Displays**: 5-year milestone tracking with investment recovery analysis  
+            - **Solar Radiation Heatmaps**: Color-coded orientation analysis with intensity mapping
+            - **PV Technology Comparisons**: Performance rating tables with efficiency and cost analysis
+            - **CO₂ Savings Visualizations**: Environmental impact metrics with equivalency calculations
+            
+            #### **Technical Features:**
+            - **Cross-Platform Compatibility**: Works in all browsers without external dependencies
+            - **Professional Styling**: Clean, publication-ready visual design
+            - **Interactive Elements**: Hover tooltips and responsive layouts
+            - **Print-Friendly**: Optimized for both screen viewing and printing
+            - **No External Dependencies**: Charts render directly in HTML/CSS without requiring additional libraries
+            
+            #### **Reliability Improvements:**
+            Previously, charts relied on external visualization libraries that could fail to load in exported reports. 
+            The new CSS-based approach ensures **100% compatibility** across all viewing environments.
+            """)
+        
         col1, col2 = st.columns(2)
         
         with col1:
@@ -2950,19 +2976,28 @@ def render_reporting():
             
             st.write("**Report Includes:**")
             st.write("✓ Complete technical analysis with equations")
-            st.write("✓ Interactive charts and visualizations") 
+            st.write("✓ Professional CSS-based charts and visualizations") 
             st.write("✓ Detailed calculation methodologies")
             st.write("✓ Step-by-step process explanations")
             st.write("✓ Financial modeling with formulas")
             st.write("✓ Environmental impact calculations")
             st.write("✓ Implementation recommendations")
+            st.write("✓ Cross-platform compatible visualizations")
         
         with col2:
             st.subheader("Report Specifications")
             st.metric("Estimated Pages", "45-60")
             st.metric("Sections", "12")
-            st.metric("Charts & Graphs", "8")
+            st.metric("Charts & Graphs", "8 (CSS-based)")
             st.metric("Calculation Details", "Complete")
+            
+            st.write("**Visualization Features:**")
+            st.write("• Energy balance bar charts")
+            st.write("• Financial projection timelines")
+            st.write("• Solar radiation heatmaps")
+            st.write("• PV technology comparisons")
+            st.write("• CO₂ savings visualizations")
+            st.write("• Cross-browser compatibility")
             
         if st.button("Generate Complete BIPV Analysis Report", key="generate_report"):
             with st.spinner("Generating comprehensive BIPV analysis report with detailed equations and methodologies..."):
