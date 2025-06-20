@@ -1206,16 +1206,34 @@ def render_pv_specification():
     
     if st.button("Calculate PV System", key="calc_pv_system"):
         with st.spinner("Calculating optimal PV system specifications..."):
-            # Get available facade area
+            # Get BIM data from Step 4
             facade_data = st.session_state.project_data.get('facade_data', {})
-            available_area = facade_data.get('suitable_area', 1800)
             
-            # Calculate panel dimensions (typical 2m x 1m)
-            panel_area = 2.0  # m²
-            max_panels = int(available_area / (panel_area * spacing_factor))
+            # Use actual suitable windows from BIM data
+            if facade_data.get('csv_processed') and 'windows' in facade_data:
+                suitable_windows = [w for w in facade_data['windows'] if w.get('suitable', False)]
+                suitable_count = len(suitable_windows)
+                total_suitable_area = sum(w['window_area'] for w in suitable_windows)
+                
+                # Calculate panels per window (considering panel size and spacing)
+                panel_area = 2.0  # m² (typical panel size)
+                avg_window_area = total_suitable_area / suitable_count if suitable_count > 0 else 1.5
+                panels_per_window = max(1, int(avg_window_area / (panel_area * spacing_factor)))
+                
+                # Total panels based on actual windows
+                actual_panels = suitable_count * panels_per_window
+                available_area = total_suitable_area
+                
+                st.info(f"Using BIM data: {suitable_count} suitable windows, {panels_per_window} panel(s) per window")
+            else:
+                # Fallback if no BIM data
+                suitable_count = facade_data.get('suitable_elements', 300)
+                available_area = facade_data.get('suitable_window_area', 1800)
+                panel_area = 2.0
+                actual_panels = int(available_area / (panel_area * spacing_factor))
+                
+                st.warning("No BIM data available, using estimated values")
             
-            # Use min_panels to calculate actual system
-            actual_panels = min(max_panels, max_panels)
             system_capacity = actual_panels * panel_power / 1000  # kW
             
             # Get radiation data for yield calculation
@@ -1254,20 +1272,34 @@ def render_pv_specification():
         
         st.success("✅ PV system calculated successfully!")
         
-        # Display results
+        # Display results with BIM data context
+        if facade_data.get('csv_processed'):
+            st.subheader("System Layout (Based on BIM Data)")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Suitable Windows", f"{suitable_count}")
+                st.metric("Panels per Window", f"{panels_per_window}")
+            with col2:
+                st.metric("Total Panels", f"{pv_data['total_panels']:,}")
+                st.metric("System Capacity", f"{pv_data['system_capacity']:.1f} kW")
+            with col3:
+                st.metric("Total Window Area", f"{available_area:.1f} m²")
+                st.metric("Avg Window Area", f"{avg_window_area:.1f} m²")
+        
+        st.subheader("Performance Metrics")
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Total Panels", f"{pv_data['total_panels']:,}")
-            st.metric("System Capacity", f"{pv_data['system_capacity']:.1f} kW")
-        with col2:
             st.metric("Annual Yield", f"{pv_data['annual_yield']:,.0f} kWh")
             st.metric("Specific Yield", f"{pv_data['specific_yield']:.0f} kWh/kW")
-        with col3:
+        with col2:
             st.metric("Panel Efficiency", f"{efficiency}%")
             st.metric("System Losses", f"{system_losses}%")
-        with col4:
+        with col3:
             st.metric("Total Cost", f"${pv_data['system_cost']:,.0f}")
+            st.metric("Cost per Watt", f"${pv_data['cost_per_watt']:.2f}/W")
+        with col4:
             st.metric("Coverage Ratio", f"{pv_data['coverage_ratio']:.0%}")
+            st.metric("Panel Area", f"{panel_area} m² each")
         
         # Panel specifications
         st.subheader("Panel Specifications")
