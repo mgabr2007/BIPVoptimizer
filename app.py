@@ -118,34 +118,158 @@ def generate_chart_html(chart_type, data, title="Chart"):
             return chart_html
             
         elif chart_type == "financial_projection":
-            # Financial projection over project lifetime
-            years = list(range(1, 26))  # 25-year projection
-            cumulative_savings = []
+            # Generate financial projection with visual progress bars
             annual_savings = data.get('annual_savings', 15000)
-            
-            for year in years:
-                degradation = (0.98 ** (year - 1))  # 2% annual degradation
-                savings = annual_savings * degradation * year
-                cumulative_savings.append(savings)
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=years, y=cumulative_savings, 
-                                   mode='lines+markers',
-                                   name='Cumulative Savings',
-                                   line=dict(color='#2E8B57', width=3)))
-            
-            # Add investment payback line
             investment = data.get('initial_investment', 250000)
-            fig.add_hline(y=investment, line_dash="dash", line_color="red",
-                         annotation_text="Initial Investment")
+            payback_years = investment / annual_savings if annual_savings > 0 else 25
             
-            fig.update_layout(
-                title=title,
-                xaxis_title='Year',
-                yaxis_title='Cumulative Savings ($)',
-                template='plotly_white',
-                height=400
-            )
+            chart_html = f'''
+            <div style="margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                <h3 style="text-align: center; color: #333; margin-bottom: 20px;">{title}</h3>
+                <div style="margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-radius: 8px;">
+                            <div style="font-size: 14px; font-weight: bold; color: #1976d2;">Year 5</div>
+                            <div style="font-size: 18px; color: #0d47a1;">${annual_savings * 5:,.0f}</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #e8f5e8, #c8e6c9); border-radius: 8px;">
+                            <div style="font-size: 14px; font-weight: bold; color: #388e3c;">Year 10</div>
+                            <div style="font-size: 18px; color: #1b5e20;">${annual_savings * 10:,.0f}</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fff3e0, #ffcc02); border-radius: 8px;">
+                            <div style="font-size: 14px; font-weight: bold; color: #f57c00;">Year 15</div>
+                            <div style="font-size: 18px; color: #e65100;">${annual_savings * 15:,.0f}</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #fce4ec, #f8bbd9); border-radius: 8px;">
+                            <div style="font-size: 14px; font-weight: bold; color: #c2185b;">Year 20</div>
+                            <div style="font-size: 18px; color: #880e4f;">${annual_savings * 20:,.0f}</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #f3e5f5, #e1bee7); border-radius: 8px;">
+                            <div style="font-size: 14px; font-weight: bold; color: #7b1fa2;">Year 25</div>
+                            <div style="font-size: 18px; color: #4a148c;">${annual_savings * 25:,.0f}</div>
+                        </div>
+                    </div>
+                    <div style="padding: 15px; background-color: #f0f8f0; border-radius: 8px; border-left: 4px solid #2e8b57;">
+                        <strong>Investment Recovery:</strong> Initial investment of ${investment:,.0f} recovered in approximately {payback_years:.1f} years
+                    </div>
+                </div>
+            </div>
+            '''
+            return chart_html
+            
+        elif chart_type == "radiation_heatmap":
+            # Generate radiation heatmap with CSS
+            orientations = ['North', 'East', 'South', 'West']
+            irradiance_values = data.get('irradiance_by_orientation', [500, 900, 1300, 900])
+            max_irradiance = max(irradiance_values) if irradiance_values else 1300
+            
+            chart_html = f'''
+            <div style="margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                <h3 style="text-align: center; color: #333; margin-bottom: 20px;">{title}</h3>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center;">
+            '''
+            
+            # Color mapping based on irradiance intensity
+            for i, (orientation, irradiance) in enumerate(zip(orientations, irradiance_values)):
+                intensity = irradiance / max_irradiance
+                if intensity >= 0.8:
+                    color = '#d32f2f'  # High - Red
+                elif intensity >= 0.6:
+                    color = '#f57c00'  # Medium-High - Orange  
+                elif intensity >= 0.4:
+                    color = '#fbc02d'  # Medium - Yellow
+                else:
+                    color = '#1976d2'  # Low - Blue
+                
+                chart_html += f'''
+                    <div style="padding: 25px; background-color: {color}; color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">{orientation}</div>
+                        <div style="font-size: 20px; font-weight: bold;">{irradiance:.0f}</div>
+                        <div style="font-size: 12px; margin-top: 4px;">kWh/m²/year</div>
+                    </div>
+                '''
+            
+            chart_html += '''
+                </div>
+                <div style="margin-top: 20px; text-align: center;">
+                    <div style="display: inline-flex; gap: 15px; align-items: center;">
+                        <div><span style="display: inline-block; width: 20px; height: 20px; background-color: #1976d2; border-radius: 3px;"></span> Low (400-600)</div>
+                        <div><span style="display: inline-block; width: 20px; height: 20px; background-color: #fbc02d; border-radius: 3px;"></span> Medium (600-900)</div>
+                        <div><span style="display: inline-block; width: 20px; height: 20px; background-color: #f57c00; border-radius: 3px;"></span> High (900-1200)</div>
+                        <div><span style="display: inline-block; width: 20px; height: 20px; background-color: #d32f2f; border-radius: 3px;"></span> Very High (1200+)</div>
+                    </div>
+                </div>
+            </div>
+            '''
+            return chart_html
+            
+        elif chart_type == "pv_comparison":
+            # Generate PV technology comparison
+            technologies = ['a-Si Thin Film', 'CIS/CIGS', 'Crystalline Si', 'Perovskite', 'Organic PV']
+            efficiencies = [8, 12, 17, 15, 6]
+            costs = [200, 280, 400, 240, 160]
+            
+            chart_html = f'''
+            <div style="margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                <h3 style="text-align: center; color: #333; margin-bottom: 20px;">{title}</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <thead>
+                        <tr style="background-color: #f5f5f5;">
+                            <th style="padding: 12px; border: 1px solid #ddd; text-align: left;">Technology</th>
+                            <th style="padding: 12px; border: 1px solid #ddd; text-align: center;">Efficiency (%)</th>
+                            <th style="padding: 12px; border: 1px solid #ddd; text-align: center;">Cost ($/m²)</th>
+                            <th style="padding: 12px; border: 1px solid #ddd; text-align: center;">Performance Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            '''
+            
+            for tech, eff, cost in zip(technologies, efficiencies, costs):
+                performance_score = (eff / max(efficiencies)) * 0.6 + ((max(costs) - cost) / max(costs)) * 0.4
+                rating = "★★★★★" if performance_score > 0.8 else "★★★★☆" if performance_score > 0.6 else "★★★☆☆" if performance_score > 0.4 else "★★☆☆☆"
+                
+                chart_html += f'''
+                    <tr>
+                        <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">{tech}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">{eff}%</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${cost}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">{rating}</td>
+                    </tr>
+                '''
+            
+            chart_html += '''
+                    </tbody>
+                </table>
+            </div>
+            '''
+            return chart_html
+            
+        elif chart_type == "co2_savings":
+            # Generate CO2 savings visualization
+            annual_co2 = data.get('co2_savings_annual', 15)
+            lifetime_co2 = data.get('co2_savings_lifetime', 375)
+            
+            chart_html = f'''
+            <div style="margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                <h3 style="text-align: center; color: #333; margin-bottom: 20px;">{title}</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #e8f5e8, #a5d6a7); border-radius: 12px;">
+                        <div style="font-size: 36px; color: #2e7d32; font-weight: bold; margin-bottom: 10px;">{annual_co2:.1f}</div>
+                        <div style="color: #1b5e20; font-weight: bold;">Tons CO₂/Year</div>
+                        <div style="color: #388e3c; margin-top: 5px; font-size: 14px;">Annual Savings</div>
+                    </div>
+                    <div style="text-align: center; padding: 30px; background: linear-gradient(135deg, #e3f2fd, #90caf9); border-radius: 12px;">
+                        <div style="font-size: 36px; color: #1976d2; font-weight: bold; margin-bottom: 10px;">{lifetime_co2:.0f}</div>
+                        <div style="color: #0d47a1; font-weight: bold;">Tons CO₂ Total</div>
+                        <div style="color: #1976d2; margin-top: 5px; font-size: 14px;">25-Year Impact</div>
+                    </div>
+                </div>
+                <div style="padding: 15px; background-color: #f0f8f0; border-radius: 8px; text-align: center;">
+                    <strong>Environmental Equivalent:</strong> Equivalent to planting {lifetime_co2 * 16:.0f} trees or removing {lifetime_co2 / 4.6:.0f} cars from the road for one year
+                </div>
+            </div>
+            '''
+            return chart_html
             
         elif chart_type == "radiation_heatmap":
             # Solar radiation heatmap
