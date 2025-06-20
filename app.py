@@ -1363,13 +1363,19 @@ def render_pv_specification():
         specs = pv_data['panel_specifications']
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Dimensions", specs['dimensions'])
+            st.metric("Type", specs['type'])
         with col2:
-            st.metric("Weight", specs['weight'])
+            st.metric("Installation", specs['installation'])
         with col3:
-            st.metric("Voltage", specs['voltage'])
+            st.metric("Area Match", specs['area_match'])
         with col4:
-            st.metric("Current", specs['current'])
+            st.metric("Transparency", specs['transparency'])
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Power Density", specs['power_density'])
+        with col2:
+            st.metric("Total PV Area", f"{pv_data['total_pv_area']:.1f} m²")
 
 def render_yield_demand():
     st.header("Step 7: Yield vs Demand Calculation")
