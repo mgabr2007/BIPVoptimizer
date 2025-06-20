@@ -676,7 +676,7 @@ def render_facade_extraction():
             - `HostWallId`: ID of host wall (for windows)
             - `OriX, OriY, OriZ`: Orientation vector components
             - `Azimuth (°)`: Azimuth angle in degrees
-            - `Glass Area (m²)`: Glass area for windows
+            - `Glass Area (m²)`: Glass area for windows (optional, defaults to 1.5m² if 0)
             
             **Example Structure:**
             ```
@@ -688,12 +688,11 @@ def render_facade_extraction():
     
     with col2:
         st.subheader("Analysis Parameters")
-        min_glass_area = st.number_input(
-            "Minimum Glass Area (m²)",
-            min_value=0.1,
-            max_value=50.0,
-            value=1.0,
-            key="min_glass_area"
+        include_all_windows = st.checkbox(
+            "Include All Window Elements",
+            value=True,
+            help="Process all window elements regardless of glass area",
+            key="include_all_windows"
         )
         
         orientation_filter = st.multiselect(
@@ -755,11 +754,14 @@ def render_facade_extraction():
                                 
                                 orientation = get_orientation_from_azimuth(azimuth)
                                 
-                                # Apply filters
+                                # Apply filters - use all windows, keep Element ID
+                                is_window = category.lower() in ['windows', 'window']
+                                orientation_match = orientation in orientation_filter if orientation_filter else True
+                                
                                 is_suitable = (
-                                    glass_area >= min_glass_area and
-                                    orientation in orientation_filter and
-                                    category.lower() in ['windows', 'window']
+                                    is_window and
+                                    orientation_match and
+                                    include_all_windows
                                 )
                                 
                                 if is_suitable:
@@ -767,24 +769,29 @@ def render_facade_extraction():
                                 
                                 total_glass_area += glass_area
                                 
+                                # Calculate window area (use 1.5 m² as default if glass area is 0)
+                                window_area = glass_area if glass_area > 0 else 1.5
+                                
                                 windows.append({
-                                    'id': element_id,
+                                    'element_id': element_id,  # Always preserve Element ID
                                     'category': category,
                                     'family': family,
                                     'level': level,
                                     'azimuth': azimuth,
                                     'orientation': orientation,
                                     'glass_area': glass_area,
+                                    'window_area': window_area,
                                     'suitable': is_suitable,
-                                    'pv_potential': glass_area * (pv_suitability_threshold / 100) if is_suitable else 0
+                                    'pv_potential': window_area * (pv_suitability_threshold / 100) if is_suitable else 0
                                 })
                             except (ValueError, TypeError):
                                 continue
                     
                     # Calculate summary statistics
                     total_elements = len(windows)
-                    suitable_glass_area = sum(w['glass_area'] for w in windows if w['suitable'])
-                    avg_glass_area = total_glass_area / total_elements if total_elements > 0 else 0
+                    total_window_area = sum(w['window_area'] for w in windows)
+                    suitable_window_area = sum(w['window_area'] for w in windows if w['suitable'])
+                    avg_window_area = total_window_area / total_elements if total_elements > 0 else 0
                     
                     # Group by orientation
                     orientation_stats = {}
@@ -799,19 +806,20 @@ def render_facade_extraction():
                             }
                         
                         orientation_stats[orientation]['count'] += 1
-                        orientation_stats[orientation]['total_area'] += window['glass_area']
+                        orientation_stats[orientation]['total_area'] += window['window_area']
                         
                         if window['suitable']:
                             orientation_stats[orientation]['suitable_count'] += 1
-                            orientation_stats[orientation]['suitable_area'] += window['glass_area']
+                            orientation_stats[orientation]['suitable_area'] += window['window_area']
                     
                     # Store processed data
                     facade_data = {
                         'total_elements': total_elements,
                         'suitable_elements': suitable_elements,
                         'total_glass_area': total_glass_area,
-                        'suitable_glass_area': suitable_glass_area,
-                        'avg_glass_area': avg_glass_area,
+                        'total_window_area': total_window_area,
+                        'suitable_window_area': suitable_window_area,
+                        'avg_window_area': avg_window_area,
                         'orientation_stats': orientation_stats,
                         'windows': windows,
                         'csv_processed': True,
@@ -833,13 +841,13 @@ def render_facade_extraction():
                 st.metric("Total Elements", total_elements)
                 st.metric("Suitable Elements", suitable_elements)
             with col2:
-                st.metric("Total Glass Area", f"{total_glass_area:.1f} m²")
-                st.metric("Suitable Glass Area", f"{suitable_glass_area:.1f} m²")
+                st.metric("Total Window Area", f"{total_window_area:.1f} m²")
+                st.metric("Suitable Window Area", f"{suitable_window_area:.1f} m²")
             with col3:
-                st.metric("Average Glass Area", f"{avg_glass_area:.2f} m²")
+                st.metric("Average Window Area", f"{avg_window_area:.2f} m²")
                 st.metric("Suitability Rate", f"{(suitable_elements/total_elements*100):.1f}%" if total_elements > 0 else "0%")
             with col4:
-                st.metric("PV Potential Area", f"{suitable_glass_area * (pv_suitability_threshold/100):.1f} m²")
+                st.metric("PV Potential Area", f"{suitable_window_area * (pv_suitability_threshold/100):.1f} m²")
                 st.metric("Orientations", len(orientation_stats))
             
             # Show detailed analysis by orientation
@@ -874,8 +882,9 @@ def render_facade_extraction():
                     'total_elements': total_elements,
                     'suitable_elements': suitable_elements,
                     'total_glass_area': total_glass_area,
-                    'suitable_glass_area': suitable_glass_area,
-                    'avg_glass_area': total_glass_area / total_elements,
+                    'total_window_area': suitable_glass_area,
+                    'suitable_window_area': suitable_glass_area,
+                    'avg_window_area': total_glass_area / total_elements,
                     'csv_processed': False,
                     'simulated': True
                 }
