@@ -322,8 +322,7 @@ def main():
         "7. Yield vs Demand Calculation",
         "8. Multi-Objective Optimization",
         "9. Financial & Environmental Analysis",
-        "10. 3D Visualization",
-        "11. Reporting & Export"
+        "10. Reporting & Export"
     ]
     
     # Display workflow progress
@@ -340,7 +339,7 @@ def main():
             st.session_state.workflow_step -= 1
             st.rerun()
     with col2:
-        if st.button("Next ➡️", key="next_step") and st.session_state.workflow_step < 11:
+        if st.button("Next ➡️", key="next_step") and st.session_state.workflow_step < 10:
             st.session_state.workflow_step += 1
             st.rerun()
     
@@ -364,8 +363,6 @@ def main():
     elif st.session_state.workflow_step == 9:
         render_financial_analysis()
     elif st.session_state.workflow_step == 10:
-        render_3d_visualization()
-    elif st.session_state.workflow_step == 11:
         render_reporting()
 
 def render_project_setup():
@@ -1505,13 +1502,13 @@ def render_financial_analysis():
             # Convert carbon price to user's currency
             exchange_rate = get_currency_exchange_rate('USD', currency)
             default_carbon_price = 50 * exchange_rate
-            carbon_price = st.number_input(f"Carbon Price ({currency_symbol}/ton CO₂)", 1, 500, default_carbon_price, key="carbon_price")
+            carbon_price = st.number_input(f"Carbon Price ({currency_symbol}/ton CO₂)", 1.0, 500.0, default_carbon_price, key="carbon_price")
         
         with col2:
             renewable_energy_cert = st.checkbox("Renewable Energy Certificates", value=False, key="rec")
             if renewable_energy_cert:
                 default_rec_price = 10 * exchange_rate
-                rec_price = st.number_input(f"REC Price ({currency_symbol}/MWh)", 1, 100, default_rec_price, key="rec_price")
+                rec_price = st.number_input(f"REC Price ({currency_symbol}/MWh)", 1.0, 100.0, default_rec_price, key="rec_price")
             else:
                 rec_price = 0
         
@@ -1636,119 +1633,6 @@ def render_financial_analysis():
     else:
         st.warning("Please complete optimization analysis first.")
 
-def render_3d_visualization():
-    st.header("Step 10: 3D Visualization")
-    st.write("Interactive 3D visualization of building geometry and optimized PV system placement.")
-    
-    if st.session_state.project_data.get('optimization_results'):
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Visualization Options")
-            
-            view_mode = st.selectbox(
-                "View Mode",
-                options=["Building Overview", "PV Panel Detail", "Shading Analysis", "Performance Heatmap"],
-                key="view_mode"
-            )
-            
-            show_annotations = st.checkbox("Show Annotations", value=True, key="show_annotations")
-            show_grid = st.checkbox("Show Analysis Grid", value=False, key="show_grid")
-            
-        with col2:
-            st.subheader("Display Settings")
-            
-            color_scheme = st.selectbox(
-                "Color Scheme",
-                options=["Performance", "Orientation", "Shading", "Height"],
-                key="color_scheme"
-            )
-            
-            transparency = st.slider("Building Transparency", 0.0, 1.0, 0.3, key="transparency")
-        
-        if st.button("Generate 3D Visualization", key="generate_3d"):
-            with st.spinner("Generating interactive 3D model..."):
-                # Get project data
-                facade_data = st.session_state.project_data.get('facade_data', {})
-                pv_data = st.session_state.project_data.get('pv_data', {})
-                
-                building_height = random.randint(40, 60)
-                building_floors = building_height // 4
-                
-                visualization_data = {
-                    'building_geometry': {
-                        'floors': building_floors,
-                        'height': building_height,
-                        'footprint': '40m x 60m',
-                        'facade_area': facade_data.get('total_area', 1800)
-                    },
-                    'pv_system': {
-                        'panels_modeled': pv_data.get('total_panels', 450),
-                        'coverage_area': facade_data.get('suitable_area', 1350),
-                        'orientations': facade_data.get('orientations', ['South', 'East', 'West']),
-                        'avg_tilt': facade_data.get('avg_tilt', 85)
-                    },
-                    'performance_data': {
-                        'high_performance_zones': 65,
-                        'medium_performance_zones': 25,
-                        'low_performance_zones': 10
-                    }
-                }
-                
-                st.session_state.project_data['visualization_data'] = visualization_data
-                st.session_state.project_data['visualization_complete'] = True
-            
-            st.success("✅ 3D visualization generated successfully!")
-            
-            # Display 3D model info
-            st.subheader("3D Model Information")
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Building Height", f"{visualization_data['building_geometry']['height']} m")
-                st.metric("Floor Count", visualization_data['building_geometry']['floors'])
-                st.metric("Footprint", visualization_data['building_geometry']['footprint'])
-            with col2:
-                st.metric("Facade Area", f"{visualization_data['building_geometry']['facade_area']:,} m²")
-                st.metric("PV Coverage", f"{visualization_data['pv_system']['coverage_area']:,} m²")
-                coverage_ratio = visualization_data['pv_system']['coverage_area'] / visualization_data['building_geometry']['facade_area'] * 100
-                st.metric("Coverage Ratio", f"{coverage_ratio:.0f}%")
-            with col3:
-                st.metric("Panel Count", f"{visualization_data['pv_system']['panels_modeled']:,}")
-                st.metric("Orientations", len(visualization_data['pv_system']['orientations']))
-                st.metric("Average Tilt", f"{visualization_data['pv_system']['avg_tilt']}°")
-            
-            # Performance zones
-            st.subheader("Performance Zone Analysis")
-            perf_data = visualization_data['performance_data']
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("High Performance", f"{perf_data['high_performance_zones']}%", "Excellent solar access")
-            with col2:
-                st.metric("Medium Performance", f"{perf_data['medium_performance_zones']}%", "Good solar access")
-            with col3:
-                st.metric("Low Performance", f"{perf_data['low_performance_zones']}%", "Limited solar access")
-            
-            # Visualization features
-            st.subheader("Interactive Model Features")
-            features = [
-                "🔄 360° rotation and zoom controls",
-                "🎯 Click panels for performance details",
-                "📊 Real-time performance data overlay",
-                "🌞 Solar path visualization",
-                "🏢 Building geometry analysis",
-                "⚡ Energy flow visualization"
-            ]
-            
-            for feature in features:
-                st.write(feature)
-            
-            st.info("💡 Use mouse controls to rotate, zoom, and explore the 3D model. Click on individual panels to view detailed performance metrics.")
-            
-    else:
-        st.warning("Please complete optimization analysis first.")
 
 def generate_enhanced_html_report(include_charts, include_recommendations):
     """Generate comprehensive HTML report with detailed equations and methodology"""

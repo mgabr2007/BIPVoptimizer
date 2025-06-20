@@ -4,7 +4,7 @@
 
 BIPV Optimizer is a comprehensive Building Integrated Photovoltaics optimization platform built with Streamlit. The application provides a complete workflow for analyzing and optimizing photovoltaic system installations on building facades and windows, from initial project setup through financial analysis and 3D visualization.
 
-The platform follows an 11-step workflow that guides users through the entire BIPV analysis process, including historical data analysis, weather integration, facade extraction, radiation modeling, PV specification, yield calculations, optimization, and financial analysis.
+The platform follows a 10-step workflow that guides users through the entire BIPV analysis process, including historical data analysis, weather integration, facade extraction, radiation modeling, PV specification, yield calculations, optimization, and financial analysis.
 
 ## System Architecture
 
