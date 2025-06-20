@@ -3214,7 +3214,15 @@ def render_reporting():
             csv_content = None
             if facade_data.get('windows'):
                 elements = facade_data['windows']
+                
+                # Handle radiation data structure - could be dict or list
                 element_radiation = radiation_data.get('element_radiation', {})
+                if isinstance(element_radiation, list):
+                    # Convert list to dict using element index as key
+                    element_radiation = {str(i): 1200 for i in range(len(elements))}
+                elif not isinstance(element_radiation, dict):
+                    element_radiation = {}
+                
                 panel_efficiency = pv_data.get('efficiency', 15) / 100
                 
                 # Get optimization results if available
@@ -3242,8 +3250,17 @@ def render_reporting():
                     width = (window_area ** 0.5) if window_area > 0 else 1.2
                     height = width
                     
-                    # Calculate radiation for this element
-                    annual_radiation = element_radiation.get(str(element_id), 1200)
+                    # Calculate radiation for this element with fallback based on orientation
+                    orientation_radiation_defaults = {
+                        'South': 1400,
+                        'East': 1200,
+                        'West': 1200,
+                        'North': 800,
+                        'Unknown': 1000
+                    }
+                    
+                    default_radiation = orientation_radiation_defaults.get(orientation, 1000)
+                    annual_radiation = element_radiation.get(str(element_id), default_radiation)
                     
                     # Calculate expected production
                     if str(element_id) in selected_elements or not selected_elements:
