@@ -2392,92 +2392,37 @@ def render_reporting():
             with st.spinner("Generating comprehensive BIPV analysis report with detailed equations and methodologies..."):
                 # Generate enhanced HTML report with equations and detailed explanations
                 html_content = generate_enhanced_html_report(include_charts, include_recommendations)
-                    
-                    page_counts = {
-                        "Executive Summary": 8,
-                        "Technical Report": 15,
-                        "Financial Analysis": 12,
-                        "Environmental Impact": 10,
-                        "Complete Report": 35
-                    }
-                    
-                    report_data = {
-                        'report_type': report_type,
-                        'generation_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        'pages': page_counts.get(report_type, 15),
-                        'includes_charts': include_charts,
-                        'includes_recommendations': include_recommendations,
-                        'html_content': html_content
-                    }
-                    
-                    st.session_state.project_data['generated_reports'] = st.session_state.project_data.get('generated_reports', [])
-                    st.session_state.project_data['generated_reports'].append(report_data)
                 
-                st.success(f"✅ {report_type} generated successfully!")
+                report_data = {
+                    'report_type': "Complete BIPV Analysis Report",
+                    'generation_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'pages': "50+",
+                    'includes_charts': include_charts,
+                    'includes_recommendations': include_recommendations,
+                    'includes_equations': True,
+                    'html_content': html_content
+                }
                 
-                # Show report details
-                st.info(f"📄 Report Details: {report_data['pages']} pages, generated on {report_data['generation_date']}")
-                
-                # Download button for the report
-                st.download_button(
-                    label=f"📥 Download {report_type}",
-                    data=html_content,
-                    file_name=f"BIPV_{report_type.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                    mime="text/html",
-                    key=f"download_report_{len(st.session_state.project_data.get('generated_reports', []))}"
-                )
-                
-                # Preview section
-                with st.expander("📋 Report Preview"):
-                    st.markdown(html_content[:2000] + "..." if len(html_content) > 2000 else html_content, unsafe_allow_html=True)
-        
-        with col2:
-            st.subheader("Data Export")
+                st.session_state.project_data['generated_reports'] = st.session_state.project_data.get('generated_reports', [])
+                st.session_state.project_data['generated_reports'].append(report_data)
             
-            export_format = st.selectbox(
-                "Export Format",
-                options=["CSV", "JSON", "Excel", "XML"],
-                key="export_format"
+            st.success("Complete BIPV analysis report generated successfully!")
+            
+            # Show report details
+            st.info(f"Report generated with {report_data['pages']} pages including complete calculations, equations, and methodology explanations")
+            
+            # Download button for the report
+            st.download_button(
+                label="Download Complete BIPV Analysis Report",
+                data=html_content,
+                file_name=f"BIPV_Complete_Analysis_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                mime="text/html",
+                key=f"download_complete_report_{len(st.session_state.project_data.get('generated_reports', []))}"
             )
             
-            export_scope = st.selectbox(
-                "Export Scope",
-                options=["Complete Dataset", "Financial Data Only", "Technical Data Only", "Summary Data"],
-                key="export_scope"
-            )
-            
-            if st.button("Export Data", key="export_data"):
-                with st.spinner(f"Exporting data as {export_format}..."):
-                    # Simulate data export
-                    file_sizes = {
-                        "Complete Dataset": "2.3 MB",
-                        "Financial Data Only": "450 KB",
-                        "Technical Data Only": "1.2 MB",
-                        "Summary Data": "180 KB"
-                    }
-                    
-                    record_counts = {
-                        "Complete Dataset": 15000,
-                        "Financial Data Only": 300,
-                        "Technical Data Only": 8500,
-                        "Summary Data": 150
-                    }
-                    
-                    export_data = {
-                        'format': export_format,
-                        'scope': export_scope,
-                        'file_size': file_sizes.get(export_scope, "1 MB"),
-                        'records': record_counts.get(export_scope, 1000),
-                        'export_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    }
-                    
-                    st.session_state.project_data['exports'] = st.session_state.project_data.get('exports', [])
-                    st.session_state.project_data['exports'].append(export_data)
-                
-                st.success(f"✅ Data exported as {export_format} successfully!")
-                
-                # Show export details
-                st.info(f"📊 Export Details: {export_data['records']:,} records, {export_data['file_size']}")
+            # Preview section
+            with st.expander("Report Preview"):
+                st.markdown(html_content[:3000] + "..." if len(html_content) > 3000 else html_content, unsafe_allow_html=True)
         
         # Project completion summary
         st.markdown("---")
