@@ -1486,17 +1486,17 @@ def render_financial_analysis():
             
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("Initial Investment", f"${financial_data['initial_investment']:,.0f}")
+                st.metric("Initial Investment", f"{currency_symbol}{financial_data['initial_investment']:,.0f}")
                 st.metric("Annual Generation", f"{financial_data['annual_generation']:,.0f} kWh")
             with col2:
-                st.metric("Annual Savings", f"${financial_data['annual_savings']:,.0f}")
-                st.metric("Annual Export Revenue", f"${financial_data['annual_export_revenue']:,.0f}")
+                st.metric("Annual Savings", f"{currency_symbol}{financial_data['annual_savings']:,.0f}")
+                st.metric("Annual Export Revenue", f"{currency_symbol}{financial_data['annual_export_revenue']:,.0f}")
             with col3:
-                st.metric("NPV", f"${financial_data['npv']:,.0f}")
+                st.metric("NPV", f"{currency_symbol}{financial_data['npv']:,.0f}")
                 st.metric("IRR", f"{financial_data['irr']:.1%}")
             with col4:
                 st.metric("Payback Period", f"{financial_data['payback_period']:.1f} years")
-                st.metric("LCOE", f"${financial_data['lcoe']:.3f}/kWh")
+                st.metric("LCOE", f"{currency_symbol}{financial_data['lcoe']:.3f}/kWh")
             
             # Environmental results
             st.subheader("Environmental Impact")
@@ -1506,10 +1506,10 @@ def render_financial_analysis():
             with col2:
                 st.metric("Lifetime CO₂ Savings", f"{financial_data['co2_savings_lifetime']:.0f} tons")
             with col3:
-                st.metric("Carbon Value", f"${financial_data['carbon_value']:,.0f}")
+                st.metric("Carbon Value", f"{currency_symbol}{financial_data['carbon_value']:,.0f}")
             with col4:
                 if renewable_energy_cert:
-                    st.metric("REC Value", f"${financial_data['rec_value']:,.0f}")
+                    st.metric("REC Value", f"{currency_symbol}{financial_data['rec_value']:,.0f}")
                 else:
                     st.metric("REC Value", "Not included")
                 
@@ -1529,7 +1529,7 @@ def render_financial_analysis():
             for i, (year, cf) in enumerate(zip(years, cumulative_cash_flow)):
                 with [col1, col2, col3, col4, col5, col6][i]:
                     color = "normal" if cf >= 0 else "inverse"
-                    st.metric(f"Year {year}", f"${cf:,.0f}", delta_color=color)
+                    st.metric(f"Year {year}", f"{currency_symbol}{cf:,.0f}", delta_color=color)
                     
     else:
         st.warning("Please complete optimization analysis first.")
