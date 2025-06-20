@@ -2675,7 +2675,7 @@ def generate_html_report(report_type, include_charts, include_recommendations):
         <div class="section">
             <h2>Recommendations</h2>
             <div class="recommendation">
-                <strong>System Optimization:</strong> The analysis indicates optimal PV system performance with {pv_data.get('total_panels', 0):,} panels providing {pv_data.get('system_capacity', 0):.1f} kW capacity.
+                <strong>System Optimization:</strong> The analysis indicates optimal PV system performance with {pv_data.get('total_windows', 0):,} windows providing {pv_data.get('system_capacity', 0):.1f} kW capacity.
             </div>
             <div class="recommendation">
                 <strong>Financial Viability:</strong> With a payback period of {financial_analysis.get('payback_period', 0):.1f} years and NPV of ${financial_analysis.get('npv', 0):,.0f}, the project demonstrates strong financial returns.
