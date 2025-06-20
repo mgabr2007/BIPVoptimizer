@@ -932,8 +932,9 @@ def render_radiation_grid():
         
         if st.button("Calculate Radiation Grid", key="calc_radiation"):
             with st.spinner("Calculating solar radiation and shading analysis..."):
-                # Use TMY data for calculations
+                # Use TMY data and BIM data from Step 4
                 tmy_data = st.session_state.project_data['tmy_data']
+                facade_data = st.session_state.project_data['facade_data']
                 base_ghi = tmy_data['annual_ghi']
                 
                 # Calculate radiation with shading factors
@@ -953,12 +954,48 @@ def render_radiation_grid():
                 }
                 grid_points = grid_multipliers.get(grid_resolution, 15000)
                 
+                # Process individual elements from BIM data if available
+                element_radiation = []
+                if facade_data.get('csv_processed') and 'windows' in facade_data:
+                    windows = facade_data['windows']
+                    
+                    for window in windows:
+                        if window.get('suitable', False):
+                            element_id = window['element_id']
+                            orientation = window['orientation']
+                            azimuth = window['azimuth']
+                            window_area = window['window_area']
+                            
+                            # Calculate orientation-specific radiation
+                            orientation_multiplier = {
+                                'South (135-225°)': 1.3,
+                                'East (45-135°)': 0.9,
+                                'West (225-315°)': 0.9,
+                                'North (315-45°)': 0.5
+                            }.get(orientation, 0.8)
+                            
+                            element_irradiance = effective_irradiance * orientation_multiplier
+                            annual_radiation = element_irradiance * window_area
+                            
+                            element_radiation.append({
+                                'element_id': element_id,
+                                'orientation': orientation,
+                                'azimuth': azimuth,
+                                'window_area': window_area,
+                                'irradiance': element_irradiance,
+                                'annual_radiation': annual_radiation,
+                                'family': window.get('family', ''),
+                                'level': window.get('level', '')
+                            })
+                
                 radiation_data = {
                     'avg_irradiance': int(effective_irradiance),
                     'peak_irradiance': 1000,
                     'shading_factor': 1 - total_reduction,
                     'grid_points': grid_points,
                     'analysis_complete': True,
+                    'element_radiation': element_radiation,
+                    'total_elements_analyzed': len(element_radiation),
                     'seasonal_variation': {
                         'spring': int(effective_irradiance * 0.9),
                         'summer': int(effective_irradiance * 1.2),
@@ -966,10 +1003,10 @@ def render_radiation_grid():
                         'winter': int(effective_irradiance * 0.4)
                     },
                     'orientation_performance': {
-                        'South': int(effective_irradiance * 1.3),
-                        'East': int(effective_irradiance * 0.9),
-                        'West': int(effective_irradiance * 0.9),
-                        'North': int(effective_irradiance * 0.5)
+                        'South (135-225°)': int(effective_irradiance * 1.3),
+                        'East (45-135°)': int(effective_irradiance * 0.9),
+                        'West (225-315°)': int(effective_irradiance * 0.9),
+                        'North (315-45°)': int(effective_irradiance * 0.5)
                     }
                 }
                 
@@ -986,11 +1023,11 @@ def render_radiation_grid():
                 st.metric("Shading Factor", f"{radiation_data['shading_factor']:.0%}")
                 st.metric("Grid Points", f"{radiation_data['grid_points']:,}")
             with col3:
-                st.metric("Best Season", f"Summer ({radiation_data['seasonal_variation']['summer']:,})")
-                st.metric("Best Orientation", f"South ({radiation_data['orientation_performance']['South']:,})")
+                st.metric("BIM Elements Analyzed", f"{radiation_data['total_elements_analyzed']}")
+                st.metric("Best Orientation", f"South ({radiation_data['orientation_performance']['South (135-225°)']:,})")
             with col4:
                 st.metric("Analysis Status", "Complete")
-                st.metric("Grid Quality", "High")
+                st.metric("Data Source", "BIM CSV + TMY" if facade_data.get('csv_processed') else "Simulated")
             
             # Seasonal and orientation analysis
             st.subheader("Performance Analysis")
@@ -1008,6 +1045,82 @@ def render_radiation_grid():
                 orientations = radiation_data['orientation_performance']
                 for orientation, value in orientations.items():
                     st.write(f"• {orientation}: {value:,}")
+            
+            # BIM Elements Analysis (if CSV data was processed)
+            if radiation_data.get('element_radiation') and len(radiation_data['element_radiation']) > 0:
+                st.subheader("BIM Element Analysis")
+                st.write("Individual radiation analysis for each building element from uploaded CSV data:")
+                
+                # Create summary table of top performing elements
+                element_data = radiation_data['element_radiation']
+                
+                # Sort by annual radiation (highest first)
+                sorted_elements = sorted(element_data, key=lambda x: x['annual_radiation'], reverse=True)
+                top_elements = sorted_elements[:10]  # Show top 10
+                
+                if top_elements:
+                    st.write("**Top 10 Performing Elements:**")
+                    
+                    # Create a display table
+                    element_display = []
+                    for elem in top_elements:
+                        element_display.append({
+                            'Element ID': elem['element_id'],
+                            'Family': elem['family'],
+                            'Level': elem['level'],
+                            'Orientation': elem['orientation'],
+                            'Azimuth (°)': f"{elem['azimuth']:.1f}",
+                            'Area (m²)': f"{elem['window_area']:.1f}",
+                            'Irradiance (kWh/m²)': f"{elem['irradiance']:,.0f}",
+                            'Annual Radiation (kWh)': f"{elem['annual_radiation']:,.0f}"
+                        })
+                    
+                    # Display as table
+                    for i, elem in enumerate(element_display, 1):
+                        with st.expander(f"{i}. Element {elem['Element ID']} - {elem['Annual Radiation (kWh)']} kWh/year"):
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.write(f"**Family:** {elem['Family']}")
+                                st.write(f"**Level:** {elem['Level']}")
+                            with col2:
+                                st.write(f"**Orientation:** {elem['Orientation']}")
+                                st.write(f"**Azimuth:** {elem['Azimuth (°)']}°")
+                            with col3:
+                                st.write(f"**Area:** {elem['Area (m²)']} m²")
+                                st.write(f"**Irradiance:** {elem['Irradiance (kWh/m²)']} kWh/m²")
+                
+                # Summary statistics by orientation
+                orientation_summary = {}
+                for elem in element_data:
+                    orientation = elem['orientation']
+                    if orientation not in orientation_summary:
+                        orientation_summary[orientation] = {
+                            'count': 0,
+                            'total_radiation': 0,
+                            'avg_radiation': 0,
+                            'total_area': 0
+                        }
+                    
+                    orientation_summary[orientation]['count'] += 1
+                    orientation_summary[orientation]['total_radiation'] += elem['annual_radiation']
+                    orientation_summary[orientation]['total_area'] += elem['window_area']
+                
+                # Calculate averages
+                for orientation in orientation_summary:
+                    count = orientation_summary[orientation]['count']
+                    orientation_summary[orientation]['avg_radiation'] = orientation_summary[orientation]['total_radiation'] / count if count > 0 else 0
+                
+                st.write("**Performance Summary by Orientation:**")
+                for orientation, summary in orientation_summary.items():
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.write(f"**{orientation}**")
+                    with col2:
+                        st.write(f"{summary['count']} elements")
+                    with col3:
+                        st.write(f"{summary['total_area']:.1f} m² total")
+                    with col4:
+                        st.write(f"{summary['avg_radiation']:,.0f} kWh/year avg")
                 
     else:
         st.warning("Please complete facade extraction and weather data analysis first.")
