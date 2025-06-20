@@ -1209,54 +1209,58 @@ def render_pv_specification():
             # Get BIM data from Step 4
             facade_data = st.session_state.project_data.get('facade_data', {})
             
-            # Initialize variables
-            panel_area = 2.0  # m² (typical panel size)
-            
             # Use actual suitable windows from BIM data
             if facade_data.get('csv_processed') and 'windows' in facade_data:
                 suitable_windows = [w for w in facade_data['windows'] if w.get('suitable', False)]
                 suitable_count = len(suitable_windows)
                 
-                # Calculate panels for each window individually based on exact area
-                total_panels = 0
+                # Calculate PV area as exact glass area replacement
+                total_pv_area = 0
                 total_suitable_area = 0
                 window_panel_details = []
                 
                 for window in suitable_windows:
-                    window_area = window['window_area']  # Exact area from CSV
+                    window_area = window['window_area']  # Exact glass area from CSV
                     total_suitable_area += window_area
                     
-                    # Calculate panels for this specific window
-                    panels_for_window = max(1, int(window_area / (panel_area * spacing_factor)))
-                    total_panels += panels_for_window
+                    # PV area equals glass area (1:1 replacement)
+                    pv_area_for_window = window_area
+                    total_pv_area += pv_area_for_window
                     
                     window_panel_details.append({
                         'element_id': window.get('element_id', ''),
-                        'area': window_area,
-                        'panels': panels_for_window
+                        'glass_area': window_area,
+                        'pv_area': pv_area_for_window
                     })
                 
-                actual_panels = total_panels
+                # Calculate system based on total PV area
+                actual_panels = suitable_count  # One PV unit per window
                 available_area = total_suitable_area
+                total_pv_capacity_area = total_pv_area
                 avg_window_area = total_suitable_area / suitable_count if suitable_count > 0 else 1.5
-                avg_panels_per_window = total_panels / suitable_count if suitable_count > 0 else 1
+                avg_panels_per_window = 1.0  # One PV installation per window
                 
                 # Store window details for display
                 st.session_state.window_panel_details = window_panel_details
                 
-                st.info(f"Using exact BIM areas: {suitable_count} windows, {total_panels} total panels (avg {avg_panels_per_window:.1f} per window)")
+                st.info(f"Using exact glass areas: {suitable_count} windows, {total_pv_area:.1f} m² total PV area")
             else:
                 # Fallback if no BIM data
                 suitable_count = facade_data.get('suitable_elements', 300)
                 available_area = facade_data.get('suitable_window_area', 1800)
                 avg_window_area = available_area / suitable_count if suitable_count > 0 else 1.5
-                avg_panels_per_window = available_area / (panel_area * spacing_factor) / suitable_count if suitable_count > 0 else 1
-                actual_panels = int(available_area / (panel_area * spacing_factor))
+                avg_panels_per_window = 1.0  # One PV installation per window
+                actual_panels = suitable_count
+                total_pv_capacity_area = available_area
                 window_panel_details = []
                 
                 st.warning("No BIM data available, using estimated values")
             
-            system_capacity = actual_panels * panel_power / 1000  # kW
+            # Calculate system capacity based on PV area and efficiency
+            # Power = Area × Irradiance × Efficiency × Performance Ratio
+            standard_irradiance = 1000  # W/m² (STC conditions)
+            performance_ratio = 0.85  # Typical for BIPV systems
+            system_capacity = (total_pv_capacity_area * standard_irradiance * efficiency/100 * performance_ratio) / 1000  # kW
             
             # Get radiation data for yield calculation
             radiation_data = st.session_state.project_data.get('radiation_data', {})
@@ -1266,27 +1270,30 @@ def render_pv_specification():
             annual_yield = system_capacity * avg_irradiance * (1 - system_losses/100)
             specific_yield = annual_yield / system_capacity if system_capacity > 0 else 0
             
-            # Calculate costs
-            total_cost_per_watt = panel_cost + installation_cost
-            system_cost = actual_panels * panel_power * total_cost_per_watt
-            coverage_ratio = (actual_panels * panel_area) / available_area
+            # Calculate costs based on PV area (glass replacement)
+            cost_per_m2 = (panel_cost + installation_cost) * 1000 * efficiency/100  # Cost per m² of PV
+            system_cost = total_pv_capacity_area * cost_per_m2
+            total_cost_per_watt = system_cost / (system_capacity * 1000) if system_capacity > 0 else 0
+            coverage_ratio = 1.0  # 100% coverage as PV replaces glass completely
             
             pv_data = {
                 'panel_type': panel_type,
                 'efficiency': efficiency,
-                'panel_power': panel_power,
-                'total_panels': actual_panels,
+                'total_pv_area': total_pv_capacity_area,
+                'total_windows': actual_panels,
                 'system_capacity': system_capacity,
                 'annual_yield': annual_yield,
                 'specific_yield': specific_yield,
                 'system_cost': system_cost,
                 'cost_per_watt': total_cost_per_watt,
+                'cost_per_m2': cost_per_m2,
                 'coverage_ratio': coverage_ratio,
                 'panel_specifications': {
-                    'dimensions': '2.0m x 1.0m',
-                    'weight': '22 kg',
-                    'voltage': '37.5V',
-                    'current': f'{panel_power/37.5:.1f}A'
+                    'type': 'Semi-transparent BIPV Glass',
+                    'installation': 'Direct glass replacement',
+                    'area_match': '1:1 with existing glass',
+                    'transparency': f'{100-efficiency:.0f}%',
+                    'power_density': f'{efficiency*10:.0f} W/m²'
                 }
             }
             
@@ -1298,32 +1305,32 @@ def render_pv_specification():
         st.subheader("System Layout")
         
         # Explain calculation methodology
-        with st.expander("How Total Window Area is Calculated"):
-            st.write("**From BIM CSV File Processing (Exact Areas):**")
+        with st.expander("How BIPV Glass Replacement Area is Calculated"):
+            st.write("**From BIM CSV File Processing (1:1 Glass Replacement):**")
             st.write("1. **Glass Area Extraction:** Each window's exact 'Glass Area (m²)' value from CSV")
             st.write("2. **Area Assignment:** If Glass Area = 0, default to 1.5 m² per window")
             st.write("3. **Suitable Window Filter:** Only windows marked as 'suitable' based on orientation")
-            st.write("4. **Individual Calculation:** Panels calculated per window based on exact area")
-            st.write(f"5. **Total Sum:** {suitable_count} individual windows = {available_area:.1f} m² total")
+            st.write("4. **Direct Replacement:** PV area = Glass area (1:1 replacement)")
+            st.write(f"5. **Total PV Area:** {suitable_count} windows = {available_area:.1f} m² of BIPV glass")
             
             if facade_data.get('csv_processed') and hasattr(st.session_state, 'window_panel_details'):
                 window_details = st.session_state.window_panel_details
-                st.write("**Sample Window Breakdown:**")
+                st.write("**Sample BIPV Glass Replacement:**")
                 # Show first 5 windows as examples
                 for i, detail in enumerate(window_details[:5]):
-                    st.write(f"• Element {detail['element_id']}: {detail['area']:.1f} m² → {detail['panels']} panel(s)")
+                    st.write(f"• Element {detail['element_id']}: {detail['glass_area']:.1f} m² glass → {detail['pv_area']:.1f} m² BIPV")
                 if len(window_details) > 5:
                     st.write(f"... and {len(window_details) - 5} more windows")
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Suitable Windows", f"{suitable_count}")
-            st.metric("Avg Panels per Window", f"{avg_panels_per_window:.1f}")
+            st.metric("Windows with BIPV", f"{suitable_count}")
+            st.metric("PV Installation Type", "Glass Replacement")
         with col2:
-            st.metric("Total Panels", f"{pv_data['total_panels']:,}")
+            st.metric("Total PV Area", f"{pv_data['total_pv_area']:.1f} m²")
             st.metric("System Capacity", f"{pv_data['system_capacity']:.1f} kW")
         with col3:
-            st.metric("Total Window Area", f"{available_area:.1f} m²")
+            st.metric("Glass Area Replaced", f"{available_area:.1f} m²")
             st.metric("Avg Window Area", f"{avg_window_area:.1f} m²")
         
         st.subheader("Performance Metrics")
@@ -1344,14 +1351,14 @@ def render_pv_specification():
         # Panel specifications with calculation explanation
         st.subheader("Panel Specifications")
         
-        with st.expander("How Panel Specifications are Calculated"):
-            st.write("**Panel Specifications Calculation:**")
-            st.write("1. **Dimensions:** Fixed at 2.0m × 1.0m (standard BIPV panel size)")
-            st.write("2. **Weight:** Standard 22 kg per panel")
-            st.write("3. **Voltage:** Fixed at 37.5V (standard operating voltage)")
-            st.write(f"4. **Current:** Calculated as Power ÷ Voltage = {panel_power}W ÷ 37.5V = {panel_power/37.5:.1f}A")
-            st.write("5. **Panel Area:** 2.0m × 1.0m = 2.0 m² per panel")
-            st.write(f"6. **Panels per Window:** Based on window area ÷ (panel area × spacing factor)")
+        with st.expander("How BIPV Specifications are Calculated"):
+            st.write("**BIPV Glass Replacement Specifications:**")
+            st.write("1. **Type:** Semi-transparent photovoltaic glass")
+            st.write("2. **Installation:** Direct 1:1 replacement of existing glass")
+            st.write("3. **Area Match:** BIPV area exactly matches glass area from CSV")
+            st.write(f"4. **Transparency:** {100-efficiency:.0f}% (based on {efficiency}% efficiency)")
+            st.write(f"5. **Power Density:** {efficiency*10:.0f} W/m² at standard conditions")
+            st.write("6. **Coverage:** 100% of glass area replaced with BIPV")
         
         specs = pv_data['panel_specifications']
         col1, col2, col3, col4 = st.columns(4)
