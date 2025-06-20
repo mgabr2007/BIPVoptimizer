@@ -2029,7 +2029,8 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
             <p><em>This comprehensive report was generated as part of a PhD research at Technische Universität Berlin using the BIPV Optimizer platform. It includes detailed calculations, equations, and methodological explanations. For technical inquiries or further information, please contact:<br><br>
             <strong>Mostafa Gabr</strong><br>
             PhD Researcher – BIM & AI in Energy Optimization<br>
-            Technische Universität Berlin – Department of Architecture</em></p>
+            Technische Universität Berlin – Department of Architecture<br>
+            ResearchGate: <a href="https://www.researchgate.net/profile/Mostafa-Gabr-4" target="_blank">https://www.researchgate.net/profile/Mostafa-Gabr-4</a></em></p>
         </div>
     </body>
     </html>
