@@ -3212,8 +3212,8 @@ def render_reporting():
             optimization_results = project_data.get('optimization_results', {})
             
             csv_content = None
-            if facade_data.get('processed_elements'):
-                elements = facade_data['processed_elements']
+            if facade_data.get('windows'):
+                elements = facade_data['windows']
                 element_radiation = radiation_data.get('element_radiation', {})
                 panel_efficiency = pv_data.get('efficiency', 15) / 100
                 
@@ -3228,14 +3228,19 @@ def render_reporting():
                 csv_lines.append("Element_ID,Wall_Hosted_ID,Glass_Area_m2,Orientation,Azimuth_Deg,Annual_Radiation_kWh_m2,Expected_Production_kWh,BIPV_Selected,Window_Width_m,Window_Height_m,Building_Level")
                 
                 for element in elements:
-                    element_id = element.get('Element_ID', 'N/A')
-                    wall_hosted_id = element.get('Wall_Hosted_ID', 'N/A')
-                    glass_area = element.get('Glass_Area', 1.5)
-                    orientation = element.get('Orientation', 'Unknown')
-                    azimuth = element.get('Azimuth', 0)
-                    width = element.get('Width', 0)
-                    height = element.get('Height', 0)
-                    level = element.get('Level', 'Unknown')
+                    element_id = element.get('element_id', 'N/A')
+                    wall_hosted_id = element.get('wall_element_id', 'N/A')
+                    glass_area = element.get('glass_area', 1.5)
+                    orientation = element.get('orientation', 'Unknown')
+                    azimuth = element.get('azimuth', 0)
+                    window_area = element.get('window_area', 1.5)
+                    level = element.get('level', 'Unknown')
+                    family = element.get('family', 'Unknown')
+                    category = element.get('category', 'Unknown')
+                    
+                    # Estimate dimensions (assume square windows if not provided)
+                    width = (window_area ** 0.5) if window_area > 0 else 1.2
+                    height = width
                     
                     # Calculate radiation for this element
                     annual_radiation = element_radiation.get(str(element_id), 1200)
