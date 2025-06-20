@@ -746,6 +746,7 @@ def render_facade_extraction():
                                 
                                 # Extract key information
                                 element_id = element_data.get('ElementId', '')
+                                host_wall_id = element_data.get('HostWallId', '')
                                 category = element_data.get('Category', '')
                                 family = element_data.get('Family', '')
                                 level = element_data.get('Level', '')
@@ -774,6 +775,7 @@ def render_facade_extraction():
                                 
                                 windows.append({
                                     'element_id': element_id,  # Always preserve Element ID
+                                    'wall_element_id': host_wall_id,  # Wall Element ID from HostWallId
                                     'category': category,
                                     'family': family,
                                     'level': level,
