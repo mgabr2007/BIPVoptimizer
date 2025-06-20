@@ -85,12 +85,7 @@ modules/
 - **Calculations**: NPV, IRR, payback period, CO₂ savings
 - **Features**: Cash flow analysis, sensitivity analysis, emissions tracking
 
-### 10. 3D Visualization
-- **Purpose**: Interactive 3D visualization of building and PV system placement
-- **Technology**: Plotly 3D graphics for building geometry and PV overlay visualization
-- **Features**: Interactive building models with PV panel placement indicators
-
-### 11. Reporting & Export
+### 10. Reporting & Export
 - **Purpose**: Generate comprehensive reports and export analysis results
 - **Formats**: PDF/HTML reports, CSV/JSON data export
 - **Content**: Executive summary, technical analysis, financial projections
@@ -206,6 +201,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 20, 2025: Modified Step 11 reporting to remove data export functionality and create single comprehensive report option with complete equations, detailed calculation methodologies, and enhanced process explanations
 - June 20, 2025: Streamlined Step 1 project setup by removing unused inputs (Units System, Interface Language, Building Type, BIM file upload) to focus only on essential parameters used in calculations
 - June 20, 2025: Cleaned up project structure by removing multiple legacy app files (app_complete.py, app_dependency_fixed.py, app_fixed.py, app_minimal.py, app_minimal_test.py, app_pure_python.py, app_streamlit_only.py, app_working_minimal.py, app_working.py) and consolidated to single main app.py file
+- June 20, 2025: Enhanced Step 4 with CSV upload functionality for BIM-extracted windows and facade data including orientation mapping, glass area filtering, and comprehensive building element analysis
+- June 20, 2025: Simplified Step 9 by fixing numeric type errors in financial analysis inputs and removed Step 10 (3D visualization) to streamline workflow from 11 to 10 steps due to lacking required inputs and viewers
 
 ## User Preferences
 
