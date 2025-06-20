@@ -5,6 +5,16 @@ from datetime import datetime, timedelta
 import random
 import io
 
+# Import Plotly for chart generation
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    go = None
+    px = None
+    PLOTLY_AVAILABLE = False
+
 # Pure Python implementations for mathematical operations
 class SimpleMath:
     @staticmethod
@@ -54,13 +64,11 @@ except ImportError:
     PLOTLY_AVAILABLE = False
 
 def generate_chart_html(chart_type, data, title="Chart"):
-    """Generate HTML for charts to embed in reports"""
-    if not PLOTLY_AVAILABLE:
-        return f'<div class="chart-placeholder"><p>Chart: {title} (Visualization not available)</p></div>'
+    """Generate HTML charts for reports using CSS-based visualizations"""
     
     try:
         if chart_type == "energy_balance":
-            # Monthly energy balance chart
+            # Generate energy balance bar chart with CSS
             months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
             pv_generation = data.get('pv_generation', [850, 1200, 1650, 2100, 2400, 2600, 
@@ -68,20 +76,46 @@ def generate_chart_html(chart_type, data, title="Chart"):
             energy_demand = data.get('energy_demand', [2200, 2000, 1800, 1600, 1400, 1200, 
                                                       1100, 1200, 1500, 1800, 2000, 2200])
             
-            fig = go.Figure()
-            fig.add_trace(go.Bar(name='PV Generation', x=months, y=pv_generation, 
-                               marker_color='#2E8B57'))
-            fig.add_trace(go.Bar(name='Energy Demand', x=months, y=energy_demand, 
-                               marker_color='#FF6B6B'))
+            max_val = max(max(pv_generation), max(energy_demand))
             
-            fig.update_layout(
-                title=title,
-                xaxis_title='Month',
-                yaxis_title='Energy (kWh)',
-                barmode='group',
-                template='plotly_white',
-                height=400
-            )
+            chart_html = f'''
+            <div style="margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                <h3 style="text-align: center; color: #333; margin-bottom: 20px;">{title}</h3>
+                <div style="display: flex; justify-content: space-around; align-items: end; height: 300px; border-bottom: 2px solid #333; padding: 10px;">
+            '''
+            
+            for i, month in enumerate(months):
+                pv_height = (pv_generation[i] / max_val) * 250
+                demand_height = (energy_demand[i] / max_val) * 250
+                
+                chart_html += f'''
+                    <div style="display: flex; flex-direction: column; align-items: center; margin: 0 2px;">
+                        <div style="display: flex; align-items: end; gap: 2px; margin-bottom: 5px;">
+                            <div style="width: 15px; height: {pv_height}px; background-color: #2E8B57; border-radius: 2px;" 
+                                 title="PV Generation: {pv_generation[i]} kWh"></div>
+                            <div style="width: 15px; height: {demand_height}px; background-color: #FF6B6B; border-radius: 2px;" 
+                                 title="Energy Demand: {energy_demand[i]} kWh"></div>
+                        </div>
+                        <small style="font-size: 10px; color: #666;">{month}</small>
+                    </div>
+                '''
+            
+            chart_html += '''
+                </div>
+                <div style="display: flex; justify-content: center; gap: 20px; margin-top: 10px;">
+                    <div style="display: flex; align-items: center;">
+                        <div style="width: 15px; height: 15px; background-color: #2E8B57; margin-right: 5px;"></div>
+                        <small>PV Generation</small>
+                    </div>
+                    <div style="display: flex; align-items: center;">
+                        <div style="width: 15px; height: 15px; background-color: #FF6B6B; margin-right: 5px;"></div>
+                        <small>Energy Demand</small>
+                    </div>
+                </div>
+            </div>
+            '''
+            
+            return chart_html
             
         elif chart_type == "financial_projection":
             # Financial projection over project lifetime
@@ -197,15 +231,20 @@ def generate_chart_html(chart_type, data, title="Chart"):
                                    mode='lines+markers'))
             fig.update_layout(title=title, template='plotly_white', height=400)
         
-        # Convert to HTML
-        chart_html = pio.to_html(fig, include_plotlyjs='cdn', div_id=f"chart_{chart_type}")
-        
-        # Extract just the div portion
-        start = chart_html.find('<div')
-        end = chart_html.find('</div>') + 6
-        if start != -1 and end != -1:
-            return chart_html[start:end]
-        else:
+        # Generate inline SVG for better compatibility in reports
+        try:
+            # Convert to SVG for embedded reports
+            svg_string = fig.to_image(format="svg", width=800, height=400)
+            svg_b64 = svg_string.decode('utf-8') if isinstance(svg_string, bytes) else svg_string
+            return f'<div style="text-align: center; margin: 20px 0;">{svg_b64}</div>'
+        except:
+            # Fallback to HTML with inline Plotly
+            chart_html = fig.to_html(include_plotlyjs='inline', div_id=f"chart_{chart_type}")
+            # Extract the essential parts
+            start = chart_html.find('<body>')
+            end = chart_html.find('</body>')
+            if start != -1 and end != -1:
+                return chart_html[start+6:end]
             return chart_html
             
     except Exception as e:
