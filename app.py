@@ -650,107 +650,251 @@ def render_weather_environment():
 
 def render_facade_extraction():
     st.header("Step 4: Facade & Window Extraction")
-    st.write("Extract building facade and window elements from BIM model for PV suitability analysis.")
+    st.write("Upload extracted BIM data (windows and facades) for PV suitability analysis and energy calculations.")
     
-    if st.session_state.project_data.get('bim_file'):
-        st.info(f"Processing BIM file: {st.session_state.project_data['bim_file']}")
+    # CSV Upload Section
+    st.subheader("BIM Data Upload")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Upload Extracted Building Elements**")
         
-        col1, col2 = st.columns(2)
+        uploaded_csv = st.file_uploader(
+            "Upload BIM Elements CSV",
+            type=['csv'],
+            help="Upload CSV file with extracted windows and facade elements from BIM model",
+            key="bim_csv_upload"
+        )
         
-        with col1:
-            st.subheader("Extraction Parameters")
-            min_facade_area = st.number_input(
-                "Minimum Facade Area (m²)",
-                min_value=5.0,
-                max_value=100.0,
-                value=20.0,
-                key="min_facade_area"
-            )
+        # CSV format documentation
+        with st.expander("📋 Required CSV Format", expanded=False):
+            st.markdown("""
+            **Required Columns:**
+            - `ElementId`: Unique identifier for building element
+            - `Category`: Element category (Windows, Walls, etc.)
+            - `Family`: BIM family name
+            - `Type`: Element type within family
+            - `Level`: Building level/floor
+            - `HostWallId`: ID of host wall (for windows)
+            - `OriX, OriY, OriZ`: Orientation vector components
+            - `Azimuth (°)`: Azimuth angle in degrees
+            - `Glass Area (m²)`: Glass area for windows
             
-            orientation_filter = st.multiselect(
-                "Include Orientations",
-                options=["North", "South", "East", "West", "Northeast", "Southeast", "Southwest", "Northwest"],
-                default=["South", "East", "West"],
-                key="orientation_filter"
-            )
+            **Example Structure:**
+            ```
+            ElementId,Category,Family,Type,Level,HostWallId,OriX,OriY,OriZ,Azimuth (°),Glass Area (m²)
+            385910,Windows,Arched (1),,03,342232,-0.1,0.99,-0.0,354.12,0.0
+            383924,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,0.0
+            ```
+            """)
+    
+    with col2:
+        st.subheader("Analysis Parameters")
+        min_glass_area = st.number_input(
+            "Minimum Glass Area (m²)",
+            min_value=0.1,
+            max_value=50.0,
+            value=1.0,
+            key="min_glass_area"
+        )
         
-        with col2:
-            st.subheader("PV Suitability Criteria")
-            min_tilt = st.slider("Minimum Tilt Angle (°)", 0, 90, 15, key="min_tilt")
-            max_tilt = st.slider("Maximum Tilt Angle (°)", 0, 90, 75, key="max_tilt")
-            shading_tolerance = st.slider("Shading Tolerance (%)", 0, 50, 20, key="shading_tolerance")
+        orientation_filter = st.multiselect(
+            "Include Orientations (Azimuth ranges)",
+            options=["South (135-225°)", "East (45-135°)", "West (225-315°)", "North (315-45°)"],
+            default=["South (135-225°)", "East (45-135°)", "West (225-315°)"],
+            key="orientation_filter"
+        )
         
-        if st.button("Extract Building Elements", key="extract_elements"):
-            with st.spinner("Extracting facade and window elements from BIM model..."):
-                # Simulate facade extraction
-                total_facades = random.randint(20, 30)
-                suitable_facades = int(total_facades * 0.75)
-                total_area = random.randint(2000, 3000)
-                suitable_area = int(total_area * 0.75)
-                
-                facade_elements = []
-                for i in range(suitable_facades):
-                    orientation = random.choice(orientation_filter) if orientation_filter else "South"
-                    area = random.randint(40, 80)
-                    tilt = random.randint(80, 90)
+        pv_suitability_threshold = st.slider(
+            "PV Suitability Threshold (%)",
+            min_value=50,
+            max_value=100,
+            value=75,
+            key="pv_threshold"
+        )
+    
+    # Process uploaded CSV
+    if uploaded_csv is not None:
+        st.success(f"✅ CSV file uploaded: {uploaded_csv.name}")
+        
+        if st.button("Process BIM Data", key="process_bim_data"):
+            with st.spinner("Processing BIM elements data..."):
+                # Read and parse CSV content
+                try:
+                    content = uploaded_csv.getvalue().decode('utf-8')
+                    headers, data = parse_csv_content(content)
                     
-                    facade_elements.append({
-                        'id': f'F{i:03d}',
-                        'area': area,
-                        'orientation': orientation,
-                        'tilt': tilt,
-                        'suitable': True,
-                        'shading_factor': random.uniform(0.8, 0.95)
-                    })
+                    # Process building elements
+                    windows = []
+                    total_glass_area = 0
+                    suitable_elements = 0
+                    
+                    # Define orientation mapping
+                    def get_orientation_from_azimuth(azimuth):
+                        azimuth = float(azimuth) % 360
+                        if 315 <= azimuth or azimuth < 45:
+                            return "North (315-45°)"
+                        elif 45 <= azimuth < 135:
+                            return "East (45-135°)"
+                        elif 135 <= azimuth < 225:
+                            return "South (135-225°)"
+                        elif 225 <= azimuth < 315:
+                            return "West (225-315°)"
+                        return "Unknown"
+                    
+                    for row in data:
+                        if len(row) >= len(headers):
+                            try:
+                                element_data = dict(zip(headers, row))
+                                
+                                # Extract key information
+                                element_id = element_data.get('ElementId', '')
+                                category = element_data.get('Category', '')
+                                family = element_data.get('Family', '')
+                                level = element_data.get('Level', '')
+                                azimuth = float(element_data.get('Azimuth (°)', 0))
+                                glass_area = float(element_data.get('Glass Area (m²)', 0))
+                                
+                                orientation = get_orientation_from_azimuth(azimuth)
+                                
+                                # Apply filters
+                                is_suitable = (
+                                    glass_area >= min_glass_area and
+                                    orientation in orientation_filter and
+                                    category.lower() in ['windows', 'window']
+                                )
+                                
+                                if is_suitable:
+                                    suitable_elements += 1
+                                
+                                total_glass_area += glass_area
+                                
+                                windows.append({
+                                    'id': element_id,
+                                    'category': category,
+                                    'family': family,
+                                    'level': level,
+                                    'azimuth': azimuth,
+                                    'orientation': orientation,
+                                    'glass_area': glass_area,
+                                    'suitable': is_suitable,
+                                    'pv_potential': glass_area * (pv_suitability_threshold / 100) if is_suitable else 0
+                                })
+                            except (ValueError, TypeError):
+                                continue
+                    
+                    # Calculate summary statistics
+                    total_elements = len(windows)
+                    suitable_glass_area = sum(w['glass_area'] for w in windows if w['suitable'])
+                    avg_glass_area = total_glass_area / total_elements if total_elements > 0 else 0
+                    
+                    # Group by orientation
+                    orientation_stats = {}
+                    for window in windows:
+                        orientation = window['orientation']
+                        if orientation not in orientation_stats:
+                            orientation_stats[orientation] = {
+                                'count': 0,
+                                'suitable_count': 0,
+                                'total_area': 0,
+                                'suitable_area': 0
+                            }
+                        
+                        orientation_stats[orientation]['count'] += 1
+                        orientation_stats[orientation]['total_area'] += window['glass_area']
+                        
+                        if window['suitable']:
+                            orientation_stats[orientation]['suitable_count'] += 1
+                            orientation_stats[orientation]['suitable_area'] += window['glass_area']
+                    
+                    # Store processed data
+                    facade_data = {
+                        'total_elements': total_elements,
+                        'suitable_elements': suitable_elements,
+                        'total_glass_area': total_glass_area,
+                        'suitable_glass_area': suitable_glass_area,
+                        'avg_glass_area': avg_glass_area,
+                        'orientation_stats': orientation_stats,
+                        'windows': windows,
+                        'csv_processed': True,
+                        'file_name': uploaded_csv.name
+                    }
+                    
+                    st.session_state.project_data['facade_data'] = facade_data
+                    st.session_state.project_data['extraction_complete'] = True
+                    
+                except Exception as e:
+                    st.error(f"Error processing CSV file: {str(e)}")
+                    return
+            
+            st.success(f"BIM data processed successfully! Analyzed {total_elements} building elements.")
+            
+            # Display analysis results
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Total Elements", total_elements)
+                st.metric("Suitable Elements", suitable_elements)
+            with col2:
+                st.metric("Total Glass Area", f"{total_glass_area:.1f} m²")
+                st.metric("Suitable Glass Area", f"{suitable_glass_area:.1f} m²")
+            with col3:
+                st.metric("Average Glass Area", f"{avg_glass_area:.2f} m²")
+                st.metric("Suitability Rate", f"{(suitable_elements/total_elements*100):.1f}%" if total_elements > 0 else "0%")
+            with col4:
+                st.metric("PV Potential Area", f"{suitable_glass_area * (pv_suitability_threshold/100):.1f} m²")
+                st.metric("Orientations", len(orientation_stats))
+            
+            # Show detailed analysis by orientation
+            st.subheader("Analysis by Orientation")
+            for orientation, stats in orientation_stats.items():
+                if stats['count'] > 0:
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.write(f"**{orientation}**")
+                    with col2:
+                        st.write(f"{stats['count']} elements")
+                    with col3:
+                        st.write(f"{stats['total_area']:.1f} m² total")
+                    with col4:
+                        st.write(f"{stats['suitable_count']} suitable ({stats['suitable_area']:.1f} m²)")
+    
+    elif not uploaded_csv:
+        st.info("Upload a CSV file with extracted BIM elements to begin analysis.")
+    
+    # Alternative: Manual simulation if no CSV uploaded
+    else:
+        st.subheader("Manual Analysis")
+        if st.button("Simulate Building Analysis", key="simulate_analysis"):
+            with st.spinner("Simulating building analysis..."):
+                # Create simulated data based on typical building parameters
+                total_elements = random.randint(150, 250)
+                suitable_elements = int(total_elements * 0.7)
+                total_glass_area = total_elements * random.uniform(1.5, 3.0)
+                suitable_glass_area = suitable_elements * random.uniform(2.0, 4.0)
                 
                 facade_data = {
-                    'total_facades': total_facades,
-                    'suitable_facades': suitable_facades,
-                    'total_area': total_area,
-                    'suitable_area': suitable_area,
-                    'orientations': orientation_filter,
-                    'avg_tilt': 85,
-                    'window_count': random.randint(120, 180),
-                    'facade_elements': facade_elements
+                    'total_elements': total_elements,
+                    'suitable_elements': suitable_elements,
+                    'total_glass_area': total_glass_area,
+                    'suitable_glass_area': suitable_glass_area,
+                    'avg_glass_area': total_glass_area / total_elements,
+                    'csv_processed': False,
+                    'simulated': True
                 }
                 
                 st.session_state.project_data['facade_data'] = facade_data
                 st.session_state.project_data['extraction_complete'] = True
             
-            st.success("✅ Building elements extracted successfully!")
+            st.success("Building analysis simulation completed!")
             
-            # Display extraction results
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Total Facades", total_facades)
-                st.metric("Window Count", facade_data['window_count'])
+                st.metric("Total Elements", total_elements)
             with col2:
-                st.metric("Suitable Facades", suitable_facades)
-                st.metric("Average Tilt", "85°")
+                st.metric("Suitable Elements", suitable_elements)
             with col3:
-                st.metric("Total Area", f"{total_area:,} m²")
-                st.metric("Suitable Area", f"{suitable_area:,} m²")
-            with col4:
-                st.metric("Suitability Rate", f"{suitable_facades/total_facades*100:.0f}%")
-                st.metric("Orientations", f"{len(orientation_filter)}")
-            
-            # Show facade details by orientation
-            st.subheader("Facade Analysis by Orientation")
-            orientation_counts = {}
-            orientation_areas = {}
-            
-            for element in facade_elements:
-                orientation = element['orientation']
-                orientation_counts[orientation] = orientation_counts.get(orientation, 0) + 1
-                orientation_areas[orientation] = orientation_areas.get(orientation, 0) + element['area']
-            
-            for orientation in orientation_filter:
-                count = orientation_counts.get(orientation, 0)
-                area = orientation_areas.get(orientation, 0)
-                st.write(f"**{orientation}**: {count} facades, {area:,} m² total area")
-                
-    else:
-        st.warning("Please upload a BIM file in Step 1 first.")
+                st.metric("Total Glass Area", f"{total_glass_area:.1f} m²")
 
 def render_radiation_grid():
     st.header("Step 5: Radiation & Shading Grid")
