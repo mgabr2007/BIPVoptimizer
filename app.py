@@ -502,9 +502,16 @@ def main():
             st.session_state.workflow_step -= 1
             st.rerun()
     with col2:
-        if st.button("Next ➡️", key="next_step") and st.session_state.workflow_step < 10:
-            st.session_state.workflow_step += 1
-            st.rerun()
+        if st.session_state.workflow_step == 10:
+            if st.button("🔄 Finish & New Calculation", key="finish_restart"):
+                # Reset workflow to start new calculation
+                st.session_state.workflow_step = 1
+                st.session_state.project_data = {}
+                st.rerun()
+        elif st.session_state.workflow_step < 10:
+            if st.button("Next ➡️", key="next_step"):
+                st.session_state.workflow_step += 1
+                st.rerun()
     
     # Main content based on current step
     if st.session_state.workflow_step == 1:
