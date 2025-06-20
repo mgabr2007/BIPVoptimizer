@@ -979,6 +979,7 @@ def render_radiation_grid():
                             
                             element_radiation.append({
                                 'element_id': element_id,
+                                'wall_element_id': window.get('wall_element_id', 'N/A'),
                                 'orientation': orientation,
                                 'azimuth': azimuth,
                                 'window_area': window_area,
@@ -1066,6 +1067,7 @@ def render_radiation_grid():
                     for elem in top_elements:
                         element_display.append({
                             'Element ID': elem['element_id'],
+                            'Wall Element ID': elem.get('wall_element_id', 'N/A'),
                             'Family': elem['family'],
                             'Level': elem['level'],
                             'Orientation': elem['orientation'],
@@ -1078,14 +1080,17 @@ def render_radiation_grid():
                     # Display as table
                     for i, elem in enumerate(element_display, 1):
                         with st.expander(f"{i}. Element {elem['Element ID']} - {elem['Annual Radiation (kWh)']} kWh/year"):
-                            col1, col2, col3 = st.columns(3)
+                            col1, col2, col3, col4 = st.columns(4)
                             with col1:
+                                st.write(f"**Element ID:** {elem['Element ID']}")
+                                st.write(f"**Wall Element ID:** {elem['Wall Element ID']}")
+                            with col2:
                                 st.write(f"**Family:** {elem['Family']}")
                                 st.write(f"**Level:** {elem['Level']}")
-                            with col2:
+                            with col3:
                                 st.write(f"**Orientation:** {elem['Orientation']}")
                                 st.write(f"**Azimuth:** {elem['Azimuth (°)']}°")
-                            with col3:
+                            with col4:
                                 st.write(f"**Area:** {elem['Area (m²)']} m²")
                                 st.write(f"**Irradiance:** {elem['Irradiance (kWh/m²)']} kWh/m²")
                 
