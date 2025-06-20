@@ -961,9 +961,14 @@ def render_radiation_grid():
                 if facade_data.get('csv_processed') and 'windows' in facade_data:
                     windows = facade_data['windows']
                     
+                    # Debug: Show what keys are available in the window data
+                    if windows:
+                        st.write(f"Debug: First window keys: {list(windows[0].keys())}")
+                        st.write(f"Debug: Sample element_id value: '{windows[0].get('element_id', 'NOT_FOUND')}'")
+                    
                     for window in windows:
                         if window.get('suitable', False):
-                            element_id = window['element_id']
+                            element_id = window.get('element_id', '')
                             orientation = window['orientation']
                             azimuth = window['azimuth']
                             window_area = window['window_area']
