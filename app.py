@@ -1616,7 +1616,51 @@ def render_yield_demand():
 
 def render_optimization():
     st.header("Step 8: Multi-Objective Optimization")
-    st.write("Optimize PV system configuration using genetic algorithms for maximum performance and ROI.")
+    
+    # Methodology explanation
+    st.subheader("🔬 BIPV Optimization Methodology")
+    with st.expander("Multi-Objective Genetic Algorithm (NSGA-II)", expanded=True):
+        st.markdown("""
+        ### Optimization Framework
+        
+        This module implements **Non-dominated Sorting Genetic Algorithm II (NSGA-II)** to find optimal BIPV configurations that balance multiple competing objectives.
+        
+        #### **Optimization Objectives:**
+        1. **Minimize Net Energy Import** - Reduce grid dependence by maximizing energy self-sufficiency
+        2. **Maximize Return on Investment (ROI)** - Optimize financial performance over project lifetime
+        3. **Minimize System Cost** - Control capital expenditure while maintaining performance
+        4. **Maximize Energy Independence** - Increase building's energy autonomy
+        
+        #### **Decision Variables:**
+        - Window selection for BIPV installation (binary decisions per window element)
+        - BIPV technology type selection (efficiency vs. cost trade-offs)
+        - Transparency level optimization (aesthetic vs. performance balance)
+        - Electrical configuration choices (string vs. individual optimization)
+        
+        #### **Technical Constraints:**
+        - **Structural**: Maximum load per facade element
+        - **Aesthetic**: Minimum transparency requirements
+        - **Electrical**: Voltage and current limits per string
+        - **Economic**: Maximum budget allocation
+        - **Regulatory**: Building code compliance
+        
+        #### **Algorithm Process:**
+        1. **Initialization**: Generate diverse population of BIPV configurations
+        2. **Evaluation**: Calculate energy performance, costs, and ROI for each solution
+        3. **Non-dominated Sorting**: Rank solutions using Pareto dominance
+        4. **Selection**: Tournament selection based on rank and crowding distance
+        5. **Crossover**: Combine parent solutions to create offspring
+        6. **Mutation**: Introduce variations to maintain diversity
+        7. **Replacement**: Update population with best solutions
+        8. **Convergence**: Iterate until Pareto front stabilizes
+        
+        #### **Output Analysis:**
+        - **Pareto Front**: Set of optimal trade-off solutions
+        - **Sensitivity Analysis**: Parameter impact on objectives
+        - **Configuration Recommendations**: Best solutions for different priorities
+        """)
+    
+    st.write("Optimize BIPV system configuration using genetic algorithms for maximum performance and ROI.")
     
     if st.session_state.project_data.get('energy_balance'):
         
@@ -1670,7 +1714,7 @@ def render_optimization():
                 energy_balance = st.session_state.project_data['energy_balance']
                 
                 # Generate multiple optimization solutions
-                base_panels = pv_data['total_panels']
+                base_panels = pv_data['total_windows']
                 base_capacity = pv_data['system_capacity']
                 base_cost = pv_data['system_cost']
                 
@@ -2148,7 +2192,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
                     <tr><th>PV System Parameter</th><th>Value</th></tr>
                     <tr><td>Panel Technology</td><td>{pv_data.get('panel_type', 'N/A')}</td></tr>
                     <tr><td>Panel Efficiency</td><td>{pv_data.get('efficiency', 'N/A')}%</td></tr>
-                    <tr><td>Total Panels</td><td>{pv_data.get('total_panels', 'N/A'):,}</td></tr>
+                    <tr><td>Total Windows</td><td>{pv_data.get('total_windows', 'N/A'):,}</td></tr>
                     <tr><td>System Capacity</td><td>{pv_data.get('system_capacity', 'N/A'):.1f} kW</td></tr>
                     <tr><td>Annual Generation</td><td>{pv_data.get('annual_yield', 'N/A'):,.0f} kWh</td></tr>
                     <tr><td>Specific Yield</td><td>{pv_data.get('specific_yield', 'N/A'):.0f} kWh/kW</td></tr>
@@ -2288,7 +2332,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         <div class="section">
             <h2>10. Implementation Recommendations</h2>
             <div class="recommendation">
-                <strong>Optimal System Configuration:</strong> The analysis recommends a {pv_data.get('system_capacity', 0):.1f} kW BIPV system with {pv_data.get('total_panels', 0):,} panels, providing optimal balance between investment cost and energy generation.
+                <strong>Optimal System Configuration:</strong> The analysis recommends a {pv_data.get('system_capacity', 0):.1f} kW BIPV system with {pv_data.get('total_windows', 0):,} windows, providing optimal balance between investment cost and energy generation.
             </div>
             <div class="recommendation">
                 <strong>Financial Viability:</strong> With an NPV of {currency_symbol}{financial_analysis.get('npv', 0):,.0f} and payback period of {financial_analysis.get('payback_period', 0):.1f} years, the project demonstrates strong financial returns and risk mitigation.
@@ -2466,7 +2510,7 @@ def generate_html_report(report_type, include_charts, include_recommendations):
                 <tr><th>Parameter</th><th>Value</th></tr>
                 <tr><td>Panel Technology</td><td>{pv_data.get('panel_type', 'N/A')}</td></tr>
                 <tr><td>Panel Efficiency</td><td>{pv_data.get('efficiency', 'N/A')}%</td></tr>
-                <tr><td>Total Panels</td><td>{pv_data.get('total_panels', 'N/A'):,}</td></tr>
+                <tr><td>Total Windows</td><td>{pv_data.get('total_windows', 'N/A'):,}</td></tr>
                 <tr><td>System Capacity</td><td>{pv_data.get('system_capacity', 'N/A'):.1f} kW</td></tr>
                 <tr><td>Annual Yield</td><td>{pv_data.get('annual_yield', 'N/A'):,.0f} kWh</td></tr>
                 <tr><td>Specific Yield</td><td>{pv_data.get('specific_yield', 'N/A'):.0f} kWh/kW</td></tr>
