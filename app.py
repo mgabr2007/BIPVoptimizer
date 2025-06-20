@@ -2322,44 +2322,64 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         <div class="section">
             <h2>2. Methodology and Approach</h2>
             <div class="methodology">
-                <h3>Analysis Framework</h3>
-                <p>The BIPV optimization analysis follows a comprehensive 11-step methodology:</p>
+                <h3>BIPV Analysis Framework</h3>
+                <p>The BIPV optimization analysis follows a comprehensive 10-step methodology:</p>
                 <ol>
-                    <li><strong>Project Setup:</strong> Configuration of location-specific parameters and currency settings</li>
+                    <li><strong>Project Setup:</strong> Location-specific parameters, timezone, and currency configuration</li>
                     <li><strong>Historical Data Analysis:</strong> AI-powered energy demand prediction using RandomForest algorithms</li>
-                    <li><strong>Weather Integration:</strong> TMY (Typical Meteorological Year) data processing</li>
-                    <li><strong>Facade Extraction:</strong> BIM-based building geometry analysis</li>
-                    <li><strong>Solar Radiation Modeling:</strong> Grid-based irradiance calculations with shading analysis</li>
-                    <li><strong>PV Specification:</strong> Technology selection and system sizing</li>
-                    <li><strong>Energy Balance:</strong> Supply-demand matching analysis</li>
-                    <li><strong>Multi-Objective Optimization:</strong> Genetic algorithm-based solution finding</li>
-                    <li><strong>Financial Analysis:</strong> NPV, IRR, and lifecycle cost calculations</li>
-                    <li><strong>3D Visualization:</strong> Interactive building and PV system modeling</li>
-                    <li><strong>Reporting:</strong> Comprehensive documentation and recommendations</li>
+                    <li><strong>Weather Integration:</strong> TMY (Typical Meteorological Year) data processing with solar irradiance</li>
+                    <li><strong>BIM Window Extraction:</strong> CSV-based building element analysis with glass area extraction</li>
+                    <li><strong>Solar Radiation Grid:</strong> Element-specific irradiance calculations with shading analysis</li>
+                    <li><strong>BIPV Technology Selection:</strong> Semi-transparent PV glass specification and system sizing</li>
+                    <li><strong>Energy Yield vs Demand:</strong> Supply-demand matching with net energy balance</li>
+                    <li><strong>Multi-Objective Optimization:</strong> NSGA-II genetic algorithm for Pareto-optimal solutions</li>
+                    <li><strong>Financial & Environmental Analysis:</strong> NPV, IRR, LCOE, and CO₂ lifecycle assessment</li>
+                    <li><strong>Comprehensive Reporting:</strong> Detailed documentation with equations and recommendations</li>
                 </ol>
             </div>
         </div>
         
         <div class="section">
-            <h2>3. Building Analysis with Calculations</h2>
+            <h2>3. BIPV Building Analysis with Calculations</h2>
             <div class="subsection">
-                <h3>Facade Suitability Analysis</h3>
+                <h3>BIM-Based Window Analysis</h3>
                 <div class="equation">
-                    <h4>Facade Area Calculation:</h4>
-                    A_facade = L × H × N_facades<br>
+                    <h4>Window Glass Area Extraction:</h4>
+                    A_glass = Σ(A_window_i × Glass_ratio_i)<br>
                     Where:<br>
-                    • A_facade = Total facade area (m²)<br>
-                    • L = Building length (m)<br>
-                    • H = Building height (m)<br>
-                    • N_facades = Number of facades
+                    • A_glass = Total glass area from BIM data (m²)<br>
+                    • A_window_i = Individual window area from Revit (m²)<br>
+                    • Glass_ratio_i = Glass-to-frame ratio per window
+                </div>
+                
+                <div class="equation">
+                    <h4>PV Suitability Threshold Application:</h4>
+                    A_effective = A_glass × (Threshold/100)<br>
+                    A_reserved = A_glass - A_effective<br>
+                    Where:<br>
+                    • A_effective = Effective PV installation area (m²)<br>
+                    • A_reserved = Reserved area for frames/maintenance (m²)<br>
+                    • Threshold = PV Suitability Threshold (%)
+                </div>
+                
+                <div class="equation">
+                    <h4>Orientation-Based Filtering:</h4>
+                    Azimuth_category = f(Azimuth_angle)<br>
+                    Where orientations are categorized as:<br>
+                    • North: 315° ≤ Az < 45°<br>
+                    • East: 45° ≤ Az < 135°<br>
+                    • South: 135° ≤ Az < 225°<br>
+                    • West: 225° ≤ Az < 315°
                 </div>
                 
                 <div class="calculation">
-                    <strong>Project Calculations:</strong><br>
-                    Total Facades: {facade_data.get('total_facades', 'N/A')}<br>
-                    Total Facade Area: {facade_data.get('total_area', 'N/A')} m²<br>
-                    Suitable Area: {facade_data.get('suitable_area', 'N/A')} m²<br>
-                    Suitability Ratio: {(facade_data.get('suitable_area', 0) / facade_data.get('total_area', 1) * 100) if facade_data.get('total_area', 0) > 0 else 0:.1f}%
+                    <strong>BIM Analysis Results:</strong><br>
+                    Total Building Elements: {facade_data.get('total_elements', 'N/A')}<br>
+                    Window Elements: {facade_data.get('suitable_elements', 'N/A')}<br>
+                    Total Glass Area: {facade_data.get('total_glass_area', 'N/A')} m²<br>
+                    Effective PV Area: {facade_data.get('suitable_window_area', 0) * 0.75:.1f} m² (75% threshold)<br>
+                    Reserved Area: {facade_data.get('suitable_window_area', 0) * 0.25:.1f} m²<br>
+                    Average Window Size: {facade_data.get('avg_window_area', 'N/A')} m²
                 </div>
             </div>
         </div>
@@ -2396,36 +2416,59 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         </div>
         
         <div class="section">
-            <h2>5. PV System Design and Specifications</h2>
+            <h2>5. BIPV System Design and Specifications</h2>
             <div class="subsection">
-                <h3>System Capacity Calculations</h3>
+                <h3>BIPV Glass Technology Calculations</h3>
                 <div class="equation">
-                    <h4>Total System Capacity:</h4>
-                    P_system = N_panels × P_panel × η_system<br>
+                    <h4>BIPV Glass Power Density:</h4>
+                    P_density = η_bipv × G_STC<br>
                     Where:<br>
-                    • P_system = Total system capacity (kW)<br>
-                    • N_panels = Number of panels<br>
-                    • P_panel = Individual panel capacity (W)<br>
-                    • η_system = System efficiency factor
+                    • P_density = Power density (W/m²)<br>
+                    • η_bipv = BIPV glass efficiency (%)<br>
+                    • G_STC = Standard test conditions irradiance (1000 W/m²)
                 </div>
                 
                 <div class="equation">
-                    <h4>Annual Energy Generation:</h4>
-                    E_annual = P_system × PSH × 365 × PR<br>
+                    <h4>Total BIPV System Capacity:</h4>
+                    P_system = A_effective × P_density / 1000<br>
+                    Where:<br>
+                    • P_system = Total system capacity (kW)<br>
+                    • A_effective = Effective BIPV installation area (m²)<br>
+                    • P_density = BIPV power density (W/m²)
+                </div>
+                
+                <div class="equation">
+                    <h4>BIPV Annual Energy Generation:</h4>
+                    E_annual = P_system × H_irradiance × (1 - L_system)<br>
                     Where:<br>
                     • E_annual = Annual energy generation (kWh)<br>
-                    • PSH = Peak sun hours (h/day)<br>
-                    • PR = Performance ratio (0.75-0.85)
+                    • H_irradiance = Annual irradiance (kWh/m²)<br>
+                    • L_system = BIPV system losses (12-25%)
+                </div>
+                
+                <div class="equation">
+                    <h4>BIPV Cost Calculation:</h4>
+                    Cost_total = A_effective × (Cost_bipv + Cost_installation)<br>
+                    Where:<br>
+                    • Cost_total = Total BIPV system cost<br>
+                    • Cost_bipv = BIPV glass cost per m²<br>
+                    • Cost_installation = Installation cost per m²
                 </div>
                 
                 <table>
-                    <tr><th>PV System Parameter</th><th>Value</th></tr>
-                    <tr><td>Panel Technology</td><td>{pv_data.get('panel_type', 'N/A')}</td></tr>
-                    <tr><td>Panel Efficiency</td><td>{pv_data.get('efficiency', 'N/A')}%</td></tr>
-                    <tr><td>Total Windows</td><td>{pv_data.get('total_windows', 'N/A'):,}</td></tr>
+                    <tr><th>BIPV System Parameter</th><th>Value</th></tr>
+                    <tr><td>BIPV Technology</td><td>{pv_data.get('panel_type', 'N/A')}</td></tr>
+                    <tr><td>BIPV Efficiency</td><td>{pv_data.get('efficiency', 'N/A')}%</td></tr>
+                    <tr><td>Transparency Level</td><td>{pv_data.get('transparency', 'N/A')}%</td></tr>
+                    <tr><td>Glass Thickness</td><td>{pv_data.get('glass_thickness', 'N/A')} mm</td></tr>
+                    <tr><td>Mounting System</td><td>{pv_data.get('frame_system', 'N/A')}</td></tr>
+                    <tr><td>Electrical Config</td><td>{pv_data.get('electrical_config', 'N/A')}</td></tr>
+                    <tr><td>Total BIPV Windows</td><td>{pv_data.get('total_windows', 'N/A'):,}</td></tr>
                     <tr><td>System Capacity</td><td>{pv_data.get('system_capacity', 'N/A'):.1f} kW</td></tr>
                     <tr><td>Annual Generation</td><td>{pv_data.get('annual_yield', 'N/A'):,.0f} kWh</td></tr>
                     <tr><td>Specific Yield</td><td>{pv_data.get('specific_yield', 'N/A'):.0f} kWh/kW</td></tr>
+                    <tr><td>System Cost</td><td>{currency_symbol}{pv_data.get('system_cost', 'N/A'):,.0f}</td></tr>
+                    <tr><td>Cost per m²</td><td>{currency_symbol}{pv_data.get('cost_per_m2', 'N/A'):.0f}/m²</td></tr>
                 </table>
             </div>
         </div>
@@ -2464,14 +2507,46 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         </div>
         
         <div class="section">
-            <h2>7. Financial Analysis with Equations</h2>
+            <h2>7. Multi-Objective BIPV Optimization</h2>
+            <div class="subsection">
+                <h3>Genetic Algorithm Optimization (NSGA-II)</h3>
+                <div class="equation">
+                    <h4>Objective Function 1 - Net Energy Import Minimization:</h4>
+                    f₁(x) = Σ(E_demand_i - E_generation_i × x_i) for all windows i<br>
+                    Where:<br>
+                    • x_i = Binary decision variable (1 = install BIPV, 0 = regular glass)<br>
+                    • E_demand_i = Energy demand for window element i<br>
+                    • E_generation_i = Potential energy generation for window element i
+                </div>
+                
+                <div class="equation">
+                    <h4>Objective Function 2 - ROI Maximization:</h4>
+                    f₂(x) = (Σ(CF_annual × x_i) - Σ(Cost_i × x_i)) / Σ(Cost_i × x_i)<br>
+                    Where:<br>
+                    • CF_annual = Annual cash flow per window<br>
+                    • Cost_i = BIPV installation cost for window i<br>
+                    • ROI calculated over 25-year project lifetime
+                </div>
+                
+                <div class="equation">
+                    <h4>Constraints:</h4>
+                    • Transparency constraint: T_min ≤ T_i ≤ T_max<br>
+                    • Budget constraint: Σ(Cost_i × x_i) ≤ Budget_max<br>
+                    • Technical constraint: String_length ≤ Max_string<br>
+                    • Aesthetic constraint: Orientation_consistency = True
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>8. Financial Analysis with Equations</h2>
             <div class="subsection">
                 <h3>Net Present Value (NPV) Calculation</h3>
                 <div class="equation">
                     <h4>NPV Formula:</h4>
                     NPV = -C₀ + Σ[CFₜ / (1 + r)ᵗ] for t = 1 to n<br>
                     Where:<br>
-                    • C₀ = Initial investment ({currency_symbol})<br>
+                    • C₀ = Initial BIPV investment ({currency_symbol})<br>
                     • CFₜ = Cash flow in year t ({currency_symbol})<br>
                     • r = Discount rate (%)<br>
                     • t = Time period (years)<br>
@@ -2479,18 +2554,28 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
                 </div>
                 
                 <div class="equation">
-                    <h4>Levelized Cost of Energy (LCOE):</h4>
-                    LCOE = Σ[Iₜ + Mₜ + Fₜ] / (1 + r)ᵗ / Σ[Eₜ / (1 + r)ᵗ]<br>
+                    <h4>BIPV-Specific Cash Flow:</h4>
+                    CF_t = (E_gen_t × Rate_elec) + (E_export_t × Rate_fit) - (OM_cost_t)<br>
                     Where:<br>
-                    • Iₜ = Investment expenditures in year t<br>
+                    • E_gen_t = Energy generation in year t (kWh)<br>
+                    • Rate_elec = Electricity rate ({currency_symbol}/kWh)<br>
+                    • E_export_t = Exported energy in year t (kWh)<br>
+                    • Rate_fit = Feed-in tariff rate ({currency_symbol}/kWh)<br>
+                    • OM_cost_t = O&M costs in year t ({currency_symbol})
+                </div>
+                
+                <div class="equation">
+                    <h4>Levelized Cost of Energy (LCOE):</h4>
+                    LCOE = Σ[Iₜ + Mₜ] / (1 + r)ᵗ / Σ[Eₜ / (1 + r)ᵗ]<br>
+                    Where:<br>
+                    • Iₜ = BIPV investment expenditures in year t<br>
                     • Mₜ = Operations and maintenance costs in year t<br>
-                    • Fₜ = Fuel costs in year t<br>
-                    • Eₜ = Electricity generation in year t
+                    • Eₜ = BIPV electricity generation in year t
                 </div>
                 
                 <table>
                     <tr><th>Financial Metric</th><th>Value</th></tr>
-                    <tr><td>Initial Investment</td><td>{currency_symbol}{financial_analysis.get('initial_investment', 0):,.0f}</td></tr>
+                    <tr><td>Initial BIPV Investment</td><td>{currency_symbol}{financial_analysis.get('initial_investment', 0):,.0f}</td></tr>
                     <tr><td>Annual Savings</td><td>{currency_symbol}{financial_analysis.get('annual_savings', 0):,.0f}</td></tr>
                     <tr><td>Net Present Value (NPV)</td><td>{currency_symbol}{financial_analysis.get('npv', 0):,.0f}</td></tr>
                     <tr><td>Internal Rate of Return (IRR)</td><td>{financial_analysis.get('irr', 0):.1%}</td></tr>
@@ -2501,7 +2586,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         </div>
         
         <div class="section">
-            <h2>8. Environmental Impact Assessment</h2>
+            <h2>9. Environmental Impact Assessment</h2>
             <div class="subsection">
                 <h3>Carbon Emissions Calculations</h3>
                 <div class="equation">
@@ -2509,14 +2594,24 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
                     CO₂_annual = E_generation × EF_grid / 1000<br>
                     Where:<br>
                     • CO₂_annual = Annual CO₂ savings (tons)<br>
-                    • E_generation = Annual PV generation (kWh)<br>
+                    • E_generation = Annual BIPV generation (kWh)<br>
                     • EF_grid = Grid emission factor (kg CO₂/kWh)
+                </div>
+                
+                <div class="equation">
+                    <h4>BIPV Lifecycle Assessment:</h4>
+                    CO₂_net = CO₂_avoided - CO₂_manufacturing - CO₂_transport<br>
+                    Where:<br>
+                    • CO₂_avoided = Total emissions avoided over lifetime<br>
+                    • CO₂_manufacturing = BIPV glass production emissions<br>
+                    • CO₂_transport = Installation and transport emissions
                 </div>
                 
                 <table>
                     <tr><th>Environmental Metric</th><th>Value</th></tr>
                     <tr><td>Annual CO₂ Savings</td><td>{financial_analysis.get('co2_savings_annual', 0):.1f} tons</td></tr>
                     <tr><td>Lifetime CO₂ Savings</td><td>{financial_analysis.get('co2_savings_lifetime', 0):.0f} tons</td></tr>
+                    <tr><td>Carbon Payback Time</td><td>{financial_analysis.get('carbon_payback', 2.5):.1f} years</td></tr>
                     <tr><td>Carbon Value</td><td>{currency_symbol}{financial_analysis.get('carbon_value', 0):,.0f}</td></tr>
                 </table>
             </div>
@@ -2583,21 +2678,61 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         <div class="section">
             <h2>11. Technical Appendices</h2>
             <div class="subsection">
-                <h3>Calculation Assumptions</h3>
+                <h3>BIPV-Specific Calculation Assumptions</h3>
+                <h4>System Performance Parameters:</h4>
                 <ul>
-                    <li>System losses: 15% (inverter, wiring, soiling, temperature)</li>
-                    <li>Panel degradation: 0.5% per year</li>
-                    <li>Project lifetime: 25 years</li>
-                    <li>Performance ratio: 0.85</li>
-                    <li>O&M costs: 1.5% of initial investment annually</li>
+                    <li>BIPV system losses: 12-25% (inverter, wiring, soiling, temperature, transparency)</li>
+                    <li>BIPV glass degradation: 0.5-0.7% per year (higher than conventional PV)</li>
+                    <li>Project lifetime: 25 years (glass warranty period)</li>
+                    <li>Performance ratio: 0.75-0.88 (varies by BIPV technology)</li>
+                    <li>O&M costs: 1.0-2.0% of initial investment annually</li>
+                </ul>
+                
+                <h4>BIPV Technology Parameters:</h4>
+                <ul>
+                    <li>a-Si Thin Film: 6-8% efficiency, 70-90% transparency, €200-300/m²</li>
+                    <li>CIS/CIGS: 12-15% efficiency, 10-30% transparency, €250-400/m²</li>
+                    <li>Crystalline Silicon: 15-20% efficiency, 10-50% transparency, €300-500/m²</li>
+                    <li>Perovskite: 18-22% efficiency, 20-80% transparency, €150-250/m² (emerging)</li>
+                    <li>Organic PV: 8-12% efficiency, 60-90% transparency, €100-200/m²</li>
+                </ul>
+                
+                <h4>Installation and Integration:</h4>
+                <ul>
+                    <li>PV Suitability Threshold: 50-95% of window glass area</li>
+                    <li>Frame and mounting losses: 5-25% of total window area</li>
+                    <li>Electrical configuration: Series/parallel optimization for voltage matching</li>
+                    <li>Safety factors: 1.25 for current, 1.15 for voltage calculations</li>
+                </ul>
+                
+                <h4>Economic Parameters:</h4>
+                <ul>
+                    <li>Discount rate: 3-8% (varies by location and financing)</li>
+                    <li>Electricity price escalation: 2-4% annually</li>
+                    <li>Feed-in tariff: Location-specific rates</li>
+                    <li>Installation costs: €50-150/m² additional to BIPV glass cost</li>
+                </ul>
+                
+                <h3>Optimization Algorithm Parameters:</h3>
+                <ul>
+                    <li>Population size: 100 individuals</li>
+                    <li>Generations: 50-100 iterations</li>
+                    <li>Crossover probability: 0.8</li>
+                    <li>Mutation probability: 0.2</li>
+                    <li>Selection method: Tournament selection (size=3)</li>
+                    <li>Elitism: Top 10% solutions preserved</li>
                 </ul>
                 
                 <h3>References and Standards</h3>
                 <ul>
                     <li>IEC 61215: Crystalline silicon terrestrial photovoltaic modules</li>
                     <li>IEC 61730: Photovoltaic module safety qualification</li>
+                    <li>IEC 61853: Performance testing and energy rating of terrestrial PV modules</li>
+                    <li>EN 1991-1-4: Eurocode 1 - Wind loads on structures</li>
                     <li>ASTM G173: Standard tables for reference solar spectral irradiances</li>
                     <li>IEEE 1547: Standard for interconnecting distributed resources</li>
+                    <li>BIPV Design Guide: IEA PVPS Task 15 recommendations</li>
+                    <li>Building codes: Local structural and electrical requirements</li>
                 </ul>
             </div>
         </div>

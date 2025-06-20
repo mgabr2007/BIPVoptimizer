@@ -205,6 +205,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 20, 2025: Simplified Step 9 by fixing numeric type errors in financial analysis inputs and removed Step 10 (3D visualization) to streamline workflow from 11 to 10 steps due to lacking required inputs and viewers
 - June 20, 2025: Updated Step 4 to process all window elements regardless of glass area and maintain Element IDs for calculations, with default 1.5m² window area when glass area is 0
 - June 20, 2025: Modified report footer to include PhD research attribution at Technische Universität Berlin with contact information for Mostafa Gabr and ResearchGate profile link
+- June 20, 2025: Enhanced report generation with comprehensive BIPV-specific equations including BIM-based window analysis, PV suitability threshold calculations, orientation-based filtering, BIPV glass technology specifications, multi-objective optimization (NSGA-II), BIPV-specific cash flow analysis, lifecycle assessment, and updated technical appendices with BIPV technology parameters and optimization algorithm settings
 
 ## User Preferences
 
