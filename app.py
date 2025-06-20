@@ -1346,7 +1346,7 @@ def render_pv_specification():
             st.metric("Cost per Watt", f"${pv_data['cost_per_watt']:.2f}/W")
         with col4:
             st.metric("Coverage Ratio", f"{pv_data['coverage_ratio']:.0%}")
-            st.metric("Panel Area", f"{panel_area} m² each")
+            st.metric("Cost per m²", f"${pv_data['cost_per_m2']:,.0f}/m²")
         
         # Panel specifications with calculation explanation
         st.subheader("Panel Specifications")
