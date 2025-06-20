@@ -397,8 +397,6 @@ def render_project_setup():
             index=0,
             key="currency_select"
         )
-        
-
     
     with col2:
         st.subheader("Location Settings")
