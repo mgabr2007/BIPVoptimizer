@@ -2220,6 +2220,71 @@ def render_financial_analysis():
         st.warning("Please complete optimization analysis first.")
 
 
+
+
+def generate_window_elements_csv():
+    """Generate CSV file with window element data for BIPV calculations"""
+    project_data = st.session_state.project_data
+    
+    # Check if required data exists
+    facade_data = project_data.get('facade_data', {})
+    radiation_data = project_data.get('radiation_data', {})
+    pv_data = project_data.get('pv_data', {})
+    optimization_results = project_data.get('optimization_results', {})
+    
+    if not facade_data.get('processed_elements'):
+        return None
+    
+    # Get processed window elements
+    elements = facade_data['processed_elements']
+    
+    # Get radiation values for elements
+    element_radiation = radiation_data.get('element_radiation', {})
+    
+    # Get PV specifications
+    panel_efficiency = pv_data.get('efficiency', 15) / 100  # Convert to decimal
+    panel_power_density = pv_data.get('power_density', 150)  # W/m²
+    
+    # Get optimization results if available
+    selected_elements = set()
+    if optimization_results.get('best_solutions'):
+        best_solution = optimization_results['best_solutions'][0]
+        selected_elements = set(best_solution.get('selected_elements', []))
+    
+    # Create CSV content
+    csv_lines = []
+    csv_lines.append("Element_ID,Wall_Hosted_ID,Glass_Area_m2,Orientation,Azimuth_Deg,Annual_Radiation_kWh_m2,Expected_Production_kWh,BIPV_Selected,Window_Width_m,Window_Height_m,Building_Level")
+    
+    for element in elements:
+        element_id = element.get('Element_ID', 'N/A')
+        wall_hosted_id = element.get('Wall_Hosted_ID', 'N/A')
+        glass_area = element.get('Glass_Area', 1.5)  # Default 1.5m² if not specified
+        orientation = element.get('Orientation', 'Unknown')
+        azimuth = element.get('Azimuth', 0)
+        width = element.get('Width', 0)
+        height = element.get('Height', 0)
+        level = element.get('Level', 'Unknown')
+        
+        # Calculate radiation for this element
+        annual_radiation = element_radiation.get(str(element_id), 1200)  # Default 1200 kWh/m²/year
+        
+        # Calculate expected production
+        if str(element_id) in selected_elements or not selected_elements:
+            # Calculate production: Area × Radiation × Efficiency × System_losses
+            system_losses = 0.85  # 15% system losses
+            expected_production = glass_area * annual_radiation * panel_efficiency * system_losses
+            bipv_selected = "Yes" if str(element_id) in selected_elements else "Suitable"
+        else:
+            expected_production = 0
+            bipv_selected = "No"
+        
+        # Format CSV line
+        csv_line = f"{element_id},{wall_hosted_id},{glass_area:.2f},{orientation},{azimuth:.1f},{annual_radiation:.0f},{expected_production:.0f},{bipv_selected},{width:.2f},{height:.2f},{level}"
+        csv_lines.append(csv_line)
+    
+    return "\n".join(csv_lines)
+
+
 def generate_enhanced_html_report(include_charts, include_recommendations):
     """Generate comprehensive HTML report with detailed equations and methodology"""
     project_data = st.session_state.project_data
@@ -3134,6 +3199,76 @@ def render_reporting():
             st.write("• CO₂ savings visualizations")
             st.write("• Cross-browser compatibility")
             
+        # CSV Data Export Section
+        st.subheader("Window Element Data Export")
+        st.write("Download detailed window element data used in BIPV calculations.")
+        
+        if st.button("Generate Window Elements CSV", key="generate_csv"):
+            # Generate CSV content inline
+            project_data = st.session_state.project_data
+            facade_data = project_data.get('facade_data', {})
+            radiation_data = project_data.get('radiation_data', {})
+            pv_data = project_data.get('pv_data', {})
+            optimization_results = project_data.get('optimization_results', {})
+            
+            csv_content = None
+            if facade_data.get('processed_elements'):
+                elements = facade_data['processed_elements']
+                element_radiation = radiation_data.get('element_radiation', {})
+                panel_efficiency = pv_data.get('efficiency', 15) / 100
+                
+                # Get optimization results if available
+                selected_elements = set()
+                if optimization_results.get('best_solutions'):
+                    best_solution = optimization_results['best_solutions'][0]
+                    selected_elements = set(best_solution.get('selected_elements', []))
+                
+                # Create CSV content
+                csv_lines = []
+                csv_lines.append("Element_ID,Wall_Hosted_ID,Glass_Area_m2,Orientation,Azimuth_Deg,Annual_Radiation_kWh_m2,Expected_Production_kWh,BIPV_Selected,Window_Width_m,Window_Height_m,Building_Level")
+                
+                for element in elements:
+                    element_id = element.get('Element_ID', 'N/A')
+                    wall_hosted_id = element.get('Wall_Hosted_ID', 'N/A')
+                    glass_area = element.get('Glass_Area', 1.5)
+                    orientation = element.get('Orientation', 'Unknown')
+                    azimuth = element.get('Azimuth', 0)
+                    width = element.get('Width', 0)
+                    height = element.get('Height', 0)
+                    level = element.get('Level', 'Unknown')
+                    
+                    # Calculate radiation for this element
+                    annual_radiation = element_radiation.get(str(element_id), 1200)
+                    
+                    # Calculate expected production
+                    if str(element_id) in selected_elements or not selected_elements:
+                        system_losses = 0.85  # 15% system losses
+                        expected_production = glass_area * annual_radiation * panel_efficiency * system_losses
+                        bipv_selected = "Yes" if str(element_id) in selected_elements else "Suitable"
+                    else:
+                        expected_production = 0
+                        bipv_selected = "No"
+                    
+                    # Format CSV line
+                    csv_line = f"{element_id},{wall_hosted_id},{glass_area:.2f},{orientation},{azimuth:.1f},{annual_radiation:.0f},{expected_production:.0f},{bipv_selected},{width:.2f},{height:.2f},{level}"
+                    csv_lines.append(csv_line)
+                
+                csv_content = "\n".join(csv_lines)
+            
+            if csv_content:
+                st.download_button(
+                    label="Download Window Elements Data (CSV)",
+                    data=csv_content,
+                    file_name=f"BIPV_Window_Elements_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    key="download_csv"
+                )
+                st.success("Window elements CSV generated successfully!")
+            else:
+                st.warning("No window element data available. Please complete the analysis workflow first.")
+        
+        st.markdown("---")
+        
         if st.button("Generate Complete BIPV Analysis Report", key="generate_report"):
             with st.spinner("Generating comprehensive BIPV analysis report with detailed equations and methodologies..."):
                 # Generate enhanced HTML report with equations and detailed explanations
