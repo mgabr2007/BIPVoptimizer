@@ -698,7 +698,7 @@ def render_facade_extraction():
         orientation_filter = st.multiselect(
             "Include Orientations (Azimuth ranges)",
             options=["South (135-225°)", "East (45-135°)", "West (225-315°)", "North (315-45°)"],
-            default=["South (135-225°)", "East (45-135°)", "West (225-315°)"],
+            default=["South (135-225°)", "East (45-135°)", "West (225-315°)", "North (315-45°)"],
             key="orientation_filter"
         )
         
