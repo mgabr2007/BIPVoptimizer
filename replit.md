@@ -203,6 +203,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 20, 2025: Cleaned up project structure by removing multiple legacy app files (app_complete.py, app_dependency_fixed.py, app_fixed.py, app_minimal.py, app_minimal_test.py, app_pure_python.py, app_streamlit_only.py, app_working_minimal.py, app_working.py) and consolidated to single main app.py file
 - June 20, 2025: Enhanced Step 4 with CSV upload functionality for BIM-extracted windows and facade data including orientation mapping, glass area filtering, and comprehensive building element analysis
 - June 20, 2025: Simplified Step 9 by fixing numeric type errors in financial analysis inputs and removed Step 10 (3D visualization) to streamline workflow from 11 to 10 steps due to lacking required inputs and viewers
+- June 20, 2025: Updated Step 4 to process all window elements regardless of glass area and maintain Element IDs for calculations, with default 1.5m² window area when glass area is 0
+- June 20, 2025: Modified report footer to include PhD research attribution at Technische Universität Berlin with contact information for Mostafa Gabr
 
 ## User Preferences
 
