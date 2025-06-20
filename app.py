@@ -1216,24 +1216,43 @@ def render_pv_specification():
             if facade_data.get('csv_processed') and 'windows' in facade_data:
                 suitable_windows = [w for w in facade_data['windows'] if w.get('suitable', False)]
                 suitable_count = len(suitable_windows)
-                total_suitable_area = sum(w['window_area'] for w in suitable_windows)
                 
-                # Calculate panels per window (considering panel size and spacing)
-                avg_window_area = total_suitable_area / suitable_count if suitable_count > 0 else 1.5
-                panels_per_window = max(1, int(avg_window_area / (panel_area * spacing_factor)))
+                # Calculate panels for each window individually based on exact area
+                total_panels = 0
+                total_suitable_area = 0
+                window_panel_details = []
                 
-                # Total panels based on actual windows
-                actual_panels = suitable_count * panels_per_window
+                for window in suitable_windows:
+                    window_area = window['window_area']  # Exact area from CSV
+                    total_suitable_area += window_area
+                    
+                    # Calculate panels for this specific window
+                    panels_for_window = max(1, int(window_area / (panel_area * spacing_factor)))
+                    total_panels += panels_for_window
+                    
+                    window_panel_details.append({
+                        'element_id': window.get('element_id', ''),
+                        'area': window_area,
+                        'panels': panels_for_window
+                    })
+                
+                actual_panels = total_panels
                 available_area = total_suitable_area
+                avg_window_area = total_suitable_area / suitable_count if suitable_count > 0 else 1.5
+                avg_panels_per_window = total_panels / suitable_count if suitable_count > 0 else 1
                 
-                st.info(f"Using BIM data: {suitable_count} suitable windows, {panels_per_window} panel(s) per window")
+                # Store window details for display
+                st.session_state.window_panel_details = window_panel_details
+                
+                st.info(f"Using exact BIM areas: {suitable_count} windows, {total_panels} total panels (avg {avg_panels_per_window:.1f} per window)")
             else:
                 # Fallback if no BIM data
                 suitable_count = facade_data.get('suitable_elements', 300)
                 available_area = facade_data.get('suitable_window_area', 1800)
                 avg_window_area = available_area / suitable_count if suitable_count > 0 else 1.5
-                panels_per_window = max(1, int(avg_window_area / (panel_area * spacing_factor)))
+                avg_panels_per_window = available_area / (panel_area * spacing_factor) / suitable_count if suitable_count > 0 else 1
                 actual_panels = int(available_area / (panel_area * spacing_factor))
+                window_panel_details = []
                 
                 st.warning("No BIM data available, using estimated values")
             
@@ -1280,17 +1299,26 @@ def render_pv_specification():
         
         # Explain calculation methodology
         with st.expander("How Total Window Area is Calculated"):
-            st.write("**From BIM CSV File Processing:**")
-            st.write("1. **Glass Area Extraction:** Each window's 'Glass Area (m²)' value from CSV")
+            st.write("**From BIM CSV File Processing (Exact Areas):**")
+            st.write("1. **Glass Area Extraction:** Each window's exact 'Glass Area (m²)' value from CSV")
             st.write("2. **Area Assignment:** If Glass Area = 0, default to 1.5 m² per window")
             st.write("3. **Suitable Window Filter:** Only windows marked as 'suitable' based on orientation")
-            st.write("4. **Total Calculation:** Sum of all suitable window areas")
-            st.write(f"5. **Result:** {suitable_count} suitable windows × average {avg_window_area:.1f} m² = {available_area:.1f} m²")
+            st.write("4. **Individual Calculation:** Panels calculated per window based on exact area")
+            st.write(f"5. **Total Sum:** {suitable_count} individual windows = {available_area:.1f} m² total")
+            
+            if facade_data.get('csv_processed') and hasattr(st.session_state, 'window_panel_details'):
+                window_details = st.session_state.window_panel_details
+                st.write("**Sample Window Breakdown:**")
+                # Show first 5 windows as examples
+                for i, detail in enumerate(window_details[:5]):
+                    st.write(f"• Element {detail['element_id']}: {detail['area']:.1f} m² → {detail['panels']} panel(s)")
+                if len(window_details) > 5:
+                    st.write(f"... and {len(window_details) - 5} more windows")
         
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Suitable Windows", f"{suitable_count}")
-            st.metric("Panels per Window", f"{panels_per_window}")
+            st.metric("Avg Panels per Window", f"{avg_panels_per_window:.1f}")
         with col2:
             st.metric("Total Panels", f"{pv_data['total_panels']:,}")
             st.metric("System Capacity", f"{pv_data['system_capacity']:.1f} kW")
