@@ -398,50 +398,16 @@ def render_project_setup():
             key="currency_select"
         )
         
-        units = st.selectbox(
-            "Units System",
-            options=["Metric", "Imperial"],
-            index=0,
-            key="units_select"
-        )
-        
-        language = st.selectbox(
-            "Interface Language",
-            options=["English", "German", "French", "Spanish", "Chinese"],
-            index=0,
-            key="language_select"
-        )
+
     
     with col2:
-        st.subheader("BIM Model Upload")
-        st.write("Upload your building model for analysis")
-        
-        uploaded_file = st.file_uploader(
-            "Choose BIM file",
-            type=['rvt', 'ifc', 'dwg'],
-            help="Supported formats: Revit (.rvt), IFC (.ifc), AutoCAD (.dwg). Maximum file size: 50MB",
-            key="bim_upload"
-        )
-        
-        if uploaded_file is not None:
-            st.success(f"✅ File uploaded: {uploaded_file.name}")
-            st.session_state.project_data['bim_file'] = uploaded_file.name
-            
-            # Display file info
-            file_size = len(uploaded_file.getvalue()) / (1024 * 1024)  # MB
-            st.info(f"File size: {file_size:.1f} MB")
+        st.subheader("Location Settings")
         
         location = st.text_input(
             "Building Location",
             placeholder="e.g., New York, NY",
             key="location_input",
-            help="Enter the building location for weather data integration"
-        )
-        
-        building_type = st.selectbox(
-            "Building Type",
-            options=["Office", "Residential", "Industrial", "Commercial", "Mixed Use"],
-            key="building_type_select"
+            help="Enter the building location for weather data and electricity rates"
         )
     
     # Save project data
@@ -449,10 +415,7 @@ def render_project_setup():
         'project_name': project_name,
         'timezone': timezone,
         'currency': currency,
-        'units': units,
-        'language': language,
         'location': location,
-        'building_type': building_type,
         'setup_complete': True
     })
     
@@ -461,16 +424,13 @@ def render_project_setup():
         
         # Display project summary
         st.subheader("Project Summary")
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         with col1:
             st.metric("Project Name", project_name)
             st.metric("Location", location)
         with col2:
             st.metric("Currency", currency)
-            st.metric("Units", units)
-        with col3:
-            st.metric("Building Type", building_type)
-            st.metric("BIM File", "Uploaded" if uploaded_file else "Pending")
+            st.metric("Timezone", timezone)
 
 def parse_csv_content(content):
     """Parse CSV content without pandas"""

@@ -204,6 +204,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 19, 2025: Added comprehensive interactive visualizations to all report types including energy balance charts, financial projections, solar radiation heatmaps, PV technology comparisons, and CO₂ savings analysis
 - June 19, 2025: Implemented proper integration of location, timezone, and currency settings throughout all calculations including location-based solar parameters, electricity rates, currency conversion, and localized financial metrics display
 - June 20, 2025: Modified Step 11 reporting to remove data export functionality and create single comprehensive report option with complete equations, detailed calculation methodologies, and enhanced process explanations
+- June 20, 2025: Streamlined Step 1 project setup by removing unused inputs (Units System, Interface Language, Building Type, BIM file upload) to focus only on essential parameters used in calculations
 
 ## User Preferences
 
