@@ -1142,67 +1142,139 @@ def render_pv_specification():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Panel Technology")
+        st.subheader("BIPV Glass Technology")
         panel_type = st.selectbox(
-            "Panel Technology",
-            options=["Monocrystalline", "Polycrystalline", "Thin-film", "Bifacial", "Perovskite"],
+            "BIPV Technology",
+            options=[
+                "a-Si Thin Film BIPV Glass",
+                "CIS/CIGS BIPV Glass", 
+                "Crystalline Silicon BIPV",
+                "Perovskite BIPV Glass",
+                "Organic PV (OPV) Glass"
+            ],
             key="panel_type_select"
         )
         
+        # Set realistic efficiency ranges based on BIPV technology
+        efficiency_ranges = {
+            "a-Si Thin Film BIPV Glass": (6.0, 10.0, 8.0),
+            "CIS/CIGS BIPV Glass": (10.0, 14.0, 12.0),
+            "Crystalline Silicon BIPV": (15.0, 20.0, 17.0),
+            "Perovskite BIPV Glass": (12.0, 18.0, 15.0),
+            "Organic PV (OPV) Glass": (4.0, 8.0, 6.0)
+        }
+        
+        min_eff, max_eff, default_eff = efficiency_ranges[panel_type]
         efficiency = st.slider(
-            "Panel Efficiency (%)",
-            min_value=15.0,
-            max_value=25.0,
-            value=20.0,
+            "BIPV Efficiency (%)",
+            min_value=min_eff,
+            max_value=max_eff,
+            value=default_eff,
             step=0.5,
             key="efficiency_slider"
         )
         
-        panel_power = st.number_input(
-            "Panel Power Rating (W)",
-            min_value=250,
-            max_value=500,
-            value=400,
-            step=10,
-            key="panel_power"
+        # Transparency options for BIPV
+        transparency = st.slider(
+            "Transparency Level (%)",
+            min_value=10,
+            max_value=70,
+            value=40,
+            step=5,
+            key="transparency_slider"
         )
     
     with col2:
-        st.subheader("System Configuration")
+        st.subheader("BIPV System Configuration")
+        
+        # BIPV specific system losses (higher than traditional PV)
         system_losses = st.slider(
-            "System Losses (%)",
-            min_value=5.0,
-            max_value=20.0,
-            value=10.0,
+            "BIPV System Losses (%)",
+            min_value=12.0,
+            max_value=25.0,
+            value=18.0,
             step=1.0,
-            key="losses_slider"
+            key="losses_slider",
+            help="Higher losses due to glass integration and temperature effects"
         )
         
-        spacing_factor = st.slider(
-            "Panel Spacing Factor",
-            min_value=1.1,
-            max_value=2.0,
-            value=1.5,
-            step=0.1,
-            key="spacing_slider"
+        # Glass thickness options
+        glass_thickness = st.selectbox(
+            "Glass Thickness (mm)",
+            options=[6, 8, 10, 12, 15, 20],
+            index=2,
+            key="glass_thickness"
         )
         
-        min_panels = st.number_input(
-            "Minimum Panels per String",
-            min_value=5,
-            max_value=20,
-            value=10,
-            key="min_panels"
+        # Frame system
+        frame_system = st.selectbox(
+            "Mounting System",
+            options=[
+                "Structural Glazing System",
+                "Curtain Wall Integration", 
+                "Window Frame Replacement",
+                "Double Glazing Unit"
+            ],
+            key="frame_system"
+        )
+        
+        # Electrical configuration
+        electrical_config = st.selectbox(
+            "Electrical Configuration",
+            options=[
+                "DC Junction Box per Window",
+                "String Connection (Multiple Windows)",
+                "Power Optimizer per Window",
+                "Microinverter per Window"
+            ],
+            index=1,
+            key="electrical_config"
         )
     
     st.subheader("Economic Parameters")
+    
+    # BIPV cost ranges based on technology
+    cost_ranges = {
+        "a-Si Thin Film BIPV Glass": (150, 250, 200),
+        "CIS/CIGS BIPV Glass": (200, 350, 280),
+        "Crystalline Silicon BIPV": (300, 500, 400),
+        "Perovskite BIPV Glass": (180, 300, 240),
+        "Organic PV (OPV) Glass": (120, 200, 160)
+    }
+    
+    min_cost, max_cost, default_cost = cost_ranges[panel_type]
+    
     col1, col2, col3 = st.columns(3)
     with col1:
-        panel_cost = st.number_input("Panel Cost ($/W)", 0.5, 2.0, 0.8, step=0.1, key="panel_cost")
+        bipv_cost = st.number_input(
+            f"BIPV Glass Cost ($/m²)", 
+            min_value=min_cost, 
+            max_value=max_cost, 
+            value=default_cost, 
+            step=10, 
+            key="bipv_cost",
+            help=f"Market range for {panel_type}: ${min_cost}-${max_cost}/m²"
+        )
     with col2:
-        installation_cost = st.number_input("Installation Cost ($/W)", 0.3, 1.5, 0.6, step=0.1, key="install_cost")
+        installation_cost = st.number_input(
+            "Installation Cost ($/m²)", 
+            min_value=50, 
+            max_value=200, 
+            value=120, 
+            step=10, 
+            key="install_cost",
+            help="Includes structural integration and electrical work"
+        )
     with col3:
-        om_cost = st.number_input("O&M Cost ($/kW/year)", 10.0, 50.0, 25.0, step=5.0, key="om_cost")
+        om_cost = st.number_input(
+            "O&M Cost ($/m²/year)", 
+            min_value=2.0, 
+            max_value=10.0, 
+            value=5.0, 
+            step=0.5, 
+            key="om_cost",
+            help="Annual cleaning and maintenance per m²"
+        )
     
     if st.button("Calculate PV System", key="calc_pv_system"):
         with st.spinner("Calculating optimal PV system specifications..."):
@@ -1270,8 +1342,8 @@ def render_pv_specification():
             annual_yield = system_capacity * avg_irradiance * (1 - system_losses/100)
             specific_yield = annual_yield / system_capacity if system_capacity > 0 else 0
             
-            # Calculate costs based on PV area (glass replacement)
-            cost_per_m2 = (panel_cost + installation_cost) * 1000 * efficiency/100  # Cost per m² of PV
+            # Calculate costs based on BIPV area (glass replacement)
+            cost_per_m2 = bipv_cost + installation_cost  # Total cost per m² including installation
             system_cost = total_pv_capacity_area * cost_per_m2
             total_cost_per_watt = system_cost / (system_capacity * 1000) if system_capacity > 0 else 0
             coverage_ratio = 1.0  # 100% coverage as PV replaces glass completely
@@ -1279,6 +1351,7 @@ def render_pv_specification():
             pv_data = {
                 'panel_type': panel_type,
                 'efficiency': efficiency,
+                'transparency': transparency,
                 'total_pv_area': total_pv_capacity_area,
                 'total_windows': actual_panels,
                 'system_capacity': system_capacity,
@@ -1288,12 +1361,17 @@ def render_pv_specification():
                 'cost_per_watt': total_cost_per_watt,
                 'cost_per_m2': cost_per_m2,
                 'coverage_ratio': coverage_ratio,
+                'glass_thickness': glass_thickness,
+                'frame_system': frame_system,
+                'electrical_config': electrical_config,
                 'panel_specifications': {
-                    'type': 'Semi-transparent BIPV Glass',
-                    'installation': 'Direct glass replacement',
-                    'area_match': '1:1 with existing glass',
-                    'transparency': f'{100-efficiency:.0f}%',
-                    'power_density': f'{efficiency*10:.0f} W/m²'
+                    'type': panel_type,
+                    'installation': frame_system,
+                    'area_match': '1:1 Glass Replacement',
+                    'transparency': f'{transparency}%',
+                    'power_density': f'{efficiency*10:.0f} W/m²',
+                    'glass_thickness': f'{glass_thickness} mm',
+                    'electrical_system': electrical_config
                 }
             }
             
@@ -1361,21 +1439,28 @@ def render_pv_specification():
             st.write("6. **Coverage:** 100% of glass area replaced with BIPV")
         
         specs = pv_data['panel_specifications']
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("BIPV Technology", specs['type'])
+            st.metric("Glass Thickness", specs['glass_thickness'])
+        with col2:
+            st.metric("Mounting System", specs['installation'])
+            st.metric("Electrical Config", specs['electrical_system'])
+        with col3:
+            st.metric("Transparency", specs['transparency'])
+            st.metric("Power Density", specs['power_density'])
+        
+        # Additional BIPV specifications
+        st.subheader("Technical Specifications")
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Type", specs['type'])
-        with col2:
-            st.metric("Installation", specs['installation'])
-        with col3:
-            st.metric("Area Match", specs['area_match'])
-        with col4:
-            st.metric("Transparency", specs['transparency'])
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Power Density", specs['power_density'])
-        with col2:
             st.metric("Total PV Area", f"{pv_data['total_pv_area']:.1f} m²")
+        with col2:
+            st.metric("Efficiency", f"{pv_data['efficiency']:.1f}%")
+        with col3:
+            st.metric("System Losses", f"{system_losses:.1f}%")
+        with col4:
+            st.metric("Cost per m²", f"${pv_data['cost_per_m2']:.0f}/m²")
 
 def render_yield_demand():
     st.header("Step 7: Yield vs Demand Calculation")
