@@ -205,6 +205,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 19, 2025: Implemented proper integration of location, timezone, and currency settings throughout all calculations including location-based solar parameters, electricity rates, currency conversion, and localized financial metrics display
 - June 20, 2025: Modified Step 11 reporting to remove data export functionality and create single comprehensive report option with complete equations, detailed calculation methodologies, and enhanced process explanations
 - June 20, 2025: Streamlined Step 1 project setup by removing unused inputs (Units System, Interface Language, Building Type, BIM file upload) to focus only on essential parameters used in calculations
+- June 20, 2025: Cleaned up project structure by removing multiple legacy app files (app_complete.py, app_dependency_fixed.py, app_fixed.py, app_minimal.py, app_minimal_test.py, app_pure_python.py, app_streamlit_only.py, app_working_minimal.py, app_working.py) and consolidated to single main app.py file
 
 ## User Preferences
 
