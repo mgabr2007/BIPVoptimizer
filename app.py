@@ -211,6 +211,86 @@ def generate_chart_html(chart_type, data, title="Chart"):
     except Exception as e:
         return f'<div class="chart-placeholder"><p>Chart: {title} (Error generating visualization)</p></div>'
 
+def get_currency_symbol(currency):
+    """Get currency symbol from currency code"""
+    symbols = {
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'JPY': '¥',
+        'CAD': 'C$'
+    }
+    return symbols.get(currency, '$')
+
+def get_currency_exchange_rate(from_currency, to_currency='USD'):
+    """Get simplified exchange rates for currency conversion"""
+    # Simplified exchange rates (in production, would use real-time API)
+    rates = {
+        'USD': 1.0,
+        'EUR': 0.85,
+        'GBP': 0.73,
+        'JPY': 110.0,
+        'CAD': 1.25
+    }
+    
+    from_rate = rates.get(from_currency, 1.0)
+    to_rate = rates.get(to_currency, 1.0)
+    
+    return to_rate / from_rate
+
+def get_location_solar_parameters(location):
+    """Get location-specific solar parameters based on location string"""
+    location_lower = location.lower()
+    
+    # Solar irradiance multipliers based on location
+    if any(term in location_lower for term in ['arizona', 'nevada', 'california', 'phoenix', 'las vegas', 'los angeles']):
+        return {'solar_multiplier': 1.3, 'climate_zone': 'desert', 'typical_ghi': 2000}
+    elif any(term in location_lower for term in ['florida', 'texas', 'miami', 'houston', 'dallas']):
+        return {'solar_multiplier': 1.15, 'climate_zone': 'subtropical', 'typical_ghi': 1750}
+    elif any(term in location_lower for term in ['new york', 'boston', 'chicago', 'philadelphia']):
+        return {'solar_multiplier': 1.0, 'climate_zone': 'temperate', 'typical_ghi': 1450}
+    elif any(term in location_lower for term in ['seattle', 'portland', 'washington']):
+        return {'solar_multiplier': 0.8, 'climate_zone': 'marine', 'typical_ghi': 1200}
+    elif any(term in location_lower for term in ['alaska', 'anchorage']):
+        return {'solar_multiplier': 0.6, 'climate_zone': 'arctic', 'typical_ghi': 900}
+    elif any(term in location_lower for term in ['germany', 'berlin', 'munich']):
+        return {'solar_multiplier': 0.9, 'climate_zone': 'continental', 'typical_ghi': 1100}
+    elif any(term in location_lower for term in ['spain', 'italy', 'madrid', 'rome']):
+        return {'solar_multiplier': 1.2, 'climate_zone': 'mediterranean', 'typical_ghi': 1650}
+    elif any(term in location_lower for term in ['uk', 'london', 'britain']):
+        return {'solar_multiplier': 0.85, 'climate_zone': 'oceanic', 'typical_ghi': 1050}
+    elif any(term in location_lower for term in ['japan', 'tokyo', 'osaka']):
+        return {'solar_multiplier': 1.05, 'climate_zone': 'humid_subtropical', 'typical_ghi': 1350}
+    else:
+        return {'solar_multiplier': 1.0, 'climate_zone': 'temperate', 'typical_ghi': 1450}
+
+def get_location_electricity_rates(location, currency):
+    """Get location-specific electricity rates in specified currency"""
+    # Base rates in USD per kWh
+    base_rates = {}
+    location_lower = location.lower()
+    
+    if any(term in location_lower for term in ['california', 'hawaii']):
+        base_rates = {'residential': 0.25, 'commercial': 0.18}
+    elif any(term in location_lower for term in ['new york', 'massachusetts', 'connecticut']):
+        base_rates = {'residential': 0.20, 'commercial': 0.15}
+    elif any(term in location_lower for term in ['texas', 'louisiana', 'west virginia']):
+        base_rates = {'residential': 0.12, 'commercial': 0.09}
+    elif any(term in location_lower for term in ['germany', 'denmark']):
+        base_rates = {'residential': 0.35, 'commercial': 0.25}
+    elif any(term in location_lower for term in ['uk', 'britain', 'london']):
+        base_rates = {'residential': 0.28, 'commercial': 0.20}
+    elif any(term in location_lower for term in ['japan', 'tokyo']):
+        base_rates = {'residential': 0.26, 'commercial': 0.18}
+    elif any(term in location_lower for term in ['spain', 'italy']):
+        base_rates = {'residential': 0.24, 'commercial': 0.16}
+    else:
+        base_rates = {'residential': 0.15, 'commercial': 0.12}
+    
+    # Convert to specified currency
+    exchange_rate = get_currency_exchange_rate('USD', currency)
+    return {k: v * exchange_rate for k, v in base_rates.items()}
+
 def main():
     st.set_page_config(
         page_title="BIPV Optimizer",
@@ -547,22 +627,13 @@ def render_weather_environment():
         
         if st.button("Generate TMY Data", key="generate_tmy"):
             with st.spinner("Generating Typical Meteorological Year data..."):
-                # Simulate TMY data generation with realistic values
+                # Use location-specific solar parameters
+                solar_params = get_location_solar_parameters(location)
+                multiplier = solar_params['solar_multiplier']
+                
                 base_ghi = 1450
                 base_dni = 1680
                 base_dhi = 650
-                
-                # Adjust based on location (simplified)
-                location_lower = location.lower()
-                if any(term in location_lower for term in ['arizona', 'nevada', 'california', 'texas']):
-                    # High solar regions
-                    multiplier = 1.2
-                elif any(term in location_lower for term in ['alaska', 'washington', 'oregon']):
-                    # Lower solar regions
-                    multiplier = 0.7
-                else:
-                    # Average regions
-                    multiplier = 1.0
                 
                 tmy_data = {
                     'annual_ghi': int(base_ghi * multiplier),
@@ -1148,8 +1219,23 @@ def render_optimization():
             mutation_rate = st.slider("Mutation Rate", 0.01, 0.1, 0.05, key="mutation_rate")
             
             st.subheader("Economic Parameters")
-            electricity_rate = st.number_input("Electricity Rate ($/kWh)", 0.05, 0.50, 0.12, key="elec_rate")
-            feed_in_tariff = st.number_input("Feed-in Tariff ($/kWh)", 0.01, 0.20, 0.08, key="fit_rate")
+            
+            # Get location-based electricity rates
+            location = st.session_state.project_data.get('location', '')
+            currency = st.session_state.project_data.get('currency', 'USD')
+            currency_symbol = get_currency_symbol(currency)
+            
+            if location:
+                location_rates = get_location_electricity_rates(location, currency)
+                default_rate = location_rates.get('commercial', 0.12)
+                default_fit = default_rate * 0.6  # Typical feed-in tariff is 60% of retail rate
+                st.info(f"Using {location} electricity rates in {currency}")
+            else:
+                default_rate = 0.12
+                default_fit = 0.08
+            
+            electricity_rate = st.number_input(f"Electricity Rate ({currency_symbol}/kWh)", 0.05, 0.50, default_rate, format="%.3f", key="elec_rate")
+            feed_in_tariff = st.number_input(f"Feed-in Tariff ({currency_symbol}/kWh)", 0.01, 0.20, default_fit, format="%.3f", key="fit_rate")
         
         with col2:
             st.subheader("Objective Weights")
@@ -1280,8 +1366,24 @@ def render_financial_analysis():
         with col1:
             st.subheader("Financial Parameters")
             
-            electricity_rate = st.number_input("Electricity Rate ($/kWh)", 0.05, 0.50, 0.12, key="fin_elec_rate")
-            feed_in_tariff = st.number_input("Feed-in Tariff ($/kWh)", 0.01, 0.20, 0.08, key="fin_fit_rate")
+            # Get currency settings from project data
+            currency = st.session_state.project_data.get('currency', 'USD')
+            location = st.session_state.project_data.get('location', '')
+            currency_symbol = get_currency_symbol(currency)
+            
+            # Use location-based electricity rates if available
+            if location:
+                location_rates = get_location_electricity_rates(location, currency)
+                default_elec_rate = location_rates.get('commercial', 0.12)
+                default_fit_rate = default_elec_rate * 0.6
+            else:
+                # Convert USD defaults to user's currency
+                exchange_rate = get_currency_exchange_rate('USD', currency)
+                default_elec_rate = 0.12 * exchange_rate
+                default_fit_rate = 0.08 * exchange_rate
+            
+            electricity_rate = st.number_input(f"Electricity Rate ({currency_symbol}/kWh)", 0.01, 1.0, default_elec_rate, format="%.3f", key="fin_elec_rate")
+            feed_in_tariff = st.number_input(f"Feed-in Tariff ({currency_symbol}/kWh)", 0.01, 0.50, default_fit_rate, format="%.3f", key="fin_fit_rate")
             om_rate = st.number_input("O&M Rate (% of investment/year)", 0.5, 3.0, 1.5, key="om_rate") / 100
             
         with col2:
@@ -1297,12 +1399,19 @@ def render_financial_analysis():
         
         with col1:
             grid_co2_factor = st.number_input("Grid CO₂ Factor (kg CO₂/kWh)", 0.2, 1.0, 0.5, key="co2_factor")
-            carbon_price = st.number_input("Carbon Price ($/ton CO₂)", 10, 200, 50, key="carbon_price")
+            
+            # Convert carbon price to user's currency
+            exchange_rate = get_currency_exchange_rate('USD', currency)
+            default_carbon_price = 50 * exchange_rate
+            carbon_price = st.number_input(f"Carbon Price ({currency_symbol}/ton CO₂)", 1, 500, default_carbon_price, key="carbon_price")
         
         with col2:
             renewable_energy_cert = st.checkbox("Renewable Energy Certificates", value=False, key="rec")
             if renewable_energy_cert:
-                rec_price = st.number_input("REC Price ($/MWh)", 1, 50, 10, key="rec_price")
+                default_rec_price = 10 * exchange_rate
+                rec_price = st.number_input(f"REC Price ({currency_symbol}/MWh)", 1, 100, default_rec_price, key="rec_price")
+            else:
+                rec_price = 0
         
         if st.button("Analyze Solution", key="analyze_solution"):
             with st.spinner("Calculating comprehensive financial and environmental analysis..."):
