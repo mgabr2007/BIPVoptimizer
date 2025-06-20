@@ -702,12 +702,44 @@ def render_facade_extraction():
             key="orientation_filter"
         )
         
+        # PV Suitability Threshold with detailed explanation
+        with st.expander("🔍 PV Suitability Threshold Methodology", expanded=True):
+            st.markdown("""
+            ### What is PV Suitability Threshold?
+            
+            The **PV Suitability Threshold** determines what percentage of each window's glass area can be effectively used for BIPV installation. This parameter accounts for:
+            
+            #### **Technical Constraints:**
+            - **Frame Interference**: Window frames and mullions reduce usable glass area
+            - **Structural Requirements**: Safety glass margins and mounting constraints
+            - **Electrical Access**: Space needed for electrical connections and junction boxes
+            - **Maintenance Access**: Areas that must remain accessible for cleaning and maintenance
+            
+            #### **BIM Data Integration:**
+            The threshold directly modifies the **Glass Area (m²)** values from your BIM data:
+            - **Original Glass Area**: Raw value from Revit model (e.g., 2.5 m²)
+            - **Effective PV Area**: Glass Area × (Threshold/100) (e.g., 2.5 × 0.75 = 1.875 m²)
+            - **Reserved Area**: Remaining space for frames, maintenance, and safety margins
+            
+            #### **Threshold Guidelines:**
+            - **50-60%**: Conservative approach for complex window geometries
+            - **70-80%**: Standard commercial installations with regular window shapes
+            - **85-95%**: Optimistic scenario for purpose-built BIPV windows
+            - **95-100%**: Maximum utilization for specialized BIPV curtain walls
+            
+            #### **Impact on Analysis:**
+            - **Energy Calculations**: Only the effective PV area generates electricity
+            - **Cost Analysis**: BIPV costs apply to effective area, regular glass costs to remaining area
+            - **Optimization**: Higher thresholds increase potential but may require custom solutions
+            """)
+        
         pv_suitability_threshold = st.slider(
             "PV Suitability Threshold (%)",
             min_value=50,
             max_value=100,
             value=75,
-            key="pv_threshold"
+            key="pv_threshold",
+            help="Percentage of glass area suitable for BIPV installation after accounting for frames, mounting, and maintenance requirements"
         )
     
     # Process uploaded CSV
@@ -852,8 +884,43 @@ def render_facade_extraction():
                 st.metric("Average Window Area", f"{avg_window_area:.2f} m²")
                 st.metric("Suitability Rate", f"{(suitable_elements/total_elements*100):.1f}%" if total_elements > 0 else "0%")
             with col4:
-                st.metric("PV Potential Area", f"{suitable_window_area * (pv_suitability_threshold/100):.1f} m²")
-                st.metric("Orientations", len(orientation_stats))
+                effective_pv_area = suitable_window_area * (pv_suitability_threshold/100)
+                reserved_area = suitable_window_area - effective_pv_area
+                st.metric("Effective PV Area", f"{effective_pv_area:.1f} m²")
+                st.metric("Reserved Area", f"{reserved_area:.1f} m²")
+            
+            # Add threshold impact explanation
+            st.subheader("🔧 PV Suitability Threshold Impact on BIM Data")
+            
+            with st.expander("Detailed Calculation Process", expanded=False):
+                st.markdown(f"""
+                ### Step-by-Step BIM Data Processing with {pv_suitability_threshold}% Threshold
+                
+                #### **1. Raw BIM Data Extraction:**
+                - Total building elements processed: **{total_elements:,}**
+                - Elements identified as windows: **{suitable_elements:,}**
+                - Total glass area from Revit: **{total_glass_area:.1f} m²**
+                
+                #### **2. Orientation Filtering Applied:**
+                - Orientation filter: {', '.join(orientation_filter) if orientation_filter else 'All orientations'}
+                - Elements passing orientation filter: **{suitable_elements:,}**
+                
+                #### **3. PV Suitability Threshold Applied:**
+                - Original suitable window area: **{suitable_window_area:.1f} m²**
+                - PV Suitability Threshold: **{pv_suitability_threshold}%**
+                - **Effective PV Area = {suitable_window_area:.1f} × {pv_suitability_threshold/100:.2f} = {effective_pv_area:.1f} m²**
+                - **Reserved Area = {suitable_window_area:.1f} - {effective_pv_area:.1f} = {reserved_area:.1f} m²**
+                
+                #### **4. Area Allocation Breakdown:**
+                - **{effective_pv_area:.1f} m²** → BIPV glass installation
+                - **{reserved_area:.1f} m²** → Frames, mounting, maintenance access
+                
+                #### **5. Impact on Subsequent Calculations:**
+                - Energy generation calculations use **{effective_pv_area:.1f} m²** PV area
+                - Cost analysis applies BIPV pricing to **{effective_pv_area:.1f} m²**
+                - Remaining **{reserved_area:.1f} m²** uses standard glass pricing
+                - Optimization algorithms consider **{effective_pv_area:.1f} m²** as maximum installable area
+                """)
             
             # Show detailed analysis by orientation
             st.subheader("Analysis by Orientation")
