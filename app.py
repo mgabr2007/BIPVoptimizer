@@ -1865,37 +1865,68 @@ def render_facade_extraction():
                                 
                                 orientation = get_orientation_from_azimuth(azimuth)
                                 
-                                # Apply filters - use all windows, keep Element ID
-                                is_window = category.lower() in ['windows', 'window']
-                                orientation_match = orientation in orientation_filter if orientation_filter else True
+                                # Include ALL window area elements from BIM data
+                                is_window = category.lower() in ['windows', 'window', 'curtain wall', 'curtainwall', 'glazing']
                                 
-                                is_suitable = (
-                                    is_window and
-                                    orientation_match and
-                                    include_all_windows
-                                )
-                                
-                                if is_suitable:
-                                    suitable_elements += 1
-                                
-                                total_glass_area += glass_area
-                                
-                                # Calculate window area (use 1.5 m² as default if glass area is 0)
-                                window_area = glass_area if glass_area > 0 else 1.5
-                                
-                                windows.append({
-                                    'element_id': element_id,  # Always preserve Element ID
-                                    'wall_element_id': host_wall_id,  # Wall Element ID from HostWallId
-                                    'category': category,
-                                    'family': family,
-                                    'level': level,
-                                    'azimuth': azimuth,
-                                    'orientation': orientation,
-                                    'glass_area': glass_area,
-                                    'window_area': window_area,
-                                    'suitable': is_suitable,
-                                    'pv_potential': window_area * (pv_suitability_threshold / 100) if is_suitable else 0
-                                })
+                                # Include all windows regardless of area or orientation
+                                if is_window:
+                                    # Calculate window area (use glass area if available, otherwise default)
+                                    if glass_area > 0:
+                                        window_area = glass_area
+                                    else:
+                                        # Extract dimensions from additional columns if available
+                                        try:
+                                            width = float(element_data.get('Width (m)', 0))
+                                            height = float(element_data.get('Height (m)', 0))
+                                            if width > 0 and height > 0:
+                                                window_area = width * height
+                                            else:
+                                                window_area = 1.5  # Default for windows without dimensions
+                                        except (ValueError, TypeError):
+                                            window_area = 1.5
+                                    
+                                    # Check suitability based on orientation filter
+                                    orientation_suitable = orientation in orientation_filter if orientation_filter else True
+                                    
+                                    # All windows are included, suitability based on orientation filter only
+                                    is_suitable = orientation_suitable if include_all_windows else (orientation_suitable and glass_area > 0)
+                                    
+                                    if is_suitable:
+                                        suitable_elements += 1
+                                    
+                                    total_glass_area += glass_area
+                                    
+                                    # Extract additional BIM properties
+                                    type_name = element_data.get('Type', element_data.get('TypeName', '')).strip()
+                                    sill_height = element_data.get('Sill Height (m)', '')
+                                    head_height = element_data.get('Head Height (m)', '')
+                                    width = element_data.get('Width (m)', '')
+                                    height = element_data.get('Height (m)', '')
+                                    
+                                    windows.append({
+                                        'element_id': element_id,  # BIM Element ID
+                                        'wall_element_id': host_wall_id,  # Host Wall Element ID
+                                        'category': category,
+                                        'family': family,
+                                        'type': type_name,
+                                        'level': level,
+                                        'azimuth': azimuth,
+                                        'orientation': orientation,
+                                        'glass_area': glass_area,
+                                        'window_area': window_area,
+                                        'width': width,
+                                        'height': height,
+                                        'sill_height': sill_height,
+                                        'head_height': head_height,
+                                        'suitable': is_suitable,
+                                        'pv_potential': window_area * (pv_suitability_threshold / 100) if is_suitable else 0,
+                                        'orientation_factor': {
+                                            'South (135-225°)': 1.0,
+                                            'East (45-135°)': 0.85,
+                                            'West (225-315°)': 0.85,
+                                            'North (315-45°)': 0.6
+                                        }.get(orientation, 0.7)
+                                    })
                             except (ValueError, TypeError):
                                 continue
                     
