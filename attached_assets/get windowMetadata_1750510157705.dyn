@@ -1,0 +1,573 @@
+{
+  "Uuid": "17b54e70-e1ae-4daf-81be-33542b6f4e8c",
+  "IsCustomNode": false,
+  "Description": null,
+  "Name": "get windowMetadata",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "DSRevitNodesUI.Categories, DSRevitNodesUI",
+      "SelectedIndex": 159,
+      "SelectedString": "OST_CurtainWallPanels",
+      "Id": "bf909234d1e64765abb77ea839412e94",
+      "NodeType": "ExtensionNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "6fff8f7cc3c84195bf77fc590543c099",
+          "Name": "Category",
+          "Description": "The selected Category.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "All built-in categories."
+    },
+    {
+      "ConcreteType": "DSRevitNodesUI.ElementsOfCategory, DSRevitNodesUI",
+      "Id": "fa98508885904c9faac955edbfccb3ac",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "aa690db7505641c49b7a3620d0a4cd66",
+          "Name": "Category",
+          "Description": "The Category",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "5373ba971dd74da8b93c9361cc2c8b12",
+          "Name": "Elements",
+          "Description": "An element class.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Get all elements of the specified category from the model."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "# -*- coding: utf-8 -*-\r\n\"\"\"\r\nWall & Hosted-Insert Exporter – v9  (2025-06-20)\r\n\r\n• Exports wall geometry / orientation / quantities.\r\n• Exports hosted inserts (windows, doors …) with orientation and glazing area\r\n  (material OR sub-category contains “glass” or “glazing”).\r\n• Fully recursive GeometryInstance walk.\r\n• ALL Revit-API property reads wrapped in safe_attr → no TypeError dialogs.\r\n• Robust Family / Type retrieval works in every Revit version.\r\n• Outputs two timestamped CSV files.\r\n\"\"\"\r\n\r\nimport clr, os, csv, math\r\nfrom datetime import datetime\r\n\r\n# ── Revit plumbing ────────────────────────────────────────────────────────\r\nclr.AddReference(\"RevitAPI\")\r\nfrom Autodesk.Revit.DB import ElementId, Options, GeometryInstance, Solid\r\n\r\nclr.AddReference(\"RevitServices\")\r\nfrom RevitServices.Persistence import DocumentManager\r\n\r\nclr.AddReference(\"RevitNodes\")\r\nimport Revit                                    # noqa: F401\r\nclr.ImportExtensions(Revit.Elements)\r\n\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# ── helpers ───────────────────────────────────────────────────────────────\r\ndef safe_attr(obj, attr, default=None):\r\n    \"\"\"Return obj.attr if possible, otherwise default.\"\"\"\r\n    try:\r\n        return getattr(obj, attr, default)\r\n    except Exception:\r\n        return default\r\n\r\ndef safe_call(fn, default=None):\r\n    \"\"\"Call fn() and return its value or default on any error.\"\"\"\r\n    try:\r\n        return fn()\r\n    except Exception:\r\n        return default\r\n\r\nFT2M, SQFT2M2, CUFT2M3 = 0.3048, 0.092903, 0.0283168\r\ndef get_param(elem, name, fac=1.0):\r\n    return safe_call(lambda: round(elem.LookupParameter(name).AsDouble()*fac, 2))\r\n\r\ndef az(v):  return round((math.degrees(math.atan2(v.X, v.Y))+360) % 360, 2)\r\ndef vec(v): return round(v.X,2), round(v.Y,2), round(v.Z,2)\r\n\r\ndef safe_faces(solid):\r\n    return safe_call(lambda: list(solid.Faces), [])\r\n\r\ndef safe_subcat(face):\r\n    gs = safe_call(lambda: doc.GetElement(face.GraphicsStyleId))\r\n    cat = safe_attr(gs, \"GraphicsStyleCategory\")\r\n    return safe_attr(cat, \"Name\", \"\")\r\n\r\n# ── inputs ────────────────────────────────────────────────────────────────\r\nwalls_in, path_in = IN[0], IN[1]\r\n\r\n# ── path handling ─────────────────────────────────────────────────────────\r\ndef make_paths(p):\r\n    if isinstance(p, list):\r\n        if len(p) != 1 or not isinstance(p[0], str):\r\n            raise ValueError(\"IN[1] must be a file-path string or list of one.\")\r\n        p = p[0]\r\n    if not isinstance(p, str):\r\n        raise ValueError(\"IN[1] must be a string.\")\r\n\r\n    folder = os.path.dirname(p)\r\n    if folder and not os.path.exists(folder):\r\n        os.makedirs(folder)\r\n\r\n    base, ext = os.path.splitext(p)\r\n    if not ext:\r\n        ext = \".csv\"\r\n    ts = datetime.now().strftime(\"%Y%m%d-%H%M%S\")\r\n    return f\"{base}_{ts}{ext}\", f\"{base}_Hosted_{ts}{ext}\"\r\n\r\nwalls_csv, hosted_csv = make_paths(path_in)\r\n\r\n# ── unwrap input selection to DB elements ─────────────────────────────────\r\ndef to_db(e):\r\n    if hasattr(e, \"InternalElement\"):\r\n        return e.InternalElement\r\n    if isinstance(e, ElementId):\r\n        return doc.GetElement(e)\r\n    if isinstance(e, int):\r\n        return doc.GetElement(ElementId(e))\r\n    return e\r\n\r\nwalls = [\r\n    to_db(w)\r\n    for sub in walls_in\r\n    for w in (sub if isinstance(sub, list) else [sub])\r\n    if to_db(w)\r\n]\r\n\r\n# ── WALL DATA ─────────────────────────────────────────────────────────────\r\nwall_rows = []\r\nfor w in walls:\r\n    wid   = w.Id.IntegerValue\r\n    name  = safe_attr(w, \"Name\", \"\")\r\n    wtype = safe_attr(safe_attr(w, \"WallType\"), \"Name\", \"\")\r\n\r\n    level = safe_call(lambda: doc.GetElement(w.LevelId).Name)\r\n\r\n    try:\r\n        ox, oy, oz = vec(w.Orientation)\r\n        azi = az(w.Orientation)\r\n    except Exception:\r\n        ox = oy = oz = azi = None\r\n\r\n    wall_rows.append([\r\n        wid, name, wtype, level,\r\n        get_param(w, \"Length\", FT2M),\r\n        get_param(w, \"Area\",   SQFT2M2),\r\n        get_param(w, \"Volume\", CUFT2M3),\r\n        ox, oy, oz, azi\r\n    ])\r\n\r\n# ── HOSTED DATA ───────────────────────────────────────────────────────────\r\nopts = Options(); opts.IncludeNonVisibleObjects = True\r\nkeywords = (\"glass\", \"glazing\")\r\ndef is_glass(txt): return any(k in (txt or \"\").lower() for k in keywords)\r\n\r\ndef glass_stats(geom_iter):\r\n    total = 0.0\r\n    source = None\r\n    for obj in geom_iter:\r\n        if obj is None:\r\n            continue\r\n        if isinstance(obj, GeometryInstance):\r\n            a, s = glass_stats(obj.GetInstanceGeometry())\r\n            total += a\r\n            if s and not source:\r\n                source = s\r\n        elif isinstance(obj, Solid):\r\n            for f in safe_faces(obj):\r\n                sub = safe_subcat(f)\r\n                mat = safe_attr(doc.GetElement(f.MaterialElementId), \"Name\", \"\")\r\n                if is_glass(sub) or is_glass(mat):\r\n                    if not source:\r\n                        source = sub or mat\r\n                    total += safe_call(lambda: f.Area, 0)\r\n    return total, source\r\n\r\nhost_rows = []\r\nfor host in walls:\r\n    inserts = safe_call(lambda: host.FindInserts(True, False, False, False), [])\r\n\r\n    for iid in inserts or []:\r\n        inst = doc.GetElement(iid)\r\n        if not inst:\r\n            continue\r\n\r\n        cid  = inst.Id.IntegerValue\r\n        cat  = safe_attr(inst.Category, \"Name\", \"\")\r\n\r\n        # robust Family / Type\r\n        fam = typ = \"\"\r\n        sym = safe_attr(inst, \"Symbol\") or doc.GetElement(safe_call(inst.GetTypeId))\r\n        if sym:\r\n            typ = safe_attr(sym, \"Name\", \"\")\r\n            fam = safe_attr(sym, \"FamilyName\", \"\") \\\r\n                  or safe_attr(safe_attr(sym, \"Family\"), \"Name\", \"\")\r\n\r\n        lvl = \"\"\r\n        lp  = safe_call(lambda: inst.LookupParameter(\"Level\"))\r\n        if lp and lp.HasValue:\r\n            lvl = safe_call(lambda: doc.GetElement(lp.AsElementId()).Name, \"\")\r\n\r\n        try:\r\n            hox, hoy, hoz = vec(inst.FacingOrientation)\r\n            hazi = az(inst.FacingOrientation)\r\n        except Exception:\r\n            hox = hoy = hoz = hazi = None\r\n\r\n        geom = safe_call(lambda: inst.get_Geometry(opts), [])\r\n        gsf, gsrc = glass_stats(geom)\r\n        garea = round(gsf * SQFT2M2, 2) if gsf else None\r\n\r\n        host_rows.append([\r\n            cid, cat, fam, typ, lvl, host.Id.IntegerValue,\r\n            hox, hoy, hoz, hazi, gsrc, garea\r\n        ])\r\n\r\n# ── CSV writer ────────────────────────────────────────────────────────────\r\ndef write_csv(path, header, rows):\r\n    try:\r\n        with open(path, \"w\", newline=\"\", encoding=\"utf-8-sig\") as f:\r\n            csv.writer(f).writerows([header] + rows)\r\n        return path\r\n    except PermissionError:\r\n        base, ext = os.path.splitext(path)\r\n        alt = f\"{base}_{datetime.now().strftime('%H%M%S')}{ext}\"\r\n        with open(alt, \"w\", newline=\"\", encoding=\"utf-8-sig\") as f:\r\n            csv.writer(f).writerows([header] + rows)\r\n        return alt\r\n\r\nhdr_walls = [\r\n    \"ElementId\", \"Name\", \"Wall Type\", \"Level\",\r\n    \"Length (m)\", \"Area (m²)\", \"Volume (m³)\",\r\n    \"OriX\", \"OriY\", \"OriZ\", \"Azimuth (°)\"\r\n]\r\nhdr_hosted = [\r\n    \"ElementId\", \"Category\", \"Family\", \"Type\", \"Level\", \"HostWallId\",\r\n    \"OriX\", \"OriY\", \"OriZ\", \"Azimuth (°)\",\r\n    \"Glass Source\", \"Glass Area (m²)\"\r\n]\r\n\r\nOUT = (\r\n    write_csv(walls_csv,  hdr_walls,  wall_rows),\r\n    write_csv(hosted_csv, hdr_hosted, host_rows)\r\n)\r\n",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "4549800d541448539cbf9bfaa74bd8b4",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "1d34743e177743a4b7f27f1bfba3b7a3",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "5c917e3ef40f4b2a8566748a9fa10295",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "a6547b8718cf4bb093687d754a5bb386",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.CreateList, CoreNodeModels",
+      "VariableInputPorts": true,
+      "Id": "b8dbbaf47a7c4510a58471e2486cfc3e",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "fe7bc7de44b049bd820c0a7190c7b4ba",
+          "Name": "item0",
+          "Description": "Item Index #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "cd5dd8e85057449498507ea5a57e2d0a",
+          "Name": "list",
+          "Description": "A list (type: var[]..[])",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Makes a new list from the given inputs"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 200.0,
+      "WatchHeight": 200.0,
+      "Id": "5c0f692556ec46f6b6e16c92b81210f8",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "fa5e745a3b714f90b470d99a643b969a",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c965561105d14de8ae4942976c21fc08",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 124.8,
+      "WatchHeight": 38.4,
+      "Id": "4ea5e41c32a34f019d55c24f1f710da7",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "b95ac342e5704f8f8e2e4f1a87899451",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "18605add4722404b86d39a117d8351a8",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "# -*- coding: utf-8 -*-\r\n# Dynamo 2.x – works in both IronPython 2.7 and CPython 3 nodes\r\n\r\nimport clr, sys\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom Autodesk.Revit.DB import BuiltInParameter, UnitUtils\r\nfrom RevitServices.Persistence import DocumentManager\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# ---------- Unit helpers (Revit 2021+ vs earlier) ----------------------------\r\ntry:                               # Revit 2021+\r\n    from Autodesk.Revit.DB import UnitTypeId as _U\r\n    M, M2, M3 = _U.Meters, _U.SquareMeters, _U.CubicMeters\r\nexcept ImportError:                # Revit ≤2020\r\n    from Autodesk.Revit.DB import DisplayUnitType as _U\r\n    M, M2, M3 = _U.Meters, _U.SquareMeters, _U.CubicMeters\r\n\r\ndef to_unit(val, ut):\r\n    return UnitUtils.ConvertFromInternalUnits(val, ut)\r\n\r\n# ---------- utilities --------------------------------------------------------\r\ndef flatten(xs):\r\n    for x in xs:\r\n        if isinstance(x, (list, tuple)):\r\n            for y in flatten(x):\r\n                yield y\r\n        else:\r\n            yield x\r\n\r\ndef unwrap(e):\r\n    if e is None: return None\r\n    if hasattr(e, \"InternalElement\"):  # Dynamo wrapper\r\n        return e.InternalElement\r\n    if hasattr(e, \"Id\"):               # raw element\r\n        return e\r\n    try:                               # maybe ElementId/int\r\n        from Autodesk.Revit.DB import ElementId\r\n        return doc.GetElement(ElementId(int(e)))\r\n    except Exception:\r\n        return None\r\n\r\n# ---------- take input -------------------------------------------------------\r\nraw_in = IN[0] if IN and len(IN) else []\r\nelements = [unwrap(x) for x in flatten(raw_in)]\r\n\r\nwalls = []\r\nfor e in elements:                     # <= no list-comp! safer\r\n    try:\r\n        if e and e.Category and e.Category.Name == \"Walls\":\r\n            walls.append(e)\r\n    except Exception:                  # “property cannot be read”\r\n        pass\r\n\r\n# ---------- output table -----------------------------------------------------\r\ntable = [[\r\n    \"ElementId\", \"Name\", \"Wall Type\", \"Level\",\r\n    \"Length (m)\", \"Area (m²)\", \"Volume (m³)\", \"Hosted Element Ids\"\r\n]]\r\n\r\ndef safe_double(elem, bip):\r\n    try:\r\n        p = elem.get_Parameter(bip)\r\n        if p and p.HasValue:\r\n            return p.AsDouble()\r\n    except Exception:                  # catches “property cannot be read”\r\n        pass\r\n    return None\r\n\r\nfor w in walls:\r\n    eid   = w.Id.IntegerValue\r\n    name  = getattr(w, \"Name\", \"Unnamed Wall\") or \"Unnamed Wall\"\r\n\r\n    try:\r\n        wtype = doc.GetElement(w.GetTypeId()).Name\r\n    except Exception:\r\n        wtype = \"—\"\r\n\r\n    try:\r\n        level = doc.GetElement(w.LevelId).Name\r\n    except Exception:\r\n        level = \"—\"\r\n\r\n    ln  = safe_double(w, BuiltInParameter.CURVE_ELEM_LENGTH)\r\n    ar  = safe_double(w, BuiltInParameter.HOST_AREA_COMPUTED)\r\n    vol = safe_double(w, BuiltInParameter.HOST_VOLUME_COMPUTED)\r\n\r\n    # fallback length from location curve\r\n    if ln is None:\r\n        try:\r\n            if w.Location: ln = w.Location.Curve.Length\r\n        except Exception:\r\n            pass\r\n\r\n    length = round(to_unit(ln,  M), 2)  if ln  else None\r\n    area   = round(to_unit(ar,  M2), 2) if ar  else None\r\n    volume = round(to_unit(vol, M3), 2) if vol else None\r\n\r\n    # hosted elements\r\n    try:\r\n        hosted_ids = [hid.IntegerValue\r\n                      for hid in w.GetHostedElements(True, True, True, True)]\r\n    except Exception:\r\n        hosted_ids = None\r\n\r\n    table.append([eid, name, wtype, level,\r\n                  length, area, volume, hosted_ids])\r\n\r\nOUT = table if len(table) > 1 else [[\"No walls found in input\"]]\r\n",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "305c1fc1347241478b4d8709e99faec8",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "05f1e02c3c8d47789916525caf38fa5f",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "77618c8b48e34ebea8b1c0ff6b5b2c58",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
+      "Id": "61cb6740d7944a5785f870558da14bb0",
+      "NodeType": "ExtensionNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "c2f7e4e3cb594e9e932039b6c091329d",
+          "Name": "",
+          "Description": "File Path",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows you to select a file on the system and returns its file path",
+      "HintPath": "D:\\Mostafa\\PhD\\Walls_20250618-141039.csv",
+      "InputValue": "D:\\Mostafa\\PhD\\Walls_20250618-141039.csv"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "import clr, os, csv\r\n\r\n# --- Revit & Dynamo plumbing ---------------------------------------------\r\n# Revit API\r\nclr.AddReference(\"RevitAPI\")\r\nfrom Autodesk.Revit.DB import ElementId\r\n\r\n# Dynamo / RevitServices\r\nclr.AddReference(\"RevitServices\")\r\nfrom RevitServices.Persistence import DocumentManager\r\n\r\n# CPython3 node needs this to unwrap Dynamo wrappers:\r\nclr.AddReference(\"RevitNodes\")\r\nimport Revit\r\nclr.ImportExtensions(Revit.Elements)\r\n\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# --- inputs ---------------------------------------------------------------\r\nwalls_in = IN[0]\r\npath_in  = IN[1]\r\n\r\n# --- normalize file path -------------------------------------------------\r\n# allow a single‐item list of string or a bare string\r\nif isinstance(path_in, list):\r\n    if len(path_in)!=1 or not isinstance(path_in[0], str):\r\n        raise ValueError(\"IN[1] must be a single file‐path string (or list of one).\")\r\n    file_path = path_in[0]\r\nelif isinstance(path_in, str):\r\n    file_path = path_in\r\nelse:\r\n    raise ValueError(\"IN[1] must be a string or single‐item list of string.\")\r\n\r\n# ensure folder exists (but don’t confuse file name with folder)\r\nfolder = os.path.dirname(file_path)\r\nif folder and not os.path.exists(folder):\r\n    os.makedirs(folder)\r\n\r\n# build hosted‐elements filename\r\nbase, ext = os.path.splitext(file_path)\r\nif not ext:\r\n    ext = \".csv\"\r\nhosted_path = base + \"_Hosted\" + ext\r\n\r\n# --- flatten one level of nesting ----------------------------------------\r\nflat = []\r\nfor item in walls_in:\r\n    if isinstance(item, list):\r\n        flat.extend(item)\r\n    else:\r\n        flat.append(item)\r\n\r\n# --- helper: unwrap to DB element ----------------------------------------\r\ndef to_db(elem):\r\n    # Dynamo wrapper\r\n    if hasattr(elem, \"InternalElement\"):\r\n        return elem.InternalElement\r\n    # raw ElementId\r\n    if isinstance(elem, ElementId):\r\n        return doc.GetElement(elem)\r\n    # plain int\r\n    if isinstance(elem, int):\r\n        return doc.GetElement(ElementId(elem))\r\n    # assume already a DBElement\r\n    return elem\r\n\r\nwalls = [to_db(w) for w in flat if to_db(w) is not None]\r\n\r\n# --- unit conversion factors ---------------------------------------------\r\nFT2M    = 0.3048\r\nSQFT2M2 = 0.092903\r\nCUFT2M3 = 0.0283168\r\n\r\ndef get_param(elem, name, factor=1.0):\r\n    p = elem.LookupParameter(name)\r\n    if p is None or not p.HasValue:\r\n        return None\r\n    try:\r\n        return p.AsDouble() * factor\r\n    except:\r\n        return None\r\n\r\n# --- collect wall data ---------------------------------------------------\r\nwall_rows = []\r\nfor w in walls:\r\n    wid   = w.Id.IntegerValue\r\n    name  = getattr(w, \"Name\", \"\")\r\n    # wall‐type name\r\n    try:    wtype = w.WallType.Name\r\n    except: wtype = \"\"\r\n    # level\r\n    lvl = \"\"\r\n    try:\r\n        lid = w.LevelId\r\n        lvl = doc.GetElement(lid).Name if lid else \"\"\r\n    except:\r\n        pass\r\n    length = get_param(w, \"Length\", FT2M)\r\n    area   = get_param(w, \"Area\",   SQFT2M2)\r\n    volume = get_param(w, \"Volume\", CUFT2M3)\r\n    wall_rows.append([wid, name, wtype, lvl, length, area, volume])\r\n\r\n# --- collect hosted‐insert data ------------------------------------------\r\nhosted_rows = []\r\nfor w in walls:\r\n    host_id = w.Id.IntegerValue\r\n    try:\r\n        inserts = w.FindInserts(True, False, False, False)\r\n    except:\r\n        inserts = []\r\n    for eid in inserts:\r\n        inst = doc.GetElement(eid)\r\n        if inst is None: \r\n            continue\r\n        iid  = inst.Id.IntegerValue\r\n        cat  = inst.Category.Name if inst.Category else \"\"\r\n        fam  = \"\"\r\n        typ  = \"\"\r\n        try:\r\n            sym = inst.Symbol\r\n            fam = sym.Family.Name\r\n            typ = sym.Name\r\n        except:\r\n            pass\r\n        # instance level\r\n        lvl = \"\"\r\n        lp  = inst.LookupParameter(\"Level\")\r\n        if lp and lp.HasValue:\r\n            try:\r\n                lvl = doc.GetElement(lp.AsElementId()).Name\r\n            except:\r\n                pass\r\n        hosted_rows.append([iid, cat, fam, typ, lvl, host_id])\r\n\r\n# --- write the two CSVs --------------------------------------------------\r\nwith open(file_path,   \"w\", newline=\"\", encoding=\"utf-8-sig\") as f:\r\n    w = csv.writer(f)\r\n    w.writerow([\"ElementId\",\"Name\",\"Wall Type\",\"Level\",\r\n                \"Length (m)\",\"Area (m²)\",\"Volume (m³)\"])\r\n    w.writerows(wall_rows)\r\n\r\nwith open(hosted_path, \"w\", newline=\"\", encoding=\"utf-8-sig\") as f:\r\n    w = csv.writer(f)\r\n    w.writerow([\"ElementId\",\"Category\",\"Family\",\"Type\",\r\n                \"Level\",\"HostWallId\"])\r\n    w.writerows(hosted_rows)\r\n\r\n# --- outputs --------------------------------------------------------------\r\n# returns the two paths so you can drill‐open them from Dynamo\r\nOUT = file_path, hosted_path\r\n",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "e06a5457231945b48df3957ccfb35b29",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "0302614c9317436ab8de92034fbf3a72",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "2ddb3ce802cc45789e3fa40fc6ebe2a2",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "30de326f89524276bdc63e76ec4f544c",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "Dynamo.Nodes.DSModelElementMultipleSelection, DSRevitNodesUI",
+      "NodeType": "ExtensionNode",
+      "InstanceId": [
+        "cba57f4f-d9ab-4d2b-a609-7ae42035b4a8-000538d8",
+        "cba57f4f-d9ab-4d2b-a609-7ae42035b4a8-000538da",
+        "cba57f4f-d9ab-4d2b-a609-7ae42035b4a8-000538dc",
+        "cba57f4f-d9ab-4d2b-a609-7ae42035b4a8-0005392f",
+        "cba57f4f-d9ab-4d2b-a609-7ae42035b4a8-00053930",
+        "cba57f4f-d9ab-4d2b-a609-7ae42035b4a8-00053935",
+        "cba57f4f-d9ab-4d2b-a609-7ae42035b4a8-00053938",
+        "edcfb88d-b6cc-4ad9-aa36-d6cc4de32048-0005de13",
+        "edcfb88d-b6cc-4ad9-aa36-d6cc4de32048-0005de14"
+      ],
+      "Id": "f142f5a05f9f4f36b0f0bcfca55cc423",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "5f93b0ceec5c4651b2ed01d0d99aae3e",
+          "Name": "Elements",
+          "Description": "The selected elements.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Pick multiple elements from the Revit document."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "import clr, os, csv, math\r\nfrom datetime import datetime\r\n\r\n# --- Revit & Dynamo plumbing ---------------------------------------------\r\nclr.AddReference(\"RevitAPI\")\r\nfrom Autodesk.Revit.DB import ElementId, Options\r\n\r\nclr.AddReference(\"RevitServices\")\r\nfrom RevitServices.Persistence import DocumentManager\r\n\r\nclr.AddReference(\"RevitNodes\")\r\nimport Revit\r\nclr.ImportExtensions(Revit.Elements)\r\n\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# --- inputs ---------------------------------------------------------------\r\nwalls_in = IN[0]\r\npath_in  = IN[1]\r\n\r\n# --- normalize file path -------------------------------------------------\r\nif isinstance(path_in, list):\r\n    if len(path_in)!=1 or not isinstance(path_in[0], str):\r\n        raise ValueError(\"IN[1] must be a file-path string or list of one.\")\r\n    file_path = path_in[0]\r\nelif isinstance(path_in, str):\r\n    file_path = path_in\r\nelse:\r\n    raise ValueError(\"IN[1] must be a string or single-item list of string.\")\r\n\r\nfolder = os.path.dirname(file_path)\r\nif folder and not os.path.exists(folder):\r\n    os.makedirs(folder)\r\n\r\nbase, ext = os.path.splitext(file_path)\r\nif not ext:\r\n    ext = \".csv\"\r\nts = datetime.now().strftime(\"%Y%m%d-%H%M%S\")\r\nfile_path   = f\"{base}_{ts}{ext}\"\r\nhosted_path = f\"{base}_Hosted_{ts}{ext}\"\r\n\r\n# --- flatten nesting & unwrap to DB elements -----------------------------\r\nflat = []\r\nfor item in walls_in:\r\n    flat.extend(item) if isinstance(item, list) else flat.append(item)\r\n\r\ndef to_db(e):\r\n    if hasattr(e, \"InternalElement\"): return e.InternalElement\r\n    if isinstance(e, ElementId):        return doc.GetElement(e)\r\n    if isinstance(e, int):              return doc.GetElement(ElementId(e))\r\n    return e\r\n\r\nwalls = [to_db(w) for w in flat if to_db(w) is not None]\r\n\r\n# --- unit conversion & param helper --------------------------------------\r\nFT2M    = 0.3048\r\nSQFT2M2 = 0.092903\r\nCUFT2M3 = 0.0283168\r\n\r\ndef get_param(elem, name, factor=1.0):\r\n    p = elem.LookupParameter(name)\r\n    if not p or not p.HasValue: return None\r\n    try:\r\n        return round(p.AsDouble()*factor, 2)\r\n    except:\r\n        return None\r\n\r\n# --- orientation helpers -------------------------------------------------\r\ndef azimuth_from_vec(v):\r\n    ang = math.degrees(math.atan2(v.X, v.Y))\r\n    return round((ang+360)%360, 2)\r\n\r\ndef vec_components(v):\r\n    return round(v.X,2), round(v.Y,2), round(v.Z,2)\r\n\r\n# --- collect wall data ---------------------------------------------------\r\nwall_rows = []\r\nfor w in walls:\r\n    wid   = w.Id.IntegerValue\r\n    name  = getattr(w, \"Name\", \"\")\r\n    try:    wtype = w.WallType.Name\r\n    except: wtype = \"\"\r\n    lvl = \"\"\r\n    try:\r\n        lid = w.LevelId\r\n        lvl = doc.GetElement(lid).Name if lid else \"\"\r\n    except: pass\r\n\r\n    length = get_param(w, \"Length\", FT2M)\r\n    area   = get_param(w, \"Area\",   SQFT2M2)\r\n    volume = get_param(w, \"Volume\", CUFT2M3)\r\n\r\n    # orientation vector + azimuth\r\n    try:\r\n        v = w.Orientation\r\n        ox, oy, oz = vec_components(v)\r\n        azi = azimuth_from_vec(v)\r\n    except:\r\n        ox=oy=oz=azi=None\r\n\r\n    wall_rows.append([\r\n        wid, name, wtype, lvl,\r\n        length, area, volume,\r\n        ox, oy, oz, azi\r\n    ])\r\n\r\n# --- collect hosted-insert data ------------------------------------------\r\nhosted_rows = []\r\nopts = Options()\r\n\r\nfor w in walls:\r\n    host_id = w.Id.IntegerValue\r\n    try:\r\n        inserts = w.FindInserts(True, False, False, False)\r\n    except:\r\n        inserts = []\r\n\r\n    for eid in inserts:\r\n        inst = doc.GetElement(eid)\r\n        if not inst: continue\r\n\r\n        iid = inst.Id.IntegerValue\r\n        cat = inst.Category.Name if inst.Category else \"\"\r\n        fam=typ=\"\"\r\n        try:\r\n            sym = inst.Symbol\r\n            fam = sym.Family.Name\r\n            typ = sym.Name\r\n        except: pass\r\n\r\n        lvl=\"\"\r\n        lp = inst.LookupParameter(\"Level\")\r\n        if lp and lp.HasValue:\r\n            try:\r\n                lvl = doc.GetElement(lp.AsElementId()).Name\r\n            except: pass\r\n\r\n        # orientation\r\n        try:\r\n            fv = inst.FacingOrientation\r\n            hox, hoy, hoz = vec_components(fv)\r\n            hazi = azimuth_from_vec(fv)\r\n        except:\r\n            hox=hoy=hoz=hazi=None\r\n\r\n        # glass area for windows\r\n        glass=None\r\n        if cat.lower()==\"windows\":\r\n            total=0.0\r\n            try:\r\n                geom = inst.get_Geometry(opts)\r\n            except:\r\n                geom=[]\r\n            for g in geom:\r\n                solid = g if hasattr(g,\"Faces\") else None\r\n                if not solid: continue\r\n                for face in solid.Faces:\r\n                    mid = face.MaterialElementId\r\n                    if mid and mid.IntegerValue>=0:\r\n                        mat = doc.GetElement(mid)\r\n                        if mat and \"glass\" in mat.Name.lower():\r\n                            total += face.Area * SQFT2M2\r\n            glass = round(total,2)\r\n\r\n        hosted_rows.append([\r\n            iid, cat, fam, typ, lvl, host_id,\r\n            hox, hoy, hoz, hazi, glass\r\n        ])\r\n\r\n# --- CSV writer with retry ------------------------------------------------\r\ndef write_csv(path, header, rows):\r\n    try:\r\n        with open(path,\"w\",newline=\"\",encoding=\"utf-8-sig\") as f:\r\n            w=csv.writer(f)\r\n            w.writerow(header)\r\n            w.writerows(rows)\r\n        return path\r\n    except PermissionError:\r\n        b,e=os.path.splitext(path)\r\n        ts2=datetime.now().strftime(\"%Y%m%d-%H%M%S\")\r\n        newp=f\"{b}_{ts2}{e}\"\r\n        with open(newp,\"w\",newline=\"\",encoding=\"utf-8-sig\") as f:\r\n            w=csv.writer(f)\r\n            w.writerow(header)\r\n            w.writerows(rows)\r\n        return newp\r\n\r\nh1 = [\"ElementId\",\"Name\",\"Wall Type\",\"Level\",\r\n      \"Length (m)\",\"Area (m²)\",\"Volume (m³)\",\r\n      \"OriX\",\"OriY\",\"OriZ\",\"Azimuth (°)\"]\r\nh2 = [\"ElementId\",\"Category\",\"Family\",\"Type\",\"Level\",\"HostWallId\",\r\n      \"OriX\",\"OriY\",\"OriZ\",\"Azimuth (°)\",\"Glass Area (m²)\"]\r\n\r\nout1 = write_csv(file_path,   h1, wall_rows)\r\nout2 = write_csv(hosted_path, h2, hosted_rows)\r\n\r\nOUT = out1, out2\r\n",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "8fa0998a9bd74596892d6e1e2a9e430b",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "0fc4e994257a47b6823a8f02fdc846d3",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "8504a69a4ce34629b2ee92e9d7d89ff8",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "779ac829ca8244788e277ebca5e31bce",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "6fff8f7cc3c84195bf77fc590543c099",
+      "End": "b95ac342e5704f8f8e2e4f1a87899451",
+      "Id": "b9a98b96c85b4648974b9496616075bf",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "6fff8f7cc3c84195bf77fc590543c099",
+      "End": "aa690db7505641c49b7a3620d0a4cd66",
+      "Id": "d6de2cab243444fb9b2b053a36a22b4d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "a6547b8718cf4bb093687d754a5bb386",
+      "End": "fa5e745a3b714f90b470d99a643b969a",
+      "Id": "4a1150cbacda44f797782fac63319a0a",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "cd5dd8e85057449498507ea5a57e2d0a",
+      "End": "1d34743e177743a4b7f27f1bfba3b7a3",
+      "Id": "e03ba9331c654daca7ea00753845d9a6",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "c2f7e4e3cb594e9e932039b6c091329d",
+      "End": "5c917e3ef40f4b2a8566748a9fa10295",
+      "Id": "c8922fd1d29b434ca6882243277effc5",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "5f93b0ceec5c4651b2ed01d0d99aae3e",
+      "End": "fe7bc7de44b049bd820c0a7190c7b4ba",
+      "Id": "6152db7dbac14538898da82d18e114c3",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [
+    {
+      "Name": "Walls_20250618-141039.csv",
+      "ReferenceType": "External",
+      "Nodes": [
+        "61cb6740d7944a5785f870558da14bb0"
+      ]
+    }
+  ],
+  "EnableLegacyPolyCurveBehavior": true,
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "3.3",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "8.2",
+      "Data": {}
+    }
+  ],
+  "Author": "None provided",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "3.3.0.6316",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Id": "bf909234d1e64765abb77ea839412e94",
+        "Name": "Categories",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": -521.1975058826298,
+        "Y": -177.87974032204403
+      },
+      {
+        "Id": "fa98508885904c9faac955edbfccb3ac",
+        "Name": "All Elements of Category",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": -194.3372561209884,
+        "Y": -199.48588844543067
+      },
+      {
+        "Id": "4549800d541448539cbf9bfaa74bd8b4",
+        "Name": "Python Script",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 527.9863682191825,
+        "Y": -157.86082330799508
+      },
+      {
+        "Id": "b8dbbaf47a7c4510a58471e2486cfc3e",
+        "Name": "List Create",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 5.349103722135283,
+        "Y": 241.40402076175906
+      },
+      {
+        "Id": "5c0f692556ec46f6b6e16c92b81210f8",
+        "Name": "Watch",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 808.0488422522044,
+        "Y": -178.13581847959153
+      },
+      {
+        "Id": "4ea5e41c32a34f019d55c24f1f710da7",
+        "Name": "Watch",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": -224.02408428252437,
+        "Y": 59.90856159314018
+      },
+      {
+        "Id": "305c1fc1347241478b4d8709e99faec8",
+        "Name": "working Code for the wall and ID and dims ",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": true,
+        "ShowGeometry": false,
+        "X": 645.8960712292926,
+        "Y": -396.34600776890505
+      },
+      {
+        "Id": "61cb6740d7944a5785f870558da14bb0",
+        "Name": "File Path",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 48.04488721692735,
+        "Y": -48.1564035630484
+      },
+      {
+        "Id": "e06a5457231945b48df3957ccfb35b29",
+        "Name": "WorkingCode with wall and hosted elements ",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": true,
+        "ShowGeometry": true,
+        "X": 353.07249846431586,
+        "Y": -427.45364355840354
+      },
+      {
+        "Id": "f142f5a05f9f4f36b0f0bcfca55cc423",
+        "Name": "Pick Model Elements",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": -634.5933060398204,
+        "Y": 139.82618330944985
+      },
+      {
+        "Id": "8fa0998a9bd74596892d6e1e2a9e430b",
+        "Name": "Python Script",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": true,
+        "ShowGeometry": true,
+        "X": 169.77444201567118,
+        "Y": -271.49243455357146
+      }
+    ],
+    "Annotations": [],
+    "X": 260.9218847308125,
+    "Y": 402.06504365987746,
+    "Zoom": 0.5813361813552077
+  }
+}

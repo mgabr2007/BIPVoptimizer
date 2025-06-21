@@ -1746,6 +1746,51 @@ def render_facade_extraction():
             """)
     
     with col2:
+        st.markdown("**Dynamo Script for Revit Extraction**")
+        
+        # Download link for Dynamo script
+        dynamo_file_path = "attached_assets/get windowMetadata_1750510157705.dyn"
+        try:
+            with open(dynamo_file_path, 'rb') as f:
+                dynamo_content = f.read()
+            
+            st.download_button(
+                label="📥 Download Dynamo Script (.dyn)",
+                data=dynamo_content,
+                file_name="get_windowMetadata.dyn",
+                mime="application/octet-stream",
+                help="Download this Dynamo script to extract window and facade data from your Revit model",
+                key="download_dynamo"
+            )
+            
+            st.caption("Use this Dynamo script in Revit to extract window metadata and export as CSV")
+            
+        except FileNotFoundError:
+            st.warning("Dynamo script file not found. Please contact support for the extraction script.")
+        
+        # Instructions for using the script
+        with st.expander("📖 How to Use Dynamo Script", expanded=False):
+            st.markdown("""
+            **Steps to Extract BIM Data:**
+            
+            1. **Download the Dynamo script** using the button above
+            2. **Open Dynamo** in Revit (Manage → Visual Programming → Dynamo)
+            3. **Open the downloaded script** in Dynamo
+            4. **Set output path** in the "File Path" node to specify where to save CSV
+            5. **Run the script** - it will automatically:
+               - Extract all windows and curtain wall panels
+               - Calculate orientations and glass areas
+               - Export data in the required CSV format
+            6. **Upload the generated CSV** using the file uploader above
+            
+            **Script Features:**
+            - Extracts window elements with proper orientation calculations
+            - Handles curtain walls and glazing panels
+            - Calculates glass areas from materials
+            - Exports in format compatible with BIPV Optimizer
+            - Works with Revit 2020+ and Dynamo 2.x
+            """)
+        
         st.subheader("Analysis Parameters")
         include_all_windows = st.checkbox(
             "Include All Window Elements",
