@@ -668,16 +668,23 @@ def render_project_setup():
             key="project_name"
         )
         
-        # OpenWeatherMap API key
-        api_key = st.text_input(
-            "OpenWeatherMap API Key",
-            type="password",
-            help="Required for real-time weather data. Get free API key at openweathermap.org",
-            key="openweather_api_key"
-        )
+        # OpenWeatherMap API key - check environment first
+        import os
+        env_api_key = os.getenv('OPENWEATHER_API_KEY')
         
-        if not api_key:
-            st.warning("Please provide OpenWeatherMap API key for accurate weather data")
+        if env_api_key:
+            api_key = env_api_key
+            st.success("✅ OpenWeatherMap API key loaded from environment")
+        else:
+            api_key = st.text_input(
+                "OpenWeatherMap API Key",
+                type="password",
+                help="Required for real-time weather data. Get free API key at openweathermap.org",
+                key="openweather_api_key"
+            )
+            
+            if not api_key:
+                st.warning("Please provide OpenWeatherMap API key for accurate weather data")
     
     with col2:
         st.subheader("Currency & Timezone")
@@ -727,17 +734,17 @@ def render_project_setup():
         ).add_to(m)
     
     # Display map and capture click events
-    map_data = st_folium(m, width=700, height=400, returned_objects=["last_object_clicked"])
+    map_data = st_folium(m, width=700, height=400, returned_objects=["last_object_clicked", "last_clicked"])
     
     # Process map click
     selected_lat = None
     selected_lon = None
     
-    if map_data['last_object_clicked']:
+    if map_data.get('last_object_clicked'):
         # Handle marker clicks
         selected_lat = map_data['last_object_clicked']['lat']
         selected_lon = map_data['last_object_clicked']['lng']
-    elif map_data['last_clicked']:
+    elif map_data.get('last_clicked'):
         # Handle map clicks
         selected_lat = map_data['last_clicked']['lat']
         selected_lon = map_data['last_clicked']['lng']
