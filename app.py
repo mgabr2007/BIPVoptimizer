@@ -1097,23 +1097,7 @@ def render_project_setup():
             electricity_rates = get_location_electricity_rates(location_name, currency)
             currency_symbol = get_currency_symbol(currency)
             
-            # Display solar and economic parameters
-            st.subheader("Location-Specific Parameters")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("**Solar Parameters:**")
-                st.write(f"• Average solar irradiance: {solar_params['avg_ghi']} kWh/m²/year")
-                st.write(f"• Peak sun hours: {solar_params['peak_sun_hours']} h/day")
-                st.write(f"• Optimal tilt angle: {solar_params['optimal_tilt']}°")
-                st.write(f"• Solar resource quality: {solar_params['solar_class']}")
-            
-            with col2:
-                st.write(f"**Electricity Rates ({currency}):**")
-                st.write(f"• Residential rate: {currency_symbol}{electricity_rates.get('residential', 0.15):.3f}/kWh")
-                st.write(f"• Commercial rate: {currency_symbol}{electricity_rates.get('commercial', 0.12):.3f}/kWh")
-                st.write(f"• Feed-in tariff: {currency_symbol}{electricity_rates.get('feed_in_tariff', 0.05):.3f}/kWh")
+            # Parameters are calculated but not displayed - will be used in subsequent calculations
             
             # Confirm location button
             if st.button("Confirm Project Location", key="confirm_location"):
