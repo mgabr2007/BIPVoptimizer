@@ -1762,7 +1762,7 @@ def render_facade_extraction():
         )
         
         # PV Suitability Threshold with detailed explanation
-        with st.expander("🔍 PV Suitability Threshold Methodology", expanded=True):
+        with st.expander("🔍 PV Suitability Threshold Methodology", expanded=False):
             st.markdown("""
             ### What is PV Suitability Threshold?
             

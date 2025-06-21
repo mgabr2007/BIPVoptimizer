@@ -217,6 +217,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 21, 2025: Enhanced Step 7 with direct CSV occupancy data extraction from Step 2 AI model and comprehensive educational building standards including K-12 schools, universities, research facilities, libraries, and dormitories with ASHRAE 90.1 compliance and occupancy pattern analysis
 - June 21, 2025: Enhanced Step 4 to include ALL window area elements from BIM data upload with comprehensive orientation analysis, expanded window type recognition (windows, curtain walls, glazing), enhanced BIM property extraction (dimensions, levels, families), and orientation-based solar performance scoring
 - June 21, 2025: Removed Location-Specific Parameters display from Step 1 to streamline interface while preserving calculated parameters for use in subsequent calculations
+- June 21, 2025: Closed PV Suitability Threshold info notes in Step 4 to clean up interface while keeping methodology details accessible via expander
 
 ## User Preferences
 
