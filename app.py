@@ -2821,26 +2821,158 @@ def render_yield_demand():
     st.header("Step 7: Yield vs Demand Calculation")
     st.write("Compare PV energy generation with building demand and calculate energy balance.")
     
+    # Extract occupancy data from Historical Data AI Model
+    historical_data = st.session_state.project_data.get('historical_data', {})
+    trained_model_data = historical_data.get('model_analysis', {})
+    
+    # Initialize variables
+    occupancy_features = {}
+    avg_occupancy = 75.0
+    
+    # Display occupancy information from AI model
+    if trained_model_data:
+        with st.expander("📊 Occupancy Data from Historical AI Model Analysis"):
+            occupancy_features = trained_model_data.get('feature_analysis', {})
+            model_accuracy = trained_model_data.get('model_accuracy', 0.0)
+            
+            st.markdown(f"""
+            ### AI Model Occupancy Analysis
+            
+            **Model Performance:** {model_accuracy:.1%} accuracy in demand prediction
+            
+            **Occupancy Factors Identified:**
+            """)
+            
+            if 'occupancy' in occupancy_features:
+                occupancy_impact = occupancy_features['occupancy'].get('importance', 0.0)
+                occupancy_correlation = occupancy_features['occupancy'].get('correlation', 0.0)
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Occupancy Impact", f"{occupancy_impact:.1%}")
+                with col2:
+                    st.metric("Energy Correlation", f"{occupancy_correlation:.3f}")
+                with col3:
+                    avg_occupancy = historical_data.get('avg_occupancy', 75.0)
+                    st.metric("Average Occupancy", f"{avg_occupancy:.0f}%")
+                
+                st.info(f"AI Model detected occupancy as {occupancy_impact:.1%} contributor to energy demand patterns with correlation of {occupancy_correlation:.3f}")
+            else:
+                st.warning("No specific occupancy data found in historical model. Using standard building occupancy patterns.")
+    else:
+        st.info("Historical AI model data not available. Using standard occupancy assumptions.")
+    
+    # Demand Scaling Factor Explanation
+    with st.expander("🔧 Demand Scaling Factor Calculation Methodology"):
+        st.markdown("""
+        ### Demand Scaling Factor Equation and Purpose
+        
+        **What is the Demand Scaling Factor?**
+        The Demand Scaling Factor adjusts the baseline energy demand to account for:
+        - Building occupancy changes
+        - Energy efficiency improvements
+        - Operational pattern modifications
+        - Future growth or reduction scenarios
+        
+        **Calculation Equation:**
+        ```
+        Adjusted_Demand = Base_Demand × Scaling_Factor × Occupancy_Modifier × Seasonal_Modifier
+        ```
+        
+        Where:
+        - **Base_Demand**: Historical energy consumption from AI model (kWh)
+        - **Scaling_Factor**: User-defined multiplier (0.5 to 2.0)
+        - **Occupancy_Modifier**: Based on building occupancy patterns
+        - **Seasonal_Modifier**: Monthly variation factors
+        
+        **Scaling Factor Interpretation:**
+        - **1.0**: Current demand level (baseline from historical data)
+        - **< 1.0**: Reduced demand (efficiency improvements, lower occupancy)
+        - **> 1.0**: Increased demand (growth, higher occupancy, new equipment)
+        
+        **Occupancy Impact on Demand:**
+        ```
+        Occupancy_Modifier = 0.3 + (0.7 × Occupancy_Rate)
+        ```
+        This equation accounts for:
+        - Base load (30%): Always present (security, HVAC, etc.)
+        - Variable load (70%): Proportional to occupancy
+        
+        **Data Sources:**
+        - Historical consumption from Step 2 AI model
+        - Occupancy patterns from building management data
+        - ASHRAE 90.1 energy modeling standards
+        - DOE Commercial Building Energy Consumption Survey
+        """)
+    
     if st.session_state.project_data.get('pv_data') and st.session_state.project_data.get('historical_data'):
         
         col1, col2 = st.columns(2)
         
         with col1:
             st.subheader("Demand Profile Settings")
+            
+            # Extract baseline demand from historical AI model
+            historical_consumption = historical_data.get('monthly_data', [])
+            if historical_consumption:
+                base_annual_demand = sum(month.get('consumption', 0) for month in historical_consumption)
+                st.info(f"AI Model Baseline: {base_annual_demand:,.0f} kWh/year from historical analysis")
+            else:
+                base_annual_demand = 50000  # Fallback
+                st.warning("Using estimated baseline demand (no historical data)")
+            
             demand_scaling = st.slider(
                 "Demand Scaling Factor",
                 min_value=0.5,
                 max_value=2.0,
                 value=1.0,
                 step=0.1,
-                key="demand_scaling"
+                key="demand_scaling",
+                help=f"Adjust baseline demand from AI model.\n\nBaseline: {base_annual_demand:,.0f} kWh/year\n\n• 0.5 = 50% reduction\n• 1.0 = Current level\n• 1.5 = 50% increase\n• 2.0 = 100% increase\n\nFactors: efficiency improvements, occupancy changes, equipment additions"
             )
+            
+            # Calculate adjusted demand
+            adjusted_annual_demand = base_annual_demand * demand_scaling
+            demand_change = ((demand_scaling - 1.0) * 100)
+            
+            st.markdown(f"""
+            **Demand Calculation:**
+            ```
+            Adjusted Demand = {base_annual_demand:,.0f} × {demand_scaling} = {adjusted_annual_demand:,.0f} kWh/year
+            Change: {demand_change:+.0f}% from baseline
+            ```
+            """)
+            
+            # Occupancy pattern selection with AI model context
+            if occupancy_features and 'occupancy' in occupancy_features:
+                occupancy_correlation = occupancy_features['occupancy'].get('correlation', 0.0)
+                st.caption(f"AI Model detected occupancy correlation: {occupancy_correlation:.3f}")
             
             occupancy_pattern = st.selectbox(
                 "Occupancy Pattern",
                 options=["Standard Business", "24/7 Operation", "Weekend Intensive", "Seasonal"],
-                key="occupancy_pattern"
+                key="occupancy_pattern",
+                help="Building occupancy pattern affects energy demand timing and magnitude.\n\nBased on AI model analysis of historical consumption patterns."
             )
+            
+            # Display occupancy modifiers
+            occupancy_modifiers = {
+                "Standard Business": {"weekday": 1.0, "weekend": 0.3, "description": "8-5 weekday operation"},
+                "24/7 Operation": {"weekday": 1.0, "weekend": 0.8, "description": "Continuous operation"},
+                "Weekend Intensive": {"weekday": 0.7, "weekend": 1.2, "description": "Higher weekend usage"},
+                "Seasonal": {"summer": 1.3, "winter": 0.8, "description": "Seasonal variation"}
+            }
+            
+            selected_modifier = occupancy_modifiers[occupancy_pattern]
+            st.caption(f"Pattern: {selected_modifier['description']}")
+            
+            # Show demand factors from AI model
+            if occupancy_features:
+                st.markdown("**AI Model Demand Factors:**")
+                for factor, data in occupancy_features.items():
+                    if factor != 'occupancy':
+                        importance = data.get('importance', 0.0)
+                        st.caption(f"• {factor.title()}: {importance:.1%} importance")
         
         with col2:
             st.subheader("Grid Integration")
