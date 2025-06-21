@@ -404,10 +404,49 @@ def get_currency_exchange_rate(from_currency, to_currency='USD'):
     
     return to_rate / from_rate
 
+def load_complete_wmo_stations():
+    """Load all WMO stations from the official database file"""
+    try:
+        with open('attached_assets/stations_list_CLIMAT_data_1750488038242.txt', 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        
+        lines = content.strip().split('\n')
+        stations = {}
+        
+        for line in lines[1:]:  # Skip header
+            parts = [p.strip() for p in line.split(';')]
+            if len(parts) >= 6:
+                wmo_id = parts[0]
+                name = parts[1].replace('"', '').strip()
+                try:
+                    lat = float(parts[2])
+                    lon = float(parts[3])
+                    country = parts[5].strip()
+                    
+                    # Basic validation for reasonable coordinates
+                    if -90 <= lat <= 90 and -180 <= lon <= 180 and wmo_id and name and country:
+                        station_key = f'{name}, {country}'
+                        stations[station_key] = {
+                            'lat': lat,
+                            'lon': lon,
+                            'wmo_id': wmo_id
+                        }
+                except:
+                    continue
+        
+        return stations
+    except:
+        # Fallback to key stations if file loading fails
+        return {}
+
 def find_nearest_wmo_station(lat, lon):
     """Find the nearest WMO weather station for given coordinates"""
-    # Comprehensive WMO stations database with regional coverage
-    wmo_stations = {
+    # Try to load complete WMO database first
+    wmo_stations = load_complete_wmo_stations()
+    
+    # If loading fails, use key stations as fallback
+    if not wmo_stations:
+        wmo_stations = {
         # Europe
         "Berlin, Germany": {"lat": 52.52, "lon": 13.41, "wmo_id": "10384"},
         "London, UK": {"lat": 51.51, "lon": -0.13, "wmo_id": "03772"},
@@ -511,7 +550,7 @@ def find_nearest_wmo_station(lat, lon):
         "Moscow, Russia": {"lat": 55.76, "lon": 37.62, "wmo_id": "27612"},
         "St Petersburg, Russia": {"lat": 59.95, "lon": 30.30, "wmo_id": "26063"},
         "Kiev, Ukraine": {"lat": 50.45, "lon": 30.52, "wmo_id": "33345"}
-    }
+        }
     
     min_distance = float('inf')
     nearest_station = None
