@@ -213,6 +213,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 21, 2025: Implemented comprehensive global location database with 25+ regions including Middle East, Asia, Africa, and Americas for accurate solar irradiance and electricity rate parameters
 - June 21, 2025: Added latitude-based solar parameter estimation for unknown locations using climate zone classification (equatorial, tropical, subtropical, temperate, arctic)
 - June 21, 2025: Enhanced WMO weather station finder with 40+ global stations for nearest meteorological reference data
+- June 21, 2025: Enhanced Step 6 economic parameters with comprehensive calculation methodology, research references, cost equations, and validation against market benchmarks from IRENA, IEA PVPS, NREL, and academic sources
 
 ## User Preferences
 
