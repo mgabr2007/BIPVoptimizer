@@ -522,27 +522,80 @@ def get_location_solar_parameters(location):
     """Get location-specific solar parameters based on location string"""
     location_lower = location.lower()
     
-    # Solar irradiance multipliers based on location
+    # Solar irradiance data based on location with proper parameter names
     if any(term in location_lower for term in ['arizona', 'nevada', 'california', 'phoenix', 'las vegas', 'los angeles']):
-        return {'solar_multiplier': 1.3, 'climate_zone': 'desert', 'typical_ghi': 2000}
+        base_ghi = 2000
+        optimal_tilt = 32
+        solar_class = "Excellent"
     elif any(term in location_lower for term in ['florida', 'texas', 'miami', 'houston', 'dallas']):
-        return {'solar_multiplier': 1.15, 'climate_zone': 'subtropical', 'typical_ghi': 1750}
+        base_ghi = 1750
+        optimal_tilt = 28
+        solar_class = "Very Good"
     elif any(term in location_lower for term in ['new york', 'boston', 'chicago', 'philadelphia']):
-        return {'solar_multiplier': 1.0, 'climate_zone': 'temperate', 'typical_ghi': 1450}
+        base_ghi = 1450
+        optimal_tilt = 40
+        solar_class = "Good"
     elif any(term in location_lower for term in ['seattle', 'portland', 'washington']):
-        return {'solar_multiplier': 0.8, 'climate_zone': 'marine', 'typical_ghi': 1200}
+        base_ghi = 1200
+        optimal_tilt = 45
+        solar_class = "Fair"
     elif any(term in location_lower for term in ['alaska', 'anchorage']):
-        return {'solar_multiplier': 0.6, 'climate_zone': 'arctic', 'typical_ghi': 900}
+        base_ghi = 900
+        optimal_tilt = 55
+        solar_class = "Poor"
     elif any(term in location_lower for term in ['germany', 'berlin', 'munich']):
-        return {'solar_multiplier': 0.9, 'climate_zone': 'continental', 'typical_ghi': 1100}
+        base_ghi = 1100
+        optimal_tilt = 45
+        solar_class = "Fair"
     elif any(term in location_lower for term in ['spain', 'italy', 'madrid', 'rome']):
-        return {'solar_multiplier': 1.2, 'climate_zone': 'mediterranean', 'typical_ghi': 1650}
+        base_ghi = 1650
+        optimal_tilt = 35
+        solar_class = "Very Good"
     elif any(term in location_lower for term in ['uk', 'london', 'britain']):
-        return {'solar_multiplier': 0.85, 'climate_zone': 'oceanic', 'typical_ghi': 1050}
+        base_ghi = 1050
+        optimal_tilt = 50
+        solar_class = "Fair"
     elif any(term in location_lower for term in ['japan', 'tokyo', 'osaka']):
-        return {'solar_multiplier': 1.05, 'climate_zone': 'humid_subtropical', 'typical_ghi': 1350}
+        base_ghi = 1350
+        optimal_tilt = 38
+        solar_class = "Good"
+    elif any(term in location_lower for term in ['france', 'paris']):
+        base_ghi = 1250
+        optimal_tilt = 42
+        solar_class = "Good"
+    elif any(term in location_lower for term in ['australia', 'sydney', 'melbourne']):
+        base_ghi = 1650
+        optimal_tilt = 30
+        solar_class = "Very Good"
+    elif any(term in location_lower for term in ['brazil', 'sao paulo']):
+        base_ghi = 1580
+        optimal_tilt = 25
+        solar_class = "Very Good"
+    elif any(term in location_lower for term in ['india', 'mumbai', 'delhi']):
+        base_ghi = 1800
+        optimal_tilt = 25
+        solar_class = "Excellent"
+    elif any(term in location_lower for term in ['china', 'beijing', 'shanghai']):
+        base_ghi = 1400
+        optimal_tilt = 35
+        solar_class = "Good"
     else:
-        return {'solar_multiplier': 1.0, 'climate_zone': 'temperate', 'typical_ghi': 1450}
+        # Default values for unknown locations
+        base_ghi = 1450
+        optimal_tilt = 35
+        solar_class = "Good"
+    
+    # Calculate derived parameters
+    peak_sun_hours = round(base_ghi / 365, 1)
+    
+    return {
+        'avg_ghi': base_ghi,
+        'peak_sun_hours': peak_sun_hours,
+        'optimal_tilt': optimal_tilt,
+        'solar_class': solar_class,
+        'solar_multiplier': base_ghi / 1450,  # Relative to default location
+        'climate_zone': 'temperate'  # Simplified for compatibility
+    }
 
 def get_location_electricity_rates(location, currency):
     """Get location-specific electricity rates in specified currency"""
@@ -551,21 +604,31 @@ def get_location_electricity_rates(location, currency):
     location_lower = location.lower()
     
     if any(term in location_lower for term in ['california', 'hawaii']):
-        base_rates = {'residential': 0.25, 'commercial': 0.18}
+        base_rates = {'residential': 0.25, 'commercial': 0.18, 'feed_in_tariff': 0.08}
     elif any(term in location_lower for term in ['new york', 'massachusetts', 'connecticut']):
-        base_rates = {'residential': 0.20, 'commercial': 0.15}
+        base_rates = {'residential': 0.20, 'commercial': 0.15, 'feed_in_tariff': 0.06}
     elif any(term in location_lower for term in ['texas', 'louisiana', 'west virginia']):
-        base_rates = {'residential': 0.12, 'commercial': 0.09}
+        base_rates = {'residential': 0.12, 'commercial': 0.09, 'feed_in_tariff': 0.04}
     elif any(term in location_lower for term in ['germany', 'denmark']):
-        base_rates = {'residential': 0.35, 'commercial': 0.25}
+        base_rates = {'residential': 0.35, 'commercial': 0.25, 'feed_in_tariff': 0.12}
     elif any(term in location_lower for term in ['uk', 'britain', 'london']):
-        base_rates = {'residential': 0.28, 'commercial': 0.20}
+        base_rates = {'residential': 0.28, 'commercial': 0.20, 'feed_in_tariff': 0.10}
     elif any(term in location_lower for term in ['japan', 'tokyo']):
-        base_rates = {'residential': 0.26, 'commercial': 0.18}
+        base_rates = {'residential': 0.26, 'commercial': 0.18, 'feed_in_tariff': 0.09}
     elif any(term in location_lower for term in ['spain', 'italy']):
-        base_rates = {'residential': 0.24, 'commercial': 0.16}
+        base_rates = {'residential': 0.24, 'commercial': 0.16, 'feed_in_tariff': 0.08}
+    elif any(term in location_lower for term in ['france', 'paris']):
+        base_rates = {'residential': 0.22, 'commercial': 0.14, 'feed_in_tariff': 0.07}
+    elif any(term in location_lower for term in ['australia', 'sydney', 'melbourne']):
+        base_rates = {'residential': 0.19, 'commercial': 0.13, 'feed_in_tariff': 0.06}
+    elif any(term in location_lower for term in ['brazil', 'sao paulo']):
+        base_rates = {'residential': 0.16, 'commercial': 0.11, 'feed_in_tariff': 0.05}
+    elif any(term in location_lower for term in ['india', 'mumbai', 'delhi']):
+        base_rates = {'residential': 0.08, 'commercial': 0.06, 'feed_in_tariff': 0.03}
+    elif any(term in location_lower for term in ['china', 'beijing', 'shanghai']):
+        base_rates = {'residential': 0.09, 'commercial': 0.07, 'feed_in_tariff': 0.04}
     else:
-        base_rates = {'residential': 0.15, 'commercial': 0.12}
+        base_rates = {'residential': 0.15, 'commercial': 0.12, 'feed_in_tariff': 0.05}
     
     # Convert to specified currency
     exchange_rate = get_currency_exchange_rate('USD', currency)
@@ -843,9 +906,9 @@ def render_project_setup():
             
             with col2:
                 st.write(f"**Electricity Rates ({currency}):**")
-                st.write(f"• Residential rate: {currency_symbol}{electricity_rates['residential']:.3f}/kWh")
-                st.write(f"• Commercial rate: {currency_symbol}{electricity_rates['commercial']:.3f}/kWh")
-                st.write(f"• Feed-in tariff: {currency_symbol}{electricity_rates['feed_in_tariff']:.3f}/kWh")
+                st.write(f"• Residential rate: {currency_symbol}{electricity_rates.get('residential', 0.15):.3f}/kWh")
+                st.write(f"• Commercial rate: {currency_symbol}{electricity_rates.get('commercial', 0.12):.3f}/kWh")
+                st.write(f"• Feed-in tariff: {currency_symbol}{electricity_rates.get('feed_in_tariff', 0.05):.3f}/kWh")
             
             # Confirm location button
             if st.button("Confirm Project Location", key="confirm_location"):
