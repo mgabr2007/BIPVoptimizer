@@ -214,6 +214,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 21, 2025: Added latitude-based solar parameter estimation for unknown locations using climate zone classification (equatorial, tropical, subtropical, temperate, arctic)
 - June 21, 2025: Enhanced WMO weather station finder with 40+ global stations for nearest meteorological reference data
 - June 21, 2025: Enhanced Step 6 economic parameters with comprehensive calculation methodology, research references, cost equations, and validation against market benchmarks from IRENA, IEA PVPS, NREL, and academic sources
+- June 21, 2025: Enhanced Step 7 with direct CSV occupancy data extraction from Step 2 AI model and comprehensive educational building standards including K-12 schools, universities, research facilities, libraries, and dormitories with ASHRAE 90.1 compliance and occupancy pattern analysis
 
 ## User Preferences
 
