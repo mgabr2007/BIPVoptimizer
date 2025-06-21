@@ -406,8 +406,9 @@ def get_currency_exchange_rate(from_currency, to_currency='USD'):
 
 def find_nearest_wmo_station(lat, lon):
     """Find the nearest WMO weather station for given coordinates"""
-    # Major WMO stations with approximate coordinates
+    # Comprehensive WMO stations database with regional coverage
     wmo_stations = {
+        # Europe
         "Berlin, Germany": {"lat": 52.52, "lon": 13.41, "wmo_id": "10384"},
         "London, UK": {"lat": 51.51, "lon": -0.13, "wmo_id": "03772"},
         "Paris, France": {"lat": 48.86, "lon": 2.35, "wmo_id": "07156"},
@@ -427,28 +428,77 @@ def find_nearest_wmo_station(lat, lon):
         "Dublin, Ireland": {"lat": 53.35, "lon": -6.26, "wmo_id": "03969"},
         "Lisbon, Portugal": {"lat": 38.72, "lon": -9.13, "wmo_id": "08535"},
         "Athens, Greece": {"lat": 37.98, "lon": 23.73, "wmo_id": "16716"},
+        "Istanbul, Turkey": {"lat": 41.02, "lon": 28.97, "wmo_id": "17060"},
+        "Ankara, Turkey": {"lat": 39.93, "lon": 32.86, "wmo_id": "17130"},
+        
+        # Middle East & North Africa
+        "Cairo, Egypt": {"lat": 30.04, "lon": 31.24, "wmo_id": "62366"},
+        "Alexandria, Egypt": {"lat": 31.20, "lon": 29.92, "wmo_id": "62318"},
+        "Aswan, Egypt": {"lat": 24.10, "lon": 32.78, "wmo_id": "62414"},
+        "Riyadh, Saudi Arabia": {"lat": 24.71, "lon": 46.72, "wmo_id": "40438"},
+        "Jeddah, Saudi Arabia": {"lat": 21.50, "lon": 39.17, "wmo_id": "40410"},
+        "Dammam, Saudi Arabia": {"lat": 26.27, "lon": 50.15, "wmo_id": "40465"},
+        "Mecca, Saudi Arabia": {"lat": 21.43, "lon": 39.83, "wmo_id": "40414"},
+        "Dubai, UAE": {"lat": 25.25, "lon": 55.36, "wmo_id": "41194"},
+        "Abu Dhabi, UAE": {"lat": 24.43, "lon": 54.65, "wmo_id": "41217"},
+        "Doha, Qatar": {"lat": 25.29, "lon": 51.57, "wmo_id": "41170"},
+        "Kuwait City, Kuwait": {"lat": 29.37, "lon": 47.97, "wmo_id": "40582"},
+        "Manama, Bahrain": {"lat": 26.27, "lon": 50.63, "wmo_id": "41150"},
+        "Tehran, Iran": {"lat": 35.69, "lon": 51.42, "wmo_id": "40754"},
+        "Baghdad, Iraq": {"lat": 33.33, "lon": 44.39, "wmo_id": "40650"},
+        "Damascus, Syria": {"lat": 33.51, "lon": 36.30, "wmo_id": "40080"},
+        "Beirut, Lebanon": {"lat": 33.89, "lon": 35.49, "wmo_id": "40100"},
+        "Amman, Jordan": {"lat": 31.95, "lon": 35.93, "wmo_id": "40270"},
+        "Tel Aviv, Israel": {"lat": 32.08, "lon": 34.78, "wmo_id": "40179"},
+        "Jerusalem, Israel": {"lat": 31.78, "lon": 35.22, "wmo_id": "40184"},
+        "Casablanca, Morocco": {"lat": 33.57, "lon": -7.66, "wmo_id": "60155"},
+        "Rabat, Morocco": {"lat": 34.05, "lon": -6.77, "wmo_id": "60135"},
+        "Tunis, Tunisia": {"lat": 36.84, "lon": 10.23, "wmo_id": "60715"},
+        "Algiers, Algeria": {"lat": 36.72, "lon": 3.25, "wmo_id": "60390"},
+        "Tripoli, Libya": {"lat": 32.90, "lon": 13.18, "wmo_id": "62053"},
+        
+        # North America
         "New York, USA": {"lat": 40.71, "lon": -74.01, "wmo_id": "72502"},
         "Los Angeles, USA": {"lat": 34.05, "lon": -118.24, "wmo_id": "72295"},
         "Chicago, USA": {"lat": 41.88, "lon": -87.62, "wmo_id": "72530"},
+        "Miami, USA": {"lat": 25.76, "lon": -80.19, "wmo_id": "72202"},
+        "Phoenix, USA": {"lat": 33.43, "lon": -112.02, "wmo_id": "72278"},
         "Toronto, Canada": {"lat": 43.65, "lon": -79.38, "wmo_id": "71508"},
         "Vancouver, Canada": {"lat": 49.28, "lon": -123.12, "wmo_id": "71892"},
-        "Sydney, Australia": {"lat": -33.87, "lon": 151.21, "wmo_id": "94767"},
-        "Melbourne, Australia": {"lat": -37.81, "lon": 144.96, "wmo_id": "94866"},
+        "Montreal, Canada": {"lat": 45.50, "lon": -73.57, "wmo_id": "71627"},
+        "Mexico City, Mexico": {"lat": 19.43, "lon": -99.13, "wmo_id": "76680"},
+        
+        # Asia Pacific
         "Tokyo, Japan": {"lat": 35.68, "lon": 139.69, "wmo_id": "47662"},
         "Seoul, South Korea": {"lat": 37.57, "lon": 126.98, "wmo_id": "47108"},
         "Beijing, China": {"lat": 39.90, "lon": 116.40, "wmo_id": "54511"},
         "Shanghai, China": {"lat": 31.23, "lon": 121.47, "wmo_id": "58367"},
+        "Hong Kong": {"lat": 22.32, "lon": 114.17, "wmo_id": "45004"},
         "Mumbai, India": {"lat": 19.08, "lon": 72.88, "wmo_id": "43003"},
         "Delhi, India": {"lat": 28.61, "lon": 77.21, "wmo_id": "42181"},
+        "Bangalore, India": {"lat": 12.97, "lon": 77.59, "wmo_id": "43295"},
         "Singapore": {"lat": 1.35, "lon": 103.82, "wmo_id": "48698"},
         "Bangkok, Thailand": {"lat": 13.76, "lon": 100.50, "wmo_id": "48455"},
         "Jakarta, Indonesia": {"lat": -6.21, "lon": 106.85, "wmo_id": "96749"},
         "Manila, Philippines": {"lat": 14.60, "lon": 120.98, "wmo_id": "98230"},
-        "Cairo, Egypt": {"lat": 30.04, "lon": 31.24, "wmo_id": "62366"},
-        "Johannesburg, South Africa": {"lat": -26.20, "lon": 28.04, "wmo_id": "68368"},
+        "Sydney, Australia": {"lat": -33.87, "lon": 151.21, "wmo_id": "94767"},
+        "Melbourne, Australia": {"lat": -37.81, "lon": 144.96, "wmo_id": "94866"},
+        
+        # South America & Africa
         "São Paulo, Brazil": {"lat": -23.55, "lon": -46.64, "wmo_id": "83780"},
-        "Mexico City, Mexico": {"lat": 19.43, "lon": -99.13, "wmo_id": "76680"},
-        "Buenos Aires, Argentina": {"lat": -34.61, "lon": -58.38, "wmo_id": "87576"}
+        "Rio de Janeiro, Brazil": {"lat": -22.91, "lon": -43.17, "wmo_id": "83746"},
+        "Buenos Aires, Argentina": {"lat": -34.61, "lon": -58.38, "wmo_id": "87576"},
+        "Lima, Peru": {"lat": -12.05, "lon": -77.04, "wmo_id": "84628"},
+        "Santiago, Chile": {"lat": -33.45, "lon": -70.67, "wmo_id": "85574"},
+        "Johannesburg, South Africa": {"lat": -26.20, "lon": 28.04, "wmo_id": "68368"},
+        "Cape Town, South Africa": {"lat": -33.92, "lon": 18.42, "wmo_id": "68816"},
+        "Lagos, Nigeria": {"lat": 6.45, "lon": 3.40, "wmo_id": "65201"},
+        "Nairobi, Kenya": {"lat": -1.32, "lon": 36.93, "wmo_id": "63741"},
+        
+        # Eastern Europe & Russia
+        "Moscow, Russia": {"lat": 55.76, "lon": 37.62, "wmo_id": "27612"},
+        "St Petersburg, Russia": {"lat": 59.95, "lon": 30.30, "wmo_id": "26063"},
+        "Kiev, Ukraine": {"lat": 50.45, "lon": 30.52, "wmo_id": "33345"}
     }
     
     min_distance = float('inf')
