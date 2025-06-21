@@ -4,6 +4,9 @@ import json
 from datetime import datetime, timedelta
 import random
 import io
+import requests
+import folium
+from streamlit_folium import st_folium
 
 # Import Plotly for chart generation
 try:
@@ -401,6 +404,120 @@ def get_currency_exchange_rate(from_currency, to_currency='USD'):
     
     return to_rate / from_rate
 
+def find_nearest_wmo_station(lat, lon):
+    """Find the nearest WMO weather station for given coordinates"""
+    # Major WMO stations with approximate coordinates
+    wmo_stations = {
+        "Berlin, Germany": {"lat": 52.52, "lon": 13.41, "wmo_id": "10384"},
+        "London, UK": {"lat": 51.51, "lon": -0.13, "wmo_id": "03772"},
+        "Paris, France": {"lat": 48.86, "lon": 2.35, "wmo_id": "07156"},
+        "Madrid, Spain": {"lat": 40.42, "lon": -3.70, "wmo_id": "08221"},
+        "Rome, Italy": {"lat": 41.90, "lon": 12.50, "wmo_id": "16242"},
+        "Amsterdam, Netherlands": {"lat": 52.37, "lon": 4.90, "wmo_id": "06240"},
+        "Vienna, Austria": {"lat": 48.21, "lon": 16.37, "wmo_id": "11035"},
+        "Copenhagen, Denmark": {"lat": 55.68, "lon": 12.57, "wmo_id": "06180"},
+        "Stockholm, Sweden": {"lat": 59.33, "lon": 18.07, "wmo_id": "02485"},
+        "Oslo, Norway": {"lat": 59.91, "lon": 10.75, "wmo_id": "01384"},
+        "Helsinki, Finland": {"lat": 60.17, "lon": 24.94, "wmo_id": "02974"},
+        "Warsaw, Poland": {"lat": 52.23, "lon": 21.01, "wmo_id": "12375"},
+        "Prague, Czech Republic": {"lat": 50.09, "lon": 14.42, "wmo_id": "11518"},
+        "Budapest, Hungary": {"lat": 47.50, "lon": 19.04, "wmo_id": "12843"},
+        "Zurich, Switzerland": {"lat": 47.37, "lon": 8.55, "wmo_id": "06660"},
+        "Brussels, Belgium": {"lat": 50.85, "lon": 4.35, "wmo_id": "06447"},
+        "Dublin, Ireland": {"lat": 53.35, "lon": -6.26, "wmo_id": "03969"},
+        "Lisbon, Portugal": {"lat": 38.72, "lon": -9.13, "wmo_id": "08535"},
+        "Athens, Greece": {"lat": 37.98, "lon": 23.73, "wmo_id": "16716"},
+        "New York, USA": {"lat": 40.71, "lon": -74.01, "wmo_id": "72502"},
+        "Los Angeles, USA": {"lat": 34.05, "lon": -118.24, "wmo_id": "72295"},
+        "Chicago, USA": {"lat": 41.88, "lon": -87.62, "wmo_id": "72530"},
+        "Toronto, Canada": {"lat": 43.65, "lon": -79.38, "wmo_id": "71508"},
+        "Vancouver, Canada": {"lat": 49.28, "lon": -123.12, "wmo_id": "71892"},
+        "Sydney, Australia": {"lat": -33.87, "lon": 151.21, "wmo_id": "94767"},
+        "Melbourne, Australia": {"lat": -37.81, "lon": 144.96, "wmo_id": "94866"},
+        "Tokyo, Japan": {"lat": 35.68, "lon": 139.69, "wmo_id": "47662"},
+        "Seoul, South Korea": {"lat": 37.57, "lon": 126.98, "wmo_id": "47108"},
+        "Beijing, China": {"lat": 39.90, "lon": 116.40, "wmo_id": "54511"},
+        "Shanghai, China": {"lat": 31.23, "lon": 121.47, "wmo_id": "58367"},
+        "Mumbai, India": {"lat": 19.08, "lon": 72.88, "wmo_id": "43003"},
+        "Delhi, India": {"lat": 28.61, "lon": 77.21, "wmo_id": "42181"},
+        "Singapore": {"lat": 1.35, "lon": 103.82, "wmo_id": "48698"},
+        "Bangkok, Thailand": {"lat": 13.76, "lon": 100.50, "wmo_id": "48455"},
+        "Jakarta, Indonesia": {"lat": -6.21, "lon": 106.85, "wmo_id": "96749"},
+        "Manila, Philippines": {"lat": 14.60, "lon": 120.98, "wmo_id": "98230"},
+        "Cairo, Egypt": {"lat": 30.04, "lon": 31.24, "wmo_id": "62366"},
+        "Johannesburg, South Africa": {"lat": -26.20, "lon": 28.04, "wmo_id": "68368"},
+        "São Paulo, Brazil": {"lat": -23.55, "lon": -46.64, "wmo_id": "83780"},
+        "Mexico City, Mexico": {"lat": 19.43, "lon": -99.13, "wmo_id": "76680"},
+        "Buenos Aires, Argentina": {"lat": -34.61, "lon": -58.38, "wmo_id": "87576"}
+    }
+    
+    min_distance = float('inf')
+    nearest_station = None
+    
+    for station_name, station_data in wmo_stations.items():
+        # Calculate distance using Haversine formula
+        dlat = math.radians(station_data['lat'] - lat)
+        dlon = math.radians(station_data['lon'] - lon)
+        a = (math.sin(dlat/2)**2 + 
+             math.cos(math.radians(lat)) * math.cos(math.radians(station_data['lat'])) * 
+             math.sin(dlon/2)**2)
+        distance = 2 * math.asin(math.sqrt(a)) * 6371  # Earth radius in km
+        
+        if distance < min_distance:
+            min_distance = distance
+            nearest_station = {
+                'name': station_name,
+                'lat': station_data['lat'],
+                'lon': station_data['lon'],
+                'wmo_id': station_data['wmo_id'],
+                'distance_km': distance
+            }
+    
+    return nearest_station
+
+def get_weather_data_from_coordinates(lat, lon, api_key):
+    """Get weather data from OpenWeatherMap API using coordinates"""
+    if not api_key:
+        return None
+    
+    try:
+        # Current weather
+        current_url = f"http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
+        current_response = requests.get(current_url, timeout=10)
+        
+        if current_response.status_code == 200:
+            current_data = current_response.json()
+            
+            # 5-day forecast for additional data
+            forecast_url = f"http://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={api_key}&units=metric"
+            forecast_response = requests.get(forecast_url, timeout=10)
+            
+            weather_data = {
+                'location': current_data.get('name', 'Unknown'),
+                'country': current_data.get('sys', {}).get('country', ''),
+                'coordinates': {'lat': lat, 'lon': lon},
+                'current_temp': current_data.get('main', {}).get('temp', 15),
+                'humidity': current_data.get('main', {}).get('humidity', 60),
+                'pressure': current_data.get('main', {}).get('pressure', 1013),
+                'weather_desc': current_data.get('weather', [{}])[0].get('description', 'clear sky'),
+                'wind_speed': current_data.get('wind', {}).get('speed', 3),
+                'visibility': current_data.get('visibility', 10000) / 1000,  # Convert to km
+                'timezone': current_data.get('timezone', 0),
+                'api_success': True
+            }
+            
+            if forecast_response.status_code == 200:
+                forecast_data = forecast_response.json()
+                weather_data['forecast_available'] = True
+                weather_data['forecast_data'] = forecast_data
+            
+            return weather_data
+        else:
+            return {'api_success': False, 'error': f"API Error: {current_response.status_code}"}
+    
+    except Exception as e:
+        return {'api_success': False, 'error': str(e)}
+
 def get_location_solar_parameters(location):
     """Get location-specific solar parameters based on location string"""
     location_lower = location.lower()
@@ -537,65 +654,268 @@ def main():
 
 def render_project_setup():
     st.header("Step 1: Project Setup")
-    st.write("Configure your BIPV optimization project settings.")
+    st.write("Configure your BIPV optimization project settings using interactive map selection for accurate weather data.")
     
+    # Project name and API key configuration
     col1, col2 = st.columns(2)
     
     with col1:
         st.subheader("Project Configuration")
         
         project_name = st.text_input(
-            "Project Name",
+            "Project Name", 
             value=st.session_state.project_data.get('project_name', 'BIPV Optimization Project'),
-            key="project_name_input",
-            help="Enter a descriptive name for your BIPV optimization project. This will appear in all reports and documentation."
+            key="project_name"
         )
         
-        timezone = st.selectbox(
-            "Timezone",
-            options=["UTC", "US/Eastern", "US/Pacific", "Europe/London", "Europe/Berlin", "Asia/Tokyo"],
-            index=0,
-            key="timezone_select"
+        # OpenWeatherMap API key
+        api_key = st.text_input(
+            "OpenWeatherMap API Key",
+            type="password",
+            help="Required for real-time weather data. Get free API key at openweathermap.org",
+            key="openweather_api_key"
         )
         
-        currency = st.selectbox(
-            "Currency",
-            options=["USD", "EUR", "GBP", "JPY", "CAD"],
-            index=0,
-            key="currency_select"
-        )
+        if not api_key:
+            st.warning("Please provide OpenWeatherMap API key for accurate weather data")
     
     with col2:
-        st.subheader("Location Settings")
+        st.subheader("Currency & Timezone")
         
-        location = st.text_input(
-            "Building Location",
-            placeholder="e.g., New York, NY",
-            key="location_input",
-            help="Enter the building location for weather data and electricity rates"
+        # Currency selection
+        currency_options = [
+            "USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "SEK", "NOK", "DKK"
+        ]
+        
+        currency = st.selectbox(
+            "Project Currency",
+            options=currency_options,
+            index=1,  # Default to EUR
+            key="currency"
         )
-    
-    # Save project data
-    st.session_state.project_data.update({
-        'project_name': project_name,
-        'timezone': timezone,
-        'currency': currency,
-        'location': location,
-        'setup_complete': True
-    })
-    
-    if project_name and location:
-        st.success("✅ Project setup complete!")
         
-        # Display project summary
-        st.subheader("Project Summary")
+        # Timezone will be auto-detected from location
+        st.info("Timezone will be automatically detected from selected location")
+    
+    # Interactive map for location selection
+    st.subheader("Select Project Location")
+    st.write("Click on the map to select your project location for accurate weather data and solar calculations.")
+    
+    # Default map center (Europe)
+    default_lat = 52.52
+    default_lon = 13.41
+    
+    # Get current coordinates from session state if available
+    current_coords = st.session_state.project_data.get('coordinates', {})
+    map_lat = current_coords.get('lat', default_lat)
+    map_lon = current_coords.get('lon', default_lon)
+    
+    # Create folium map
+    m = folium.Map(
+        location=[map_lat, map_lon], 
+        zoom_start=6,
+        tiles="OpenStreetMap"
+    )
+    
+    # Add marker if coordinates exist
+    if current_coords:
+        folium.Marker(
+            [map_lat, map_lon],
+            popup="Selected Project Location",
+            tooltip="Project Location",
+            icon=folium.Icon(color='red', icon='building')
+        ).add_to(m)
+    
+    # Display map and capture click events
+    map_data = st_folium(m, width=700, height=400, returned_objects=["last_object_clicked"])
+    
+    # Process map click
+    selected_lat = None
+    selected_lon = None
+    
+    if map_data['last_object_clicked']:
+        # Handle marker clicks
+        selected_lat = map_data['last_object_clicked']['lat']
+        selected_lon = map_data['last_object_clicked']['lng']
+    elif map_data['last_clicked']:
+        # Handle map clicks
+        selected_lat = map_data['last_clicked']['lat']
+        selected_lon = map_data['last_clicked']['lng']
+    
+    # Manual coordinate input as alternative
+    with st.expander("Manual Coordinate Input", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
-            st.metric("Project Name", project_name)
-            st.metric("Location", location)
+            manual_lat = st.number_input(
+                "Latitude", 
+                value=map_lat, 
+                min_value=-90.0, 
+                max_value=90.0, 
+                step=0.001,
+                format="%.6f",
+                key="manual_lat"
+            )
         with col2:
-            st.metric("Currency", currency)
-            st.metric("Timezone", timezone)
+            manual_lon = st.number_input(
+                "Longitude", 
+                value=map_lon, 
+                min_value=-180.0, 
+                max_value=180.0, 
+                step=0.001,
+                format="%.6f",
+                key="manual_lon"
+            )
+        
+        if st.button("Use Manual Coordinates", key="use_manual"):
+            selected_lat = manual_lat
+            selected_lon = manual_lon
+    
+    # Process selected coordinates
+    if selected_lat and selected_lon:
+        with st.spinner("Getting location data and finding nearest WMO station..."):
+            # Find nearest WMO station
+            nearest_wmo = find_nearest_wmo_station(selected_lat, selected_lon)
+            
+            # Get weather data from OpenWeatherMap
+            weather_data = None
+            if api_key:
+                weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
+            
+            # Display location information
+            st.subheader("Selected Location Information")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.write("**Coordinates:**")
+                st.write(f"• Latitude: {selected_lat:.6f}°")
+                st.write(f"• Longitude: {selected_lon:.6f}°")
+                
+                if weather_data and weather_data.get('api_success'):
+                    st.write(f"• Location: {weather_data['location']}")
+                    st.write(f"• Country: {weather_data['country']}")
+            
+            with col2:
+                st.write("**Nearest WMO Station:**")
+                if nearest_wmo:
+                    st.write(f"• Station: {nearest_wmo['name']}")
+                    st.write(f"• WMO ID: {nearest_wmo['wmo_id']}")
+                    st.write(f"• Distance: {nearest_wmo['distance_km']:.1f} km")
+                else:
+                    st.write("• No WMO station found")
+            
+            with col3:
+                st.write("**Current Weather:**")
+                if weather_data and weather_data.get('api_success'):
+                    st.write(f"• Temperature: {weather_data['current_temp']:.1f}°C")
+                    st.write(f"• Humidity: {weather_data['humidity']}%")
+                    st.write(f"• Conditions: {weather_data['weather_desc']}")
+                    st.write(f"• Wind: {weather_data['wind_speed']:.1f} m/s")
+                elif weather_data and not weather_data.get('api_success'):
+                    st.error(f"Weather API Error: {weather_data.get('error', 'Unknown error')}")
+                else:
+                    st.warning("No API key provided - using estimated parameters")
+            
+            # Get solar parameters for location
+            location_name = f"{weather_data['location']}, {weather_data['country']}" if weather_data and weather_data.get('api_success') else f"Lat: {selected_lat:.2f}, Lon: {selected_lon:.2f}"
+            solar_params = get_location_solar_parameters(location_name)
+            electricity_rates = get_location_electricity_rates(location_name, currency)
+            currency_symbol = get_currency_symbol(currency)
+            
+            # Display solar and economic parameters
+            st.subheader("Location-Specific Parameters")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**Solar Parameters:**")
+                st.write(f"• Average solar irradiance: {solar_params['avg_ghi']} kWh/m²/year")
+                st.write(f"• Peak sun hours: {solar_params['peak_sun_hours']} h/day")
+                st.write(f"• Optimal tilt angle: {solar_params['optimal_tilt']}°")
+                st.write(f"• Solar resource quality: {solar_params['solar_class']}")
+            
+            with col2:
+                st.write(f"**Electricity Rates ({currency}):**")
+                st.write(f"• Residential rate: {currency_symbol}{electricity_rates['residential']:.3f}/kWh")
+                st.write(f"• Commercial rate: {currency_symbol}{electricity_rates['commercial']:.3f}/kWh")
+                st.write(f"• Feed-in tariff: {currency_symbol}{electricity_rates['feed_in_tariff']:.3f}/kWh")
+            
+            # Confirm location button
+            if st.button("Confirm Project Location", key="confirm_location"):
+                # Determine timezone based on coordinates
+                timezone = determine_timezone_from_coordinates(selected_lat, selected_lon)
+                
+                project_data = {
+                    'project_name': project_name,
+                    'location': location_name,
+                    'coordinates': {'lat': selected_lat, 'lon': selected_lon},
+                    'timezone': timezone,
+                    'currency': currency,
+                    'openweather_api_key': api_key,
+                    'nearest_wmo': nearest_wmo,
+                    'weather_data': weather_data,
+                    'solar_parameters': solar_params,
+                    'electricity_rates': electricity_rates,
+                    'setup_complete': True
+                }
+                
+                st.session_state.project_data = project_data
+                st.success("Project location and settings configured successfully!")
+                
+                # Display final configured settings
+                st.subheader("Configured Project Settings")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Project", project_name)
+                with col2:
+                    st.metric("Location", location_name)
+                with col3:
+                    st.metric("Coordinates", f"{selected_lat:.3f}, {selected_lon:.3f}")
+                with col4:
+                    st.metric("Currency", currency)
+    
+    # Show current settings if already configured
+    elif st.session_state.project_data.get('setup_complete'):
+        st.info("Project settings already configured")
+        project_data = st.session_state.project_data
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Project", project_data.get('project_name', 'N/A'))
+        with col2:
+            st.metric("Location", project_data.get('location', 'N/A'))
+        with col3:
+            coords = project_data.get('coordinates', {})
+            coord_str = f"{coords.get('lat', 0):.3f}, {coords.get('lon', 0):.3f}" if coords else 'N/A'
+            st.metric("Coordinates", coord_str)
+        with col4:
+            st.metric("Currency", project_data.get('currency', 'N/A'))
+
+def determine_timezone_from_coordinates(lat, lon):
+    """Determine timezone based on coordinates"""
+    # Simple timezone mapping based on longitude
+    if -7.5 <= lon < 7.5:  # GMT
+        return "UTC"
+    elif 7.5 <= lon < 22.5:  # Central Europe
+        return "Europe/Berlin"
+    elif 22.5 <= lon < 37.5:  # Eastern Europe
+        return "Europe/Helsinki"
+    elif -22.5 <= lon < -7.5:  # Western Europe
+        return "Europe/London"
+    elif 120 <= lon < 135:  # Japan
+        return "Asia/Tokyo"
+    elif 105 <= lon < 120:  # China
+        return "Asia/Shanghai"
+    elif -135 <= lon < -120:  # US Pacific
+        return "America/Los_Angeles"
+    elif -105 <= lon < -90:  # US Central
+        return "America/Chicago"
+    elif -90 <= lon < -75:  # US Eastern
+        return "America/New_York"
+    elif 135 <= lon < 155:  # Australia East
+        return "Australia/Sydney"
+    else:
+        return "UTC"  # Default fallback
 
 def parse_csv_content(content):
     """Parse CSV content without pandas"""
