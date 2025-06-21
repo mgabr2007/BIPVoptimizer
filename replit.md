@@ -208,6 +208,11 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 20, 2025: Enhanced report generation with comprehensive BIPV-specific equations including BIM-based window analysis, PV suitability threshold calculations, orientation-based filtering, BIPV glass technology specifications, multi-objective optimization (NSGA-II), BIPV-specific cash flow analysis, lifecycle assessment, and updated technical appendices with BIPV technology parameters and optimization algorithm settings
 - June 20, 2025: Added CSV download functionality to Step 10 (Reporting) with detailed window element data including Element ID, Wall-hosted ID, glass area, orientation, azimuth, annual radiation (kWh/m²), expected production (kWh), BIPV selection status, window dimensions, and building level for comprehensive data export and further analysis
 - June 20, 2025: Updated Step 10 navigation button from "Next Step" to "Finish & New Calculation" to properly conclude the workflow and provide option to start fresh analysis while preserving project data integrity
+- June 21, 2025: Enhanced Step 1 with interactive map-based location selection using folium and streamlit-folium for precise coordinate selection
+- June 21, 2025: Integrated OpenWeatherMap API for real-time weather data retrieval based on map-selected coordinates with automatic API key loading from environment
+- June 21, 2025: Implemented comprehensive global location database with 25+ regions including Middle East, Asia, Africa, and Americas for accurate solar irradiance and electricity rate parameters
+- June 21, 2025: Added latitude-based solar parameter estimation for unknown locations using climate zone classification (equatorial, tropical, subtropical, temperate, arctic)
+- June 21, 2025: Enhanced WMO weather station finder with 40+ global stations for nearest meteorological reference data
 
 ## User Preferences
 

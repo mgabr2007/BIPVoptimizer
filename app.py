@@ -579,11 +579,93 @@ def get_location_solar_parameters(location):
         base_ghi = 1400
         optimal_tilt = 35
         solar_class = "Good"
-    else:
-        # Default values for unknown locations
+    elif any(term in location_lower for term in ['saudi', 'arabia', 'riyadh', 'mecca', 'jeddah']):
+        base_ghi = 2200
+        optimal_tilt = 25
+        solar_class = "Excellent"
+    elif any(term in location_lower for term in ['uae', 'dubai', 'abu dhabi', 'emirates']):
+        base_ghi = 2100
+        optimal_tilt = 25
+        solar_class = "Excellent"
+    elif any(term in location_lower for term in ['egypt', 'cairo', 'alexandria']):
+        base_ghi = 2000
+        optimal_tilt = 27
+        solar_class = "Excellent"
+    elif any(term in location_lower for term in ['morocco', 'casablanca', 'rabat']):
+        base_ghi = 1850
+        optimal_tilt = 30
+        solar_class = "Very Good"
+    elif any(term in location_lower for term in ['south africa', 'cape town', 'johannesburg']):
+        base_ghi = 1750
+        optimal_tilt = 28
+        solar_class = "Very Good"
+    elif any(term in location_lower for term in ['mexico', 'mexico city', 'guadalajara']):
+        base_ghi = 1800
+        optimal_tilt = 22
+        solar_class = "Very Good"
+    elif any(term in location_lower for term in ['chile', 'santiago']):
+        base_ghi = 1650
+        optimal_tilt = 32
+        solar_class = "Very Good"
+    elif any(term in location_lower for term in ['israel', 'tel aviv', 'jerusalem']):
+        base_ghi = 1950
+        optimal_tilt = 30
+        solar_class = "Excellent"
+    elif any(term in location_lower for term in ['turkey', 'istanbul', 'ankara']):
         base_ghi = 1450
-        optimal_tilt = 35
+        optimal_tilt = 38
         solar_class = "Good"
+    elif any(term in location_lower for term in ['russia', 'moscow', 'st petersburg']):
+        base_ghi = 1000
+        optimal_tilt = 55
+        solar_class = "Fair"
+    elif any(term in location_lower for term in ['canada', 'toronto', 'vancouver', 'montreal']):
+        base_ghi = 1200
+        optimal_tilt = 45
+        solar_class = "Fair"
+    else:
+        # Default values for unknown locations - now based on coordinate analysis
+        # Latitude-based estimation for more accurate defaults
+        if 'lat:' in location_lower:
+            try:
+                lat_str = location_lower.split('lat:')[1].split(',')[0].strip()
+                lat = float(lat_str)
+                abs_lat = abs(lat)
+                
+                if abs_lat <= 15:  # Equatorial regions
+                    base_ghi = 1900
+                    optimal_tilt = 15
+                    solar_class = "Excellent"
+                elif abs_lat <= 25:  # Tropical regions
+                    base_ghi = 1800
+                    optimal_tilt = 20
+                    solar_class = "Very Good"
+                elif abs_lat <= 35:  # Subtropical regions
+                    base_ghi = 1600
+                    optimal_tilt = 30
+                    solar_class = "Very Good"
+                elif abs_lat <= 45:  # Temperate regions
+                    base_ghi = 1400
+                    optimal_tilt = 40
+                    solar_class = "Good"
+                elif abs_lat <= 55:  # Cool temperate regions
+                    base_ghi = 1200
+                    optimal_tilt = 50
+                    solar_class = "Fair"
+                else:  # Arctic/Antarctic regions
+                    base_ghi = 900
+                    optimal_tilt = 60
+                    solar_class = "Poor"
+            except:
+                # Fallback if coordinate parsing fails
+                base_ghi = 1450
+                optimal_tilt = 35
+                solar_class = "Good"
+        else:
+            # Standard fallback for unknown text locations
+            base_ghi = 1450
+            optimal_tilt = 35
+            solar_class = "Good"
     
     # Calculate derived parameters
     peak_sun_hours = round(base_ghi / 365, 1)
@@ -627,6 +709,28 @@ def get_location_electricity_rates(location, currency):
         base_rates = {'residential': 0.08, 'commercial': 0.06, 'feed_in_tariff': 0.03}
     elif any(term in location_lower for term in ['china', 'beijing', 'shanghai']):
         base_rates = {'residential': 0.09, 'commercial': 0.07, 'feed_in_tariff': 0.04}
+    elif any(term in location_lower for term in ['saudi', 'arabia', 'riyadh', 'mecca', 'jeddah']):
+        base_rates = {'residential': 0.06, 'commercial': 0.04, 'feed_in_tariff': 0.02}
+    elif any(term in location_lower for term in ['uae', 'dubai', 'abu dhabi', 'emirates']):
+        base_rates = {'residential': 0.08, 'commercial': 0.06, 'feed_in_tariff': 0.03}
+    elif any(term in location_lower for term in ['egypt', 'cairo', 'alexandria']):
+        base_rates = {'residential': 0.04, 'commercial': 0.03, 'feed_in_tariff': 0.015}
+    elif any(term in location_lower for term in ['morocco', 'casablanca', 'rabat']):
+        base_rates = {'residential': 0.12, 'commercial': 0.09, 'feed_in_tariff': 0.04}
+    elif any(term in location_lower for term in ['south africa', 'cape town', 'johannesburg']):
+        base_rates = {'residential': 0.10, 'commercial': 0.08, 'feed_in_tariff': 0.04}
+    elif any(term in location_lower for term in ['mexico', 'mexico city', 'guadalajara']):
+        base_rates = {'residential': 0.14, 'commercial': 0.11, 'feed_in_tariff': 0.05}
+    elif any(term in location_lower for term in ['chile', 'santiago']):
+        base_rates = {'residential': 0.18, 'commercial': 0.14, 'feed_in_tariff': 0.06}
+    elif any(term in location_lower for term in ['israel', 'tel aviv', 'jerusalem']):
+        base_rates = {'residential': 0.17, 'commercial': 0.13, 'feed_in_tariff': 0.06}
+    elif any(term in location_lower for term in ['turkey', 'istanbul', 'ankara']):
+        base_rates = {'residential': 0.11, 'commercial': 0.09, 'feed_in_tariff': 0.04}
+    elif any(term in location_lower for term in ['russia', 'moscow', 'st petersburg']):
+        base_rates = {'residential': 0.05, 'commercial': 0.04, 'feed_in_tariff': 0.02}
+    elif any(term in location_lower for term in ['canada', 'toronto', 'vancouver', 'montreal']):
+        base_rates = {'residential': 0.13, 'commercial': 0.10, 'feed_in_tariff': 0.05}
     else:
         base_rates = {'residential': 0.15, 'commercial': 0.12, 'feed_in_tariff': 0.05}
     
