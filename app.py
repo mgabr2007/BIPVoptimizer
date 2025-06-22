@@ -922,19 +922,26 @@ def main():
 
 def render_project_setup():
     st.header("Step 1: Project Setup")
-    st.write("Configure your BIPV optimization project settings using interactive map selection for accurate weather data.")
+    st.write("Configure your BIPV optimization project with location selection and weather data integration.")
     
-    # Project name and API key configuration
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Project Configuration")
+    # Unified configuration section
+    with st.container():
+        st.subheader("📋 Project Configuration")
         
-        project_name = st.text_input(
-            "Project Name", 
-            value=st.session_state.project_data.get('project_name', 'BIPV Optimization Project'),
-            key="project_name"
-        )
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            project_name = st.text_input(
+                "Project Name", 
+                value=st.session_state.project_data.get('project_name', 'BIPV Optimization Project'),
+                key="project_name",
+                help="Enter a descriptive name for your BIPV analysis project"
+            )
+        
+        with col2:
+            # System configuration info
+            st.metric("Currency", "EUR (€)", help="All financial calculations use Euros")
+            st.caption("Timezone: Auto-detected from location")
         
         # OpenWeatherMap API key - check environment first
         import os
@@ -942,40 +949,37 @@ def render_project_setup():
         
         if env_api_key:
             api_key = env_api_key
-            st.success("✅ OpenWeatherMap API key loaded from environment")
+            st.success("🌤️ Weather API key configured - Real-time weather data available")
         else:
             api_key = st.text_input(
-                "OpenWeatherMap API Key",
+                "🔑 OpenWeatherMap API Key",
                 type="password",
-                help="Required for real-time weather data. Get free API key at openweathermap.org",
-                key="openweather_api_key"
+                help="Required for real-time weather data and TMY generation. Get free API key at openweathermap.org",
+                key="openweather_api_key",
+                placeholder="Enter your API key for weather data access"
             )
             
             if not api_key:
-                st.warning("Please provide OpenWeatherMap API key for accurate weather data")
-    
-    with col2:
-        st.subheader("Timezone Configuration")
+                st.info("💡 Provide API key for accurate weather data and solar irradiance calculations")
         
-        # Force EUR for all calculations - no user selection needed
+        # Force EUR for all calculations
         currency = "EUR"
-        
-        # Timezone will be auto-detected from location
-        st.info("All financial calculations use Euros (€)")
-        st.info("Timezone will be automatically detected from selected location")
+    
+    st.markdown("---")
     
     # Interactive map for location selection
-    st.subheader("Select Project Location")
-    st.write("Click on the map to select your project location for accurate weather data and solar calculations.")
-    
-    # Default map center (Europe)
-    default_lat = 52.52
-    default_lon = 13.41
-    
-    # Get current coordinates from session state if available
-    current_coords = st.session_state.project_data.get('coordinates', {})
-    map_lat = current_coords.get('lat', default_lat)
-    map_lon = current_coords.get('lon', default_lon)
+    with st.container():
+        st.subheader("🌍 Project Location Selection")
+        st.write("Select your project location for accurate weather data, solar irradiance calculations, and local electricity rates.")
+        
+        # Default map center (Europe)
+        default_lat = 52.52
+        default_lon = 13.41
+        
+        # Get current coordinates from session state if available
+        current_coords = st.session_state.project_data.get('coordinates', {})
+        map_lat = current_coords.get('lat', default_lat)
+        map_lon = current_coords.get('lon', default_lon)
     
     # Create folium map
     m = folium.Map(
@@ -1009,33 +1013,37 @@ def render_project_setup():
         selected_lat = map_data['last_clicked']['lat']
         selected_lon = map_data['last_clicked']['lng']
     
-    # Manual coordinate input as alternative
-    with st.expander("Manual Coordinate Input", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            manual_lat = st.number_input(
-                "Latitude", 
-                value=map_lat, 
-                min_value=-90.0, 
-                max_value=90.0, 
-                step=0.001,
-                format="%.6f",
-                key="manual_lat"
-            )
-        with col2:
-            manual_lon = st.number_input(
-                "Longitude", 
-                value=map_lon, 
-                min_value=-180.0, 
-                max_value=180.0, 
-                step=0.001,
-                format="%.6f",
-                key="manual_lon"
-            )
-        
-        if st.button("Use Manual Coordinates", key="use_manual"):
-            selected_lat = manual_lat
-            selected_lon = manual_lon
+        # Manual coordinate input as alternative
+        with st.expander("📍 Manual Coordinate Input", expanded=False):
+            st.caption("Enter coordinates directly if you know the exact project location")
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col1:
+                manual_lat = st.number_input(
+                    "Latitude", 
+                    value=map_lat, 
+                    min_value=-90.0, 
+                    max_value=90.0, 
+                    step=0.001,
+                    format="%.6f",
+                    key="manual_lat",
+                    help="Latitude in decimal degrees (-90 to 90)"
+                )
+            with col2:
+                manual_lon = st.number_input(
+                    "Longitude", 
+                    value=map_lon, 
+                    min_value=-180.0, 
+                    max_value=180.0, 
+                    step=0.001,
+                    format="%.6f",
+                    key="manual_lon",
+                    help="Longitude in decimal degrees (-180 to 180)"
+                )
+            with col3:
+                st.write("")  # Spacing
+                if st.button("📌 Use Coordinates", key="use_manual", type="primary"):
+                    selected_lat = manual_lat
+                    selected_lon = manual_lon
     
     # Process selected coordinates
     if selected_lat and selected_lon:
@@ -1048,40 +1056,44 @@ def render_project_setup():
             if api_key:
                 weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
             
-            # Display location information
-            st.subheader("Selected Location Information")
+            # Display location information with improved styling
+            st.markdown("---")
+            st.subheader("📍 Location Analysis Results")
             
+            # Create clean information cards
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                st.write("**Coordinates:**")
-                st.write(f"• Latitude: {selected_lat:.6f}°")
-                st.write(f"• Longitude: {selected_lon:.6f}°")
-                
-                if weather_data and weather_data.get('api_success'):
-                    st.write(f"• Location: {weather_data['location']}")
-                    st.write(f"• Country: {weather_data['country']}")
+                with st.container():
+                    st.markdown("**🌐 Project Coordinates**")
+                    st.metric("Latitude", f"{selected_lat:.6f}°")
+                    st.metric("Longitude", f"{selected_lon:.6f}°")
+                    
+                    if weather_data and weather_data.get('api_success'):
+                        st.caption(f"📍 {weather_data['location']}, {weather_data['country']}")
             
             with col2:
-                st.write("**Nearest WMO Station:**")
-                if nearest_wmo:
-                    st.write(f"• Station: {nearest_wmo['name']}")
-                    st.write(f"• WMO ID: {nearest_wmo['wmo_id']}")
-                    st.write(f"• Distance: {nearest_wmo['distance_km']:.1f} km")
-                else:
-                    st.write("• No WMO station found")
+                with st.container():
+                    st.markdown("**🏢 Nearest WMO Station**")
+                    if nearest_wmo:
+                        st.metric("Distance", f"{nearest_wmo['distance_km']:.1f} km")
+                        st.caption(f"Station: {nearest_wmo['name']}")
+                        st.caption(f"ID: {nearest_wmo['wmo_id']}")
+                    else:
+                        st.warning("No WMO station found")
             
             with col3:
-                st.write("**Current Weather:**")
-                if weather_data and weather_data.get('api_success'):
-                    st.write(f"• Temperature: {weather_data['current_temp']:.1f}°C")
-                    st.write(f"• Humidity: {weather_data['humidity']}%")
-                    st.write(f"• Conditions: {weather_data['weather_desc']}")
-                    st.write(f"• Wind: {weather_data['wind_speed']:.1f} m/s")
-                elif weather_data and not weather_data.get('api_success'):
-                    st.error(f"Weather API Error: {weather_data.get('error', 'Unknown error')}")
-                else:
-                    st.warning("No API key provided - using estimated parameters")
+                with st.container():
+                    st.markdown("**🌤️ Current Weather**")
+                    if weather_data and weather_data.get('api_success'):
+                        st.metric("Temperature", f"{weather_data['current_temp']:.1f}°C")
+                        st.metric("Humidity", f"{weather_data['humidity']}%")
+                        st.caption(f"Conditions: {weather_data['weather_desc']}")
+                        st.caption(f"Wind: {weather_data['wind_speed']:.1f} m/s")
+                    elif weather_data and not weather_data.get('api_success'):
+                        st.error(f"API Error: {weather_data.get('error', 'Connection failed')}")
+                    else:
+                        st.info("API key needed for real-time weather")
             
             # Get solar parameters for location
             location_name = f"{weather_data['location']}, {weather_data['country']}" if weather_data and weather_data.get('api_success') else f"Lat: {selected_lat:.2f}, Lon: {selected_lon:.2f}"
@@ -1089,41 +1101,45 @@ def render_project_setup():
             electricity_rates = get_location_electricity_rates(location_name, currency)
             currency_symbol = get_currency_symbol(currency)
             
-            # Parameters are calculated but not displayed - will be used in subsequent calculations
+            # Parameters are calculated for subsequent calculations
             
-            # Confirm location button
-            if st.button("Confirm Project Location", key="confirm_location"):
-                # Determine timezone based on coordinates
-                timezone = determine_timezone_from_coordinates(selected_lat, selected_lon)
-                
-                project_data = {
-                    'project_name': project_name,
-                    'location': location_name,
-                    'coordinates': {'lat': selected_lat, 'lon': selected_lon},
-                    'timezone': timezone,
-                    'currency': currency,
-                    'openweather_api_key': api_key,
-                    'nearest_wmo': nearest_wmo,
-                    'weather_data': weather_data,
-                    'solar_parameters': solar_params,
-                    'electricity_rates': electricity_rates,
-                    'setup_complete': True
-                }
-                
-                st.session_state.project_data = project_data
-                st.success("Project location and settings configured successfully!")
-                
-                # Display final configured settings
-                st.subheader("Configured Project Settings")
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric("Project", project_name)
-                with col2:
-                    st.metric("Location", location_name)
-                with col3:
-                    st.metric("Coordinates", f"{selected_lat:.3f}, {selected_lon:.3f}")
-                with col4:
-                    st.metric("Currency", currency)
+            # Confirm location button with improved styling
+            st.markdown("---")
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button("✅ Confirm Project Location", key="confirm_location", type="primary", use_container_width=True):
+                    # Determine timezone based on coordinates
+                    timezone = determine_timezone_from_coordinates(selected_lat, selected_lon)
+                    
+                    project_data = {
+                        'project_name': project_name,
+                        'location': location_name,
+                        'coordinates': {'lat': selected_lat, 'lon': selected_lon},
+                        'timezone': timezone,
+                        'currency': currency,
+                        'openweather_api_key': api_key,
+                        'nearest_wmo': nearest_wmo,
+                        'weather_data': weather_data,
+                        'solar_parameters': solar_params,
+                        'electricity_rates': electricity_rates,
+                        'setup_complete': True
+                    }
+                    
+                    st.session_state.project_data = project_data
+                    st.success("🎯 Project location and settings configured successfully!")
+                    
+                    # Display final configured settings with improved layout
+                    st.subheader("✅ Project Configuration Summary")
+                    
+                    summary_col1, summary_col2 = st.columns(2)
+                    with summary_col1:
+                        st.metric("Project Name", project_name)
+                        st.metric("Location", location_name)
+                    with summary_col2:
+                        st.metric("Coordinates", f"{selected_lat:.3f}, {selected_lon:.3f}")
+                        st.metric("Currency", f"{currency} (€)")
+                    
+                    st.info("🚀 Ready to proceed to Step 2: Historical Data & AI Model")
     
     # Show current settings if already configured
     elif st.session_state.project_data.get('setup_complete'):
