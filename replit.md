@@ -220,6 +220,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 21, 2025: Closed PV Suitability Threshold info notes in Step 4 to clean up interface while keeping methodology details accessible via expander
 - June 21, 2025: Added Dynamo script download functionality to Step 4 with comprehensive instructions for extracting BIM data from Revit models including window metadata, orientations, and glass areas
 - June 21, 2025: Standardized all calculations and symbols to use Euros (EUR) as base currency with updated electricity rates, currency symbols, and exchange rate calculations throughout the application
+- June 21, 2025: Removed currency selection from Step 1 interface to enforce Euro-only calculations with automatic EUR assignment
 
 ## User Preferences
 

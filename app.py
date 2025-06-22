@@ -955,25 +955,13 @@ def render_project_setup():
                 st.warning("Please provide OpenWeatherMap API key for accurate weather data")
     
     with col2:
-        st.subheader("Currency & Timezone")
+        st.subheader("Timezone Configuration")
         
-        # Currency selection
-        currency_options = [
-            "USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "SEK", "NOK", "DKK"
-        ]
-        
-        currency = st.selectbox(
-            "Project Currency",
-            options=currency_options,
-            index=1,  # Default to EUR
-            key="currency"
-        )
-        
-        # Force EUR as default for all calculations
-        if 'currency' not in st.session_state:
-            st.session_state.currency = "EUR"
+        # Force EUR for all calculations - no user selection needed
+        currency = "EUR"
         
         # Timezone will be auto-detected from location
+        st.info("All financial calculations use Euros (€)")
         st.info("Timezone will be automatically detected from selected location")
     
     # Interactive map for location selection
