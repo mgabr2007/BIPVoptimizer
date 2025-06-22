@@ -386,21 +386,21 @@ def get_currency_symbol(currency):
         'JPY': '¥',
         'CAD': 'C$'
     }
-    return symbols.get(currency, '$')
+    return symbols.get(currency, '€')  # Default to Euro symbol
 
-def get_currency_exchange_rate(from_currency, to_currency='USD'):
+def get_currency_exchange_rate(from_currency, to_currency='EUR'):
     """Get simplified exchange rates for currency conversion"""
-    # Simplified exchange rates (in production, would use real-time API)
-    rates = {
-        'USD': 1.0,
-        'EUR': 0.85,
-        'GBP': 0.73,
-        'JPY': 110.0,
-        'CAD': 1.25
+    # Simplified exchange rates based on EUR (in production, would use real-time API)
+    rates_to_eur = {
+        'EUR': 1.0,
+        'USD': 1.18,
+        'GBP': 0.86,
+        'JPY': 129.0,
+        'CAD': 1.47
     }
     
-    from_rate = rates.get(from_currency, 1.0)
-    to_rate = rates.get(to_currency, 1.0)
+    from_rate = rates_to_eur.get(from_currency, 1.0)
+    to_rate = rates_to_eur.get(to_currency, 1.0)
     
     return to_rate / from_rate
 
@@ -782,26 +782,26 @@ def get_location_solar_parameters(location):
 
 def get_location_electricity_rates(location, currency):
     """Get location-specific electricity rates in specified currency"""
-    # Base rates in USD per kWh
+    # Base rates in EUR per kWh
     base_rates = {}
     location_lower = location.lower()
     
     if any(term in location_lower for term in ['california', 'hawaii']):
-        base_rates = {'residential': 0.25, 'commercial': 0.18, 'feed_in_tariff': 0.08}
+        base_rates = {'residential': 0.21, 'commercial': 0.15, 'feed_in_tariff': 0.07}
     elif any(term in location_lower for term in ['new york', 'massachusetts', 'connecticut']):
-        base_rates = {'residential': 0.20, 'commercial': 0.15, 'feed_in_tariff': 0.06}
+        base_rates = {'residential': 0.17, 'commercial': 0.13, 'feed_in_tariff': 0.05}
     elif any(term in location_lower for term in ['texas', 'louisiana', 'west virginia']):
-        base_rates = {'residential': 0.12, 'commercial': 0.09, 'feed_in_tariff': 0.04}
+        base_rates = {'residential': 0.10, 'commercial': 0.08, 'feed_in_tariff': 0.03}
     elif any(term in location_lower for term in ['germany', 'denmark']):
-        base_rates = {'residential': 0.35, 'commercial': 0.25, 'feed_in_tariff': 0.12}
+        base_rates = {'residential': 0.32, 'commercial': 0.23, 'feed_in_tariff': 0.11}
     elif any(term in location_lower for term in ['uk', 'britain', 'london']):
-        base_rates = {'residential': 0.28, 'commercial': 0.20, 'feed_in_tariff': 0.10}
+        base_rates = {'residential': 0.24, 'commercial': 0.17, 'feed_in_tariff': 0.09}
     elif any(term in location_lower for term in ['japan', 'tokyo']):
-        base_rates = {'residential': 0.26, 'commercial': 0.18, 'feed_in_tariff': 0.09}
+        base_rates = {'residential': 0.22, 'commercial': 0.15, 'feed_in_tariff': 0.08}
     elif any(term in location_lower for term in ['spain', 'italy']):
-        base_rates = {'residential': 0.24, 'commercial': 0.16, 'feed_in_tariff': 0.08}
+        base_rates = {'residential': 0.23, 'commercial': 0.16, 'feed_in_tariff': 0.08}
     elif any(term in location_lower for term in ['france', 'paris']):
-        base_rates = {'residential': 0.22, 'commercial': 0.14, 'feed_in_tariff': 0.07}
+        base_rates = {'residential': 0.21, 'commercial': 0.14, 'feed_in_tariff': 0.07}
     elif any(term in location_lower for term in ['australia', 'sydney', 'melbourne']):
         base_rates = {'residential': 0.19, 'commercial': 0.13, 'feed_in_tariff': 0.06}
     elif any(term in location_lower for term in ['brazil', 'sao paulo']):
@@ -835,8 +835,8 @@ def get_location_electricity_rates(location, currency):
     else:
         base_rates = {'residential': 0.15, 'commercial': 0.12, 'feed_in_tariff': 0.05}
     
-    # Convert to specified currency
-    exchange_rate = get_currency_exchange_rate('USD', currency)
+    # Convert to specified currency (base rates are now in EUR)
+    exchange_rate = get_currency_exchange_rate('EUR', currency)
     return {k: v * exchange_rate for k, v in base_rates.items()}
 
 def main():
@@ -968,6 +968,10 @@ def render_project_setup():
             index=1,  # Default to EUR
             key="currency"
         )
+        
+        # Force EUR as default for all calculations
+        if 'currency' not in st.session_state:
+            st.session_state.currency = "EUR"
         
         # Timezone will be auto-detected from location
         st.info("Timezone will be automatically detected from selected location")
