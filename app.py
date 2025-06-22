@@ -803,37 +803,37 @@ def get_location_electricity_rates(location, currency):
     elif any(term in location_lower for term in ['france', 'paris']):
         base_rates = {'residential': 0.21, 'commercial': 0.14, 'feed_in_tariff': 0.07}
     elif any(term in location_lower for term in ['australia', 'sydney', 'melbourne']):
-        base_rates = {'residential': 0.19, 'commercial': 0.13, 'feed_in_tariff': 0.06}
-    elif any(term in location_lower for term in ['brazil', 'sao paulo']):
         base_rates = {'residential': 0.16, 'commercial': 0.11, 'feed_in_tariff': 0.05}
+    elif any(term in location_lower for term in ['brazil', 'sao paulo']):
+        base_rates = {'residential': 0.14, 'commercial': 0.09, 'feed_in_tariff': 0.04}
     elif any(term in location_lower for term in ['india', 'mumbai', 'delhi']):
-        base_rates = {'residential': 0.08, 'commercial': 0.06, 'feed_in_tariff': 0.03}
+        base_rates = {'residential': 0.07, 'commercial': 0.05, 'feed_in_tariff': 0.025}
     elif any(term in location_lower for term in ['china', 'beijing', 'shanghai']):
-        base_rates = {'residential': 0.09, 'commercial': 0.07, 'feed_in_tariff': 0.04}
+        base_rates = {'residential': 0.08, 'commercial': 0.06, 'feed_in_tariff': 0.035}
     elif any(term in location_lower for term in ['saudi', 'arabia', 'riyadh', 'mecca', 'jeddah']):
-        base_rates = {'residential': 0.06, 'commercial': 0.04, 'feed_in_tariff': 0.02}
+        base_rates = {'residential': 0.05, 'commercial': 0.035, 'feed_in_tariff': 0.017}
     elif any(term in location_lower for term in ['uae', 'dubai', 'abu dhabi', 'emirates']):
-        base_rates = {'residential': 0.08, 'commercial': 0.06, 'feed_in_tariff': 0.03}
+        base_rates = {'residential': 0.07, 'commercial': 0.05, 'feed_in_tariff': 0.025}
     elif any(term in location_lower for term in ['egypt', 'cairo', 'alexandria']):
-        base_rates = {'residential': 0.04, 'commercial': 0.03, 'feed_in_tariff': 0.015}
+        base_rates = {'residential': 0.035, 'commercial': 0.025, 'feed_in_tariff': 0.013}
     elif any(term in location_lower for term in ['morocco', 'casablanca', 'rabat']):
-        base_rates = {'residential': 0.12, 'commercial': 0.09, 'feed_in_tariff': 0.04}
+        base_rates = {'residential': 0.10, 'commercial': 0.08, 'feed_in_tariff': 0.035}
     elif any(term in location_lower for term in ['south africa', 'cape town', 'johannesburg']):
-        base_rates = {'residential': 0.10, 'commercial': 0.08, 'feed_in_tariff': 0.04}
+        base_rates = {'residential': 0.085, 'commercial': 0.07, 'feed_in_tariff': 0.035}
     elif any(term in location_lower for term in ['mexico', 'mexico city', 'guadalajara']):
-        base_rates = {'residential': 0.14, 'commercial': 0.11, 'feed_in_tariff': 0.05}
+        base_rates = {'residential': 0.12, 'commercial': 0.09, 'feed_in_tariff': 0.042}
     elif any(term in location_lower for term in ['chile', 'santiago']):
-        base_rates = {'residential': 0.18, 'commercial': 0.14, 'feed_in_tariff': 0.06}
-    elif any(term in location_lower for term in ['israel', 'tel aviv', 'jerusalem']):
-        base_rates = {'residential': 0.17, 'commercial': 0.13, 'feed_in_tariff': 0.06}
-    elif any(term in location_lower for term in ['turkey', 'istanbul', 'ankara']):
-        base_rates = {'residential': 0.11, 'commercial': 0.09, 'feed_in_tariff': 0.04}
-    elif any(term in location_lower for term in ['russia', 'moscow', 'st petersburg']):
-        base_rates = {'residential': 0.05, 'commercial': 0.04, 'feed_in_tariff': 0.02}
-    elif any(term in location_lower for term in ['canada', 'toronto', 'vancouver', 'montreal']):
-        base_rates = {'residential': 0.13, 'commercial': 0.10, 'feed_in_tariff': 0.05}
-    else:
         base_rates = {'residential': 0.15, 'commercial': 0.12, 'feed_in_tariff': 0.05}
+    elif any(term in location_lower for term in ['israel', 'tel aviv', 'jerusalem']):
+        base_rates = {'residential': 0.14, 'commercial': 0.11, 'feed_in_tariff': 0.05}
+    elif any(term in location_lower for term in ['turkey', 'istanbul', 'ankara']):
+        base_rates = {'residential': 0.09, 'commercial': 0.08, 'feed_in_tariff': 0.035}
+    elif any(term in location_lower for term in ['russia', 'moscow', 'st petersburg']):
+        base_rates = {'residential': 0.042, 'commercial': 0.035, 'feed_in_tariff': 0.017}
+    elif any(term in location_lower for term in ['canada', 'toronto', 'vancouver', 'montreal']):
+        base_rates = {'residential': 0.11, 'commercial': 0.085, 'feed_in_tariff': 0.042}
+    else:
+        base_rates = {'residential': 0.13, 'commercial': 0.10, 'feed_in_tariff': 0.042}
     
     # Convert to specified currency (base rates are now in EUR)
     exchange_rate = get_currency_exchange_rate('EUR', currency)
