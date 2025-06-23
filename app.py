@@ -852,7 +852,7 @@ def main():
     
     # Initialize session state
     if 'workflow_step' not in st.session_state:
-        st.session_state.workflow_step = 1
+        st.session_state.workflow_step = 0  # Start with welcome step
     if 'project_data' not in st.session_state:
         st.session_state.project_data = {}
     
@@ -861,6 +861,7 @@ def main():
     
     # Workflow steps
     workflow_steps = [
+        "Welcome & Overview",
         "1. Project Setup",
         "2. Historical Data & AI Model", 
         "3. Weather & Environment",
@@ -874,7 +875,7 @@ def main():
     ]
     
     # Display workflow progress
-    for i, step in enumerate(workflow_steps, 1):
+    for i, step in enumerate(workflow_steps):
         if i <= st.session_state.workflow_step:
             st.sidebar.success(step)
         else:
@@ -883,14 +884,14 @@ def main():
     # Step navigation buttons
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        if st.button("⬅️ Previous", key="prev_step") and st.session_state.workflow_step > 1:
+        if st.button("⬅️ Previous", key="prev_step") and st.session_state.workflow_step > 0:
             st.session_state.workflow_step -= 1
             st.rerun()
     with col2:
         if st.session_state.workflow_step == 10:
             if st.button("🔄 Finish & New Calculation", key="finish_restart"):
                 # Reset workflow to start new calculation
-                st.session_state.workflow_step = 1
+                st.session_state.workflow_step = 0
                 st.session_state.project_data = {}
                 st.rerun()
         elif st.session_state.workflow_step < 10:
@@ -899,7 +900,9 @@ def main():
                 st.rerun()
     
     # Main content based on current step
-    if st.session_state.workflow_step == 1:
+    if st.session_state.workflow_step == 0:
+        render_welcome()
+    elif st.session_state.workflow_step == 1:
         render_project_setup()
     elif st.session_state.workflow_step == 2:
         render_historical_data()
@@ -919,6 +922,173 @@ def main():
         render_financial_analysis()
     elif st.session_state.workflow_step == 10:
         render_reporting()
+
+def render_welcome():
+    st.header("Welcome to BIPV Optimizer")
+    st.markdown("### Building-Integrated Photovoltaics Analysis & Optimization Platform")
+    
+    # Introduction
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("""
+        **BIPV Optimizer** is a comprehensive platform for analyzing and optimizing Building-Integrated Photovoltaic systems. 
+        Unlike traditional solar panels mounted on rooftops, BIPV integrates solar cells directly into building materials, 
+        replacing conventional windows, facades, and cladding with energy-generating alternatives.
+        
+        This platform guides you through a complete BIPV analysis workflow, from initial site assessment to financial optimization, 
+        helping architects, engineers, and developers make informed decisions about solar integration in buildings.
+        """)
+    
+    with col2:
+        # Key benefits
+        st.markdown("**🎯 Key Benefits:**")
+        st.markdown("""
+        - Dual functionality: Energy + Architecture
+        - Aesthetic integration with building design
+        - Reduced material costs vs traditional facades
+        - Energy independence & grid interaction
+        - Enhanced building performance
+        """)
+    
+    st.markdown("---")
+    
+    # What is BIPV section
+    st.subheader("🏢 What is Building-Integrated Photovoltaics (BIPV)?")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        **Traditional Windows**
+        - Standard glass panels
+        - No energy generation
+        - Purely functional
+        - Regular maintenance
+        - Standard building costs
+        """)
+        
+    with col2:
+        st.markdown("""
+        **BIPV Windows**
+        - Semi-transparent solar cells
+        - Generate electricity
+        - Maintain natural lighting
+        - Integrated electrical systems
+        - Higher initial investment
+        """)
+        
+    with col3:
+        st.markdown("""
+        **System Benefits**
+        - Energy cost reduction
+        - Grid independence potential
+        - Architectural aesthetics
+        - Building code compliance
+        - Long-term ROI
+        """)
+    
+    # Visual workflow explanation
+    st.markdown("---")
+    st.subheader("📋 Complete BIPV Analysis Workflow")
+    
+    # Create workflow visualization using text-based diagrams
+    workflow_steps = [
+        ("1. Project Setup", "Location selection, weather data integration"),
+        ("2. Historical Data & AI", "Energy consumption analysis and demand prediction"),
+        ("3. Weather & Environment", "Solar irradiance and TMY data generation"),
+        ("4. Facade & Window Extraction", "BIM data processing and element analysis"),
+        ("5. Radiation & Shading Grid", "Solar potential mapping and optimization"),
+        ("6. PV Panel Specification", "Technology selection and system sizing"),
+        ("7. Yield vs Demand", "Energy balance and grid interaction analysis"),
+        ("8. Multi-Objective Optimization", "Genetic algorithm for optimal configuration"),
+        ("9. Financial & Environmental", "Economic analysis and CO₂ impact assessment"),
+        ("10. Reporting & Export", "Comprehensive analysis reports and data export")
+    ]
+    
+    # Display workflow in a grid
+    for i in range(0, len(workflow_steps), 2):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            step_num, step_desc = workflow_steps[i]
+            st.markdown(f"""
+            **{step_num}**  
+            {step_desc}
+            """)
+            
+        if i + 1 < len(workflow_steps):
+            with col2:
+                step_num, step_desc = workflow_steps[i + 1]
+                st.markdown(f"""
+                **{step_num}**  
+                {step_desc}
+                """)
+    
+    st.markdown("---")
+    
+    # Technical approach
+    st.subheader("🔬 Scientific Methodology")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        **Data Sources & Standards:**
+        - OpenWeatherMap API for real-time weather data
+        - WMO stations for meteorological reference
+        - ISO 15927-4 standards for TMY calculations
+        - ISO 9060 solar resource classification
+        - BIM integration with Revit/Dynamo
+        """)
+        
+    with col2:
+        st.markdown("""
+        **Analysis Methods:**
+        - Machine learning for demand prediction
+        - Genetic algorithms (NSGA-II) for optimization
+        - Monte Carlo simulation for uncertainty analysis
+        - Financial modeling with NPV/IRR calculations
+        - Lifecycle assessment for environmental impact
+        """)
+    
+    # Research context
+    st.markdown("---")
+    st.subheader("🎓 Research Context")
+    
+    st.info("""
+    This platform was developed as part of PhD research at **Technische Universität Berlin**, 
+    focusing on the optimization of Building-Integrated Photovoltaic systems for urban environments. 
+    The research addresses the gap between architectural design requirements and energy performance optimization 
+    in the context of sustainable building development.
+    """)
+    
+    # Getting started
+    st.markdown("---")
+    st.subheader("🚀 Getting Started")
+    
+    st.markdown("""
+    **Prerequisites:**
+    - OpenWeatherMap API key (free registration at openweathermap.org)
+    - BIM model data (optional: use provided Dynamo script for Revit extraction)
+    - Historical energy consumption data (CSV format)
+    
+    **Estimated Time:**
+    - Quick analysis: 15-20 minutes
+    - Comprehensive study: 30-45 minutes
+    - Detailed optimization: 45-60 minutes
+    """)
+    
+    # Start button
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🏁 Start BIPV Analysis", type="primary", use_container_width=True):
+            st.session_state.workflow_step = 1
+            st.rerun()
+    
+    st.markdown("---")
+    st.caption("© 2025 BIPV Optimizer - Technische Universität Berlin")
 
 def render_project_setup():
     st.header("Step 1: Project Setup")

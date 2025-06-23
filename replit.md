@@ -222,6 +222,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 21, 2025: Standardized all calculations and symbols to use Euros (EUR) as base currency with updated electricity rates, currency symbols, and exchange rate calculations throughout the application
 - June 21, 2025: Removed currency selection from Step 1 interface to enforce Euro-only calculations with automatic EUR assignment
 - June 21, 2025: Unified and improved Step 1 UI with consistent messaging, enhanced visual layout, improved location information cards, better button styling, and streamlined project configuration summary
+- June 21, 2025: Added comprehensive Welcome step with BIPV explanation, workflow overview, scientific methodology, research context, and visual workflow guide to introduce users to the platform capabilities
 
 ## User Preferences
 
