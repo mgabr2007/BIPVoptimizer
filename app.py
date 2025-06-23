@@ -4212,24 +4212,19 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     # Financial analysis data (stored in project_data)
     financial_analysis = project_data.get('financial_analysis', {})
     
-    # Debug: Show session state structure for financial data
-    st.write("DEBUG - Session State Structure:")
-    st.write("- project_data keys:", list(project_data.keys()) if project_data else "Empty")
-    st.write("- financial_analysis keys:", list(financial_analysis.keys()) if financial_analysis else "Empty")
-    st.write("- financial_analysis content:", financial_analysis if financial_analysis else "No data")
-    
-    # Check alternative storage locations
-    alt_financial = st.session_state.get('financial_analysis', {})
-    st.write("- Alternative financial_analysis:", list(alt_financial.keys()) if alt_financial else "Empty")
-    
-    # Check if stored in project_data with different key
-    for key in project_data.keys():
-        if 'financial' in key.lower():
-            st.write(f"- Found financial key '{key}':", type(project_data[key]))
+    # Check session state for financial data in multiple locations
+    if not financial_analysis:
+        # Try alternative locations
+        alt_financial = st.session_state.get('financial_analysis', {})
+        if alt_financial:
+            financial_analysis = alt_financial
     
     # Handle building elements from facade data if needed
     if building_elements is None and facade_data.get('windows'):
         building_elements = facade_data['windows']
+    
+    # Ensure building_elements is properly handled for boolean checks
+    has_building_elements = building_elements is not None and len(building_elements) > 0
     
     # Calculate comprehensive metrics from actual data
     total_elements = facade_data.get('total_elements', 0)
@@ -4549,7 +4544,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
                 <tr><th>Analysis Step</th><th>Status</th><th>Key Data</th><th>Impact on Results</th></tr>
                 <tr><td>Step 1: Project Setup</td><td>{'✅ Complete' if project_name != 'Unnamed Project' else '❌ Incomplete'}</td><td>Location: {location}</td><td>Sets location-specific solar & economic parameters</td></tr>
                 <tr><td>Step 3: Weather Data</td><td>{'✅ Complete' if weather_data else '❌ Incomplete'}</td><td>Temperature: {current_temp:.1f}°C</td><td>Provides TMY data for yield calculations</td></tr>
-                <tr><td>Step 4: BIM Data</td><td>{'✅ Complete' if building_elements else '❌ Missing'}</td><td>{len(building_elements) if building_elements else 0} elements</td><td>Essential for accurate area and cost calculations</td></tr>
+                <tr><td>Step 4: BIM Data</td><td>{'✅ Complete' if has_building_elements else '❌ Missing'}</td><td>{len(building_elements) if building_elements is not None else 0} elements</td><td>Essential for accurate area and cost calculations</td></tr>
                 <tr><td>Step 5: Radiation Analysis</td><td>{'✅ Complete' if radiation_data else '❌ Missing'}</td><td>{avg_radiation:,.0f} kWh/m²/year</td><td>Determines energy generation potential</td></tr>
                 <tr><td>Step 6: PV Specifications</td><td>{'✅ Complete' if pv_specs else '❌ Missing'}</td><td>{panel_type}</td><td>Sets technology costs and efficiency</td></tr>
                 <tr><td>Step 9: Financial Analysis</td><td>{'✅ Complete' if financial_analysis else '❌ Missing'}</td><td>NPV: {currency_symbol}{npv:,.0f}</td><td>Provides ROI and payback calculations</td></tr>
@@ -4570,13 +4565,13 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
             <div class="equation">
                 <strong>Report Data Sources:</strong><br/>
                 • Project Data: {len(project_data)} parameters loaded<br/>
-                • BIM Elements: {len(building_elements) if building_elements else 0} window elements<br/>
+                • BIM Elements: {len(building_elements) if building_elements is not None else 0} window elements<br/>
                 • Radiation Data: {len(radiation_data)} radiation parameters<br/>
                 • PV Specifications: {len(pv_specs)} technology parameters<br/>
                 • Financial Analysis: {len(financial_analysis)} economic parameters<br/>
                 <br/>
                 <strong>Missing Data Impact:</strong><br/>
-                {('⚠️ Financial analysis incomplete - please complete Step 9 for accurate ROI calculations' if not financial_analysis else '✅ All financial data captured successfully')}
+                {('⚠️ Financial analysis incomplete - please complete Step 9 for accurate ROI calculations' if len(financial_analysis) == 0 else '✅ All financial data captured successfully')}
             </div>
         </div>
     </div>
