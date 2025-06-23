@@ -4208,7 +4208,24 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     # Other analysis data
     yield_analysis = st.session_state.get('yield_analysis', {})
     optimization_results = st.session_state.get('optimization_results', {})
-    financial_analysis = st.session_state.get('financial_analysis', {})
+    
+    # Financial analysis data (stored in project_data)
+    financial_analysis = project_data.get('financial_analysis', {})
+    
+    # Debug: Show session state structure for financial data
+    st.write("DEBUG - Session State Structure:")
+    st.write("- project_data keys:", list(project_data.keys()) if project_data else "Empty")
+    st.write("- financial_analysis keys:", list(financial_analysis.keys()) if financial_analysis else "Empty")
+    st.write("- financial_analysis content:", financial_analysis if financial_analysis else "No data")
+    
+    # Check alternative storage locations
+    alt_financial = st.session_state.get('financial_analysis', {})
+    st.write("- Alternative financial_analysis:", list(alt_financial.keys()) if alt_financial else "Empty")
+    
+    # Check if stored in project_data with different key
+    for key in project_data.keys():
+        if 'financial' in key.lower():
+            st.write(f"- Found financial key '{key}':", type(project_data[key]))
     
     # Handle building elements from facade data if needed
     if building_elements is None and facade_data.get('windows'):
@@ -4527,16 +4544,40 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     <div class="section">
         <h2>7. Financial Analysis</h2>
         <div class="subsection">
+            <h3>Workflow Step Completion Status</h3>
+            <table>
+                <tr><th>Analysis Step</th><th>Status</th><th>Key Data</th><th>Impact on Results</th></tr>
+                <tr><td>Step 1: Project Setup</td><td>{'✅ Complete' if project_name != 'Unnamed Project' else '❌ Incomplete'}</td><td>Location: {location}</td><td>Sets location-specific solar & economic parameters</td></tr>
+                <tr><td>Step 3: Weather Data</td><td>{'✅ Complete' if weather_data else '❌ Incomplete'}</td><td>Temperature: {current_temp:.1f}°C</td><td>Provides TMY data for yield calculations</td></tr>
+                <tr><td>Step 4: BIM Data</td><td>{'✅ Complete' if building_elements else '❌ Missing'}</td><td>{len(building_elements) if building_elements else 0} elements</td><td>Essential for accurate area and cost calculations</td></tr>
+                <tr><td>Step 5: Radiation Analysis</td><td>{'✅ Complete' if radiation_data else '❌ Missing'}</td><td>{avg_radiation:,.0f} kWh/m²/year</td><td>Determines energy generation potential</td></tr>
+                <tr><td>Step 6: PV Specifications</td><td>{'✅ Complete' if pv_specs else '❌ Missing'}</td><td>{panel_type}</td><td>Sets technology costs and efficiency</td></tr>
+                <tr><td>Step 9: Financial Analysis</td><td>{'✅ Complete' if financial_analysis else '❌ Missing'}</td><td>NPV: {currency_symbol}{npv:,.0f}</td><td>Provides ROI and payback calculations</td></tr>
+            </table>
+            
             <h3>Investment Summary</h3>
             <table>
-                <tr><th>Financial Metric</th><th>Value</th><th>Unit</th></tr>
-                <tr><td>Initial BIPV Investment</td><td>{currency_symbol}{initial_investment:,.0f}</td><td>EUR</td></tr>
-                <tr><td>Annual Energy Savings</td><td>{currency_symbol}{annual_savings:,.0f}</td><td>EUR/year</td></tr>
-                <tr><td>Net Present Value (NPV)</td><td>{currency_symbol}{npv:,.0f}</td><td>EUR</td></tr>
-                <tr><td>Internal Rate of Return (IRR)</td><td>{irr:.1%}</td><td>%</td></tr>
-                <tr><td>Simple Payback Period</td><td>{payback_period:.1f}</td><td>years</td></tr>
-                <tr><td>Levelized Cost of Energy</td><td>{currency_symbol}{financial_analysis.get('lcoe', 0):.3f}</td><td>EUR/kWh</td></tr>
+                <tr><th>Financial Metric</th><th>Value</th><th>Data Source</th><th>Unit</th></tr>
+                <tr><td>Initial BIPV Investment</td><td>{currency_symbol}{initial_investment:,.0f}</td><td>{'Step 9 Analysis' if financial_analysis else 'Missing Data'}</td><td>EUR</td></tr>
+                <tr><td>Annual Energy Savings</td><td>{currency_symbol}{annual_savings:,.0f}</td><td>{'Step 9 Analysis' if financial_analysis else 'Missing Data'}</td><td>EUR/year</td></tr>
+                <tr><td>Net Present Value (NPV)</td><td>{currency_symbol}{npv:,.0f}</td><td>{'Step 9 Analysis' if financial_analysis else 'Missing Data'}</td><td>EUR</td></tr>
+                <tr><td>Internal Rate of Return (IRR)</td><td>{irr:.1f}%</td><td>{'Step 9 Analysis' if financial_analysis else 'Missing Data'}</td><td>%</td></tr>
+                <tr><td>Simple Payback Period</td><td>{payback_period:.1f}</td><td>{'Step 9 Analysis' if financial_analysis else 'Missing Data'}</td><td>years</td></tr>
+                <tr><td>Levelized Cost of Energy</td><td>{currency_symbol}{financial_analysis.get('lcoe', 0):.3f}</td><td>{'Step 9 Analysis' if financial_analysis else 'Missing Data'}</td><td>EUR/kWh</td></tr>
             </table>
+            
+            <h3>Data Quality Assessment</h3>
+            <div class="equation">
+                <strong>Report Data Sources:</strong><br/>
+                • Project Data: {len(project_data)} parameters loaded<br/>
+                • BIM Elements: {len(building_elements) if building_elements else 0} window elements<br/>
+                • Radiation Data: {len(radiation_data)} radiation parameters<br/>
+                • PV Specifications: {len(pv_specs)} technology parameters<br/>
+                • Financial Analysis: {len(financial_analysis)} economic parameters<br/>
+                <br/>
+                <strong>Missing Data Impact:</strong><br/>
+                {('⚠️ Financial analysis incomplete - please complete Step 9 for accurate ROI calculations' if not financial_analysis else '✅ All financial data captured successfully')}
+            </div>
         </div>
     </div>
 
