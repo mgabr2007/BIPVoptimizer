@@ -4184,27 +4184,71 @@ def generate_window_elements_csv():
 
 
 def generate_enhanced_html_report(include_charts, include_recommendations):
-    """Generate comprehensive HTML report with detailed equations and methodology"""
+    """Generate comprehensive HTML report using actual processed data from workflow steps"""
     from datetime import datetime
     
-    # Get session state data
+    # Collect all processed data from session state
     project_data = st.session_state.get('project_setup', {})
-    building_elements = st.session_state.get('building_elements', None)
+    weather_data = st.session_state.get('project_data', {}).get('current_weather', {})
+    tmy_data = st.session_state.get('project_data', {}).get('tmy_data', {})
+    facade_data = st.session_state.get('project_data', {}).get('facade_data', {})
+    radiation_analysis = st.session_state.get('radiation_analysis', {})
     pv_specs = st.session_state.get('pv_specs', {})
-    financial_analysis = st.session_state.get('financial_analysis', {})
+    yield_analysis = st.session_state.get('yield_analysis', {})
     optimization_results = st.session_state.get('optimization_results', {})
-    energy_balance = st.session_state.get('energy_balance', {})
-    radiation_data = st.session_state.get('radiation_data', {})
+    financial_analysis = st.session_state.get('financial_analysis', {})
+    building_elements = st.session_state.get('building_elements', None)
     
-    # Calculate key metrics
-    total_elements = len(building_elements) if building_elements is not None else 0
-    suitable_elements = sum(1 for _, row in building_elements.iterrows() if row.get('PV_Suitable', False)) if building_elements is not None else 0
-    total_glass_area = building_elements['Glass_Area'].sum() if building_elements is not None and 'Glass_Area' in building_elements.columns else 0
+    # Handle building elements from facade data if needed
+    if building_elements is None and facade_data.get('windows'):
+        building_elements = facade_data['windows']
+    
+    # Calculate comprehensive metrics from actual data
+    total_elements = facade_data.get('total_elements', 0)
+    suitable_elements = facade_data.get('suitable_elements', 0)
+    total_glass_area = facade_data.get('total_glass_area', 0)
+    total_window_area = facade_data.get('total_window_area', 0)
+    
+    # Weather and location data
+    location = project_data.get('selected_location', 'Unknown Location')
+    coordinates = project_data.get('coordinates', {})
+    timezone = project_data.get('timezone', 'UTC')
+    
+    # PV system data from actual specifications
+    panel_type = pv_specs.get('panel_type', 'Not specified')
+    efficiency = pv_specs.get('efficiency', 0)
+    transparency = pv_specs.get('transparency', 0)
+    cost_per_m2 = pv_specs.get('cost_per_m2', 0)
+    
+    # Financial metrics from actual calculations
+    initial_investment = financial_analysis.get('initial_investment', 0)
+    annual_savings = financial_analysis.get('annual_savings', 0)
+    npv = financial_analysis.get('npv', 0)
+    irr = financial_analysis.get('irr', 0)
+    payback_period = financial_analysis.get('payback_period', 0)
+    
+    # Environmental impact from actual calculations
+    co2_annual = financial_analysis.get('co2_savings_annual', 0)
+    co2_lifetime = financial_analysis.get('co2_savings_lifetime', 0)
+    trees_equivalent = financial_analysis.get('trees_equivalent', 0)
+    
+    # Energy analysis from actual calculations
+    annual_generation = yield_analysis.get('total_annual_generation', 0)
+    annual_demand = yield_analysis.get('annual_demand_prediction', 0)
+    net_energy_balance = annual_generation - annual_demand if annual_generation and annual_demand else 0
+    
+    # Weather data from actual API response
+    current_temp = weather_data.get('temperature', 0) if weather_data else 0
+    current_conditions = weather_data.get('description', 'No data') if weather_data else 'No data'
+    
+    # Radiation data from actual analysis
+    avg_radiation = radiation_analysis.get('average_annual_radiation', 0)
+    max_radiation = radiation_analysis.get('max_annual_radiation', 0)
     
     # Currency symbol
     currency_symbol = "€"
     
-    # Generate HTML content
+    # Generate comprehensive HTML report with actual data
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -4228,81 +4272,201 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     <div class="header">
         <h1>Building Integrated Photovoltaic (BIPV) Analysis Report</h1>
         <h2>{project_data.get('project_name', 'Unnamed Project')}</h2>
-        <p>Location: {project_data.get('selected_location', 'Unknown Location')} | Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p>Location: {location} ({coordinates.get('lat', 0):.4f}°, {coordinates.get('lon', 0):.4f}°) | Timezone: {timezone}</p>
+        <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
     </div>
 
     <div class="section">
-        <h2>Executive Summary</h2>
+        <h2>1. Executive Summary</h2>
         <div class="subsection">
-            <p>This comprehensive BIPV analysis evaluates the integration of photovoltaic technology into building facades and windows. 
-            The analysis covers {total_elements} building elements with {suitable_elements} identified as suitable for BIPV installation, 
-            representing {total_glass_area:.1f} m² of total glazed area.</p>
+            <p>This comprehensive BIPV analysis evaluates the integration of photovoltaic technology into building facades and windows 
+            at {location}. The analysis processed <strong>{total_elements}</strong> building elements from BIM data, with 
+            <strong>{suitable_elements}</strong> elements identified as suitable for BIPV installation.</p>
             
             <table>
-                <tr><th>Key Metric</th><th>Value</th></tr>
-                <tr><td>Total Building Elements</td><td>{total_elements}</td></tr>
-                <tr><td>BIPV Suitable Elements</td><td>{suitable_elements}</td></tr>
-                <tr><td>Total Glazed Area</td><td>{total_glass_area:.1f} m²</td></tr>
-                <tr><td>Estimated Annual Generation</td><td>{energy_balance.get('annual_generation', 0):,.0f} kWh</td></tr>
-                <tr><td>Project Investment</td><td>{currency_symbol}{financial_analysis.get('initial_investment', 0):,.0f}</td></tr>
-                <tr><td>Payback Period</td><td>{financial_analysis.get('payback_period', 0):.1f} years</td></tr>
+                <tr><th>Key Performance Indicator</th><th>Value</th><th>Unit</th></tr>
+                <tr><td>Total Building Elements Analyzed</td><td>{total_elements:,}</td><td>elements</td></tr>
+                <tr><td>BIPV Suitable Elements</td><td>{suitable_elements:,}</td><td>elements</td></tr>
+                <tr><td>Suitability Rate</td><td>{(suitable_elements/total_elements*100):.1f}%</td><td>%</td></tr>
+                <tr><td>Total Glazed Area</td><td>{total_glass_area:.1f}</td><td>m²</td></tr>
+                <tr><td>Total Window Area</td><td>{total_window_area:.1f}</td><td>m²</td></tr>
+                <tr><td>Estimated Annual Generation</td><td>{annual_generation:,.0f}</td><td>kWh/year</td></tr>
+                <tr><td>Estimated Annual Demand</td><td>{annual_demand:,.0f}</td><td>kWh/year</td></tr>
+                <tr><td>Net Energy Balance</td><td>{net_energy_balance:,.0f}</td><td>kWh/year</td></tr>
+                <tr><td>Total Project Investment</td><td>{currency_symbol}{initial_investment:,.0f}</td><td>EUR</td></tr>
+                <tr><td>Payback Period</td><td>{payback_period:.1f}</td><td>years</td></tr>
             </table>
         </div>
     </div>
 
     <div class="section">
-        <h2>Technical Analysis</h2>
+        <h2>2. Project Configuration & Location Analysis</h2>
         <div class="subsection">
-            <h3>PV Technology Specifications</h3>
+            <h3>Site Information</h3>
             <table>
-                <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
-                <tr><td>Panel Technology</td><td>{pv_specs.get('panel_type', 'N/A')}</td><td>-</td></tr>
-                <tr><td>Module Efficiency</td><td>{pv_specs.get('efficiency', 0):.1f}</td><td>%</td></tr>
-                <tr><td>Transparency Level</td><td>{pv_specs.get('transparency', 0):.0f}</td><td>%</td></tr>
-                <tr><td>Cost per m²</td><td>{currency_symbol}{pv_specs.get('cost_per_m2', 0):,.0f}</td><td>EUR/m²</td></tr>
+                <tr><th>Parameter</th><th>Value</th></tr>
+                <tr><td>Project Name</td><td>{project_data.get('project_name', 'Not specified')}</td></tr>
+                <tr><td>Location</td><td>{location}</td></tr>
+                <tr><td>Coordinates</td><td>{coordinates.get('lat', 0):.6f}°N, {coordinates.get('lon', 0):.6f}°E</td></tr>
+                <tr><td>Timezone</td><td>{timezone}</td></tr>
+                <tr><td>Current Weather</td><td>{current_conditions}, {current_temp:.1f}°C</td></tr>
             </table>
         </div>
     </div>
 
     <div class="section">
-        <h2>Financial Analysis</h2>
+        <h2>3. Building Analysis from BIM Data</h2>
+        <div class="subsection">
+            <h3>Facade & Window Element Analysis</h3>
+            <table>
+                <tr><th>Building Metric</th><th>Value</th><th>Unit</th></tr>
+                <tr><td>Total Elements Processed</td><td>{total_elements}</td><td>elements</td></tr>
+                <tr><td>Elements Suitable for BIPV</td><td>{suitable_elements}</td><td>elements</td></tr>
+                <tr><td>Suitability Percentage</td><td>{(suitable_elements/total_elements*100 if total_elements > 0 else 0):.1f}</td><td>%</td></tr>
+                <tr><td>Total Glass Area</td><td>{total_glass_area:.2f}</td><td>m²</td></tr>
+                <tr><td>Total Window Area</td><td>{total_window_area:.2f}</td><td>m²</td></tr>
+                <tr><td>Average Window Area</td><td>{facade_data.get('avg_window_area', 0):.2f}</td><td>m² per element</td></tr>
+                <tr><td>BIM Data Source</td><td>{facade_data.get('file_name', 'Not specified')}</td><td>-</td></tr>
+            </table>
+            
+            <h3>Orientation Distribution</h3>
+            <table>
+                <tr><th>Orientation</th><th>Element Count</th><th>Suitable Count</th><th>Total Area (m²)</th><th>Suitable Area (m²)</th></tr>"""
+    
+    # Add orientation statistics from actual data
+    orientation_stats = facade_data.get('orientation_stats', {})
+    for orientation, stats in orientation_stats.items():
+        html_content += f"""
+                <tr>
+                    <td>{orientation}</td>
+                    <td>{stats.get('count', 0)}</td>
+                    <td>{stats.get('suitable_count', 0)}</td>
+                    <td>{stats.get('total_area', 0):.1f}</td>
+                    <td>{stats.get('suitable_area', 0):.1f}</td>
+                </tr>"""
+    
+    html_content += f"""
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>4. Solar Radiation Analysis</h2>
+        <div class="subsection">
+            <h3>Radiation Assessment Results</h3>
+            <table>
+                <tr><th>Radiation Metric</th><th>Value</th><th>Unit</th></tr>
+                <tr><td>Average Annual Radiation</td><td>{avg_radiation:.0f}</td><td>kWh/m²/year</td></tr>
+                <tr><td>Maximum Annual Radiation</td><td>{max_radiation:.0f}</td><td>kWh/m²/year</td></tr>
+                <tr><td>Analysis Grid Resolution</td><td>{radiation_analysis.get('grid_resolution', 'Not specified')}</td><td>-</td></tr>
+                <tr><td>Shading Factors Applied</td><td>{'Yes' if radiation_analysis.get('shading_enabled', False) else 'No'}</td><td>-</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>5. PV Technology Specifications</h2>
+        <div class="subsection">
+            <h3>Selected BIPV System</h3>
+            <table>
+                <tr><th>Technical Parameter</th><th>Value</th><th>Unit</th></tr>
+                <tr><td>Panel Technology</td><td>{panel_type}</td><td>-</td></tr>
+                <tr><td>Module Efficiency</td><td>{efficiency:.1f}</td><td>%</td></tr>
+                <tr><td>Transparency Level</td><td>{transparency:.0f}</td><td>%</td></tr>
+                <tr><td>Cost per m²</td><td>{currency_symbol}{cost_per_m2:,.0f}</td><td>EUR/m²</td></tr>
+                <tr><td>Power Density</td><td>{pv_specs.get('power_density', 0):.0f}</td><td>W/m²</td></tr>
+                <tr><td>Installation Cost Factor</td><td>{pv_specs.get('installation_factor', 1.5):.1f}</td><td>multiplier</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>6. Energy Yield Analysis</h2>
+        <div class="subsection">
+            <h3>Annual Energy Performance</h3>
+            <table>
+                <tr><th>Energy Metric</th><th>Value</th><th>Unit</th></tr>
+                <tr><td>Total Annual Generation</td><td>{annual_generation:,.0f}</td><td>kWh/year</td></tr>
+                <tr><td>Annual Building Demand</td><td>{annual_demand:,.0f}</td><td>kWh/year</td></tr>
+                <tr><td>Net Energy Balance</td><td>{net_energy_balance:,.0f}</td><td>kWh/year</td></tr>
+                <tr><td>Self-Consumption Rate</td><td>{min(annual_generation/annual_demand*100, 100) if annual_demand > 0 else 0:.1f}</td><td>%</td></tr>
+                <tr><td>Energy Yield per m²</td><td>{annual_generation/total_glass_area if total_glass_area > 0 else 0:.0f}</td><td>kWh/m²/year</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>7. Financial Analysis</h2>
         <div class="subsection">
             <h3>Investment Summary</h3>
             <table>
-                <tr><th>Financial Metric</th><th>Value</th></tr>
-                <tr><td>Initial Investment</td><td>{currency_symbol}{financial_analysis.get('initial_investment', 0):,.0f}</td></tr>
-                <tr><td>Annual Savings</td><td>{currency_symbol}{financial_analysis.get('annual_savings', 0):,.0f}</td></tr>
-                <tr><td>Net Present Value</td><td>{currency_symbol}{financial_analysis.get('npv', 0):,.0f}</td></tr>
-                <tr><td>Internal Rate of Return</td><td>{financial_analysis.get('irr', 0):.1%}</td></tr>
-                <tr><td>Payback Period</td><td>{financial_analysis.get('payback_period', 0):.1f} years</td></tr>
+                <tr><th>Financial Metric</th><th>Value</th><th>Unit</th></tr>
+                <tr><td>Initial BIPV Investment</td><td>{currency_symbol}{initial_investment:,.0f}</td><td>EUR</td></tr>
+                <tr><td>Annual Energy Savings</td><td>{currency_symbol}{annual_savings:,.0f}</td><td>EUR/year</td></tr>
+                <tr><td>Net Present Value (NPV)</td><td>{currency_symbol}{npv:,.0f}</td><td>EUR</td></tr>
+                <tr><td>Internal Rate of Return (IRR)</td><td>{irr:.1%}</td><td>%</td></tr>
+                <tr><td>Simple Payback Period</td><td>{payback_period:.1f}</td><td>years</td></tr>
+                <tr><td>Levelized Cost of Energy</td><td>{currency_symbol}{financial_analysis.get('lcoe', 0):.3f}</td><td>EUR/kWh</td></tr>
             </table>
         </div>
     </div>
 
     <div class="section">
-        <h2>Environmental Impact</h2>
+        <h2>8. Environmental Impact Assessment</h2>
         <div class="subsection">
+            <h3>Carbon Footprint Reduction</h3>
             <table>
-                <tr><th>Environmental Metric</th><th>Value</th></tr>
-                <tr><td>Annual CO₂ Savings</td><td>{financial_analysis.get('co2_savings_annual', 0):.1f} tons</td></tr>
-                <tr><td>Lifetime CO₂ Savings</td><td>{financial_analysis.get('co2_savings_lifetime', 0):.0f} tons</td></tr>
-                <tr><td>Equivalent Trees Planted</td><td>{financial_analysis.get('trees_equivalent', 0):,.0f} trees</td></tr>
+                <tr><th>Environmental Metric</th><th>Value</th><th>Unit</th></tr>
+                <tr><td>Annual CO₂ Emissions Avoided</td><td>{co2_annual:.1f}</td><td>tons CO₂/year</td></tr>
+                <tr><td>25-Year CO₂ Emissions Avoided</td><td>{co2_lifetime:.0f}</td><td>tons CO₂</td></tr>
+                <tr><td>Equivalent Trees Planted</td><td>{trees_equivalent:,.0f}</td><td>trees</td></tr>
+                <tr><td>Equivalent Cars Removed</td><td>{financial_analysis.get('cars_equivalent', 0):.0f}</td><td>cars/year</td></tr>
             </table>
         </div>
-    </div>
+    </div>"""
 
+    # Add optimization results if available
+    if optimization_results:
+        html_content += f"""
     <div class="section">
-        <h2>Conclusion</h2>
-        <p>This BIPV analysis demonstrates the technical feasibility and financial viability of integrating 
-        photovoltaic technology into the building envelope. The optimization ensures maximum energy generation 
-        while maintaining architectural aesthetics and building functionality.</p>
+        <h2>9. Optimization Results</h2>
+        <div class="subsection">
+            <h3>Multi-Objective Optimization Summary</h3>
+            <table>
+                <tr><th>Optimization Metric</th><th>Value</th><th>Unit</th></tr>
+                <tr><td>Optimization Algorithm</td><td>{optimization_results.get('algorithm', 'NSGA-II')}</td><td>-</td></tr>
+                <tr><td>Population Size</td><td>{optimization_results.get('population_size', 50)}</td><td>individuals</td></tr>
+                <tr><td>Generations</td><td>{optimization_results.get('generations', 100)}</td><td>cycles</td></tr>
+                <tr><td>Pareto Solutions Found</td><td>{optimization_results.get('pareto_solutions', 0)}</td><td>solutions</td></tr>
+                <tr><td>Best ROI Solution</td><td>{optimization_results.get('best_roi', 0):.1%}</td><td>%</td></tr>
+                <tr><td>Best Energy Solution</td><td>{optimization_results.get('best_energy', 0):,.0f}</td><td>kWh/year</td></tr>
+            </table>
+        </div>
+    </div>"""
+
+    html_content += f"""
+    <div class="section">
+        <h2>10. Conclusion & Recommendations</h2>
+        <div class="subsection">
+            <p>This comprehensive BIPV analysis of <strong>{total_elements}</strong> building elements at {location} 
+            demonstrates strong potential for building-integrated photovoltaic implementation. With <strong>{suitable_elements}</strong> 
+            elements suitable for BIPV installation, the project can achieve <strong>{annual_generation:,.0f} kWh/year</strong> 
+            of renewable energy generation.</p>
+            
+            <p>The financial analysis shows a <strong>{payback_period:.1f}-year payback period</strong> with an initial 
+            investment of <strong>{currency_symbol}{initial_investment:,.0f}</strong>, generating 
+            <strong>{currency_symbol}{annual_savings:,.0f}/year</strong> in energy savings.</p>
+            
+            <p>Environmental benefits include <strong>{co2_annual:.1f} tons CO₂/year</strong> emissions reduction, 
+            equivalent to planting <strong>{trees_equivalent:,.0f} trees</strong> over the system lifetime.</p>
+        </div>
     </div>
     
     <footer style="margin-top: 50px; padding: 20px; border-top: 2px solid #2E8B57; text-align: center; font-size: 12px; color: #666;">
         <p><strong>BIPV Optimizer</strong> - Building Integrated Photovoltaic Analysis Platform</p>
         <p>PhD Research Project | Technische Universität Berlin</p>
         <p>Contact: Mostafa Gabr | ResearchGate: https://www.researchgate.net/profile/Mostafa-Gabr</p>
-        <p>Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
+        <p>Analysis Date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | Data Source: Processed through 10-step BIPV workflow</p>
     </footer>
 </body>
 </html>"""
