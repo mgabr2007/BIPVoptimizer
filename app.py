@@ -1039,7 +1039,7 @@ def render_welcome():
         - WMO stations for meteorological reference
         - ISO 15927-4 standards for TMY calculations
         - ISO 9060 solar resource classification
-        - BIM integration with Revit/Dynamo
+        - BIM model integration (required: Revit/Dynamo extraction)
         """)
         
     with col2:
@@ -1886,7 +1886,9 @@ def render_weather_environment():
 
 def render_facade_extraction():
     st.header("Step 4: Facade & Window Extraction")
-    st.write("Upload extracted BIM data (windows and facades) for PV suitability analysis and energy calculations.")
+    st.write("Upload BIM data (windows and facades) - **Required** for accurate PV suitability analysis and energy calculations.")
+    
+    st.info("**BIM data is essential** for BIPV optimization as it provides exact window locations, orientations, and glass areas needed for accurate solar potential calculations.")
     
     # CSV Upload Section
     st.subheader("BIM Data Upload")
@@ -1894,14 +1896,17 @@ def render_facade_extraction():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**Upload Extracted Building Elements**")
+        st.markdown("**Upload BIM Building Elements (Required)**")
         
         uploaded_csv = st.file_uploader(
             "Upload BIM Elements CSV",
             type=['csv'],
-            help="Upload CSV file with extracted windows and facade elements from BIM model",
+            help="Required: CSV file with extracted windows and facade elements from BIM model using provided Dynamo script",
             key="bim_csv_upload"
         )
+        
+        if uploaded_csv is None:
+            st.warning("⚠️ BIM data is required to proceed with BIPV analysis. Please upload window and facade data extracted from your building model.")
         
         # CSV format documentation
         with st.expander("📋 Required CSV Format", expanded=False):
@@ -1926,7 +1931,7 @@ def render_facade_extraction():
             """)
     
     with col2:
-        st.markdown("**Dynamo Script for Revit Extraction**")
+        st.markdown("**Required: Dynamo Script for Revit Extraction**")
         
         # Download link for Dynamo script
         dynamo_file_path = "attached_assets/get windowMetadata_1750510157705.dyn"
@@ -1935,33 +1940,33 @@ def render_facade_extraction():
                 dynamo_content = f.read()
             
             st.download_button(
-                label="📥 Download Dynamo Script (.dyn)",
+                label="📥 Download Required Dynamo Script (.dyn)",
                 data=dynamo_content,
                 file_name="get_windowMetadata.dyn",
                 mime="application/octet-stream",
-                help="Download this Dynamo script to extract window and facade data from your Revit model",
+                help="Essential tool to extract window and facade data from your Revit model for BIPV analysis",
                 key="download_dynamo"
             )
             
-            st.caption("Use this Dynamo script in Revit to extract window metadata and export as CSV")
+            st.caption("**Required:** Use this Dynamo script in Revit to extract window metadata and export as CSV")
             
         except FileNotFoundError:
-            st.warning("Dynamo script file not found. Please contact support for the extraction script.")
+            st.error("Required Dynamo script file not found. Please contact support for the extraction script.")
         
         # Instructions for using the script
         with st.expander("📖 How to Use Dynamo Script", expanded=False):
             st.markdown("""
-            **Steps to Extract BIM Data:**
+            **Required Steps to Extract BIM Data:**
             
-            1. **Download the Dynamo script** using the button above
+            1. **Download the Dynamo script** using the button above (Essential)
             2. **Open Dynamo** in Revit (Manage → Visual Programming → Dynamo)
             3. **Open the downloaded script** in Dynamo
             4. **Set output path** in the "File Path" node to specify where to save CSV
             5. **Run the script** - it will automatically:
-               - Extract all windows and curtain wall panels
-               - Calculate orientations and glass areas
+               - Extract all windows and curtain wall panels (Required for BIPV analysis)
+               - Calculate orientations and glass areas (Essential for solar calculations)
                - Export data in the required CSV format
-            6. **Upload the generated CSV** using the file uploader above
+            6. **Upload the generated CSV** using the file uploader above (Mandatory)
             
             **Script Features:**
             - Extracts window elements with proper orientation calculations
@@ -2292,6 +2297,12 @@ def render_facade_extraction():
 def render_radiation_grid():
     st.header("Step 5: Radiation & Shading Grid")
     st.write("Calculate solar radiation and perform comprehensive shading analysis for all building surfaces.")
+    
+    # Check if BIM data is available from Step 4
+    if not st.session_state.project_data.get('extraction_complete', False):
+        st.error("**BIM data required:** Please complete Step 4 (Facade & Window Extraction) before proceeding. Upload your building element data to continue with solar radiation analysis.")
+        st.info("The radiation analysis needs exact window locations, orientations, and glass areas from your BIM model to calculate accurate solar potential for each building element.")
+        return
     
     if st.session_state.project_data.get('facade_data') and st.session_state.project_data.get('tmy_data'):
         col1, col2 = st.columns(2)
