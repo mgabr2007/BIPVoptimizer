@@ -2186,6 +2186,21 @@ def render_facade_extraction():
                     st.session_state.project_data['facade_data'] = facade_data
                     st.session_state.project_data['extraction_complete'] = True
                     
+                    # Also store building elements in expected format for reporting
+                    import pandas as pd
+                    building_elements_df = pd.DataFrame(windows)
+                    # Rename columns to match expected format
+                    building_elements_df = building_elements_df.rename(columns={
+                        'element_id': 'Element_ID',
+                        'wall_hosted_id': 'Wall_Hosted_ID',
+                        'window_area': 'Glass_Area',
+                        'orientation': 'Orientation',
+                        'azimuth': 'Azimuth',
+                        'level': 'Level',
+                        'suitable': 'PV_Suitable'
+                    })
+                    st.session_state.building_elements = building_elements_df
+                    
                 except Exception as e:
                     st.error(f"Error processing CSV file: {str(e)}")
                     return
@@ -3936,7 +3951,22 @@ def render_reporting():
     st.markdown("Generate comprehensive BIPV analysis reports and download project data.")
     
     # Check if BIM data is available (mandatory for reporting)
-    if 'building_elements' not in st.session_state or st.session_state.building_elements is None:
+    building_elements = None
+    
+    # Check multiple possible storage locations for building elements data
+    if 'building_elements' in st.session_state and st.session_state.building_elements is not None:
+        building_elements = st.session_state.building_elements
+    elif ('project_data' in st.session_state and 
+          'facade_data' in st.session_state.project_data and 
+          'windows' in st.session_state.project_data['facade_data']):
+        # Convert from facade_data format to building_elements format
+        import pandas as pd
+        windows_data = st.session_state.project_data['facade_data']['windows']
+        building_elements = pd.DataFrame(windows_data)
+        # Store for future use
+        st.session_state.building_elements = building_elements
+    
+    if building_elements is None or len(building_elements) == 0:
         st.error("🚫 **BIM Building Data Required**")
         st.markdown("""
         **Step 4 (Facade & Window Extraction) must be completed before generating reports.**
@@ -3950,16 +3980,29 @@ def render_reporting():
             st.rerun()
         return
     
-    # Get session state data
-    building_elements = st.session_state.building_elements
+    # Get session state data  
     project_data = st.session_state.get('project_setup', {})
     pv_specs = st.session_state.get('pv_specs', {})
     financial_analysis = st.session_state.get('financial_analysis', {})
     
     # Display summary statistics
     total_elements = len(building_elements)
-    suitable_elements = sum(1 for _, row in building_elements.iterrows() if row.get('PV_Suitable', False))
-    total_glass_area = building_elements['Glass_Area'].sum() if 'Glass_Area' in building_elements.columns else 0
+    
+    # Handle different data formats for suitable elements check
+    if hasattr(building_elements, 'iterrows'):
+        # DataFrame format
+        suitable_elements = sum(1 for _, row in building_elements.iterrows() if row.get('PV_Suitable', False) or row.get('suitable', False))
+        # Check for different possible column names
+        if 'Glass_Area' in building_elements.columns:
+            total_glass_area = building_elements['Glass_Area'].sum()
+        elif 'window_area' in building_elements.columns:
+            total_glass_area = building_elements['window_area'].sum()
+        else:
+            total_glass_area = 0
+    else:
+        # List format from facade_data
+        suitable_elements = sum(1 for element in building_elements if element.get('suitable', False))
+        total_glass_area = sum(element.get('window_area', 0) for element in building_elements)
     
     st.markdown("### 📈 Project Summary")
     col1, col2, col3, col4 = st.columns(4)
