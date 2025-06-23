@@ -2532,6 +2532,12 @@ def render_pv_specification():
     st.header("Step 6: PV Panel Specification")
     st.write("Specify PV panel technology and calculate optimal system layout for building integration.")
     
+    # Check if BIM data is available from Step 4
+    if not st.session_state.project_data.get('extraction_complete', False):
+        st.error("**BIM data required:** Please complete Step 4 (Facade & Window Extraction) to upload building element data before specifying PV systems.")
+        st.info("PV panel specification requires exact window dimensions and glass areas from your BIM model to calculate proper system sizing and layout configurations.")
+        return
+    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -3072,6 +3078,12 @@ def render_yield_demand():
     st.header("Step 7: Yield vs Demand Calculation")
     st.write("Compare PV energy generation with building demand and calculate energy balance.")
     
+    # Check if BIM data is available from Step 4
+    if not st.session_state.project_data.get('extraction_complete', False):
+        st.error("**BIM data required:** Please complete Step 4 (Facade & Window Extraction) to upload building element data before calculating energy balance.")
+        st.info("Energy yield calculations require exact window areas and PV installation data from your BIM model to accurately compare generation with demand patterns.")
+        return
+    
     # Extract occupancy data from Historical Data AI Model
     historical_data = st.session_state.project_data.get('historical_data', {})
     trained_model_data = historical_data.get('model_analysis', {})
@@ -3531,6 +3543,12 @@ def render_yield_demand():
 def render_optimization():
     st.header("Step 8: Multi-Objective Optimization")
     
+    # Check if BIM data is available from Step 4
+    if not st.session_state.project_data.get('extraction_complete', False):
+        st.error("**BIM data required:** Please complete Step 4 (Facade & Window Extraction) to upload building element data before running optimization.")
+        st.info("Optimization algorithms require exact window data from your BIM model to determine optimal BIPV system configurations and maximize ROI.")
+        return
+    
     # Methodology explanation
     st.subheader("🔬 BIPV Optimization Methodology")
     with st.expander("Multi-Objective Genetic Algorithm (NSGA-II)", expanded=True):
@@ -3716,6 +3734,12 @@ def render_optimization():
 def render_financial_analysis():
     st.header("Step 9: Financial & Environmental Analysis")
     st.write("Comprehensive financial modeling and environmental impact assessment for selected PV solution.")
+    
+    # Check if BIM data is available from Step 4
+    if not st.session_state.project_data.get('extraction_complete', False):
+        st.error("**BIM data required:** Please complete Step 4 (Facade & Window Extraction) to upload building element data before performing financial analysis.")
+        st.info("Financial analysis requires exact system costs and performance data calculated from your BIM model to provide accurate ROI, NPV, and payback period calculations.")
+        return
     
     if st.session_state.project_data.get('optimization_results'):
         solutions = st.session_state.project_data['optimization_results']['best_solutions']
@@ -4814,8 +4838,14 @@ def generate_html_report(report_type, include_charts, include_recommendations):
     return html_content
 
 def render_reporting():
-    st.header("Step 11: Comprehensive BIPV Analysis Report")
+    st.header("Step 10: Comprehensive BIPV Analysis Report")
     st.write("Generate the complete BIPV optimization analysis report with detailed calculations, equations, and comprehensive process explanations.")
+    
+    # Check if BIM data is available from Step 4
+    if not st.session_state.project_data.get('extraction_complete', False):
+        st.error("**BIM data required:** Please complete Step 4 (Facade & Window Extraction) to upload building element data before generating reports.")
+        st.info("Comprehensive reports require exact building element data, system specifications, and performance calculations based on your BIM model to provide accurate analysis results.")
+        return
     
     if st.session_state.project_data.get('financial_analysis'):
         

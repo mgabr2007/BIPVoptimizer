@@ -54,9 +54,10 @@ modules/
 - **API Integration**: OpenWeatherMap API for current and historical weather data
 - **Output**: Hourly DNI/DHI/GHI solar irradiance data with quality reports
 
-### 4. Facade & Window Extraction
+### 4. Facade & Window Extraction (REQUIRED)
 - **Purpose**: Extract building geometry from BIM models for PV suitability analysis
-- **Technology**: Simulated Revit API integration (pythonnet for future implementation)
+- **Technology**: CSV upload from BIM model extraction with comprehensive window element data
+- **Requirement**: This step is MANDATORY - all subsequent analysis steps require building element data
 - **Output**: Facade and window elements with geometry metadata and PV suitability flags
 
 ### 5. Radiation & Shading Grid
