@@ -1070,8 +1070,10 @@ def render_welcome():
     st.markdown("""
     **Prerequisites:**
     - OpenWeatherMap API key (free registration at openweathermap.org)
-    - BIM model data (optional: use provided Dynamo script for Revit extraction)
-    - Historical energy consumption data (CSV format)
+    - BIM model data (required: window and facade elements with orientations)
+      - Use provided Dynamo script for automated Revit extraction
+      - Or manually prepare CSV with window data (Element ID, orientation, glass area)
+    - Historical energy consumption data (CSV format with monthly consumption)
     
     **Estimated Time:**
     - Quick analysis: 15-20 minutes
