@@ -4187,17 +4187,36 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     """Generate comprehensive HTML report using actual processed data from workflow steps"""
     from datetime import datetime
     
-    # Collect all processed data from session state
+    # Debug: Check what's actually in session state
+    st.write("DEBUG: Session state keys available:", list(st.session_state.keys()))
+    
+    # Collect all processed data from session state - check multiple possible locations
     project_data = st.session_state.get('project_setup', {})
-    weather_data = st.session_state.get('project_data', {}).get('current_weather', {})
-    tmy_data = st.session_state.get('project_data', {}).get('tmy_data', {})
-    facade_data = st.session_state.get('project_data', {}).get('facade_data', {})
+    
+    # Check for project_data structure
+    if 'project_data' in st.session_state:
+        project_container = st.session_state.project_data
+        weather_data = project_container.get('current_weather', {})
+        tmy_data = project_container.get('tmy_data', {})
+        facade_data = project_container.get('facade_data', {})
+    else:
+        weather_data = {}
+        tmy_data = {}
+        facade_data = {}
+    
+    # Check alternative storage locations for different workflow steps
     radiation_analysis = st.session_state.get('radiation_analysis', {})
     pv_specs = st.session_state.get('pv_specs', {})
     yield_analysis = st.session_state.get('yield_analysis', {})
     optimization_results = st.session_state.get('optimization_results', {})
     financial_analysis = st.session_state.get('financial_analysis', {})
     building_elements = st.session_state.get('building_elements', None)
+    
+    # Debug output
+    st.write("DEBUG: Project data keys:", list(project_data.keys()) if project_data else "Empty")
+    st.write("DEBUG: Facade data keys:", list(facade_data.keys()) if facade_data else "Empty")
+    st.write("DEBUG: PV specs keys:", list(pv_specs.keys()) if pv_specs else "Empty")
+    st.write("DEBUG: Financial analysis keys:", list(financial_analysis.keys()) if financial_analysis else "Empty")
     
     # Handle building elements from facade data if needed
     if building_elements is None and facade_data.get('windows'):
