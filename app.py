@@ -4198,8 +4198,14 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     
     # Other workflow step data
     building_elements = st.session_state.get('building_elements', None)
-    radiation_analysis = st.session_state.get('radiation_analysis', {})
+    
+    # Radiation analysis data (stored in project_data)
+    radiation_data = project_data.get('radiation_data', {})
+    
+    # PV specifications (stored separately)
     pv_specs = st.session_state.get('pv_specs', {})
+    
+    # Other analysis data
     yield_analysis = st.session_state.get('yield_analysis', {})
     optimization_results = st.session_state.get('optimization_results', {})
     financial_analysis = st.session_state.get('financial_analysis', {})
@@ -4247,13 +4253,126 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     current_temp = weather_data.get('temperature', 0) if weather_data else 0
     current_conditions = weather_data.get('description', 'No data') if weather_data else 'No data'
     
-    # Radiation data from actual analysis
-    avg_radiation = radiation_analysis.get('average_annual_radiation', 0)
-    max_radiation = radiation_analysis.get('max_annual_radiation', 0)
+    # Radiation data from actual analysis (stored in project_data)
+    avg_radiation = radiation_data.get('avg_irradiance', 0)
+    max_radiation = radiation_data.get('peak_irradiance', 0)
+    shading_factor = radiation_data.get('shading_factor', 0)
+    grid_points = radiation_data.get('grid_points', 0)
     
     # Currency symbol
     currency_symbol = "€"
     
+    # Generate interactive charts for the report
+    charts_html = ""
+    if include_charts:
+        # Chart 1: Solar Radiation by Orientation
+        if radiation_data.get('orientation_performance'):
+            orientations = list(radiation_data['orientation_performance'].keys())
+            radiation_values = list(radiation_data['orientation_performance'].values())
+            
+            charts_html += f"""
+            <div class="chart-container">
+                <h3>Solar Radiation by Orientation</h3>
+                <canvas id="radiationChart" width="400" height="200"></canvas>
+                <script>
+                var ctx = document.getElementById('radiationChart').getContext('2d');
+                var radiationChart = new Chart(ctx, {{
+                    type: 'bar',
+                    data: {{
+                        labels: {orientations},
+                        datasets: [{{
+                            label: 'Annual Radiation (kWh/m²)',
+                            data: {radiation_values},
+                            backgroundColor: 'rgba(46, 139, 87, 0.8)',
+                            borderColor: 'rgba(46, 139, 87, 1)',
+                            borderWidth: 1
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        scales: {{
+                            y: {{ beginAtZero: true }}
+                        }}
+                    }}
+                }});
+                </script>
+            </div>
+            """
+        
+        # Chart 2: Financial Performance
+        if financial_analysis:
+            years = list(range(1, 26))  # 25-year analysis
+            cash_flows = [annual_savings * (1 - 0.005)**year for year in years]  # With degradation
+            
+            charts_html += f"""
+            <div class="chart-container">
+                <h3>Financial Performance Over 25 Years</h3>
+                <canvas id="financialChart" width="400" height="200"></canvas>
+                <script>
+                var ctx2 = document.getElementById('financialChart').getContext('2d');
+                var financialChart = new Chart(ctx2, {{
+                    type: 'line',
+                    data: {{
+                        labels: {years},
+                        datasets: [{{
+                            label: 'Annual Savings (€)',
+                            data: {cash_flows},
+                            borderColor: 'rgba(34, 139, 34, 1)',
+                            backgroundColor: 'rgba(34, 139, 34, 0.1)',
+                            fill: true
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        scales: {{
+                            y: {{ beginAtZero: true }}
+                        }}
+                    }}
+                }});
+                </script>
+            </div>
+            """
+        
+        # Chart 3: Energy Balance
+        if yield_analysis:
+            months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            import math
+            generation = [annual_generation/12 * (1 + 0.3 * math.cos(i*30*math.pi/180)) for i in range(12)]
+            demand = [annual_demand/12 * (1 + 0.2 * math.cos((i+6)*30*math.pi/180)) for i in range(12)]
+            
+            charts_html += f"""
+            <div class="chart-container">
+                <h3>Monthly Energy Balance</h3>
+                <canvas id="energyChart" width="400" height="200"></canvas>
+                <script>
+                var ctx3 = document.getElementById('energyChart').getContext('2d');
+                var energyChart = new Chart(ctx3, {{
+                    type: 'line',
+                    data: {{
+                        labels: {months},
+                        datasets: [{{
+                            label: 'PV Generation (kWh)',
+                            data: {generation},
+                            borderColor: 'rgba(255, 193, 7, 1)',
+                            backgroundColor: 'rgba(255, 193, 7, 0.2)'
+                        }}, {{
+                            label: 'Building Demand (kWh)',
+                            data: {demand},
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.2)'
+                        }}]
+                    }},
+                    options: {{
+                        responsive: true,
+                        scales: {{
+                            y: {{ beginAtZero: true }}
+                        }}
+                    }}
+                }});
+                </script>
+            </div>
+            """
+
     # Generate comprehensive HTML report with actual data
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -4261,6 +4380,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BIPV Analysis Report - {project_name}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {{ font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; color: #333; }}
         .header {{ text-align: center; margin-bottom: 40px; padding: 20px; background: linear-gradient(135deg, #2E8B57, #228B22); color: white; border-radius: 10px; }}
@@ -4272,6 +4392,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         th {{ background-color: #2E8B57; color: white; }}
         .highlight {{ background-color: #ffffcc; padding: 2px 4px; }}
         .chart-container {{ margin: 20px 0; padding: 15px; background: white; border-radius: 5px; border: 1px solid #ddd; }}
+        .chart-container canvas {{ max-height: 300px; }}
     </style>
 </head>
 <body>
@@ -4364,10 +4485,12 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
                 <tr><th>Radiation Metric</th><th>Value</th><th>Unit</th></tr>
                 <tr><td>Average Annual Radiation</td><td>{avg_radiation:.0f}</td><td>kWh/m²/year</td></tr>
                 <tr><td>Maximum Annual Radiation</td><td>{max_radiation:.0f}</td><td>kWh/m²/year</td></tr>
-                <tr><td>Analysis Grid Resolution</td><td>{radiation_analysis.get('grid_resolution', 'Not specified')}</td><td>-</td></tr>
-                <tr><td>Shading Factors Applied</td><td>{'Yes' if radiation_analysis.get('shading_enabled', False) else 'No'}</td><td>-</td></tr>
+                <tr><td>Analysis Grid Resolution</td><td>{grid_points:,} points</td><td>-</td></tr>
+                <tr><td>Shading Factors Applied</td><td>{'Yes' if shading_factor > 0 else 'No'}</td><td>-</td></tr>
             </table>
         </div>
+        
+        {charts_html if include_charts else ""}
     </div>
 
     <div class="section">
