@@ -93,17 +93,18 @@ modules/
 
 ## Data Flow
 
-1. **Project Initialization**: User configures project settings and uploads BIM models
+1. **Project Initialization**: User configures project settings (location, timezone, currency)
 2. **Historical Analysis**: Energy consumption data is processed and ML models are trained
 3. **Weather Integration**: TMY data is fetched and processed for solar calculations
-4. **Building Analysis**: Facade and window elements are extracted and analyzed for PV suitability
-5. **Solar Modeling**: Radiation grids are generated with shading analysis
-6. **System Design**: PV panels are specified and layouts are calculated
-7. **Energy Modeling**: Yield predictions are compared with demand forecasts
-8. **Optimization**: Genetic algorithms find optimal PV system configurations
-9. **Financial Analysis**: Economic viability and environmental impact are assessed
-10. **Visualization**: 3D models display optimized PV placement
-11. **Reporting**: Comprehensive analysis reports are generated
+4. **Building Analysis (REQUIRED)**: BIM-extracted window elements uploaded via CSV - MANDATORY for all subsequent steps
+5. **Solar Modeling**: Radiation grids are generated with shading analysis using exact building geometry
+6. **System Design**: PV panels are specified and layouts calculated for specific window elements
+7. **Energy Modeling**: Yield predictions compared with demand forecasts using actual building data
+8. **Optimization**: Genetic algorithms find optimal PV configurations for specific building elements
+9. **Financial Analysis**: Economic viability assessed using exact system specifications
+10. **Reporting**: Comprehensive analysis reports generated with building-specific results
+
+**Critical Requirement**: Steps 5-10 cannot proceed without BIM data from Step 4, as BIPV analysis requires exact building element geometry for accurate calculations.
 
 ## External Dependencies
 
@@ -224,6 +225,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 21, 2025: Removed currency selection from Step 1 interface to enforce Euro-only calculations with automatic EUR assignment
 - June 21, 2025: Unified and improved Step 1 UI with consistent messaging, enhanced visual layout, improved location information cards, better button styling, and streamlined project configuration summary
 - June 21, 2025: Added comprehensive Welcome step with BIPV explanation, workflow overview, scientific methodology, research context, and visual workflow guide to introduce users to the platform capabilities
+- June 23, 2025: Implemented critical BIM data validation throughout workflow - Step 4 (Facade & Window Extraction) is now MANDATORY for all subsequent analysis steps (5-10) with comprehensive error messages explaining why building element data is essential for accurate BIPV calculations
 
 ## User Preferences
 
