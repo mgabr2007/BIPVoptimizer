@@ -4187,36 +4187,22 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     """Generate comprehensive HTML report using actual processed data from workflow steps"""
     from datetime import datetime
     
-    # Debug: Check what's actually in session state
-    st.write("DEBUG: Session state keys available:", list(st.session_state.keys()))
+    # Collect all processed data from session state using correct keys based on actual storage
+    # Main project data container (from Step 1 and subsequent steps)
+    project_data = st.session_state.get('project_data', {})
     
-    # Collect all processed data from session state - check multiple possible locations
-    project_data = st.session_state.get('project_setup', {})
+    # Extract data from project_data structure
+    weather_data = project_data.get('current_weather', {})
+    tmy_data = project_data.get('tmy_data', {})
+    facade_data = project_data.get('facade_data', {})
     
-    # Check for project_data structure
-    if 'project_data' in st.session_state:
-        project_container = st.session_state.project_data
-        weather_data = project_container.get('current_weather', {})
-        tmy_data = project_container.get('tmy_data', {})
-        facade_data = project_container.get('facade_data', {})
-    else:
-        weather_data = {}
-        tmy_data = {}
-        facade_data = {}
-    
-    # Check alternative storage locations for different workflow steps
+    # Other workflow step data
+    building_elements = st.session_state.get('building_elements', None)
     radiation_analysis = st.session_state.get('radiation_analysis', {})
     pv_specs = st.session_state.get('pv_specs', {})
     yield_analysis = st.session_state.get('yield_analysis', {})
     optimization_results = st.session_state.get('optimization_results', {})
     financial_analysis = st.session_state.get('financial_analysis', {})
-    building_elements = st.session_state.get('building_elements', None)
-    
-    # Debug output
-    st.write("DEBUG: Project data keys:", list(project_data.keys()) if project_data else "Empty")
-    st.write("DEBUG: Facade data keys:", list(facade_data.keys()) if facade_data else "Empty")
-    st.write("DEBUG: PV specs keys:", list(pv_specs.keys()) if pv_specs else "Empty")
-    st.write("DEBUG: Financial analysis keys:", list(financial_analysis.keys()) if financial_analysis else "Empty")
     
     # Handle building elements from facade data if needed
     if building_elements is None and facade_data.get('windows'):
@@ -4228,10 +4214,11 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     total_glass_area = facade_data.get('total_glass_area', 0)
     total_window_area = facade_data.get('total_window_area', 0)
     
-    # Weather and location data
-    location = project_data.get('selected_location', 'Unknown Location')
+    # Weather and location data from project_data (Step 1)
+    location = project_data.get('location', 'Unknown Location')
     coordinates = project_data.get('coordinates', {})
     timezone = project_data.get('timezone', 'UTC')
+    project_name = project_data.get('project_name', 'Unnamed Project')
     
     # PV system data from actual specifications
     panel_type = pv_specs.get('panel_type', 'Not specified')
@@ -4273,7 +4260,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIPV Analysis Report - {project_data.get('project_name', 'Unnamed Project')}</title>
+    <title>BIPV Analysis Report - {project_name}</title>
     <style>
         body {{ font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; color: #333; }}
         .header {{ text-align: center; margin-bottom: 40px; padding: 20px; background: linear-gradient(135deg, #2E8B57, #228B22); color: white; border-radius: 10px; }}
@@ -4290,7 +4277,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
 <body>
     <div class="header">
         <h1>Building Integrated Photovoltaic (BIPV) Analysis Report</h1>
-        <h2>{project_data.get('project_name', 'Unnamed Project')}</h2>
+        <h2>{project_name}</h2>
         <p>Location: {location} ({coordinates.get('lat', 0):.4f}°, {coordinates.get('lon', 0):.4f}°) | Timezone: {timezone}</p>
         <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
     </div>
@@ -4324,7 +4311,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
             <h3>Site Information</h3>
             <table>
                 <tr><th>Parameter</th><th>Value</th></tr>
-                <tr><td>Project Name</td><td>{project_data.get('project_name', 'Not specified')}</td></tr>
+                <tr><td>Project Name</td><td>{project_name}</td></tr>
                 <tr><td>Location</td><td>{location}</td></tr>
                 <tr><td>Coordinates</td><td>{coordinates.get('lat', 0):.6f}°N, {coordinates.get('lon', 0):.6f}°E</td></tr>
                 <tr><td>Timezone</td><td>{timezone}</td></tr>
