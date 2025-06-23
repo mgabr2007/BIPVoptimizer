@@ -3930,6 +3930,173 @@ def render_financial_analysis():
 
 
 
+def render_reporting():
+    """Render the comprehensive reporting and export module."""
+    st.header("📊 Step 10: Reporting & Export")
+    st.markdown("Generate comprehensive BIPV analysis reports and download project data.")
+    
+    # Check if BIM data is available (mandatory for reporting)
+    if 'building_elements' not in st.session_state or st.session_state.building_elements is None:
+        st.error("🚫 **BIM Building Data Required**")
+        st.markdown("""
+        **Step 4 (Facade & Window Extraction) must be completed before generating reports.**
+        
+        Reports require actual building element data to provide meaningful analysis results.
+        Please complete Step 4 by uploading your BIM-extracted window data CSV file.
+        """)
+        
+        if st.button("← Go to Step 4: Facade & Window Extraction", key="goto_step4_reporting"):
+            st.session_state.workflow_step = 4
+            st.rerun()
+        return
+    
+    # Get session state data
+    building_elements = st.session_state.building_elements
+    project_data = st.session_state.get('project_setup', {})
+    pv_specs = st.session_state.get('pv_specs', {})
+    financial_analysis = st.session_state.get('financial_analysis', {})
+    
+    # Display summary statistics
+    total_elements = len(building_elements)
+    suitable_elements = sum(1 for _, row in building_elements.iterrows() if row.get('PV_Suitable', False))
+    total_glass_area = building_elements['Glass_Area'].sum() if 'Glass_Area' in building_elements.columns else 0
+    
+    st.markdown("### 📈 Project Summary")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total Elements", total_elements)
+    with col2:
+        st.metric("BIPV Suitable", suitable_elements)
+    with col3:
+        st.metric("Total Glass Area", f"{total_glass_area:.1f} m²")
+    with col4:
+        payback = financial_analysis.get('payback_period', 0)
+        st.metric("Payback Period", f"{payback:.1f} years")
+    
+    st.markdown("---")
+    
+    # Report Generation Section
+    st.markdown("### 📋 Generate Comprehensive Report")
+    st.markdown("Create a detailed HTML report with complete analysis results, equations, and methodology.")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        include_charts = st.checkbox("Include Visualizations", value=True, key="report_charts")
+    with col2:
+        include_recommendations = st.checkbox("Include Implementation Recommendations", value=True, key="report_recommendations")
+    
+    if st.button("📄 Generate Complete BIPV Analysis Report", key="generate_report"):
+        with st.spinner("Generating comprehensive report..."):
+            try:
+                # Generate the HTML report
+                html_content = generate_enhanced_html_report(include_charts, include_recommendations)
+                
+                # Create download button
+                st.success("✅ Report generated successfully!")
+                st.download_button(
+                    label="📥 Download HTML Report",
+                    data=html_content,
+                    file_name=f"BIPV_Analysis_Report_{project_data.get('project_name', 'Project').replace(' ', '_')}.html",
+                    mime="text/html",
+                    key="download_html_report"
+                )
+                
+                st.markdown("### 📊 Report Contents")
+                st.markdown("""
+                **The generated report includes:**
+                - Executive summary with key performance metrics
+                - Detailed technical analysis and PV specifications
+                - Complete financial analysis with NPV, IRR, and payback calculations
+                - Environmental impact assessment and CO₂ savings
+                - Building element analysis with orientation and radiation data
+                - BIPV-specific equations and calculation methodologies
+                - Implementation recommendations and project timeline
+                """)
+                
+            except Exception as e:
+                st.error(f"Error generating report: {str(e)}")
+    
+    st.markdown("---")
+    
+    # CSV Data Export Section
+    st.markdown("### 📊 Export Window Elements Data")
+    st.markdown("Download detailed window element data with BIPV analysis results.")
+    
+    if st.button("📥 Generate CSV Data Export", key="generate_csv"):
+        with st.spinner("Preparing CSV export..."):
+            try:
+                csv_content = generate_window_elements_csv()
+                if csv_content:
+                    st.success("✅ CSV data prepared successfully!")
+                    st.download_button(
+                        label="📥 Download Window Elements CSV",
+                        data=csv_content,
+                        file_name=f"BIPV_Window_Elements_{project_data.get('project_name', 'Project').replace(' ', '_')}.csv",
+                        mime="text/csv",
+                        key="download_csv_data"
+                    )
+                    
+                    st.markdown("### 📋 CSV Export Contents")
+                    st.markdown("""
+                    **The CSV file includes:**
+                    - Element ID and Wall-hosted ID
+                    - Glass area and window dimensions
+                    - Orientation and azimuth data
+                    - Annual solar radiation (kWh/m²)
+                    - Expected PV production (kWh)
+                    - BIPV selection status
+                    - Building level information
+                    """)
+                else:
+                    st.error("No building element data available for export.")
+            except Exception as e:
+                st.error(f"Error generating CSV: {str(e)}")
+    
+    st.markdown("---")
+    
+    # Workflow completion
+    st.markdown("### 🎯 Analysis Complete")
+    st.success("✅ BIPV Optimizer workflow complete!")
+    st.markdown("""
+    **Your comprehensive BIPV analysis includes:**
+    - Building geometry analysis from BIM data
+    - Solar radiation modeling and shading analysis  
+    - PV technology selection and layout optimization
+    - Financial modeling with NPV, IRR, and payback analysis
+    - Environmental impact assessment
+    - Implementation recommendations
+    """)
+    
+    # Navigation
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("← Previous Step", key="reporting_prev"):
+            st.session_state.workflow_step = 9
+            st.rerun()
+    
+    with col2:
+        if st.button("🔄 Finish & New Calculation", key="reporting_finish"):
+            # Clear session state for new calculation while preserving project setup
+            keys_to_preserve = ['project_setup']
+            current_values = {key: st.session_state.get(key) for key in keys_to_preserve}
+            
+            # Clear all session state
+            for key in list(st.session_state.keys()):
+                if key not in keys_to_preserve:
+                    del st.session_state[key]
+            
+            # Restore preserved values
+            for key, value in current_values.items():
+                if value is not None:
+                    st.session_state[key] = value
+            
+            # Reset to first step
+            st.session_state.workflow_step = 1
+            st.success("🔄 Ready for new BIPV analysis!")
+            st.rerun()
+
+
 def generate_window_elements_csv():
     """Generate CSV file with window element data for BIPV calculations"""
     if 'building_elements' not in st.session_state or not st.session_state.building_elements:
