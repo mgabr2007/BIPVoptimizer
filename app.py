@@ -4334,11 +4334,11 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
             """
         
         # Chart 3: Energy Balance
-        if yield_analysis:
+        if annual_generation > 0 or annual_demand > 0:
             months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
             import math
-            generation = [annual_generation/12 * (1 + 0.3 * math.cos(i*30*math.pi/180)) for i in range(12)]
-            demand = [annual_demand/12 * (1 + 0.2 * math.cos((i+6)*30*math.pi/180)) for i in range(12)]
+            generation = [max(0, annual_generation/12 * (1 + 0.3 * math.cos(i*30*math.pi/180))) for i in range(12)]
+            demand = [max(0, annual_demand/12 * (1 + 0.2 * math.cos((i+6)*30*math.pi/180))) for i in range(12)]
             
             charts_html += f"""
             <div class="chart-container">
