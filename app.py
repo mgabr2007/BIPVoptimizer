@@ -4442,27 +4442,6 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     </html>"""
     
     return html_content
-        
-        <div class="section">
-            <h2>7. Multi-Objective BIPV Optimization</h2>
-            <div class="subsection">
-                <h3>Genetic Algorithm Optimization (NSGA-II)</h3>
-                <div class="equation">
-                    <h4>Objective Function 1 - Net Energy Import Minimization:</h4>
-                    f₁(x) = Σ(E_demand_i - E_generation_i × x_i) for all windows i<br>
-                    Where:<br>
-                    • x_i = Binary decision variable (1 = install BIPV, 0 = regular glass)<br>
-                    • E_demand_i = Energy demand for window element i<br>
-                    • E_generation_i = Potential energy generation for window element i
-                </div>
-                
-                <div class="equation">
-                    <h4>Objective Function 2 - ROI Maximization:</h4>
-                    f₂(x) = (Σ(CF_annual × x_i) - Σ(Cost_i × x_i)) / Σ(Cost_i × x_i)<br>
-                    Where:<br>
-                    • CF_annual = Annual cash flow per window<br>
-                    • Cost_i = BIPV installation cost for window i<br>
-                    • ROI calculated over 25-year project lifetime
                 </div>
                 
                 <div class="equation">
