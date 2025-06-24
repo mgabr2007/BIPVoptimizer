@@ -66,22 +66,11 @@ def main():
         ("reporting", "🔟 Reporting", "Results and export")
     ]
     
-    # Render navigation buttons
-    for i, (step_key, step_name, description) in enumerate(workflow_steps):
-        is_current = st.session_state.current_step == step_key
-        
-        if is_current:
-            st.sidebar.markdown(f"**▶️ {step_name}**")
-            st.sidebar.caption(f"*Current: {description}*")
-        else:
-            if st.sidebar.button(step_name, key=f"nav_{step_key}_{i}", use_container_width=True):
-                st.session_state.current_step = step_key
-                st.rerun()
-            st.sidebar.caption(description)
-        
-        # Add small spacing between buttons
-        if i < len(workflow_steps) - 1:
-            st.sidebar.write("")
+    # Only show current project info if available
+    if 'project_data' in st.session_state and st.session_state.project_data:
+        project_name = st.session_state.project_data.get('project_name', 'Unnamed Project')
+        st.sidebar.markdown(f"**Current Project:** {project_name}")
+        st.sidebar.markdown("---")
     
     # Main content area - render current step without top navigation
     current_step = st.session_state.current_step
