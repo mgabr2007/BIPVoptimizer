@@ -186,7 +186,7 @@ def render_project_setup():
                 - Export Rate: {get_currency_symbol(currency)}{electricity_rates['export_rate']:.3f}/kWh
                 """)
             
-            st.balloons()
+
         else:
             st.error("❌ Failed to save project data to database.")
     
