@@ -4139,15 +4139,35 @@ def render_reporting():
                 # Generate the HTML report
                 html_content = generate_enhanced_html_report(include_charts, include_recommendations)
                 
-                # Create download button
-                st.success("✅ Report generated successfully!")
-                st.download_button(
-                    label="📥 Download HTML Report",
-                    data=html_content,
-                    file_name=f"BIPV_Analysis_Report_{project_data.get('project_name', 'Project').replace(' ', '_')}.html",
-                    mime="text/html",
-                    key="download_html_report"
-                )
+                if html_content and len(html_content) > 100:  # Validate content
+                    # Store in session state for persistent access
+                    st.session_state['generated_report'] = html_content
+                    
+                    # Create download button
+                    st.success("✅ Report generated successfully!")
+                    
+                    # File name with current timestamp
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    project_name = project_data.get('project_name', 'BIPV_Project')
+                    safe_name = project_name.replace(' ', '_').replace('/', '_')
+                    
+                    st.download_button(
+                        label="📥 Download HTML Report",
+                        data=html_content,
+                        file_name=f"BIPV_Analysis_Report_{safe_name}_{timestamp}.html",
+                        mime="text/html",
+                        key="download_html_report",
+                        help="Download comprehensive BIPV analysis report with all calculations and results"
+                    )
+                    
+                    # Show report size and validation
+                    report_size = len(html_content) / 1024
+                    st.info(f"Report size: {report_size:.1f} KB - Ready for download")
+                    
+                else:
+                    st.error("Failed to generate report content. Please ensure all analysis steps are completed.")
+                    st.info("The report requires data from Steps 1-9 to generate meaningful content.")
                 
                 st.markdown("### 📊 Report Contents")
                 st.markdown("""
@@ -4174,15 +4194,35 @@ def render_reporting():
         with st.spinner("Preparing CSV export..."):
             try:
                 csv_content = generate_window_elements_csv()
-                if csv_content:
+                if csv_content and len(csv_content) > 50:  # Validate CSV content
+                    # Store in session state for persistent access
+                    st.session_state['generated_csv'] = csv_content
+                    
                     st.success("✅ CSV data prepared successfully!")
+                    
+                    # File name with current timestamp
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    project_name = project_data.get('project_name', 'BIPV_Project')
+                    safe_name = project_name.replace(' ', '_').replace('/', '_')
+                    
                     st.download_button(
                         label="📥 Download Window Elements CSV",
                         data=csv_content,
-                        file_name=f"BIPV_Window_Elements_{project_data.get('project_name', 'Project').replace(' ', '_')}.csv",
+                        file_name=f"BIPV_Window_Elements_{safe_name}_{timestamp}.csv",
                         mime="text/csv",
-                        key="download_csv_data"
+                        key="download_csv_data",
+                        help="Download detailed window element data with BIPV analysis results"
                     )
+                    
+                    # Show CSV preview and validation
+                    lines = csv_content.split('\n')
+                    st.info(f"CSV contains {len(lines)-1} building elements with detailed analysis data")
+                    
+                    # Show first few lines as preview
+                    with st.expander("📋 CSV Data Preview"):
+                        preview_lines = lines[:6]  # Header + 5 data rows
+                        st.code('\n'.join(preview_lines), language='csv')
                     
                     st.markdown("### 📋 CSV Export Contents")
                     st.markdown("""
@@ -4195,8 +4235,10 @@ def render_reporting():
                     - BIPV selection status
                     - Building level information
                     """)
+                    
                 else:
-                    st.error("No building element data available for export.")
+                    st.error("No building element data available for CSV export.")
+                    st.info("Please complete Step 4 (Facade & Window Extraction) to generate CSV data.")
             except Exception as e:
                 st.error(f"Error generating CSV: {str(e)}")
     
@@ -4291,20 +4333,21 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     """Generate comprehensive HTML report using data from database and session state"""
     from datetime import datetime
     
-    # Get project name from session state
-    project_name = st.session_state.get('project_data', {}).get('project_name', 'Unnamed Project')
-    
-    # Try to get comprehensive data from database first
-    db_data = db_manager.get_project_report_data(project_name)
-    
-    # If no data found by name, try to get the most recent project
-    if not db_data:
-        recent_projects = db_manager.list_projects()
-        if recent_projects:
-            latest_project = recent_projects[0]  # Get most recent
-            db_data = db_manager.get_project_report_data(latest_project['project_name'])
-    
-    if db_data:
+    try:
+        # Get project name from session state
+        project_name = st.session_state.get('project_data', {}).get('project_name', 'Unnamed Project')
+        
+        # Try to get comprehensive data from database first
+        db_data = db_manager.get_project_report_data(project_name)
+        
+        # If no data found by name, try to get the most recent project
+        if not db_data:
+            recent_projects = db_manager.list_projects()
+            if recent_projects:
+                latest_project = recent_projects[0]  # Get most recent
+                db_data = db_manager.get_project_report_data(latest_project['project_name'])
+        
+        if db_data:
         # Use database data as primary source
         project_data = {
             'project_name': db_data.get('project_name'),
@@ -4377,57 +4420,55 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
             if building_elements is not None and hasattr(building_elements, 'to_dict'):
                 building_elements = building_elements.to_dict('records')
     
-    else:
-        # Fallback to session state data with realistic calculations
-        project_data = st.session_state.get('project_data', {})
-        building_elements = st.session_state.get('building_elements', None)
-        
-        # Convert DataFrame to list if needed
-        if building_elements is not None and hasattr(building_elements, 'to_dict'):
-            building_elements = building_elements.to_dict('records')
-        
-        # Calculate realistic values based on available building elements
-        if building_elements:
-            total_glass_area = sum(float(elem.get('glass_area', elem.get('Glass_Area', 0))) for elem in building_elements)
-            suitable_elements = sum(1 for elem in building_elements if elem.get('pv_suitable', elem.get('PV_Suitable', False)))
-            suitable_area = total_glass_area * 0.6
         else:
-            total_glass_area = 1000
-            suitable_elements = 50
-            suitable_area = 600
-        
-        # Generate realistic energy calculations
-        annual_generation = suitable_area * 150  # 150 kWh/m²/year for BIPV
-        annual_demand = 120000  # Typical educational building
-        
-        # Session state data with calculated fallbacks
-        weather_data = project_data.get('current_weather', {'temperature': 15})
-        radiation_data = project_data.get('radiation_data', {'avg_irradiance': 1400})
-        pv_specs = st.session_state.get('pv_specs', {'panel_type': 'Semi-transparent BIPV', 'efficiency': 15})
-        
-        yield_analysis = {
-            'total_annual_generation': annual_generation,
-            'annual_demand_prediction': annual_demand,
-            'net_energy_balance': annual_generation - annual_demand,
-            'energy_yield_per_m2': 150,
-            'self_consumption_rate': min(annual_generation / annual_demand, 1.0)
-        }
-        
-        # Financial calculations
-        initial_investment = suitable_area * 800
-        annual_savings = annual_generation * 0.28
-        
-        financial_analysis = {
-            'initial_investment': initial_investment,
-            'annual_savings': annual_savings,
-            'npv': annual_savings * 15 - initial_investment,
-            'irr': 0.08,
-            'payback_period': initial_investment / annual_savings if annual_savings > 0 else 15,
-            'co2_savings_annual': annual_generation * 0.0004,
-            'co2_savings_lifetime': annual_generation * 0.0004 * 25
-        }
-        
-        st.info("Using session state data with calculated performance metrics")
+            # Fallback to session state data with realistic calculations
+            project_data = st.session_state.get('project_data', {})
+            building_elements = st.session_state.get('building_elements', None)
+            
+            # Convert DataFrame to list if needed
+            if building_elements is not None and hasattr(building_elements, 'to_dict'):
+                building_elements = building_elements.to_dict('records')
+            
+            # Calculate realistic values based on available building elements
+            if building_elements:
+                total_glass_area = sum(float(elem.get('glass_area', elem.get('Glass_Area', 0))) for elem in building_elements)
+                suitable_elements = sum(1 for elem in building_elements if elem.get('pv_suitable', elem.get('PV_Suitable', False)))
+                suitable_area = total_glass_area * 0.6
+            else:
+                total_glass_area = 1000
+                suitable_elements = 50
+                suitable_area = 600
+            
+            # Generate realistic energy calculations
+            annual_generation = suitable_area * 150  # 150 kWh/m²/year for BIPV
+            annual_demand = 120000  # Typical educational building
+            
+            # Session state data with calculated fallbacks
+            weather_data = project_data.get('current_weather', {'temperature': 15})
+            radiation_data = project_data.get('radiation_data', {'avg_irradiance': 1400})
+            pv_specs = st.session_state.get('pv_specs', {'panel_type': 'Semi-transparent BIPV', 'efficiency': 15})
+            
+            yield_analysis = {
+                'total_annual_generation': annual_generation,
+                'annual_demand_prediction': annual_demand,
+                'net_energy_balance': annual_generation - annual_demand,
+                'energy_yield_per_m2': 150,
+                'self_consumption_rate': min(annual_generation / annual_demand, 1.0)
+            }
+            
+            # Financial calculations
+            initial_investment = suitable_area * 800
+            annual_savings = annual_generation * 0.28
+            
+            financial_analysis = {
+                'initial_investment': initial_investment,
+                'annual_savings': annual_savings,
+                'npv': annual_savings * 15 - initial_investment,
+                'irr': 0.08,
+                'payback_period': initial_investment / annual_savings if annual_savings > 0 else 15,
+                'co2_savings_annual': annual_generation * 0.0004,
+                'co2_savings_lifetime': annual_generation * 0.0004 * 25
+            }
     
     # Initialize missing variables
     facade_data = project_data.get('facade_data', {})
@@ -4884,7 +4925,32 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
 </body>
 </html>"""
 
-    return html_content
+        return html_content
+    
+    except Exception as e:
+        # Return a minimal error report if generation fails
+        error_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>BIPV Analysis Report - Error</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; }}
+                .error {{ color: red; background: #ffe6e6; padding: 20px; border-radius: 5px; }}
+            </style>
+        </head>
+        <body>
+            <h1>BIPV Analysis Report</h1>
+            <div class="error">
+                <h2>Report Generation Error</h2>
+                <p>An error occurred while generating the comprehensive report: {str(e)}</p>
+                <p>Please ensure all analysis steps are completed and try again.</p>
+            </div>
+            <p>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        </body>
+        </html>
+        """
+        return error_html
 
 if __name__ == "__main__":
     main()
