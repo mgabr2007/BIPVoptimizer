@@ -2227,6 +2227,10 @@ def render_facade_extraction():
                     # Also store building elements in expected format for reporting
                     import pandas as pd
                     building_elements_df = pd.DataFrame(windows)
+                    
+                    # Save building elements to database immediately
+                    if 'project_id' in st.session_state:
+                        db_manager.save_building_elements(st.session_state.project_id, windows)
                     # Rename columns to match expected format
                     building_elements_df = building_elements_df.rename(columns={
                         'element_id': 'Element_ID',
@@ -3563,6 +3567,28 @@ def render_yield_demand():
                 }
                 
                 st.session_state.project_data['energy_balance'] = balance_data
+                
+                # Save yield analysis to database
+                if 'project_id' in st.session_state:
+                    yield_analysis = {
+                        'annual_generation': annual_generation,
+                        'annual_demand': annual_demand,
+                        'net_energy_balance': net_energy,
+                        'energy_yield_per_m2': annual_generation / total_glass_area if total_glass_area > 0 else 0,
+                        'analysis_complete': True
+                    }
+                    db_manager.save_yield_demand_data(st.session_state.project_id, yield_analysis)
+                
+                # Save energy balance analysis to database
+                if 'project_id' in st.session_state:
+                    yield_analysis_data = {
+                        'annual_generation': annual_generation,
+                        'annual_demand': annual_demand,
+                        'net_energy_balance': annual_generation - annual_demand,
+                        'energy_yield_per_m2': annual_generation / total_glass_area if total_glass_area > 0 else 0,
+                        'analysis_complete': True
+                    }
+                    db_manager.save_yield_demand_data(st.session_state.project_id, yield_analysis_data)
             
             st.success("✅ Energy balance calculated successfully!")
             
@@ -4025,15 +4051,17 @@ def render_reporting():
         import pandas as pd
         windows_data = st.session_state.project_data['facade_data']['windows']
         building_elements = pd.DataFrame(windows_data)
-        # Store for future use
+        # Store for future use and save to database
         st.session_state.building_elements = building_elements
-        
-        # Save building elements to database
-        if 'project_id' in st.session_state:
-            db_manager.save_building_elements(st.session_state.project_id, building_elements)
-        
-        # Mark extraction as complete
         st.session_state.project_data['extraction_complete'] = True
+        
+        # Save building elements to database with debug output
+        if 'project_id' in st.session_state:
+            success = db_manager.save_building_elements(st.session_state.project_id, building_elements)
+            if success:
+                st.success(f"Building elements saved to database: {len(building_elements)} elements")
+            else:
+                st.error("Failed to save building elements to database")
     
     if building_elements is None or len(building_elements) == 0:
         st.error("🚫 **BIM Building Data Required**")

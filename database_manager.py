@@ -476,7 +476,10 @@ class BIPVDatabaseManager:
                 result['building_elements'] = [dict(row) for row in building_elements_raw]
                 
                 # Debug: Log building elements count
-                print(f"Database query returned {len(building_elements_raw)} building elements for project_id {result['project_id']}")
+                if len(building_elements_raw) == 0:
+                    print(f"WARNING: No building elements found for project_id {result['project_id']}")
+                else:
+                    print(f"Database query returned {len(building_elements_raw)} building elements for project_id {result['project_id']}")
                 
                 # Get element radiation data
                 cursor.execute("""
