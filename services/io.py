@@ -5,9 +5,11 @@ Handles database operations, OpenWeather API, and WMO file parsing
 import requests
 import json
 import os
+import streamlit as st
 from database_manager import db_manager
 
 
+@st.cache_data(ttl=3600)
 def load_complete_wmo_stations():
     """Load all WMO stations from the official database file"""
     try:
@@ -69,6 +71,7 @@ def load_complete_wmo_stations():
         ]
 
 
+@st.cache_data(ttl=3600)
 def find_nearest_wmo_station(lat, lon):
     """Find the nearest WMO weather station for given coordinates"""
     stations = load_complete_wmo_stations()

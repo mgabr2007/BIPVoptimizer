@@ -2,6 +2,7 @@
 Core mathematical functions and solar calculations for BIPV Optimizer
 """
 import math
+import streamlit as st
 from datetime import datetime, timedelta
 
 
@@ -87,6 +88,7 @@ def determine_timezone_from_coordinates(lat, lon):
         return f"UTC{utc_offset}"
 
 
+@st.cache_data(ttl=3600)
 def get_location_solar_parameters(location):
     """Get location-specific solar parameters based on location string"""
     # Enhanced global location database with comprehensive coverage
@@ -150,6 +152,7 @@ def get_location_solar_parameters(location):
     }
 
 
+@st.cache_data(ttl=3600)
 def get_location_electricity_rates(location, currency):
     """Get location-specific electricity rates in specified currency"""
     # Electricity rates in EUR/kWh (base currency)
