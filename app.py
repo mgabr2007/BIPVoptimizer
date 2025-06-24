@@ -1298,6 +1298,15 @@ def render_project_setup():
                     }
                     
                     st.session_state.project_data = project_data
+                    
+                    # Save project data to database
+                    project_id = db_manager.save_project(project_data)
+                    if project_id:
+                        st.session_state.project_id = project_id
+                        # Save weather data to database
+                        if weather_data.get('api_success'):
+                            db_manager.save_weather_data(project_id, weather_data)
+                    
                     st.success("🎯 Project location and settings configured successfully!")
                     
                     # Display final configured settings with improved layout
@@ -2425,6 +2434,10 @@ def render_radiation_grid():
                 }
                 
                 st.session_state.project_data['radiation_data'] = radiation_data
+                
+                # Save radiation analysis to database
+                if 'project_id' in st.session_state:
+                    db_manager.save_radiation_analysis(st.session_state.project_id, radiation_data)
             
             st.success("✅ Radiation analysis complete!")
             
@@ -3886,6 +3899,10 @@ def render_financial_analysis():
                 }
                 
                 st.session_state.project_data['financial_analysis'] = financial_data
+                
+                # Save financial analysis to database
+                if 'project_id' in st.session_state:
+                    db_manager.save_financial_analysis(st.session_state.project_id, financial_data)
             
             st.success("✅ Financial and environmental analysis complete!")
             
@@ -3965,6 +3982,10 @@ def render_reporting():
         building_elements = pd.DataFrame(windows_data)
         # Store for future use
         st.session_state.building_elements = building_elements
+        
+        # Save building elements to database
+        if 'project_id' in st.session_state:
+            db_manager.save_building_elements(st.session_state.project_id, building_elements)
     
     if building_elements is None or len(building_elements) == 0:
         st.error("🚫 **BIM Building Data Required**")
@@ -4184,40 +4205,69 @@ def generate_window_elements_csv():
 
 
 def generate_enhanced_html_report(include_charts, include_recommendations):
-    """Generate comprehensive HTML report using actual processed data from workflow steps"""
+    """Generate comprehensive HTML report using data from database and session state"""
     from datetime import datetime
     
-    # Collect all processed data from session state using correct keys based on actual storage
-    # Main project data container (from Step 1 and subsequent steps)
-    project_data = st.session_state.get('project_data', {})
+    # Get project name from session state
+    project_name = st.session_state.get('project_data', {}).get('project_name', 'Unnamed Project')
     
-    # Extract data from project_data structure
-    weather_data = project_data.get('current_weather', {})
-    tmy_data = project_data.get('tmy_data', {})
-    facade_data = project_data.get('facade_data', {})
+    # Try to get comprehensive data from database first
+    db_data = db_manager.get_project_report_data(project_name)
     
-    # Other workflow step data
-    building_elements = st.session_state.get('building_elements', None)
+    if db_data:
+        # Use database data as primary source
+        project_data = {
+            'project_name': db_data.get('project_name'),
+            'location': db_data.get('location'),
+            'coordinates': {'lat': db_data.get('latitude'), 'lon': db_data.get('longitude')},
+            'timezone': db_data.get('timezone'),
+            'currency': db_data.get('currency')
+        }
+        
+        weather_data = {
+            'temperature': db_data.get('temperature'),
+            'description': 'Database stored weather data',
+            'annual_ghi': db_data.get('annual_ghi')
+        }
+        
+        radiation_data = {
+            'avg_irradiance': db_data.get('avg_irradiance'),
+            'peak_irradiance': db_data.get('peak_irradiance'),
+            'shading_factor': db_data.get('shading_factor'),
+            'grid_points': 1000  # Default value
+        }
+        
+        pv_specs = {
+            'panel_type': db_data.get('panel_type'),
+            'efficiency': db_data.get('efficiency'),
+            'transparency': db_data.get('transparency'),
+            'cost_per_m2': db_data.get('cost_per_m2')
+        }
+        
+        financial_analysis = {
+            'initial_investment': db_data.get('initial_investment'),
+            'annual_savings': db_data.get('annual_savings'),
+            'npv': db_data.get('npv'),
+            'irr': db_data.get('irr'),
+            'payback_period': db_data.get('payback_period'),
+            'co2_savings_annual': db_data.get('co2_savings_annual'),
+            'co2_savings_lifetime': db_data.get('co2_savings_lifetime')
+        }
+        
+        building_elements = db_data.get('building_elements', [])
+        
+        st.success(f"Report generated from database with {len(building_elements)} building elements")
     
-    # Radiation analysis data (stored in project_data)
-    radiation_data = project_data.get('radiation_data', {})
-    
-    # PV specifications (stored separately)
-    pv_specs = st.session_state.get('pv_specs', {})
-    
-    # Other analysis data
-    yield_analysis = st.session_state.get('yield_analysis', {})
-    optimization_results = st.session_state.get('optimization_results', {})
-    
-    # Financial analysis data (stored in project_data)
-    financial_analysis = project_data.get('financial_analysis', {})
-    
-    # Check session state for financial data in multiple locations
-    if not financial_analysis:
-        # Try alternative locations
-        alt_financial = st.session_state.get('financial_analysis', {})
-        if alt_financial:
-            financial_analysis = alt_financial
+    else:
+        # Fallback to session state data
+        project_data = st.session_state.get('project_data', {})
+        weather_data = project_data.get('current_weather', {})
+        radiation_data = project_data.get('radiation_data', {})
+        pv_specs = st.session_state.get('pv_specs', {})
+        financial_analysis = project_data.get('financial_analysis', {})
+        building_elements = st.session_state.get('building_elements', None)
+        
+        st.warning("Using session state data - database data not available")
     
     # Handle building elements from facade data if needed
     if building_elements is None and facade_data.get('windows'):
