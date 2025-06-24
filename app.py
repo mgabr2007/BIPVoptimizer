@@ -82,8 +82,18 @@ def main():
             return project_data.get('setup_complete', False)
         elif step_key == 'facade_extraction':
             return project_data.get('setup_complete', False)
-        elif step_key in ['radiation_grid', 'pv_specification', 'yield_demand', 'optimization', 'financial_analysis', 'reporting']:
-            return project_data.get('extraction_complete', False)
+        elif step_key == 'radiation_grid':
+            return st.session_state.get('building_elements_completed', False) and st.session_state.get('weather_completed', False)
+        elif step_key == 'pv_specification':
+            return st.session_state.get('radiation_completed', False)
+        elif step_key == 'yield_demand':
+            return st.session_state.get('pv_specs_completed', False) and st.session_state.get('historical_completed', False)
+        elif step_key == 'optimization':
+            return st.session_state.get('yield_demand_completed', False)
+        elif step_key == 'financial_analysis':
+            return st.session_state.get('optimization_completed', False)
+        elif step_key == 'reporting':
+            return st.session_state.get('building_elements_completed', False)
         
         return True
     
@@ -126,20 +136,15 @@ def main():
     elif current_step == 'facade_extraction':
         render_facade_extraction()
     elif current_step == 'radiation_grid':
-        st.header("Step 5: Radiation & Shading Analysis")
-        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
+        render_radiation_grid()
     elif current_step == 'pv_specification':
-        st.header("Step 6: PV Specification & Layout")
-        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
+        render_pv_specification()
     elif current_step == 'yield_demand':
-        st.header("Step 7: Yield vs Demand Analysis")
-        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
+        render_yield_demand()
     elif current_step == 'optimization':
-        st.header("Step 8: Multi-Objective Optimization")
-        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
+        render_optimization()
     elif current_step == 'financial_analysis':
-        st.header("Step 9: Financial & Environmental Analysis")
-        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
+        render_financial_analysis()
     elif current_step == 'reporting':
         render_reporting()
 
