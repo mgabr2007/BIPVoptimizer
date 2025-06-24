@@ -11,6 +11,11 @@ from pages.project_setup import render_project_setup
 from pages.historical_data import render_historical_data
 from pages.weather_environment import render_weather_environment
 from pages.facade_extraction import render_facade_extraction
+from pages.radiation_grid import render_radiation_grid
+from pages.pv_specification import render_pv_specification
+from pages.yield_demand import render_yield_demand
+from pages.optimization import render_optimization
+from pages.financial_analysis import render_financial_analysis
 from pages.reporting import render_reporting
 
 # Import services
