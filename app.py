@@ -4350,32 +4350,32 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         if db_data:
             # Use database data as primary source
             project_data = {
-            'project_name': db_data.get('project_name'),
+                'project_name': db_data.get('project_name'),
             'location': db_data.get('location'),
-            'coordinates': {'lat': db_data.get('latitude'), 'lon': db_data.get('longitude')},
-            'timezone': db_data.get('timezone'),
-            'currency': db_data.get('currency')
-        }
-        
-        weather_data = {
-            'temperature': float(db_data.get('temperature')) if db_data.get('temperature') else 0,
-            'description': 'Database stored weather data',
-            'annual_ghi': float(db_data.get('annual_ghi')) if db_data.get('annual_ghi') else 0
-        }
-        
-        radiation_data = {
-            'avg_irradiance': float(db_data.get('avg_irradiance')) if db_data.get('avg_irradiance') else 0,
-            'peak_irradiance': float(db_data.get('peak_irradiance')) if db_data.get('peak_irradiance') else 1000,
-            'shading_factor': float(db_data.get('shading_factor')) if db_data.get('shading_factor') else 0,
-            'grid_points': 1000  # Default value
-        }
-        
-        pv_specs = {
-            'panel_type': db_data.get('panel_type', 'Semi-transparent BIPV'),
-            'efficiency': float(db_data.get('efficiency')) if db_data.get('efficiency') else 15,
-            'transparency': float(db_data.get('transparency')) if db_data.get('transparency') else 50,
-            'cost_per_m2': float(db_data.get('cost_per_m2')) if db_data.get('cost_per_m2') else 800
-        }
+                'coordinates': {'lat': db_data.get('latitude'), 'lon': db_data.get('longitude')},
+                'timezone': db_data.get('timezone'),
+                'currency': db_data.get('currency')
+            }
+            
+            weather_data = {
+                'temperature': float(db_data.get('temperature')) if db_data.get('temperature') else 0,
+                'description': 'Database stored weather data',
+                'annual_ghi': float(db_data.get('annual_ghi')) if db_data.get('annual_ghi') else 0
+            }
+            
+            radiation_data = {
+                'avg_irradiance': float(db_data.get('avg_irradiance')) if db_data.get('avg_irradiance') else 0,
+                'peak_irradiance': float(db_data.get('peak_irradiance')) if db_data.get('peak_irradiance') else 1000,
+                'shading_factor': float(db_data.get('shading_factor')) if db_data.get('shading_factor') else 0,
+                'grid_points': 1000  # Default value
+            }
+            
+            pv_specs = {
+                'panel_type': db_data.get('panel_type', 'Semi-transparent BIPV'),
+                'efficiency': float(db_data.get('efficiency')) if db_data.get('efficiency') else 15,
+                'transparency': float(db_data.get('transparency')) if db_data.get('transparency') else 50,
+                'cost_per_m2': float(db_data.get('cost_per_m2')) if db_data.get('cost_per_m2') else 800
+            }
         
         # Calculate realistic values based on building elements if database values are missing
         building_elements = db_data.get('building_elements', [])
@@ -4469,9 +4469,9 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
                 'co2_savings_annual': annual_generation * 0.0004,
                 'co2_savings_lifetime': annual_generation * 0.0004 * 25
             }
-    
-    # Initialize missing variables
-    facade_data = project_data.get('facade_data', {})
+        
+        # Initialize missing variables
+        facade_data = project_data.get('facade_data', {})
     tmy_data = project_data.get('tmy_data', {})
     yield_analysis = st.session_state.get('yield_analysis', {})
     optimization_results = st.session_state.get('optimization_results', {})
