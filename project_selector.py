@@ -37,8 +37,22 @@ def render_project_selector():
             selected_project = next((p for p in projects if p['project_name'] == project_name), None)
             if selected_project:
                 st.sidebar.markdown("**Project Details:**")
-                st.sidebar.text(f"Created: {selected_project['created_at'][:10]}")
-                st.sidebar.text(f"Updated: {selected_project['updated_at'][:10]}")
+                # Handle datetime objects properly
+                created_date = selected_project['created_at']
+                updated_date = selected_project['updated_at']
+                
+                if hasattr(created_date, 'strftime'):
+                    created_str = created_date.strftime('%Y-%m-%d')
+                else:
+                    created_str = str(created_date)[:10]
+                    
+                if hasattr(updated_date, 'strftime'):
+                    updated_str = updated_date.strftime('%Y-%m-%d')
+                else:
+                    updated_str = str(updated_date)[:10]
+                
+                st.sidebar.text(f"Created: {created_str}")
+                st.sidebar.text(f"Updated: {updated_str}")
         
         # Delete project option
         if len(projects) > 0:
