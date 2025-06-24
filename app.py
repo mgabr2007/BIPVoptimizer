@@ -19,6 +19,14 @@ from pages_modules.optimization import render_optimization
 from pages_modules.financial_analysis import render_financial_analysis
 from pages_modules.reporting import render_reporting
 
+# Import workflow visualization
+from components.workflow_visualization import (
+    render_workflow_progress, 
+    render_compact_progress,
+    render_step_completion_tracker,
+    render_milestone_tracker
+)
+
 # Page configuration
 st.set_page_config(
     page_title="BIPV Optimizer",
@@ -89,8 +97,36 @@ def main():
         project_name = st.session_state.project_data.get('project_name', 'Unnamed Project')
         st.sidebar.markdown(f"**Current Project:** {project_name}")
     
-    # Main content area - render current step without top navigation
+    st.sidebar.markdown("---")
+    
+    # Get current step for all components
     current_step = st.session_state.current_step
+    
+    # Add compact progress indicator to sidebar
+    render_compact_progress(workflow_steps, current_step)
+    
+    # Main content area with workflow visualization
+    
+    # Add workflow visualization toggle
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.title("🏢 BIPV Optimizer")
+    with col2:
+        show_workflow_vis = st.toggle("Show Workflow Progress", key="workflow_vis_toggle")
+    
+    # Display workflow visualization if enabled
+    if show_workflow_vis:
+        with st.expander("🔄 Workflow Visualization", expanded=True):
+            tab1, tab2, tab3 = st.tabs(["Progress Tracker", "Milestones", "Completion Status"])
+            
+            with tab1:
+                render_workflow_progress(workflow_steps, current_step)
+            
+            with tab2:
+                render_milestone_tracker()
+            
+            with tab3:
+                render_step_completion_tracker()
     
     # Render the actual step content
     try:

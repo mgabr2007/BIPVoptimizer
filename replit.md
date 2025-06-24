@@ -253,6 +253,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 24, 2025: Implemented complete workflow integration - all 11 steps now fully functional including radiation analysis, PV specification, yield vs demand analysis, multi-objective optimization, and financial analysis with no remaining placeholders
 - June 24, 2025: Improved UI by removing title and workflow headers from sidebar, starting directly with "Loading the project" section, and moved step navigation from top of pages to bottom for better user experience
 - June 24, 2025: Removed balloon celebration animations from all workflow steps to create a cleaner, more professional interface
+- June 24, 2025: Fixed sidebar folder links by renaming pages/ to pages_modules/ to prevent Streamlit's automatic multipage detection
+- June 24, 2025: Implemented dynamic workflow visualization with intuitive step progression including progress tracking, milestone visualization, completion status, and enhanced navigation with visual feedback
 
 ## User Preferences
 
