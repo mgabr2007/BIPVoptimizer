@@ -4962,9 +4962,9 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
 </body>
 </html>"""
 
-    return html_content
+        return html_content
 
-except Exception as e:
+    except Exception as e:
         # Return a minimal error report if generation fails
         error_html = f"""
         <!DOCTYPE html>
@@ -4986,8 +4986,8 @@ except Exception as e:
             <p>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         </body>
         </html>
-    """
-    return error_html
+        """
+        return error_html
 
 if __name__ == "__main__":
     main()
