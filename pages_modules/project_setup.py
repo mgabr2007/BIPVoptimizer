@@ -22,7 +22,7 @@ def render_project_setup():
         project_name = st.text_input(
             "Project Name",
             value="BIPV Optimization Project",
-            help="Enter a descriptive name for your BIPV analysis project",
+            help="📝 Enter a descriptive name for your BIPV analysis project. This name will be used for database storage and report generation. Examples: 'University Main Building BIPV', 'Office Complex Solar Integration'",
             key="project_name_input"
         )
     
@@ -33,7 +33,7 @@ def render_project_setup():
             "Currency (Fixed)",
             value="EUR",
             disabled=True,
-            help="All financial calculations use EUR as base currency",
+            help="💰 All financial calculations are standardized to EUR (Euros). Exchange rates from local currencies are automatically applied using current market rates. This ensures consistent economic analysis across different regions.",
             key="currency_display"
         )
     
@@ -86,7 +86,7 @@ def render_project_setup():
     location_name = st.text_input(
         "Location Name",
         value="Berlin, Germany",
-        help="Enter the city/location name for reference",
+        help="🏙️ Enter the city and country name for reference. This helps identify the project location in reports and provides context for solar irradiance and electricity rate calculations. Format: 'City, Country'",
         key="location_name_input"
     )
     

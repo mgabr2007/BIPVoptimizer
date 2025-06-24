@@ -34,12 +34,14 @@ def render_historical_data():
         building_type = st.selectbox(
             "Building Type",
             ["University Campus", "K-12 School", "Research Facility", "Library", "Dormitory"],
+            help="🏫 Select your building type to apply appropriate energy consumption patterns. Each type has unique characteristics: Universities have complex scheduling, K-12 schools follow academic calendars, research facilities operate year-round with high baseloads, libraries have consistent occupancy, dormitories peak during academic terms.",
             key="building_type_select"
         )
         
         occupancy_pattern = st.selectbox(
             "Occupancy Pattern",
             ["Academic Year (Sep-Jun)", "Year-Round Operation", "Summer Programs"],
+            help="📅 Define your building's operational schedule. Academic Year (Sep-Jun) shows reduced summer consumption, Year-Round Operation maintains consistent usage, Summer Programs indicate increased summer activity. This affects demand prediction accuracy.",
             key="occupancy_pattern_select"
         )
     
@@ -70,7 +72,7 @@ def render_historical_data():
     uploaded_file = st.file_uploader(
         "Upload Historical Energy Data (CSV)",
         type=['csv'],
-        help="CSV file with historical energy consumption data",
+        help="📊 Upload a CSV file containing at least 12 months of historical energy consumption data. Required: Date (YYYY-MM-DD) and Consumption (kWh) columns. Optional: Temperature, Humidity, Occupancy data improves AI model accuracy. File size limit: 10MB.",
         key="historical_data_upload"
     )
     
