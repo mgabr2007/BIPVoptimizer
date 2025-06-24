@@ -5,3 +5,16 @@ port = 5000
 
 [theme]
 base = "light"
+
+[browser]
+gatherUsageStats = false
+
+[global]
+showWarningOnDirectExecution = false
+disableWatchdogWarning = true
+
+[runner]
+magicEnabled = false
+
+[client]
+showErrorDetails = false
