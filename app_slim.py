@@ -8,7 +8,10 @@ import os
 # Import page modules
 from pages.welcome import render_welcome
 from pages.project_setup import render_project_setup
-# TODO: Import remaining page modules as they are created
+from pages.historical_data import render_historical_data
+from pages.weather_environment import render_weather_environment
+from pages.facade_extraction import render_facade_extraction
+from pages.reporting import render_reporting
 
 # Import services
 from services.io import list_projects
@@ -112,41 +115,28 @@ def main():
     elif current_step == 'project_setup':
         render_project_setup()
     elif current_step == 'historical_data':
-        # TODO: Import and call render_historical_data()
-        st.header("Step 2: Historical Data Analysis")
-        st.info("This step is being refactored. Please use the original app.py for now.")
+        render_historical_data()
     elif current_step == 'weather_environment':
-        # TODO: Import and call render_weather_environment()
-        st.header("Step 3: Weather & Environment Integration")
-        st.info("This step is being refactored. Please use the original app.py for now.")
+        render_weather_environment()
     elif current_step == 'facade_extraction':
-        # TODO: Import and call render_facade_extraction()
-        st.header("Step 4: Facade & Window Extraction")
-        st.info("This step is being refactored. Please use the original app.py for now.")
+        render_facade_extraction()
     elif current_step == 'radiation_grid':
-        # TODO: Import and call render_radiation_grid()
         st.header("Step 5: Radiation & Shading Analysis")
-        st.info("This step is being refactored. Please use the original app.py for now.")
+        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
     elif current_step == 'pv_specification':
-        # TODO: Import and call render_pv_specification()
         st.header("Step 6: PV Specification & Layout")
-        st.info("This step is being refactored. Please use the original app.py for now.")
+        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
     elif current_step == 'yield_demand':
-        # TODO: Import and call render_yield_demand()
         st.header("Step 7: Yield vs Demand Analysis")
-        st.info("This step is being refactored. Please use the original app.py for now.")
+        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
     elif current_step == 'optimization':
-        # TODO: Import and call render_optimization()
         st.header("Step 8: Multi-Objective Optimization")
-        st.info("This step is being refactored. Please use the original app.py for now.")
+        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
     elif current_step == 'financial_analysis':
-        # TODO: Import and call render_financial_analysis()
         st.header("Step 9: Financial & Environmental Analysis")
-        st.info("This step is being refactored. Please use the original app.py for now.")
+        st.info("This step will be refactored in the next phase. Please use the original app.py for now.")
     elif current_step == 'reporting':
-        # TODO: Import and call render_reporting()
-        st.header("Step 10: Reporting & Export")
-        st.info("This step is being refactored. Please use the original app.py for now.")
+        render_reporting()
 
 
 if __name__ == "__main__":

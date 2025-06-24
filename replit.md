@@ -23,18 +23,30 @@ The platform follows a 10-step workflow that guides users through the entire BIP
 
 ### Module Structure
 ```
-modules/
-├── project_setup.py          # Project configuration and BIM model upload
-├── historical_data.py         # Energy consumption data analysis and AI model training
-├── weather_environment.py     # Weather data integration and TMY generation
-├── facade_extraction.py       # Building facade and window extraction from BIM
-├── radiation_grid.py          # Solar radiation grid generation and shading analysis
-├── pv_specification.py        # PV panel specification and layout calculation
-├── yield_demand.py           # Energy yield vs demand calculation
-├── optimization.py           # Multi-objective optimization using genetic algorithms
-├── financial_analysis.py     # Financial modeling and environmental impact
-├── visualization_3d.py       # 3D building and PV system visualization
-└── reporting.py              # Report generation and data export
+core/
+├── solar_math.py             # Mathematical functions and solar calculations
+└── __init__.py
+
+services/
+├── io.py                     # External I/O services (DB, APIs, file parsing)
+└── __init__.py
+
+pages/
+├── welcome.py                # Welcome and introduction page
+├── project_setup.py          # Project configuration and location setup
+├── historical_data.py        # Energy consumption analysis and AI model training
+├── weather_environment.py    # Weather data integration and TMY generation
+├── facade_extraction.py      # Building facade and window extraction from BIM
+├── reporting.py              # Report generation and data export
+└── __init__.py
+
+Legacy modules/ (to be refactored):
+├── radiation_grid.py         # Solar radiation grid generation and shading analysis
+├── pv_specification.py       # PV panel specification and layout calculation
+├── yield_demand.py          # Energy yield vs demand calculation
+├── optimization.py          # Multi-objective optimization using genetic algorithms
+├── financial_analysis.py    # Financial modeling and environmental impact
+└── visualization_3d.py      # 3D building and PV system visualization
 ```
 
 ## Key Components
