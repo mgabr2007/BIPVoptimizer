@@ -39,6 +39,17 @@ if 'current_step' not in st.session_state:
 if 'project_data' not in st.session_state:
     st.session_state.project_data = {}
 
+# Initialize completion flags
+completion_flags = [
+    'setup_completed', 'historical_completed', 'weather_completed', 
+    'building_elements_completed', 'radiation_completed', 'pv_specs_completed',
+    'yield_demand_completed', 'optimization_completed', 'financial_completed'
+]
+
+for flag in completion_flags:
+    if flag not in st.session_state:
+        st.session_state[flag] = False
+
 
 def main():
     """Main application entry point"""
@@ -71,47 +82,30 @@ def main():
     # Check step dependencies
     def check_step_availability(step_key):
         """Check if a step is available based on previous completions"""
+        # Always allow welcome and project setup
         if step_key in ['welcome', 'project_setup']:
             return True
         
-        project_data = st.session_state.get('project_data', {})
-        
-        if step_key == 'historical_data':
-            return project_data.get('setup_complete', False)
-        elif step_key == 'weather_environment':
-            return project_data.get('setup_complete', False)
-        elif step_key == 'facade_extraction':
-            return project_data.get('setup_complete', False)
-        elif step_key == 'radiation_grid':
-            return st.session_state.get('building_elements_completed', False) and st.session_state.get('weather_completed', False)
-        elif step_key == 'pv_specification':
-            return st.session_state.get('radiation_completed', False)
-        elif step_key == 'yield_demand':
-            return st.session_state.get('pv_specs_completed', False) and st.session_state.get('historical_completed', False)
-        elif step_key == 'optimization':
-            return st.session_state.get('yield_demand_completed', False)
-        elif step_key == 'financial_analysis':
-            return st.session_state.get('optimization_completed', False)
-        elif step_key == 'reporting':
-            return st.session_state.get('building_elements_completed', False)
-        
+        # For development and testing, make all steps available initially
+        # Users can navigate freely but will see dependency warnings in each step
         return True
     
-    # Render navigation buttons
-    for step_key, step_name, description in workflow_steps:
-        is_available = check_step_availability(step_key)
+    # Render navigation buttons with better spacing
+    for i, (step_key, step_name, description) in enumerate(workflow_steps):
         is_current = st.session_state.current_step == step_key
         
         if is_current:
             st.sidebar.markdown(f"**▶️ {step_name}**")
-        elif is_available:
-            if st.sidebar.button(step_name, key=f"nav_{step_key}"):
+            st.sidebar.caption(f"*Current: {description}*")
+        else:
+            if st.sidebar.button(step_name, key=f"nav_{step_key}_{i}", use_container_width=True):
                 st.session_state.current_step = step_key
                 st.rerun()
-        else:
-            st.sidebar.markdown(f"🔒 {step_name} *(requires previous steps)*")
+            st.sidebar.caption(description)
         
-        st.sidebar.caption(description)
+        # Add small spacing between buttons
+        if i < len(workflow_steps) - 1:
+            st.sidebar.write("")
     
     st.sidebar.markdown("---")
     
@@ -125,28 +119,60 @@ def main():
     # Main content area - render current step
     current_step = st.session_state.current_step
     
-    if current_step == 'welcome':
-        render_welcome()
-    elif current_step == 'project_setup':
-        render_project_setup()
-    elif current_step == 'historical_data':
-        render_historical_data()
-    elif current_step == 'weather_environment':
-        render_weather_environment()
-    elif current_step == 'facade_extraction':
-        render_facade_extraction()
-    elif current_step == 'radiation_grid':
-        render_radiation_grid()
-    elif current_step == 'pv_specification':
-        render_pv_specification()
-    elif current_step == 'yield_demand':
-        render_yield_demand()
-    elif current_step == 'optimization':
-        render_optimization()
-    elif current_step == 'financial_analysis':
-        render_financial_analysis()
-    elif current_step == 'reporting':
-        render_reporting()
+    # Add step navigation within main content
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col1:
+        # Find current step index
+        current_index = next((i for i, (key, _, _) in enumerate(workflow_steps) if key == current_step), 0)
+        if current_index > 0:
+            prev_step = workflow_steps[current_index - 1]
+            if st.button(f"← {prev_step[1]}", key="prev_step"):
+                st.session_state.current_step = prev_step[0]
+                st.rerun()
+    
+    with col2:
+        st.markdown(f"<h3 style='text-align: center;'>Step {current_index + 1} of {len(workflow_steps)}</h3>", unsafe_allow_html=True)
+    
+    with col3:
+        if current_index < len(workflow_steps) - 1:
+            next_step = workflow_steps[current_index + 1]
+            if st.button(f"{next_step[1]} →", key="next_step"):
+                st.session_state.current_step = next_step[0]
+                st.rerun()
+    
+    st.markdown("---")
+    
+    # Render the actual step content
+    try:
+        if current_step == 'welcome':
+            render_welcome()
+        elif current_step == 'project_setup':
+            render_project_setup()
+        elif current_step == 'historical_data':
+            render_historical_data()
+        elif current_step == 'weather_environment':
+            render_weather_environment()
+        elif current_step == 'facade_extraction':
+            render_facade_extraction()
+        elif current_step == 'radiation_grid':
+            render_radiation_grid()
+        elif current_step == 'pv_specification':
+            render_pv_specification()
+        elif current_step == 'yield_demand':
+            render_yield_demand()
+        elif current_step == 'optimization':
+            render_optimization()
+        elif current_step == 'financial_analysis':
+            render_financial_analysis()
+        elif current_step == 'reporting':
+            render_reporting()
+        else:
+            st.error(f"Unknown step: {current_step}")
+    except Exception as e:
+        st.error(f"Error rendering step '{current_step}': {str(e)}")
+        st.info("Please try navigating to a different step.")
 
 
 if __name__ == "__main__":
