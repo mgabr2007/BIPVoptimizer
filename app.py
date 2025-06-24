@@ -4273,33 +4273,33 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         }
         
         weather_data = {
-            'temperature': db_data.get('temperature'),
+            'temperature': float(db_data.get('temperature')) if db_data.get('temperature') else 0,
             'description': 'Database stored weather data',
-            'annual_ghi': db_data.get('annual_ghi')
+            'annual_ghi': float(db_data.get('annual_ghi')) if db_data.get('annual_ghi') else 0
         }
         
         radiation_data = {
-            'avg_irradiance': db_data.get('avg_irradiance'),
-            'peak_irradiance': db_data.get('peak_irradiance'),
-            'shading_factor': db_data.get('shading_factor'),
+            'avg_irradiance': float(db_data.get('avg_irradiance')) if db_data.get('avg_irradiance') else 0,
+            'peak_irradiance': float(db_data.get('peak_irradiance')) if db_data.get('peak_irradiance') else 1000,
+            'shading_factor': float(db_data.get('shading_factor')) if db_data.get('shading_factor') else 0,
             'grid_points': 1000  # Default value
         }
         
         pv_specs = {
-            'panel_type': db_data.get('panel_type'),
-            'efficiency': db_data.get('efficiency'),
-            'transparency': db_data.get('transparency'),
-            'cost_per_m2': db_data.get('cost_per_m2')
+            'panel_type': db_data.get('panel_type', 'Not specified'),
+            'efficiency': float(db_data.get('efficiency')) if db_data.get('efficiency') else 0,
+            'transparency': float(db_data.get('transparency')) if db_data.get('transparency') else 0,
+            'cost_per_m2': float(db_data.get('cost_per_m2')) if db_data.get('cost_per_m2') else 0
         }
         
         financial_analysis = {
-            'initial_investment': db_data.get('initial_investment'),
-            'annual_savings': db_data.get('annual_savings'),
-            'npv': db_data.get('npv'),
-            'irr': db_data.get('irr'),
-            'payback_period': db_data.get('payback_period'),
-            'co2_savings_annual': db_data.get('co2_savings_annual'),
-            'co2_savings_lifetime': db_data.get('co2_savings_lifetime')
+            'initial_investment': float(db_data.get('initial_investment')) if db_data.get('initial_investment') else 0,
+            'annual_savings': float(db_data.get('annual_savings')) if db_data.get('annual_savings') else 0,
+            'npv': float(db_data.get('npv')) if db_data.get('npv') else 0,
+            'irr': float(db_data.get('irr')) if db_data.get('irr') else 0,
+            'payback_period': float(db_data.get('payback_period')) if db_data.get('payback_period') else 0,
+            'co2_savings_annual': float(db_data.get('co2_savings_annual')) if db_data.get('co2_savings_annual') else 0,
+            'co2_savings_lifetime': float(db_data.get('co2_savings_lifetime')) if db_data.get('co2_savings_lifetime') else 0
         }
         
         building_elements = db_data.get('building_elements', [])
@@ -4348,18 +4348,22 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     timezone = project_data.get('timezone', 'UTC')
     project_name = project_data.get('project_name', 'Unnamed Project')
     
-    # PV system data from actual specifications
-    panel_type = pv_specs.get('panel_type', 'Not specified')
-    efficiency = pv_specs.get('efficiency', 0)
-    transparency = pv_specs.get('transparency', 0)
-    cost_per_m2 = pv_specs.get('cost_per_m2', 0)
+    # Environmental metrics - ensure float conversion
+    co2_savings_annual = float(financial_analysis.get('co2_savings_annual', 0))
+    co2_savings_lifetime = float(financial_analysis.get('co2_savings_lifetime', 0))
     
-    # Financial metrics from actual calculations
-    initial_investment = financial_analysis.get('initial_investment', 0)
-    annual_savings = financial_analysis.get('annual_savings', 0)
-    npv = financial_analysis.get('npv', 0)
-    irr = financial_analysis.get('irr', 0)
-    payback_period = financial_analysis.get('payback_period', 0)
+    # PV system data from actual specifications - ensure float conversion
+    panel_type = pv_specs.get('panel_type', 'Not specified')
+    efficiency = float(pv_specs.get('efficiency', 0))
+    transparency = float(pv_specs.get('transparency', 0))
+    cost_per_m2 = float(pv_specs.get('cost_per_m2', 0))
+    
+    # Financial metrics from actual calculations - ensure float conversion
+    initial_investment = float(financial_analysis.get('initial_investment', 0))
+    annual_savings = float(financial_analysis.get('annual_savings', 0))
+    npv = float(financial_analysis.get('npv', 0))
+    irr = float(financial_analysis.get('irr', 0))
+    payback_period = float(financial_analysis.get('payback_period', 0))
     
     # Environmental impact from actual calculations
     co2_annual = financial_analysis.get('co2_savings_annual', 0)
