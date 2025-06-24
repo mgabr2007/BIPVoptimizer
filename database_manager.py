@@ -239,7 +239,7 @@ class BIPVDatabaseManager:
                 # Delete existing building elements for this project
                 cursor.execute("DELETE FROM building_elements WHERE project_id = %s", (project_id,))
                 
-                # Handle both DataFrame and list formats
+                # Handle multiple data formats - DataFrame, list, dict
                 if hasattr(building_elements, 'iterrows'):
                     # DataFrame format
                     for _, element in building_elements.iterrows():
@@ -251,20 +251,20 @@ class BIPVDatabaseManager:
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             project_id,
-                            element.get('Element_ID'),
-                            element.get('Wall_Element_ID'),
+                            element.get('Element_ID', element.get('element_id', '')),
+                            element.get('Wall_Element_ID', element.get('wall_element_id', '')),
                             element.get('element_type', 'Window'),
-                            element.get('orientation'),
-                            element.get('azimuth'),
-                            element.get('Glass_Area', 0),
-                            element.get('window_width'),
-                            element.get('window_height'),
-                            element.get('Level'),
-                            element.get('Family'),
-                            element.get('PV_Suitable', False)
+                            element.get('orientation', ''),
+                            element.get('azimuth', 0),
+                            element.get('Glass_Area', element.get('glass_area', element.get('window_area', 0))),
+                            element.get('window_width', 0),
+                            element.get('window_height', 0),
+                            element.get('Level', element.get('level', '')),
+                            element.get('Family', element.get('family', '')),
+                            element.get('PV_Suitable', element.get('pv_suitable', element.get('suitable', False)))
                         ))
                 else:
-                    # List format
+                    # List or dict format
                     for element in building_elements:
                         cursor.execute("""
                             INSERT INTO building_elements 
@@ -274,17 +274,17 @@ class BIPVDatabaseManager:
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             project_id,
-                            element.get('element_id'),
-                            element.get('wall_element_id'),
+                            element.get('Element_ID', element.get('element_id', '')),
+                            element.get('Wall_Element_ID', element.get('wall_element_id', '')),
                             element.get('element_type', 'Window'),
-                            element.get('orientation'),
-                            element.get('azimuth'),
-                            element.get('glass_area', 0),
-                            element.get('window_width'),
-                            element.get('window_height'),
-                            element.get('level'),
-                            element.get('family'),
-                            element.get('pv_suitable', False)
+                            element.get('orientation', ''),
+                            element.get('azimuth', 0),
+                            element.get('Glass_Area', element.get('glass_area', element.get('window_area', 0))),
+                            element.get('window_width', 0),
+                            element.get('window_height', 0),
+                            element.get('Level', element.get('level', '')),
+                            element.get('Family', element.get('family', '')),
+                            element.get('PV_Suitable', element.get('pv_suitable', element.get('suitable', False)))
                         ))
                 
                 conn.commit()

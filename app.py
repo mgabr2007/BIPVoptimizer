@@ -2228,9 +2228,13 @@ def render_facade_extraction():
                     import pandas as pd
                     building_elements_df = pd.DataFrame(windows)
                     
-                    # Save building elements to database immediately
+                    # Save building elements to database immediately - CRITICAL FIX
                     if 'project_id' in st.session_state:
-                        db_manager.save_building_elements(st.session_state.project_id, windows)
+                        success = db_manager.save_building_elements(st.session_state.project_id, windows)
+                        if success:
+                            st.success(f"Saved {len(windows)} building elements to database")
+                        else:
+                            st.error("Failed to save building elements to database")
                     # Rename columns to match expected format
                     building_elements_df = building_elements_df.rename(columns={
                         'element_id': 'Element_ID',
@@ -3568,25 +3572,25 @@ def render_yield_demand():
                 
                 st.session_state.project_data['energy_balance'] = balance_data
                 
-                # Save yield analysis to database
-                if 'project_id' in st.session_state:
-                    yield_analysis = {
-                        'annual_generation': annual_generation,
-                        'annual_demand': annual_demand,
-                        'net_energy_balance': net_energy,
-                        'energy_yield_per_m2': annual_generation / total_glass_area if total_glass_area > 0 else 0,
-                        'analysis_complete': True
-                    }
-                    db_manager.save_yield_demand_data(st.session_state.project_id, yield_analysis)
-                
-                # Save energy balance analysis to database
+                # Save yield analysis to database - Fix missing data persistence
                 if 'project_id' in st.session_state:
                     yield_analysis_data = {
                         'annual_generation': annual_generation,
                         'annual_demand': annual_demand,
                         'net_energy_balance': annual_generation - annual_demand,
                         'energy_yield_per_m2': annual_generation / total_glass_area if total_glass_area > 0 else 0,
-                        'analysis_complete': True
+                        'self_consumption_rate': self_consumption / annual_generation if annual_generation > 0 else 0
+                    }
+                    db_manager.save_yield_demand_data(st.session_state.project_id, yield_analysis_data)
+                
+                # Save yield analysis to database - Fix duplicate saves
+                if 'project_id' in st.session_state:
+                    yield_analysis_data = {
+                        'annual_generation': annual_generation,
+                        'annual_demand': annual_demand,
+                        'net_energy_balance': annual_generation - annual_demand,
+                        'energy_yield_per_m2': annual_generation / total_glass_area if total_glass_area > 0 else 0,
+                        'self_consumption_rate': self_consumption / annual_generation if annual_generation > 0 else 0
                     }
                     db_manager.save_yield_demand_data(st.session_state.project_id, yield_analysis_data)
             
