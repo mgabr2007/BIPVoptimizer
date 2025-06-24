@@ -6,7 +6,6 @@ import streamlit as st
 
 def render_welcome():
     """Render the welcome and introduction page"""
-    st.title("🏢 BIPV Optimizer")
     st.subheader("Building-Integrated Photovoltaics Analysis & Optimization Platform")
     
     st.markdown("""
