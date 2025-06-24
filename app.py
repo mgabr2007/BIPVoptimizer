@@ -3574,11 +3574,21 @@ def render_yield_demand():
                 
                 # Save yield analysis to database - Fix missing data persistence
                 if 'project_id' in st.session_state:
+                    # Get total glass area from building elements or facade data
+                    total_area = 0
+                    if hasattr(building_elements, '__len__') and len(building_elements) > 0:
+                        if hasattr(building_elements, 'iterrows'):
+                            total_area = building_elements['Glass_Area'].sum() if 'Glass_Area' in building_elements.columns else 0
+                        else:
+                            total_area = sum(elem.get('window_area', elem.get('glass_area', 0)) for elem in building_elements)
+                    elif 'facade_data' in st.session_state.project_data:
+                        total_area = st.session_state.project_data['facade_data'].get('total_window_area', 0)
+                    
                     yield_analysis_data = {
                         'annual_generation': annual_generation,
                         'annual_demand': annual_demand,
                         'net_energy_balance': annual_generation - annual_demand,
-                        'energy_yield_per_m2': annual_generation / total_glass_area if total_glass_area > 0 else 0,
+                        'energy_yield_per_m2': annual_generation / total_area if total_area > 0 else 0,
                         'self_consumption_rate': self_consumption / annual_generation if annual_generation > 0 else 0
                     }
                     db_manager.save_yield_demand_data(st.session_state.project_id, yield_analysis_data)
