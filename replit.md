@@ -233,6 +233,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 24, 2025: Integrated project selector interface in sidebar allowing users to save, load, and delete previously analyzed projects from database with automatic session state restoration
 - June 24, 2025: Enhanced report generation to prioritize database data over session state, providing consistent and reliable reporting from persistently stored analysis results
 - June 24, 2025: Implemented comprehensive data persistence for all 10 workflow steps with automatic database saving after each step completion, including historical data analysis, TMY generation, yield calculations, optimization results, and complete session state restoration when loading projects
+- June 24, 2025: Refactored monolithic app.py into modular package structure with core/, services/, and pages/ directories for improved maintainability and separation of concerns
 
 ## User Preferences
 
