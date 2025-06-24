@@ -197,6 +197,7 @@ def render_pv_specification():
             "Select BIPV Panel Type",
             list(BIPV_PANEL_DATABASE.keys()),
             index=0,
+            help="Choose BIPV panel technology based on your requirements. Standard BIPV Glass (16% efficiency, moderate cost), High-Efficiency Cells (20% efficiency, premium cost), or Transparent Thin-Film (12% efficiency, high transparency). Consider efficiency vs transparency trade-offs for your application.",
             key="selected_panel_type"
         )
         
