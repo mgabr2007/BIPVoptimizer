@@ -4277,13 +4277,19 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         financial_analysis = project_data.get('financial_analysis', {})
         building_elements = st.session_state.get('building_elements', None)
         
-        st.warning("Using session state data - database data not available")
-        
         # Check session state for financial data in multiple locations
         if not financial_analysis:
             alt_financial = st.session_state.get('financial_analysis', {})
             if alt_financial:
                 financial_analysis = alt_financial
+        
+        st.info("Using session state data - generating report from current workflow")
+    
+    # Initialize missing variables
+    facade_data = project_data.get('facade_data', {})
+    tmy_data = project_data.get('tmy_data', {})
+    yield_analysis = st.session_state.get('yield_analysis', {})
+    optimization_results = st.session_state.get('optimization_results', {})
     
     # Handle building elements from facade data if needed
     if building_elements is None and facade_data.get('windows'):
