@@ -4960,33 +4960,13 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         <p>Analysis Date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | Data Source: Processed through 10-step BIPV workflow</p>
     </footer>
 </body>
-</html>"""
-        
+    </html>"""
         return html_content
-        
     except Exception as e:
-        # Return a minimal error report if generation fails
-        error_html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>BIPV Analysis Report - Error</title>
-            <style>
-                body {{ font-family: Arial, sans-serif; margin: 40px; }}
-                .error {{ color: red; background: #ffe6e6; padding: 20px; border-radius: 5px; }}
-            </style>
-        </head>
-        <body>
-            <h1>BIPV Analysis Report</h1>
-            <div class="error">
-                <h2>Report Generation Error</h2>
-                <p>An error occurred while generating the comprehensive report: {str(e)}</p>
-                <p>Please ensure all analysis steps are completed and try again.</p>
-            </div>
-            <p>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        </body>
-        </html>
-        """
+        error_html = f"""<!DOCTYPE html>
+<html><head><title>BIPV Report Error</title></head>
+<body><h1>Report Generation Error</h1><p>Error: {str(e)}</p></body>
+</html>"""
         return error_html
 
 if __name__ == "__main__":
