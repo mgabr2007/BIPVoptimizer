@@ -4965,8 +4965,8 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     return html_content
 
 except Exception as e:
-    # Return a minimal error report if generation fails
-    error_html = f"""
+        # Return a minimal error report if generation fails
+        error_html = f"""
         <!DOCTYPE html>
         <html>
         <head>
