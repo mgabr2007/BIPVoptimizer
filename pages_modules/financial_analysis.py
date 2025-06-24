@@ -254,7 +254,7 @@ def render_financial_analysis():
         grid_co2_factor = st.number_input(
             "Grid CO₂ Factor (kg CO₂/kWh)",
             0.200, 0.800, 0.401, 0.001,
-            help="CO₂ emissions factor for grid electricity (Germany: ~0.401)",
+            help="🌍 CO₂ emissions factor for grid electricity varies by country. Germany: 0.401, France: 0.057, Poland: 0.781, Denmark: 0.109. This represents kg of CO₂ emitted per kWh of grid electricity. Used to calculate environmental impact of BIPV energy generation.",
             key="grid_co2_fin"
         )
     
@@ -262,7 +262,7 @@ def render_financial_analysis():
         carbon_price = st.number_input(
             "Carbon Price (€/ton CO₂)",
             20, 100, 50, 5,
-            help="Current or projected carbon pricing",
+            help="💰 Current or projected carbon pricing for emissions trading. EU ETS: 50-100 €/ton CO₂, Social Cost of Carbon: 51 €/ton, Voluntary markets: 20-40 €/ton. This monetizes the environmental benefit of CO₂ savings from BIPV generation.",
             key="carbon_price_fin"
         )
     

@@ -211,21 +211,21 @@ def render_optimization():
         population_size = st.slider(
             "Population Size",
             20, 200, 50, 10,
-            help="Number of solutions in each generation",
+            help="🧬 Number of candidate solutions maintained in each generation of the genetic algorithm. Larger populations explore more design space but require more computation. 20-50: Fast convergence, 50-100: Balanced, 100+: Thorough exploration.",
             key="population_size_opt"
         )
         
         generations = st.slider(
             "Number of Generations",
             10, 100, 30, 5,
-            help="Number of evolution cycles",
+            help="🔄 Number of evolution cycles for the genetic algorithm. Each generation produces new solutions through crossover and mutation. More generations allow better optimization but increase computation time. 10-20: Quick results, 30-50: Standard, 50+: High precision.",
             key="generations_opt"
         )
         
         mutation_rate = st.slider(
             "Mutation Rate (%)",
             1.0, 20.0, 5.0, 1.0,
-            help="Probability of random changes",
+            help="🎲 Probability of random changes in each solution during evolution. Low rates (1-3%): Fine-tuning existing solutions, Medium rates (5-10%): Balanced exploration, High rates (10-20%): Aggressive exploration to escape local optima. Prevents algorithm stagnation.",
             key="mutation_rate_opt"
         )
     
@@ -234,14 +234,14 @@ def render_optimization():
         electricity_price = st.number_input(
             "Electricity Price (€/kWh)",
             0.15, 0.50, 0.25, 0.01,
-            help="Current electricity price for ROI calculation",
+            help="⚡ Current electricity price for ROI calculations. Varies by region: Germany: 0.30-0.35 €/kWh, France: 0.18-0.25 €/kWh, Denmark: 0.25-0.30 €/kWh. Use peak daytime rates if available, as BIPV generates during peak hours. Higher prices improve BIPV economics.",
             key="electricity_price_opt"
         )
         
         max_investment = st.number_input(
             "Maximum Investment (€)",
             10000, 1000000, 100000, 5000,
-            help="Budget constraint for optimization",
+            help="💰 Maximum available budget for BIPV installation. Acts as hard constraint during optimization - solutions exceeding this budget are rejected. Consider total project costs including panels, inverters, installation, permits, and electrical work. Typical BIPV: 800-1200 €/kW installed.",
             key="max_investment_opt"
         )
         

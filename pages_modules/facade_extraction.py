@@ -47,7 +47,7 @@ def render_facade_extraction():
                 data=dynamo_content,
                 file_name="get_windowMetadata.dyn",
                 mime="application/octet-stream",
-                help="Extract window metadata from Revit models",
+                help="🔧 Download this Dynamo script to extract window and facade element data from Revit models. Run in Dynamo for Revit to export ElementId, Category, Family, Type, Level, HostWallId, Orientations (X,Y,Z), Azimuth, and Glass Area data to CSV format.",
                 key="download_dynamo"
             )
         except FileNotFoundError:
@@ -59,7 +59,7 @@ def render_facade_extraction():
     uploaded_csv = st.file_uploader(
         "Select BIM CSV file",
         type=['csv'],
-        help="CSV file extracted from BIM model with window/facade data",
+        help="📁 Upload CSV file containing window and facade element data extracted from your BIM model using the Dynamo script. Required columns: ElementId, Category, Family, Type, Level, HostWallId, OriX, OriY, OriZ, Azimuth (°), Glass Area (m²). This data is essential for all subsequent BIPV analysis steps.",
         key="bim_csv_upload"
     )
     

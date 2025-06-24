@@ -239,14 +239,14 @@ def render_pv_specification():
             performance_ratio = st.slider(
                 "System Performance Ratio",
                 0.70, 0.95, 0.85, 0.01,
-                help="Accounts for inverter losses, soiling, shading, and other system losses",
+                help="⚡ System Performance Ratio accounts for real-world losses: inverter efficiency (95-98%), DC/AC wiring losses (2-3%), soiling/dust (2-5%), module mismatch (1-3%), and temperature effects. Typical BIPV systems: 0.80-0.90. Higher values indicate better system design and maintenance.",
                 key="performance_ratio_pv"
             )
             
             installation_cost_factor = st.slider(
                 "Installation Cost Factor",
                 0.3, 0.8, 0.5, 0.05,
-                help="Installation cost as fraction of panel cost",
+                help="🔨 Installation cost as fraction of panel cost. Includes labor, mounting systems, electrical work, permits, and commissioning. Simple installations: 0.3-0.4, Standard BIPV: 0.4-0.6, Complex façade integration: 0.6-0.8. Higher values reflect complex glazing system integration.",
                 key="installation_cost_factor_pv"
             )
         
