@@ -3576,7 +3576,9 @@ def render_yield_demand():
                 if 'project_id' in st.session_state:
                     # Get total glass area from building elements or facade data
                     total_area = 0
-                    if hasattr(building_elements, '__len__') and len(building_elements) > 0:
+                    building_elements = st.session_state.get('building_elements', None)
+                    
+                    if building_elements is not None and hasattr(building_elements, '__len__') and len(building_elements) > 0:
                         if hasattr(building_elements, 'iterrows'):
                             total_area = building_elements['Glass_Area'].sum() if 'Glass_Area' in building_elements.columns else 0
                         else:
