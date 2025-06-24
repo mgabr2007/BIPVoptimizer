@@ -48,9 +48,8 @@ for flag in completion_flags:
 
 def main():
     """Main application entry point"""
-    # Clean sidebar with only navigation
-    st.sidebar.title("🏢 BIPV Optimizer")
-    st.sidebar.subheader("📋 Analysis Workflow")
+    # Clean sidebar starting from loading the project
+    st.sidebar.markdown("### Loading the project")
     
     # Define workflow steps
     workflow_steps = [
@@ -84,33 +83,8 @@ def main():
         if i < len(workflow_steps) - 1:
             st.sidebar.write("")
     
-    # Main content area - render current step
+    # Main content area - render current step without top navigation
     current_step = st.session_state.current_step
-    
-    # Add step navigation within main content
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col1:
-        # Find current step index
-        current_index = next((i for i, (key, _, _) in enumerate(workflow_steps) if key == current_step), 0)
-        if current_index > 0:
-            prev_step = workflow_steps[current_index - 1]
-            if st.button(f"← {prev_step[1]}", key="prev_step"):
-                st.session_state.current_step = prev_step[0]
-                st.rerun()
-    
-    with col2:
-        st.markdown(f"<h3 style='text-align: center;'>Step {current_index + 1} of {len(workflow_steps)}</h3>", unsafe_allow_html=True)
-    
-    with col3:
-        if current_index < len(workflow_steps) - 1:
-            next_step = workflow_steps[current_index + 1]
-            if st.button(f"{next_step[1]} →", key="next_step"):
-                st.session_state.current_step = next_step[0]
-                st.rerun()
-    
-    st.markdown("---")
     
     # Render the actual step content
     try:
@@ -141,6 +115,34 @@ def main():
     except Exception as e:
         st.error(f"Error rendering step '{current_step}': {str(e)}")
         st.info("Please try navigating to a different step.")
+    
+    # Add bottom navigation to every page
+    st.markdown("---")
+    render_bottom_navigation(workflow_steps, current_step)
+
+
+def render_bottom_navigation(workflow_steps, current_step):
+    """Render navigation buttons at the bottom of each page"""
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col1:
+        # Find current step index
+        current_index = next((i for i, (key, _, _) in enumerate(workflow_steps) if key == current_step), 0)
+        if current_index > 0:
+            prev_step = workflow_steps[current_index - 1]
+            if st.button(f"← {prev_step[1]}", key="bottom_prev_step", use_container_width=True):
+                st.session_state.current_step = prev_step[0]
+                st.rerun()
+    
+    with col2:
+        st.markdown(f"<h4 style='text-align: center;'>Step {current_index + 1} of {len(workflow_steps)}</h4>", unsafe_allow_html=True)
+    
+    with col3:
+        if current_index < len(workflow_steps) - 1:
+            next_step = workflow_steps[current_index + 1]
+            if st.button(f"{next_step[1]} →", key="bottom_next_step", use_container_width=True):
+                st.session_state.current_step = next_step[0]
+                st.rerun()
 
 
 if __name__ == "__main__":
