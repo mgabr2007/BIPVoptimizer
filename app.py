@@ -21,9 +21,6 @@ from pages.reporting import render_reporting
 # Import services
 from services.io import list_projects
 
-# Import project selector
-from project_selector import render_project_selector
-
 # Page configuration
 st.set_page_config(
     page_title="BIPV Optimizer",
@@ -55,11 +52,6 @@ def main():
     """Main application entry point"""
     # Sidebar navigation
     st.sidebar.title("🏢 BIPV Optimizer")
-    
-    # Project selector
-    render_project_selector()
-    
-    st.sidebar.markdown("---")
     
     # Navigation menu
     st.sidebar.subheader("📋 Analysis Workflow")
@@ -109,12 +101,10 @@ def main():
     
     st.sidebar.markdown("---")
     
-    # Project info display
+    # Project info display (simplified)
     if 'project_data' in st.session_state and st.session_state.project_data:
-        project_name = st.session_state.project_data.get('project_name', 'Unnamed Project')
-        location = st.session_state.project_data.get('location', 'No location set')
-        st.sidebar.markdown(f"**Current Project:** {project_name}")
-        st.sidebar.markdown(f"**Location:** {location}")
+        project_name = st.session_state.project_data.get('project_name', 'New Project')
+        st.sidebar.markdown(f"**Project:** {project_name}")
     
     # Main content area - render current step
     current_step = st.session_state.current_step
