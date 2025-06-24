@@ -153,9 +153,9 @@ def get_location_solar_parameters(location):
 
 
 @st.cache_data(ttl=3600)
-def get_location_electricity_rates(location, currency):
-    """Get location-specific electricity rates in specified currency"""
-    # Electricity rates in EUR/kWh (base currency)
+def get_location_electricity_rates(location, currency='EUR'):
+    """Get location-specific electricity rates in EUR (standardized currency)"""
+    # All electricity rates in EUR/kWh (standardized base currency)
     rates_eur = {
         # Europe (EUR/kWh)
         'berlin': {'import': 0.32, 'export': 0.08, 'demand_charge': 0.05},
@@ -207,14 +207,12 @@ def get_location_electricity_rates(location, currency):
         # Default rates (European average)
         rates = {'import': 0.28, 'export': 0.07, 'demand_charge': 0.04}
     
-    # Convert to requested currency
-    exchange_rate = get_currency_exchange_rate('EUR', currency)
-    
+    # Return rates in EUR (standardized currency)
     return {
-        'import_rate': rates['import'] * exchange_rate,
-        'export_rate': rates['export'] * exchange_rate,
-        'demand_charge': rates['demand_charge'] * exchange_rate,
-        'currency': currency
+        'import_rate': rates['import'],
+        'export_rate': rates['export'],
+        'demand_charge': rates['demand_charge'],
+        'currency': 'EUR'
     }
 
 
