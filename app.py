@@ -4962,9 +4962,9 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
 </body>
 </html>"""
 
-    return html_content
+        return html_content
 
-except Exception as e:
+    except Exception as e:
         # Return a minimal error report if generation fails
         error_html = f"""
         <!DOCTYPE html>
