@@ -19,4 +19,5 @@ dependencies = [
     "streamlit-folium>=0.25.0",
     "streamlit>=1.46.0",
     "trafilatura>=2.0.0",
+    "psycopg2-binary>=2.9.10",
 ]

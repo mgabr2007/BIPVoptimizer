@@ -7,6 +7,7 @@ import io
 import requests
 import folium
 from streamlit_folium import st_folium
+from database_manager import db_manager
 
 # Import Plotly for chart generation
 try:
@@ -856,8 +857,17 @@ def main():
     if 'project_data' not in st.session_state:
         st.session_state.project_data = {}
     
+    # Import and render project management components
+    from project_selector import render_project_selector, show_database_status
+    
     # Sidebar navigation
     st.sidebar.title("BIPV Workflow")
+    
+    # Show database status and project selector
+    show_database_status()
+    st.sidebar.markdown("---")
+    render_project_selector()
+    st.sidebar.markdown("---")
     
     # Workflow steps
     workflow_steps = [
@@ -4268,6 +4278,12 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         building_elements = st.session_state.get('building_elements', None)
         
         st.warning("Using session state data - database data not available")
+        
+        # Check session state for financial data in multiple locations
+        if not financial_analysis:
+            alt_financial = st.session_state.get('financial_analysis', {})
+            if alt_financial:
+                financial_analysis = alt_financial
     
     # Handle building elements from facade data if needed
     if building_elements is None and facade_data.get('windows'):
