@@ -122,6 +122,112 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
+    def save_historical_data(self, project_id, historical_data):
+        """Save historical energy consumption and AI model data"""
+        conn = self.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            with conn.cursor() as cursor:
+                # Store historical data analysis results in energy_analysis table
+                cursor.execute("DELETE FROM energy_analysis WHERE project_id = %s", (project_id,))
+                
+                annual_consumption = historical_data.get('annual_consumption', 0)
+                model_accuracy = historical_data.get('model_accuracy', 0)
+                
+                cursor.execute("""
+                    INSERT INTO energy_analysis 
+                    (project_id, annual_demand, self_consumption_rate, energy_yield_per_m2)
+                    VALUES (%s, %s, %s, %s)
+                """, (
+                    project_id,
+                    annual_consumption,
+                    model_accuracy,
+                    0  # energy_yield_per_m2 will be calculated later
+                ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            st.error(f"Error saving historical data: {str(e)}")
+            return False
+        finally:
+            conn.close()
+    
+    def save_yield_demand_data(self, project_id, yield_demand_data):
+        """Save yield vs demand analysis results"""
+        conn = self.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            with conn.cursor() as cursor:
+                # Update energy_analysis table with yield data
+                cursor.execute("""
+                    UPDATE energy_analysis SET 
+                        annual_generation = %s,
+                        net_energy_balance = %s,
+                        energy_yield_per_m2 = %s
+                    WHERE project_id = %s
+                """, (
+                    yield_demand_data.get('annual_generation', 0),
+                    yield_demand_data.get('net_energy_balance', 0),
+                    yield_demand_data.get('energy_yield_per_m2', 0),
+                    project_id
+                ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            st.error(f"Error saving yield demand data: {str(e)}")
+            return False
+        finally:
+            conn.close()
+    
+    def save_optimization_results(self, project_id, optimization_data):
+        """Save optimization results"""
+        conn = self.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            with conn.cursor() as cursor:
+                # Delete existing optimization results
+                cursor.execute("DELETE FROM optimization_results WHERE project_id = %s", (project_id,))
+                
+                # Save optimization solutions
+                solutions = optimization_data.get('solutions', [])
+                for i, solution in enumerate(solutions):
+                    cursor.execute("""
+                        INSERT INTO optimization_results 
+                        (project_id, solution_id, capacity, roi, net_import, total_cost, rank_position, pareto_optimal)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (
+                        project_id,
+                        solution.get('solution_id', f'solution_{i}'),
+                        solution.get('capacity', 0),
+                        solution.get('roi', 0),
+                        solution.get('net_import', 0),
+                        solution.get('total_cost', 0),
+                        i + 1,
+                        solution.get('pareto_optimal', False)
+                    ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            st.error(f"Error saving optimization results: {str(e)}")
+            return False
+        finally:
+            conn.close()
+    
     def save_building_elements(self, project_id, building_elements):
         """Save BIM building elements data"""
         conn = self.get_connection()

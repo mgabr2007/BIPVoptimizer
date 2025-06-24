@@ -1765,6 +1765,16 @@ def render_weather_environment():
                 # Store in session state
                 st.session_state.project_data['current_weather'] = current_weather
                 st.session_state.project_data['tmy_data'] = tmy_data
+                
+                # Update weather data in database with TMY info
+                if 'project_id' in st.session_state:
+                    weather_update = {
+                        'annual_ghi': tmy_data.get('annual_ghi', 0),
+                        'annual_dni': tmy_data.get('annual_dni', 0),
+                        'annual_dhi': tmy_data.get('annual_dhi', 0),
+                        'description': 'TMY data generated'
+                    }
+                    db_manager.save_weather_data(st.session_state.project_id, weather_update)
                 st.session_state.project_data['weather_complete'] = True
                 
                 st.success("Weather data fetched successfully from OpenWeatherMap API!")
@@ -3026,6 +3036,18 @@ def render_pv_specification():
             }
             
             st.session_state.project_data['pv_data'] = pv_data
+            
+            # Save PV specifications to database
+            if 'project_id' in st.session_state:
+                pv_system = {
+                    'panel_type': panel_type,
+                    'efficiency': efficiency,
+                    'transparency': transparency,
+                    'cost_per_m2': bipv_cost + installation_cost,
+                    'power_density': efficiency * 10,
+                    'installation_factor': 1.0
+                }
+                db_manager.save_pv_specifications(st.session_state.project_id, pv_system)
         
         st.success("✅ PV system calculated successfully!")
         
@@ -3733,6 +3755,10 @@ def render_optimization():
                 }
                 
                 st.session_state.project_data['optimization_results'] = optimization_results
+                
+                # Save optimization results to database
+                if 'project_id' in st.session_state:
+                    db_manager.save_optimization_results(st.session_state.project_id, optimization_results)
             
             st.success("✅ Optimization complete!")
             
@@ -3996,6 +4022,9 @@ def render_reporting():
         # Save building elements to database
         if 'project_id' in st.session_state:
             db_manager.save_building_elements(st.session_state.project_id, building_elements)
+        
+        # Mark extraction as complete
+        st.session_state.project_data['extraction_complete'] = True
     
     if building_elements is None or len(building_elements) == 0:
         st.error("🚫 **BIM Building Data Required**")
