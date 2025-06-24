@@ -472,7 +472,11 @@ class BIPVDatabaseManager:
                     WHERE project_id = %s
                     ORDER BY element_id
                 """, (result['project_id'],))
-                result['building_elements'] = [dict(row) for row in cursor.fetchall()]
+                building_elements_raw = cursor.fetchall()
+                result['building_elements'] = [dict(row) for row in building_elements_raw]
+                
+                # Debug: Log building elements count
+                print(f"Database query returned {len(building_elements_raw)} building elements for project_id {result['project_id']}")
                 
                 # Get element radiation data
                 cursor.execute("""

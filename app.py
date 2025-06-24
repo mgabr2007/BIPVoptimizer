@@ -4304,7 +4304,14 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         
         building_elements = db_data.get('building_elements', [])
         
-        st.success(f"Report generated from database with {len(building_elements)} building elements")
+        if len(building_elements) > 0:
+            st.success(f"Report generated from database with {len(building_elements)} building elements")
+        else:
+            st.warning("Database contains project but no building elements found. Using session state data if available.")
+            # Fall back to session state if database has no building elements
+            building_elements = st.session_state.get('building_elements', None)
+            if building_elements is not None and hasattr(building_elements, 'to_dict'):
+                building_elements = building_elements.to_dict('records')
     
     else:
         # Fallback to session state data
@@ -4333,14 +4340,27 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     if building_elements is None and facade_data.get('windows'):
         building_elements = facade_data['windows']
     
-    # Ensure building_elements is properly handled for boolean checks
-    has_building_elements = building_elements is not None and len(building_elements) > 0
+    # Handle building elements data and calculate metrics
+    if building_elements is not None and len(building_elements) > 0:
+        has_building_elements = True
+        # Calculate metrics from building elements
+        if isinstance(building_elements, list):
+            total_elements = len(building_elements)
+            suitable_elements = sum(1 for elem in building_elements if elem.get('pv_suitable', False))
+            total_glass_area = sum(float(elem.get('glass_area', 0)) for elem in building_elements)
+        else:
+            # Fallback to facade_data if available
+            total_elements = facade_data.get('total_elements', 0)
+            suitable_elements = facade_data.get('suitable_elements', 0)
+            total_glass_area = facade_data.get('total_glass_area', 0)
+    else:
+        has_building_elements = False
+        # Use facade_data if building_elements is empty
+        total_elements = facade_data.get('total_elements', 0)
+        suitable_elements = facade_data.get('suitable_elements', 0)
+        total_glass_area = facade_data.get('total_glass_area', 0)
     
-    # Calculate comprehensive metrics from actual data
-    total_elements = facade_data.get('total_elements', 0)
-    suitable_elements = facade_data.get('suitable_elements', 0)
-    total_glass_area = facade_data.get('total_glass_area', 0)
-    total_window_area = facade_data.get('total_window_area', 0)
+    total_window_area = facade_data.get('total_window_area', total_glass_area)  # Fallback to glass area
     
     # Weather and location data from project_data (Step 1)
     location = project_data.get('location', 'Unknown Location')
@@ -4357,6 +4377,21 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     efficiency = float(pv_specs.get('efficiency', 0))
     transparency = float(pv_specs.get('transparency', 0))
     cost_per_m2 = float(pv_specs.get('cost_per_m2', 0))
+    
+    # Convert building elements and handle division by zero
+    if building_elements is not None and len(building_elements) > 0:
+        building_elements_list = building_elements if isinstance(building_elements, list) else building_elements.to_dict('records') if hasattr(building_elements, 'to_dict') else []
+    else:
+        building_elements_list = []
+    
+    # Safe division calculations to avoid division by zero
+    def safe_divide(numerator, denominator, default=0):
+        return numerator / denominator if denominator != 0 else default
+    
+    # Calculate safe metrics
+    suitability_rate = safe_divide(suitable_elements, total_elements, 0) * 100
+    avg_glass_area = safe_divide(total_glass_area, total_elements, 0)
+    coverage_ratio = safe_divide(suitable_elements, total_elements, 0)
     
     # Financial metrics from actual calculations - ensure float conversion
     initial_investment = float(financial_analysis.get('initial_investment', 0))
