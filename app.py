@@ -4419,7 +4419,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
             building_elements = st.session_state.get('building_elements', None)
             if building_elements is not None and hasattr(building_elements, 'to_dict'):
                 building_elements = building_elements.to_dict('records')
-    
+        
         else:
             # Fallback to session state data with realistic calculations
             project_data = st.session_state.get('project_data', {})
