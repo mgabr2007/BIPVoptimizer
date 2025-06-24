@@ -1,8 +1,7 @@
 """
-BIPV Optimizer - Clean Application Entry Point
-No project selector, minimal sidebar interface
+BIPV Optimizer - Slim Application Entry Point
+Refactored modular architecture with clean separation of concerns
 """
-
 import streamlit as st
 import os
 
@@ -18,6 +17,9 @@ from pages.yield_demand import render_yield_demand
 from pages.optimization import render_optimization
 from pages.financial_analysis import render_financial_analysis
 from pages.reporting import render_reporting
+
+# Import services
+from services.io import list_projects
 
 # Page configuration
 st.set_page_config(
@@ -48,8 +50,10 @@ for flag in completion_flags:
 
 def main():
     """Main application entry point"""
-    # Clean sidebar with only navigation
+    # Sidebar navigation
     st.sidebar.title("🏢 BIPV Optimizer")
+    
+    # Navigation menu
     st.sidebar.subheader("📋 Analysis Workflow")
     
     # Define workflow steps
@@ -67,7 +71,18 @@ def main():
         ("reporting", "🔟 Reporting", "Results and export")
     ]
     
-    # Render navigation buttons
+    # Check step dependencies
+    def check_step_availability(step_key):
+        """Check if a step is available based on previous completions"""
+        # Always allow welcome and project setup
+        if step_key in ['welcome', 'project_setup']:
+            return True
+        
+        # For development and testing, make all steps available initially
+        # Users can navigate freely but will see dependency warnings in each step
+        return True
+    
+    # Render navigation buttons with better spacing
     for i, (step_key, step_name, description) in enumerate(workflow_steps):
         is_current = st.session_state.current_step == step_key
         
@@ -83,6 +98,13 @@ def main():
         # Add small spacing between buttons
         if i < len(workflow_steps) - 1:
             st.sidebar.write("")
+    
+    st.sidebar.markdown("---")
+    
+    # Project info display (simplified)
+    if 'project_data' in st.session_state and st.session_state.project_data:
+        project_name = st.session_state.project_data.get('project_name', 'New Project')
+        st.sidebar.markdown(f"**Project:** {project_name}")
     
     # Main content area - render current step
     current_step = st.session_state.current_step
