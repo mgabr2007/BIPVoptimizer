@@ -3583,16 +3583,7 @@ def render_yield_demand():
                     }
                     db_manager.save_yield_demand_data(st.session_state.project_id, yield_analysis_data)
                 
-                # Save yield analysis to database - Fix duplicate saves
-                if 'project_id' in st.session_state:
-                    yield_analysis_data = {
-                        'annual_generation': annual_generation,
-                        'annual_demand': annual_demand,
-                        'net_energy_balance': annual_generation - annual_demand,
-                        'energy_yield_per_m2': annual_generation / total_glass_area if total_glass_area > 0 else 0,
-                        'self_consumption_rate': self_consumption / annual_generation if annual_generation > 0 else 0
-                    }
-                    db_manager.save_yield_demand_data(st.session_state.project_id, yield_analysis_data)
+
             
             st.success("✅ Energy balance calculated successfully!")
             
