@@ -4348,8 +4348,8 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
                 db_data = db_manager.get_project_report_data(latest_project['project_name'])
         
         if db_data:
-        # Use database data as primary source
-        project_data = {
+            # Use database data as primary source
+            project_data = {
             'project_name': db_data.get('project_name'),
             'location': db_data.get('location'),
             'coordinates': {'lat': db_data.get('latitude'), 'lon': db_data.get('longitude')},
@@ -4419,7 +4419,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
             building_elements = st.session_state.get('building_elements', None)
             if building_elements is not None and hasattr(building_elements, 'to_dict'):
                 building_elements = building_elements.to_dict('records')
-    
+        
         else:
             # Fallback to session state data with realistic calculations
             project_data = st.session_state.get('project_data', {})
