@@ -4419,15 +4419,15 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
             building_elements = st.session_state.get('building_elements', None)
             if building_elements is not None and hasattr(building_elements, 'to_dict'):
                 building_elements = building_elements.to_dict('records')
+    
+    else:
+        # Fallback to session state data with realistic calculations
+        project_data = st.session_state.get('project_data', {})
+        building_elements = st.session_state.get('building_elements', None)
         
-        else:
-            # Fallback to session state data with realistic calculations
-            project_data = st.session_state.get('project_data', {})
-            building_elements = st.session_state.get('building_elements', None)
-            
-            # Convert DataFrame to list if needed
-            if building_elements is not None and hasattr(building_elements, 'to_dict'):
-                building_elements = building_elements.to_dict('records')
+        # Convert DataFrame to list if needed
+        if building_elements is not None and hasattr(building_elements, 'to_dict'):
+            building_elements = building_elements.to_dict('records')
             
             # Calculate realistic values based on available building elements
             if building_elements:
@@ -4472,9 +4472,9 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
         
         # Initialize missing variables
         facade_data = project_data.get('facade_data', {})
-    tmy_data = project_data.get('tmy_data', {})
-    yield_analysis = st.session_state.get('yield_analysis', {})
-    optimization_results = st.session_state.get('optimization_results', {})
+        tmy_data = project_data.get('tmy_data', {})
+        yield_analysis = st.session_state.get('yield_analysis', {})
+        optimization_results = st.session_state.get('optimization_results', {})
     
     # Handle building elements from facade data if needed
     if building_elements is None and facade_data.get('windows'):
