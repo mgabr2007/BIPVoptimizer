@@ -298,6 +298,69 @@ def render_weather_environment():
                 
                 st.success("Default weather parameters applied. You can continue to the next step.")
     
-    # Display existing weather data if available
+    # Environmental Considerations Section (outside conditional blocks to prevent reset)
+    if st.session_state.project_data.get('weather_complete') or st.session_state.project_data.get('weather_analysis'):
+        st.markdown("---")
+        st.subheader("🌍 Environmental Considerations")
+        
+        # Get current environmental data or set defaults
+        env_data = st.session_state.project_data.get('environmental_factors', {
+            'trees_nearby': False,
+            'tall_buildings': False,
+            'shading_reduction': 0
+        })
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            trees_nearby = st.checkbox(
+                "Trees or vegetation nearby", 
+                value=env_data.get('trees_nearby', False), 
+                key="trees_nearby_env",
+                help="Select if there are trees or vegetation that could cast shadows on the building"
+            )
+        
+        with col2:
+            tall_buildings = st.checkbox(
+                "Tall buildings in vicinity", 
+                value=env_data.get('tall_buildings', False), 
+                key="tall_buildings_env",
+                help="Select if there are tall buildings nearby that could create shadows"
+            )
+        
+        # Calculate shading impact
+        shading_reduction = 0
+        if trees_nearby:
+            shading_reduction += 15  # 15% reduction from trees
+        if tall_buildings:
+            shading_reduction += 10  # 10% reduction from buildings
+        
+        # Get annual GHI from weather analysis
+        weather_analysis = st.session_state.project_data.get('weather_analysis', {})
+        base_ghi = weather_analysis.get('annual_ghi', 1400)
+        
+        # Display shading impact
+        if shading_reduction > 0:
+            st.warning(f"Estimated shading impact: {shading_reduction}% reduction in solar irradiance")
+            adjusted_ghi = base_ghi * (1 - shading_reduction / 100)
+            st.info(f"Adjusted annual GHI: {adjusted_ghi:,.0f} kWh/m² (accounting for shading)")
+        else:
+            st.success("No significant shading factors identified")
+            adjusted_ghi = base_ghi
+        
+        # Update environmental data in session state
+        st.session_state.project_data['environmental_factors'] = {
+            'trees_nearby': trees_nearby,
+            'tall_buildings': tall_buildings,
+            'shading_reduction': shading_reduction,
+            'adjusted_ghi': adjusted_ghi
+        }
+        
+        # Save to database if project exists
+        if 'project_id' in st.session_state:
+            from services.io import save_project_data
+            save_project_data(st.session_state.project_data)
+    
+    # Display completion status
     if st.session_state.project_data.get('weather_complete'):
         st.success("✅ Weather integration complete! You can proceed to Step 4: BIM Extraction.")
