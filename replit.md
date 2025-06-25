@@ -257,6 +257,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 24, 2025: Implemented dynamic workflow visualization with intuitive step progression including progress tracking, milestone visualization, completion status, and enhanced navigation with visual feedback
 - June 24, 2025: Created comprehensive technical documentation (BIPV_Documentation.md) with complete mathematical equations, workflow descriptions, input parameter references, database schema, and API integration details
 - June 24, 2025: Added detailed help text and info notes to all input fields throughout the application providing context, typical values, calculation methods, and regional variations for user guidance
+- June 25, 2025: Enhanced welcome page with comprehensive standards implementation guide explaining where ISO 15927-4, ISO 9060, EN 410, and ASHRAE 90.1 standards are used throughout the analysis workflow
+- June 25, 2025: Added detailed mathematical foundation section with complete optimization and analysis equations including solar calculations, PV yield formulas, NSGA-II optimization parameters, financial analysis equations, and environmental impact calculations
 
 ## User Preferences
 
