@@ -199,9 +199,11 @@ def render_radiation_grid():
     
     st.header("☀️ Step 5: Solar Radiation & Shading Analysis")
     
-    # Check dependencies
-    if not st.session_state.get('building_elements_completed', False):
-        st.error("⚠️ Building elements data required. Please complete Step 4 (Facade & Window Extraction) first.")
+    # Check for building elements data from Step 4
+    building_elements = st.session_state.get('building_elements')
+    if building_elements is None or len(building_elements) == 0:
+        st.warning("⚠️ Building elements data required. Please complete Step 4 (Facade & Window Extraction) first.")
+        st.info("The radiation analysis requires building geometry data to calculate solar irradiance on specific facade elements.")
         return
     
     if not st.session_state.get('weather_completed', False):
@@ -210,7 +212,12 @@ def render_radiation_grid():
     
     # Load required data
     project_data = st.session_state.get('project_data', {})
-    suitable_elements = project_data.get('suitable_elements')
+    
+    # Use building_elements from session state as primary source
+    suitable_elements = st.session_state.get('building_elements')
+    if suitable_elements is None:
+        suitable_elements = project_data.get('suitable_elements')
+        
     tmy_data = project_data.get('tmy_data')
     coordinates = project_data.get('coordinates', {})
     

@@ -152,6 +152,7 @@ def render_facade_extraction():
             import pandas as pd
             building_elements_df = pd.DataFrame(windows)
             st.session_state.building_elements = building_elements_df
+            st.session_state.building_elements_completed = True
             
             # Save to database
             if 'project_id' in st.session_state:
