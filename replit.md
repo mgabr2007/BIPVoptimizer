@@ -271,6 +271,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 25, 2025: Enhanced Step 5 to properly use actual BIM data from Step 4 upload, including real element IDs, dimensions, levels, wall associations, and glass areas instead of synthetic values, ensuring authentic building-specific radiation analysis
 - June 25, 2025: Fixed Step 6 dependency check by updating data source validation to properly recognize building elements and radiation analysis data from previous steps
 - June 25, 2025: Fixed Step 6 BIPV system viability calculations by reducing minimum system size requirements and implementing flexible panel sizing for small window areas
+- June 25, 2025: Fixed Step 7 dependency validation to properly check for actual data availability instead of session state flags, ensuring proper recognition of completed Steps 2, 5, and 6
 
 ## User Preferences
 

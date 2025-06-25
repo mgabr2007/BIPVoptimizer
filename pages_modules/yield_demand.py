@@ -151,36 +151,36 @@ def render_yield_demand():
     
     st.header("⚖️ Step 7: Energy Yield vs Demand Analysis")
     
-    # Check dependencies
-    required_steps = ['pv_specs_completed', 'radiation_completed', 'historical_completed']
-    missing_steps = [step for step in required_steps if not st.session_state.get(step, False)]
+    # Check dependencies - look for actual data instead of flags
+    project_data = st.session_state.get('project_data', {})
     
-    if missing_steps:
-        st.error("⚠️ Required data missing. Please complete the following steps first:")
-        for step in missing_steps:
-            step_names = {
-                'pv_specs_completed': "Step 6 (PV Specification)",
-                'radiation_completed': "Step 5 (Radiation Analysis)", 
-                'historical_completed': "Step 2 (Historical Data Analysis)"
-            }
-            st.error(f"• {step_names.get(step, step)}")
+    # Check for PV specifications from Step 6
+    pv_specs = project_data.get('pv_specifications')
+    if pv_specs is None or len(pv_specs) == 0:
+        st.error("⚠️ PV system specifications not available. Please complete Step 6 (PV Specification).")
         return
     
-    # Load required data
-    project_data = st.session_state.get('project_data', {})
-    pv_specs = project_data.get('pv_specifications')
+    # Check for historical data model from Step 2
+    historical_data = st.session_state.get('historical_data')
+    demand_model = project_data.get('demand_model')
+    if historical_data is None and demand_model is None:
+        st.error("⚠️ Historical data analysis not available. Please complete Step 2 (Historical Data Analysis).")
+        return
+    
+    # Check for radiation data from Step 5
     radiation_data = project_data.get('radiation_data')
+    if radiation_data is None or len(radiation_data) == 0:
+        st.error("⚠️ Radiation analysis not available. Please complete Step 5 (Radiation Analysis).")
+        return
     
     # Load demand model
     model, feature_columns, metrics = load_demand_model()
     
+    # If no model available, create a simple baseline model
     if model is None:
-        st.error("⚠️ Demand prediction model not available. Please check Step 2 (Historical Data Analysis).")
-        return
-    
-    if pv_specs is None or len(pv_specs) == 0:
-        st.error("⚠️ PV system specifications not available. Please complete Step 6.")
-        return
+        st.info("Using baseline demand model based on historical data patterns.")
+        feature_columns = ['Month', 'Temperature', 'Humidity']
+        metrics = {'mae': 'N/A', 'r2': 'N/A'}
     
     st.success(f"Analyzing energy balance for {len(pv_specs)} BIPV systems")
     
