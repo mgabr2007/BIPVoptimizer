@@ -426,20 +426,26 @@ def render_radiation_grid():
             st.session_state.project_data['radiation_data'] = radiation_data
             st.session_state.radiation_completed = True
             
-            # Save to database
-            db_manager.save_radiation_analysis(
-                st.session_state.project_data['project_id'],
-                {
-                    'radiation_grid': radiation_data.to_dict('records'),
-                    'analysis_config': {
-                        'include_shading': include_shading,
-                        'apply_corrections': apply_corrections,
-                        'precision': analysis_precision,
-                        'shading_factors': shading_factors
-                    },
-                    'location': {'latitude': latitude, 'longitude': longitude}
-                }
-            )
+            # Save to database if project_id exists
+            if 'project_id' in st.session_state and st.session_state.project_id:
+                try:
+                    db_manager.save_radiation_analysis(
+                        st.session_state.project_id,
+                        {
+                            'radiation_grid': radiation_data.to_dict('records'),
+                            'analysis_config': {
+                                'include_shading': include_shading,
+                                'apply_corrections': apply_corrections,
+                                'precision': analysis_precision,
+                                'shading_factors': shading_factors
+                            },
+                            'location': {'latitude': latitude, 'longitude': longitude}
+                        }
+                    )
+                except Exception as db_error:
+                    st.warning(f"Could not save to database: {str(db_error)}")
+            else:
+                st.info("Analysis results saved to session only (no project ID available)")
             
             # Complete progress
             progress_bar.progress(100)
