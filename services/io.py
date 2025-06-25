@@ -13,8 +13,20 @@ from database_manager import db_manager
 def load_complete_wmo_stations():
     """Load all WMO stations from the official database file"""
     try:
-        with open('attached_assets/stations_list_CLIMAT_data_1750488038242.txt', 'r', encoding='utf-8') as f:
-            content = f.read()
+        # Try multiple encodings to handle different file formats
+        encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+        content = None
+        
+        for encoding in encodings:
+            try:
+                with open('attached_assets/stations_list_CLIMAT_data_1750488038242.txt', 'r', encoding=encoding) as f:
+                    content = f.read()
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if content is None:
+            raise UnicodeDecodeError("Unable to decode file with any encoding")
         
         stations = []
         lines = content.strip().split('\n')
@@ -35,7 +47,8 @@ def load_complete_wmo_stations():
                     continue
         
         return stations
-    except FileNotFoundError:
+    except (FileNotFoundError, UnicodeDecodeError, Exception) as e:
+        st.warning(f"Could not load WMO stations file: {str(e)}. Using fallback stations.")
         # Fallback WMO stations for major global cities
         return [
             {'id': '10382', 'name': 'Berlin-Tempelhof', 'country': 'Germany', 'latitude': 52.47, 'longitude': 13.40},
