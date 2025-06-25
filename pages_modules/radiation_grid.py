@@ -206,8 +206,15 @@ def render_radiation_grid():
         st.info("The radiation analysis requires building geometry data to calculate solar irradiance on specific facade elements.")
         return
     
-    if not st.session_state.get('weather_completed', False):
-        st.error("⚠️ Weather data required. Please complete Step 3 (Weather & Environment Integration) first.")
+    # Check for weather data from Step 3
+    weather_analysis = st.session_state.get('project_data', {}).get('weather_analysis')
+    tmy_data = None
+    if weather_analysis:
+        tmy_data = weather_analysis.get('tmy_data')
+    
+    if tmy_data is None:
+        st.warning("⚠️ Weather data required. Please complete Step 3 (Weather & Environment Integration) first.")
+        st.info("Solar radiation analysis requires TMY (Typical Meteorological Year) data for accurate calculations.")
         return
     
     # Load required data
@@ -218,7 +225,7 @@ def render_radiation_grid():
     if suitable_elements is None:
         suitable_elements = project_data.get('suitable_elements')
         
-    tmy_data = project_data.get('tmy_data')
+    # TMY data already validated above
     coordinates = project_data.get('coordinates', {})
     
     if suitable_elements is None or len(suitable_elements) == 0:

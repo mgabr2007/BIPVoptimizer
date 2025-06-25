@@ -262,6 +262,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 25, 2025: Revised welcome page to focus on standards implementation mapping and equations overview while avoiding duplication with existing technical documentation, providing clear workflow-specific context for users
 - June 25, 2025: Fixed UTF-8 decoding error in Step 3 Weather Environment by implementing robust encoding fallback mechanism (utf-8, latin-1, iso-8859-1, cp1252) for WMO stations file reading and enhanced error handling with user-friendly messages
 - June 25, 2025: Fixed Step 5 building elements data recognition issue by correcting session state variable checks and ensuring proper data flow from Step 4 facade extraction to Step 5 radiation analysis
+- June 25, 2025: Fixed Step 5 weather data dependency check by updating radiation grid module to properly locate TMY data within weather_analysis object structure from Step 3
 
 ## User Preferences
 
