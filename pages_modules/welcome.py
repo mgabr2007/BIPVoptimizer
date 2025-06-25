@@ -181,13 +181,13 @@ def render_welcome():
     st.markdown("""
     ---
     
-    ### Ready to Begin?
+    ### Ready to Begin Your BIPV Analysis?
     
-    Start your BIPV analysis journey by navigating to **Step 1: Project Setup** in the sidebar. 
-    Each step builds upon the previous analysis, creating a comprehensive optimization study 
-    for your building's BIPV potential.
+    Navigate to **Step 1: Project Setup** in the sidebar to start your comprehensive BIPV optimization study. 
+    The platform implements ISO 15927-4, ISO 9060, EN 410, and ASHRAE 90.1 standards throughout the 
+    10-step workflow for scientifically validated results.
     
-    **Important:** Complete each step in sequence, as later steps depend on data from earlier analyses.
+    **Important:** Complete each step in sequence - Step 4 (BIM Extraction) is mandatory for all subsequent analyses.
     """)
     
     # Research Attribution

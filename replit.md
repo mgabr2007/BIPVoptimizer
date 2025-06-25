@@ -259,6 +259,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 24, 2025: Added detailed help text and info notes to all input fields throughout the application providing context, typical values, calculation methods, and regional variations for user guidance
 - June 25, 2025: Enhanced welcome page with comprehensive standards implementation guide explaining where ISO 15927-4, ISO 9060, EN 410, and ASHRAE 90.1 standards are used throughout the analysis workflow
 - June 25, 2025: Added detailed mathematical foundation section with complete optimization and analysis equations including solar calculations, PV yield formulas, NSGA-II optimization parameters, financial analysis equations, and environmental impact calculations
+- June 25, 2025: Revised welcome page to focus on standards implementation mapping and equations overview while avoiding duplication with existing technical documentation, providing clear workflow-specific context for users
 
 ## User Preferences
 
