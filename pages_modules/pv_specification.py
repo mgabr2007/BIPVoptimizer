@@ -259,8 +259,8 @@ def render_pv_specification():
             
             min_system_size = st.number_input(
                 "Minimum System Size (kW)",
-                0.1, 5.0, 0.5, 0.1,
-                help="Minimum viable system size",
+                0.05, 5.0, 0.1, 0.05,
+                help="Minimum viable system size for BIPV installation",
                 key="min_system_size_pv"
             )
     
@@ -276,14 +276,18 @@ def render_pv_specification():
                     suitable_elements, panel_specs_updated, radiation_data
                 )
                 
-                # Filter by minimum system size
-                pv_specifications = pv_specifications[
+                # Filter by minimum system size (more flexible for BIPV)
+                viable_systems = pv_specifications[
                     pv_specifications['system_power_kw'] >= min_system_size
                 ]
                 
-                if len(pv_specifications) == 0:
-                    st.warning("No viable BIPV systems found with current specifications. Try reducing minimum system size.")
-                    return
+                if len(viable_systems) == 0:
+                    # Show all systems with warning about small sizes
+                    st.warning(f"No systems meet minimum size of {min_system_size:.2f} kW. Showing all calculated systems:")
+                    st.info("Consider reducing minimum system size for small BIPV installations.")
+                    viable_systems = pv_specifications
+                
+                pv_specifications = viable_systems
                 
                 # Save to session state and database
                 st.session_state.project_data['pv_specifications'] = pv_specifications
