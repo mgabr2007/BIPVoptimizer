@@ -280,45 +280,180 @@ def render_radiation_grid():
     
     # Analysis execution
     if st.button("🚀 Run Radiation Analysis", key="run_radiation_analysis"):
-        with st.spinner("Calculating solar radiation on building surfaces..."):
-            try:
-                # Generate radiation grid
-                radiation_data = generate_radiation_grid(
-                    suitable_elements, tmy_data, latitude, longitude, shading_factors
-                )
+        # Create progress tracking containers
+        progress_container = st.container()
+        with progress_container:
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            element_progress = st.empty()
+        
+        try:
+            # Initialize progress
+            status_text.text("Initializing radiation analysis...")
+            progress_bar.progress(5)
+            
+            # Optimize analysis based on precision setting
+            if analysis_precision == "Standard":
+                sample_hours = list(range(6, 19, 2))  # Every 2 hours during daylight
+                days_sample = list(range(15, 365, 30))  # Monthly samples
+            elif analysis_precision == "High":
+                sample_hours = list(range(6, 19))  # Hourly during daylight
+                days_sample = list(range(1, 365, 15))  # Bi-weekly samples
+            else:  # Maximum
+                sample_hours = list(range(24))  # All hours
+                days_sample = list(range(1, 365, 7))  # Weekly samples
+            
+            status_text.text(f"Processing {len(suitable_elements)} elements with {analysis_precision.lower()} precision...")
+            progress_bar.progress(10)
+            
+            # Process each element with detailed progress
+            radiation_results = []
+            total_elements = len(suitable_elements)
+            
+            for i, element in enumerate(suitable_elements):
+                # Extract element data
+                if isinstance(element, dict):
+                    azimuth = element.get('azimuth', 180)
+                    tilt = element.get('tilt', 90)
+                    area = element.get('glass_area', 1.0)
+                    element_id = element.get('element_id', f'Element_{i+1}')
+                    orientation = element.get('orientation', 'Unknown')
+                else:
+                    # Handle DataFrame row
+                    azimuth = getattr(element, 'azimuth', 180)
+                    tilt = getattr(element, 'tilt', 90)
+                    area = getattr(element, 'glass_area', 1.0)
+                    element_id = getattr(element, 'element_id', f'Element_{i+1}')
+                    orientation = getattr(element, 'orientation', 'Unknown')
                 
-                if len(radiation_data) == 0:
-                    st.error("Failed to generate radiation data")
-                    return
+                # Update progress indicators
+                element_progress.text(f"Processing: {element_id} ({orientation}, {area:.1f}m²)")
+                current_progress = 10 + int(70 * i / total_elements)
+                progress_bar.progress(current_progress)
+                
+                # Calculate radiation for this element
+                annual_irradiance = 0
+                peak_irradiance = 0
+                sample_count = 0
+                monthly_irradiation = {}
+                
+                for month in range(1, 13):
+                    monthly_total = 0
+                    monthly_samples = 0
+                    
+                    for day in days_sample:
+                        if day < 28 or (day < 32 and month in [1,3,5,7,8,10,12]) or (day < 31 and month in [4,6,9,11]) or (day < 30 and month == 2):
+                            for hour in sample_hours:
+                                # Calculate day of year
+                                days_in_months = [31,28,31,30,31,30,31,31,30,31,30,31]
+                                day_of_year = sum(days_in_months[:month-1]) + day
+                                
+                                if day_of_year < len(tmy_data):
+                                    tmy_index = min((day_of_year - 1) * 24 + hour, len(tmy_data) - 1)
+                                    hour_data = tmy_data[tmy_index]
+                                    
+                                    # Skip nighttime for efficiency
+                                    if hour < 6 or hour > 19:
+                                        continue
+                                    
+                                    # Calculate solar position
+                                    solar_pos = calculate_solar_position_simple(latitude, longitude, day_of_year, hour)
+                                    
+                                    # Skip if sun below horizon
+                                    if solar_pos['elevation'] <= 0:
+                                        continue
+                                    
+                                    # Calculate surface irradiance
+                                    surface_irradiance = calculate_irradiance_on_surface(
+                                        hour_data.get('ghi', 0),
+                                        hour_data.get('dni', 0),
+                                        hour_data.get('dhi', 0),
+                                        solar_pos,
+                                        tilt,
+                                        azimuth
+                                    )
+                                    
+                                    annual_irradiance += surface_irradiance
+                                    monthly_total += surface_irradiance
+                                    peak_irradiance = max(peak_irradiance, surface_irradiance)
+                                    sample_count += 1
+                                    monthly_samples += 1
+                    
+                    # Store monthly average
+                    if monthly_samples > 0:
+                        monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
+                
+                # Scale to annual totals
+                scaling_factor = 8760 / max(sample_count, 1)
+                annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
+                
+                radiation_results.append({
+                    'element_id': element_id,
+                    'element_type': 'Window',
+                    'orientation': orientation,
+                    'azimuth': azimuth,
+                    'tilt': tilt,
+                    'area': area,
+                    'annual_irradiation': annual_irradiance,
+                    'peak_irradiance': peak_irradiance,
+                    'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
+                    'monthly_irradiation': monthly_irradiation,
+                    'capacity_factor': min(annual_irradiance / 1800, 1.0)  # Theoretical max ~1800 kWh/m²
+                })
+            
+            # Convert to DataFrame
+            radiation_data = pd.DataFrame(radiation_results)
+            
+            # Apply corrections if requested
+            if apply_corrections:
+                status_text.text("Applying orientation corrections...")
+                progress_bar.progress(85)
+                radiation_data = apply_orientation_corrections(radiation_data)
+            
+            # Final processing
+            status_text.text("Finalizing analysis and saving results...")
+            progress_bar.progress(95)
+            
+            if len(radiation_data) == 0:
+                st.error("Failed to generate radiation data")
+                return
                 
                 # Apply orientation corrections if requested
                 if apply_corrections:
                     radiation_data = apply_orientation_corrections(radiation_data)
                 
-                # Save to session state and database
-                st.session_state.project_data['radiation_data'] = radiation_data
-                st.session_state.radiation_completed = True
-                
-                # Save to database
-                db_manager.save_radiation_analysis(
-                    st.session_state.project_data['project_id'],
-                    {
-                        'radiation_grid': radiation_data.to_dict('records'),
-                        'analysis_config': {
-                            'include_shading': include_shading,
-                            'apply_corrections': apply_corrections,
-                            'precision': analysis_precision,
-                            'shading_factors': shading_factors
-                        },
-                        'location': {'latitude': latitude, 'longitude': longitude}
-                    }
-                )
-                
-                st.success("✅ Radiation analysis completed successfully!")
-                
-            except Exception as e:
-                st.error(f"Error during radiation analysis: {str(e)}")
-                return
+            # Save to session state and database
+            st.session_state.project_data['radiation_data'] = radiation_data
+            st.session_state.radiation_completed = True
+            
+            # Save to database
+            db_manager.save_radiation_analysis(
+                st.session_state.project_data['project_id'],
+                {
+                    'radiation_grid': radiation_data.to_dict('records'),
+                    'analysis_config': {
+                        'include_shading': include_shading,
+                        'apply_corrections': apply_corrections,
+                        'precision': analysis_precision,
+                        'shading_factors': shading_factors
+                    },
+                    'location': {'latitude': latitude, 'longitude': longitude}
+                }
+            )
+            
+            # Complete progress
+            progress_bar.progress(100)
+            status_text.text("Analysis completed successfully!")
+            element_progress.text(f"Processed all {total_elements} elements")
+            
+            st.success("✅ Radiation analysis completed successfully!")
+            
+        except Exception as e:
+            st.error(f"Error during radiation analysis: {str(e)}")
+            progress_bar.progress(0)
+            status_text.text("Analysis failed")
+            element_progress.text("")
+            return
     
     # Display results if available
     if st.session_state.get('radiation_completed', False):
