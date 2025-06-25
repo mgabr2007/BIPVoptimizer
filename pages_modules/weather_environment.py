@@ -143,7 +143,12 @@ def render_weather_environment():
                         
                         # Save to database
                         if 'project_id' in st.session_state:
-                            save_project_data(st.session_state.project_data)
+                            try:
+                                from services.io import save_project_data
+                                save_project_data(st.session_state.project_data)
+                            except ImportError:
+                                # Fallback if import fails
+                                pass
                         
                         st.success("✅ Weather data fetched and TMY generated successfully!")
                         
@@ -358,8 +363,12 @@ def render_weather_environment():
         
         # Save to database if project exists
         if 'project_id' in st.session_state:
-            from services.io import save_project_data
-            save_project_data(st.session_state.project_data)
+            try:
+                from services.io import save_project_data
+                save_project_data(st.session_state.project_data)
+            except ImportError:
+                # Fallback if import fails
+                pass
     
     # Display completion status
     if st.session_state.project_data.get('weather_complete'):

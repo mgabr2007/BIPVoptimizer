@@ -266,6 +266,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 25, 2025: Optimized Step 5 radiation analysis performance with precision-based sampling (Standard/High/Maximum), daylight-only calculations, solar elevation filtering, and improved progress tracking to reduce processing time from hours to minutes
 - June 25, 2025: Enhanced Step 5 with detailed element-by-element progress tracking showing individual window processing status, element IDs, orientations, areas, and real-time progress indicators for better user experience during analysis
 - June 25, 2025: Fixed Step 3 environmental considerations reset issue by moving the environmental factors section outside the weather fetch callback, ensuring persistent state management and preventing form resets after TMY generation
+- June 25, 2025: Fixed Step 3 save_project_data import error by adding proper import statements and try-catch error handling for database operations
 
 ## User Preferences
 
