@@ -168,22 +168,20 @@ def render_pv_specification():
     st.header("⚡ Step 6: BIPV Panel Specification & System Design")
     
     # Check dependencies
-    if not st.session_state.get('radiation_completed', False):
-        st.error("⚠️ Radiation analysis required. Please complete Step 5 (Solar Radiation Analysis) first.")
-        return
-    
-    if not st.session_state.get('building_elements_completed', False):
+    building_elements = st.session_state.get('building_elements')
+    if building_elements is None or len(building_elements) == 0:
         st.error("⚠️ Building elements data required. Please complete Step 4 (Facade & Window Extraction) first.")
         return
     
-    # Load required data
     project_data = st.session_state.get('project_data', {})
-    suitable_elements = project_data.get('suitable_elements')
     radiation_data = project_data.get('radiation_data')
     
-    if suitable_elements is None or radiation_data is None:
-        st.error("Required data not available. Please complete previous steps.")
+    if radiation_data is None or len(radiation_data) == 0:
+        st.error("⚠️ Radiation analysis required. Please complete Step 5 (Solar Radiation Analysis) first.")
         return
+    
+    # Use building_elements as primary source
+    suitable_elements = building_elements
     
     st.success(f"Designing BIPV systems for {len(suitable_elements)} building elements")
     

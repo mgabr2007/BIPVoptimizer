@@ -269,6 +269,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 25, 2025: Fixed Step 3 save_project_data import error by adding proper import statements and try-catch error handling for database operations
 - June 25, 2025: Fixed Step 5 project_id error by adding proper validation and error handling for database operations, ensuring analysis continues even without project ID
 - June 25, 2025: Enhanced Step 5 to properly use actual BIM data from Step 4 upload, including real element IDs, dimensions, levels, wall associations, and glass areas instead of synthetic values, ensuring authentic building-specific radiation analysis
+- June 25, 2025: Fixed Step 6 dependency check by updating data source validation to properly recognize building elements and radiation analysis data from previous steps
 
 ## User Preferences
 
