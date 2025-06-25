@@ -310,24 +310,36 @@ def render_radiation_grid():
             radiation_results = []
             total_elements = len(suitable_elements)
             
+            # Convert DataFrame to list of dictionaries if needed
+            if hasattr(suitable_elements, 'iterrows'):
+                elements_list = []
+                for _, row in suitable_elements.iterrows():
+                    elements_list.append({
+                        'element_id': row.get('element_id', f'Element_{len(elements_list)+1}'),
+                        'azimuth': row.get('azimuth', 180),
+                        'tilt': row.get('tilt', 90),
+                        'glass_area': row.get('glass_area', 1.5),
+                        'orientation': row.get('orientation', 'Unknown'),
+                        'level': row.get('level', 'Level 1'),
+                        'wall_hosted_id': row.get('wall_hosted_id', 'N/A'),
+                        'width': row.get('width', 1.2),
+                        'height': row.get('height', 1.5)
+                    })
+                suitable_elements = elements_list
+            
             for i, element in enumerate(suitable_elements):
-                # Extract element data
-                if isinstance(element, dict):
-                    azimuth = element.get('azimuth', 180)
-                    tilt = element.get('tilt', 90)
-                    area = element.get('glass_area', 1.0)
-                    element_id = element.get('element_id', f'Element_{i+1}')
-                    orientation = element.get('orientation', 'Unknown')
-                else:
-                    # Handle DataFrame row
-                    azimuth = getattr(element, 'azimuth', 180)
-                    tilt = getattr(element, 'tilt', 90)
-                    area = getattr(element, 'glass_area', 1.0)
-                    element_id = getattr(element, 'element_id', f'Element_{i+1}')
-                    orientation = getattr(element, 'orientation', 'Unknown')
+                # Extract element data from BIM upload
+                element_id = element.get('element_id', f'Element_{i+1}')
+                azimuth = element.get('azimuth', 180)
+                tilt = element.get('tilt', 90)
+                area = element.get('glass_area', 1.5)  # Use actual BIM glass area
+                orientation = element.get('orientation', 'Unknown')
+                level = element.get('level', 'Level 1')
+                width = element.get('width', 1.2)
+                height = element.get('height', 1.5)
                 
-                # Update progress indicators
-                element_progress.text(f"Processing: {element_id} ({orientation}, {area:.1f}m²)")
+                # Update progress indicators with BIM data details
+                element_progress.text(f"Processing: {element_id} | {orientation} | {area:.1f}m² | {level}")
                 current_progress = 10 + int(70 * i / total_elements)
                 progress_bar.progress(current_progress)
                 
@@ -394,11 +406,16 @@ def render_radiation_grid():
                     'azimuth': azimuth,
                     'tilt': tilt,
                     'area': area,
+                    'level': level,
+                    'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
+                    'width': width,
+                    'height': height,
                     'annual_irradiation': annual_irradiance,
                     'peak_irradiance': peak_irradiance,
                     'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
                     'monthly_irradiation': monthly_irradiation,
-                    'capacity_factor': min(annual_irradiance / 1800, 1.0)  # Theoretical max ~1800 kWh/m²
+                    'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
+                    'annual_energy_potential': annual_irradiance * area  # kWh per element
                 })
             
             # Convert to DataFrame
@@ -468,16 +485,24 @@ def render_radiation_grid():
         if radiation_data is not None and len(radiation_data) > 0:
             st.subheader("📊 Radiation Analysis Results")
             
-            # Summary statistics
+            # Summary statistics based on actual BIM data
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                avg_annual = radiation_data['annual_irradiation'].mean()
-                st.metric("Average Annual Irradiation", f"{avg_annual:.0f} kWh/m²")
+                total_elements = len(radiation_data)
+                st.metric("Total Window Elements", f"{total_elements}")
             
             with col2:
-                max_annual = radiation_data['annual_irradiation'].max()
-                st.metric("Maximum Annual Irradiation", f"{max_annual:.0f} kWh/m²")
+                total_area = radiation_data['area'].sum()
+                st.metric("Total Window Area", f"{total_area:.1f} m²")
+            
+            with col3:
+                avg_annual = radiation_data['annual_irradiation'].mean()
+                st.metric("Avg Annual Irradiation", f"{avg_annual:.0f} kWh/m²")
+            
+            with col4:
+                total_energy_potential = radiation_data['annual_energy_potential'].sum()
+                st.metric("Total Energy Potential", f"{total_energy_potential:.0f} kWh/year")
             
             with col3:
                 avg_peak = radiation_data['peak_irradiance'].mean()
@@ -487,12 +512,13 @@ def render_radiation_grid():
                 total_area = radiation_data['area'].sum()
                 st.metric("Total Analyzed Area", f"{total_area:.1f} m²")
             
-            # Detailed results table
-            st.subheader("📋 Element-by-Element Analysis")
+            # BIM-based detailed results table
+            st.subheader("📋 BIM Element Analysis Results")
             
-            # Prepare display dataframe
+            # Prepare display dataframe with BIM metadata
             display_df = radiation_data.copy()
-            display_columns = ['element_id', 'orientation', 'area', 'annual_irradiation', 'peak_irradiance', 'avg_irradiance']
+            display_columns = ['element_id', 'level', 'orientation', 'area', 'width', 'height', 
+                             'annual_irradiation', 'annual_energy_potential', 'peak_irradiance']
             
             if apply_corrections and 'corrected_annual_irradiation' in display_df.columns:
                 display_columns.append('corrected_annual_irradiation')
@@ -502,11 +528,14 @@ def render_radiation_grid():
                 use_container_width=True,
                 column_config={
                     'element_id': 'Element ID',
+                    'level': 'Building Level',
                     'orientation': 'Orientation',
                     'area': st.column_config.NumberColumn('Area (m²)', format="%.2f"),
+                    'width': st.column_config.NumberColumn('Width (m)', format="%.2f"),
+                    'height': st.column_config.NumberColumn('Height (m)', format="%.2f"),
                     'annual_irradiation': st.column_config.NumberColumn('Annual Irradiation (kWh/m²)', format="%.0f"),
+                    'annual_energy_potential': st.column_config.NumberColumn('Energy Potential (kWh/year)', format="%.0f"),
                     'peak_irradiance': st.column_config.NumberColumn('Peak Irradiance (W/m²)', format="%.0f"),
-                    'avg_irradiance': st.column_config.NumberColumn('Avg Irradiance (W/m²)', format="%.0f"),
                     'corrected_annual_irradiation': st.column_config.NumberColumn('Corrected Annual (kWh/m²)', format="%.0f")
                 }
             )
