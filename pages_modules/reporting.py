@@ -281,7 +281,7 @@ def render_reporting():
                 )
                 
                 # Preview report
-                with st.expander("Report Preview", expanded=True):
+                with st.expander("Report Preview", expanded=False):
                     st.components.v1.html(html_report, height=600, scrolling=True)
                 
             except Exception as e:

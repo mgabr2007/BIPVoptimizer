@@ -116,7 +116,7 @@ def main():
     
     # Display workflow visualization if enabled
     if show_workflow_vis:
-        with st.expander("🔄 Workflow Visualization", expanded=True):
+        with st.expander("🔄 Workflow Visualization", expanded=False):
             tab1, tab2, tab3 = st.tabs(["Progress Tracker", "Milestones", "Completion Status"])
             
             with tab1:

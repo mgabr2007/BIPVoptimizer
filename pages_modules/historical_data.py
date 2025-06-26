@@ -12,7 +12,7 @@ def render_historical_data():
     st.markdown("Upload and analyze historical energy consumption data to train demand prediction models.")
     
     # AI Model Purpose Explanation
-    with st.expander("🤖 Why AI Model Training is Essential for BIPV Optimization", expanded=True):
+    with st.expander("🤖 Why AI Model Training is Essential for BIPV Optimization", expanded=False):
         st.markdown("""
         **The AI model training serves critical purposes in the BIPV optimization process:**
         
@@ -125,7 +125,7 @@ def render_historical_data():
     # CSV file upload
     st.subheader("📁 Historical Energy Data Upload")
     
-    with st.expander("CSV File Requirements", expanded=True):
+    with st.expander("CSV File Requirements", expanded=False):
         st.markdown("""
         **Required Columns:**
         - `Date`: YYYY-MM-DD format (e.g., 2023-01-01)
