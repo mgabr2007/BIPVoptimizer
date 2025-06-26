@@ -205,31 +205,7 @@ def render_weather_environment():
                             - Generation Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}
                             """)
                         
-                        # Environmental factors
-                        st.subheader("🌍 Environmental Considerations")
-                        
-                        # Calculate shading factors (simplified)
-                        trees_nearby = st.checkbox("Trees or vegetation nearby", value=False, key="trees_nearby")
-                        tall_buildings = st.checkbox("Tall buildings in vicinity", value=False, key="tall_buildings")
-                        
-                        shading_factor = 1.0
-                        if trees_nearby:
-                            shading_factor *= 0.9
-                        if tall_buildings:
-                            shading_factor *= 0.85
-                        
-                        # Store shading factor
-                        st.session_state.project_data['shading_factor'] = shading_factor
-                        
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("Shading Factor", f"{shading_factor:.2f}")
-                        with col2:
-                            effective_ghi = annual_ghi * shading_factor
-                            st.metric("Effective GHI", f"{effective_ghi:,.0f} kWh/m²")
-                        with col3:
-                            reduction_pct = (1 - shading_factor) * 100
-                            st.metric("Shading Reduction", f"{reduction_pct:.1f}%")
+
                         
                         # Monthly solar profile
                         st.subheader("📅 Monthly Solar Profile")
