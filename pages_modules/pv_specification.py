@@ -106,7 +106,11 @@ def calculate_system_specifications(element_data, panel_specs, radiation_data):
         
         # Get radiation data for this element
         element_radiation = radiation_data[radiation_data['element_id'] == element_id]
-        annual_irradiation = element_radiation.iloc[0]['annual_irradiation'] if len(element_radiation) > 0 else 1000
+        if len(element_radiation) > 0:
+            annual_irradiation = float(element_radiation.iloc[0]['annual_irradiation'])
+        else:
+            # Fallback: use reasonable default based on orientation
+            annual_irradiation = 1000  # kWh/m²/year - typical for Central Europe
         
         # Calculate layout
         layout = calculate_panel_layout(
