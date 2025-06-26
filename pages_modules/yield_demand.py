@@ -322,17 +322,23 @@ def render_yield_demand():
                 # Calculate PV yield profiles using simplified approach
                 tmy_data = project_data.get('tmy_data', {})
                 
-                # Create simplified yield profiles directly from PV specs with validation
+                # Create yield profiles with realistic monthly distribution
                 yield_profiles = []
+                # Monthly solar irradiation distribution for Central Europe (Berlin climate)
+                monthly_solar_factors = [0.03, 0.05, 0.08, 0.11, 0.14, 0.15, 0.14, 0.12, 0.09, 0.06, 0.03, 0.02]
+                
                 if pv_specs is not None and len(pv_specs) > 0:
                     for _, system in pv_specs.iterrows():
                         annual_energy = float(system.get('annual_energy_kwh', 0))
                         if annual_energy > 0:  # Only include systems with positive energy
+                            # Calculate monthly yields using seasonal distribution
+                            monthly_yields = [annual_energy * factor for factor in monthly_solar_factors]
+                            
                             system_data = {
                                 'element_id': system.get('element_id', ''),
                                 'system_power_kw': float(system.get('system_power_kw', 0)),
                                 'annual_yield': annual_energy,
-                                'monthly_yields': [annual_energy / 12] * 12,
+                                'monthly_yields': monthly_yields,
                                 'specific_yield': float(system.get('specific_yield', 0))
                             }
                             yield_profiles.append(system_data)
@@ -492,20 +498,28 @@ def render_yield_demand():
                 st.metric("Annual Savings", f"€{total_annual_savings:,.0f}")
             
             # Monthly analysis table
-            st.subheader("📋 Monthly Energy Balance")
+            st.subheader("📋 Monthly Energy Balance Details")
             
-            # Convert list of dictionaries to display format
+            # Create detailed monthly breakdown
             balance_display = []
             for i, row in enumerate(energy_balance[:12]):  # Show first 12 months
+                month_name = row.get('month', f'Month {i+1}')
                 balance_display.append({
-                    'Month': i + 1,
+                    'Month': month_name,
                     'Demand (kWh)': f"{row.get('predicted_demand', 0):.0f}",
-                    'Generation (kWh)': f"{row.get('total_yield_kwh', 0):.0f}",
+                    'Total Yield (kWh)': f"{row.get('total_yield_kwh', 0):.0f}",
                     'Net Import (kWh)': f"{row.get('net_import', 0):.0f}",
+                    'Surplus (kWh)': f"{row.get('surplus', 0):.0f}",
                     'Self-Consumption (%)': f"{row.get('self_consumption_ratio', 0):.1%}",
-                    'Monthly Savings (€)': f"€{row.get('total_savings', 0):.0f}"
+                    'Cost Savings (€)': f"€{row.get('electricity_cost_savings', 0):.0f}",
+                    'Feed-in Revenue (€)': f"€{row.get('feed_in_revenue', 0):.0f}",
+                    'Total Savings (€)': f"€{row.get('total_savings', 0):.0f}"
                 })
             
             st.dataframe(balance_display, use_container_width=True)
+            
+            # Summary information
+            total_feed_in = analysis_data.get('total_feed_in_revenue', 0)
+            st.info(f"💡 Annual feed-in revenue: €{total_feed_in:,.0f} | Monthly values now show realistic seasonal variation based on solar irradiation patterns")
         else:
             st.info("No energy balance analysis available. Please run the yield vs demand analysis first.")
