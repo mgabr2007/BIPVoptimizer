@@ -72,29 +72,55 @@ def generate_comprehensive_html_report():
     if not db_data:
         return "<h1>Error: No project data found</h1>"
     
+    # Add debugging information
+    try:
+        st.info(f"Report data keys: {list(db_data.keys())}")
+        for key, value in db_data.items():
+            if key in ['initial_investment', 'annual_savings', 'npv', 'payback_period', 'co2_savings_annual', 'co2_savings_lifetime']:
+                st.info(f"{key}: {value} (type: {type(value)})")
+    except Exception as debug_error:
+        st.warning(f"Debug info error: {debug_error}")
+    
     # Extract data safely
     location = db_data.get('location', 'Unknown Location')
     coordinates = {'lat': db_data.get('latitude', 0), 'lon': db_data.get('longitude', 0)}
     building_elements = db_data.get('building_elements', [])
     
-    # Calculate metrics
+    # Calculate metrics with null value handling
     total_elements = len(building_elements)
     suitable_elements = sum(1 for elem in building_elements if elem.get('pv_suitable', False))
-    total_glass_area = sum(float(elem.get('glass_area', 0)) for elem in building_elements)
+    
+    # Safe glass area calculation
+    total_glass_area = 0
+    for elem in building_elements:
+        glass_area = elem.get('glass_area', 0)
+        if glass_area is not None:
+            try:
+                total_glass_area += float(glass_area)
+            except (ValueError, TypeError):
+                total_glass_area += 0
     
     # Safe calculations
     suitability_rate = safe_divide(suitable_elements, total_elements, 0) * 100
     avg_glass_area = safe_divide(total_glass_area, total_elements, 0)
     
-    # Financial data
-    initial_investment = float(db_data.get('initial_investment', 0))
-    annual_savings = float(db_data.get('annual_savings', 0))
-    npv = float(db_data.get('npv', 0))
-    payback_period = float(db_data.get('payback_period', 0))
+    # Safe financial data conversion
+    def safe_float(value, default=0):
+        if value is None:
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
+    initial_investment = safe_float(db_data.get('initial_investment', 0))
+    annual_savings = safe_float(db_data.get('annual_savings', 0))
+    npv = safe_float(db_data.get('npv', 0))
+    payback_period = safe_float(db_data.get('payback_period', 0))
     
     # Environmental data
-    co2_savings_annual = float(db_data.get('co2_savings_annual', 0))
-    co2_savings_lifetime = float(db_data.get('co2_savings_lifetime', 0))
+    co2_savings_annual = safe_float(db_data.get('co2_savings_annual', 0))
+    co2_savings_lifetime = safe_float(db_data.get('co2_savings_lifetime', 0))
     
     html_content = f"""
     <!DOCTYPE html>
