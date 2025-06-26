@@ -121,16 +121,20 @@ def calculate_system_specifications(element_data, panel_specs, radiation_data):
             panel_specs['dimensions']['height']
         )
         
-        if layout['total_panels'] > 0:
+        if layout['total_panels'] > 0 and annual_irradiation > 0:
             # System power calculation
             system_power_wp = layout['total_panels'] * panel_specs['power_rating']
             system_power_kw = system_power_wp / 1000
             
-            # Annual energy production
-            # Energy = System Power (kW) × Annual Irradiation (kWh/m²) × Panel Efficiency × Performance Ratio
+            # Debug information
+            print(f"Element {element_id}: {layout['total_panels']} panels × {panel_specs['power_rating']}W = {system_power_wp}W")
+            print(f"Annual irradiation: {annual_irradiation} kWh/m²")
+            
+            # Annual energy production using correct formula
+            # Energy = System Power (kW) × Annual Irradiation (kWh/m²) × Performance Ratio
+            # Note: Panel efficiency is already included in system_power_kw calculation
             performance_ratio = 0.85  # Account for inverter losses, soiling, etc.
-            annual_energy_kwh = (system_power_kw * annual_irradiation * 
-                               panel_specs['efficiency'] * performance_ratio / 1000)
+            annual_energy_kwh = system_power_kw * annual_irradiation * performance_ratio
             
             # Cost calculations
             panel_cost = system_power_wp * panel_specs['cost_per_wp']
@@ -138,8 +142,11 @@ def calculate_system_specifications(element_data, panel_specs, radiation_data):
             inverter_cost = system_power_kw * 150  # €150/kW for inverters
             total_cost = panel_cost + installation_cost + inverter_cost
             
-            # Specific yield (kWh/kWp)
-            specific_yield = safe_divide(annual_energy_kwh * 1000, system_power_wp, 0)
+            # Specific yield (kWh/kWp) - annual energy per kW of installed power
+            specific_yield = safe_divide(annual_energy_kwh, system_power_kw, 0)
+            
+            # Debug output
+            print(f"Annual energy: {annual_energy_kwh:.2f} kWh, Specific yield: {specific_yield:.2f} kWh/kW")
             
             specification = {
                 'element_id': element_id,
