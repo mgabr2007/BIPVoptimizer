@@ -160,10 +160,14 @@ def render_yield_demand():
         st.error("⚠️ PV system specifications not available. Please complete Step 6 (PV Specification).")
         return
     
-    # Check for historical data model from Step 2
+    # Check for historical data from Step 2 - check multiple possible locations
     historical_data = st.session_state.get('historical_data')
     demand_model = project_data.get('demand_model')
-    if historical_data is None and demand_model is None:
+    historical_analysis = project_data.get('historical_analysis')
+    consumption_data = project_data.get('consumption_data')
+    
+    # Accept if any historical data source is available
+    if all(x is None for x in [historical_data, demand_model, historical_analysis, consumption_data]):
         st.error("⚠️ Historical data analysis not available. Please complete Step 2 (Historical Data Analysis).")
         return
     
