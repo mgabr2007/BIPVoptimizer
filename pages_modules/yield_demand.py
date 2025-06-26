@@ -417,29 +417,30 @@ def render_yield_demand():
     # Display results if available
     if st.session_state.get('yield_demand_completed', False):
         analysis_data = st.session_state.project_data.get('yield_demand_analysis', {})
-        energy_balance = analysis_data.get('energy_balance')
         
-        if energy_balance is not None and len(energy_balance) > 0:
-            st.subheader("📊 Energy Balance Results")
+        if analysis_data and 'energy_balance' in analysis_data:
+            st.subheader("📊 Yield vs Demand Analysis Results")
+            
+            # Get summary metrics from analysis data
+            total_annual_yield = analysis_data.get('total_annual_yield', 0)
+            annual_demand = analysis_data.get('annual_demand', 0)
+            coverage_ratio = analysis_data.get('coverage_ratio', 0)
+            total_annual_savings = analysis_data.get('total_annual_savings', 0)
             
             # Key metrics
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                total_demand = energy_balance['predicted_demand'].sum()
-                st.metric("Total Energy Demand", f"{total_demand:,.0f} kWh")
+                st.metric("Total Annual Yield", f"{total_annual_yield:,.0f} kWh")
             
             with col2:
-                total_generation = energy_balance['total_yield_kwh'].sum()
-                st.metric("Total BIPV Generation", f"{total_generation:,.0f} kWh")
+                st.metric("Annual Demand", f"{annual_demand:,.0f} kWh")
             
             with col3:
-                avg_self_consumption = energy_balance['self_consumption_ratio'].mean() * 100
-                st.metric("Avg Self-Consumption", f"{avg_self_consumption:.1f}%")
+                st.metric("Coverage Ratio", f"{coverage_ratio:.1f}%")
             
             with col4:
-                total_savings = energy_balance['total_savings'].sum() if 'total_savings' in energy_balance.columns else 0
-                st.metric("Total Energy Savings", f"€{total_savings:,.0f}")
+                st.metric("Annual Savings", f"€{total_annual_savings:,.0f}")
             
             # Monthly analysis table
             st.subheader("📋 Monthly Energy Balance")
