@@ -320,14 +320,14 @@ def render_yield_demand():
                     
                     balance_data = {
                         'month': months[i],
-                        'demand': monthly_demand_val,
-                        'generation': monthly_generation,
+                        'predicted_demand': monthly_demand_val,
+                        'total_yield_kwh': monthly_generation,
                         'net_import': net_import,
-                        'self_consumption': min(monthly_demand_val, monthly_generation),
+                        'self_consumption_ratio': min(monthly_demand_val, monthly_generation) / monthly_demand_val if monthly_demand_val > 0 else 0,
                         'surplus': max(0, monthly_generation - monthly_demand_val),
                         'electricity_cost_savings': min(monthly_demand_val, monthly_generation) * electricity_price,
                         'feed_in_revenue': max(0, monthly_generation - monthly_demand_val) * feed_in_tariff,
-                        'net_electricity_cost': max(0, net_import) * electricity_price
+                        'total_savings': (min(monthly_demand_val, monthly_generation) * electricity_price) + (max(0, monthly_generation - monthly_demand_val) * feed_in_tariff)
                     }
                     energy_balance.append(balance_data)
                 
