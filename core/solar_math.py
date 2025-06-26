@@ -264,6 +264,9 @@ def classify_solar_resource_iso(annual_ghi):
         return "Low (<800 kWh/m²/year)"
 
 
-def safe_divide(numerator, denominator, default=0):
+def safe_divide(numerator, denominator, default=0.0):
     """Safe division to avoid division by zero errors"""
-    return numerator / denominator if denominator != 0 else default
+    try:
+        return float(numerator) / float(denominator) if denominator != 0 else default
+    except (TypeError, ValueError):
+        return default

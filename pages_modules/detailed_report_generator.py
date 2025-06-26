@@ -36,10 +36,13 @@ def generate_comprehensive_detailed_report():
     financial_analysis = project_data.get('financial_analysis', {})
     
     # Safe data extraction with defaults
-    def safe_get(data, key, default=0):
+    def safe_get(data, key, default=None):
         if isinstance(data, dict):
             return data.get(key, default)
-        return default
+        elif isinstance(data, str):
+            # Handle case where data is a string instead of dict
+            return default
+        return default if default is not None else 0
     
     # Calculate comprehensive metrics
     total_elements = len(building_elements)
@@ -390,11 +393,11 @@ def generate_comprehensive_detailed_report():
                 <h3>📈 Historical Data Analysis Results</h3>
                 <table>
                     <tr><th>Metric</th><th>Value</th><th>Unit</th></tr>
-                    <tr><td>Average Monthly Consumption</td><td>{safe_get(historical_data, 'avg_consumption', 2500):,.0f}</td><td>kWh</td></tr>
-                    <tr><td>Annual Consumption</td><td>{safe_get(historical_data, 'total_consumption', 30000):,.0f}</td><td>kWh</td></tr>
-                    <tr><td>Consumption Variability (CV)</td><td>{safe_get(historical_data, 'variability', 0.15)*100:.1f}</td><td>%</td></tr>
-                    <tr><td>Peak Demand Month</td><td>{safe_get(historical_data, 'peak_month', 'January')}</td><td>-</td></tr>
-                    <tr><td>Model R² Score</td><td>{safe_get(historical_data, 'model_r2', 0.85):.3f}</td><td>-</td></tr>
+                    <tr><td>Average Monthly Consumption</td><td>{(safe_get(historical_data, 'avg_consumption') or 2500):,.0f}</td><td>kWh</td></tr>
+                    <tr><td>Annual Consumption</td><td>{(safe_get(historical_data, 'total_consumption') or 30000):,.0f}</td><td>kWh</td></tr>
+                    <tr><td>Consumption Variability (CV)</td><td>{(safe_get(historical_data, 'variability') or 0.15)*100:.1f}</td><td>%</td></tr>
+                    <tr><td>Peak Demand Month</td><td>{safe_get(historical_data, 'peak_month') or 'January'}</td><td>-</td></tr>
+                    <tr><td>Model R² Score</td><td>{(safe_get(historical_data, 'model_r2') or 0.85):.3f}</td><td>-</td></tr>
                 </table>
             </div>
 
