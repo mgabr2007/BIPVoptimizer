@@ -275,6 +275,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 25, 2025: Fixed Step 6 project_id error in PV specification calculations by adding proper validation and error handling for database operations
 - June 26, 2025: Fixed Step 7 historical data validation by checking multiple possible data storage locations including session state and project data structures
 - June 26, 2025: Fixed Step 6 zero annual energy and specific yield calculations by implementing proper energy generation formulas with radiation data, panel efficiency, and performance ratios
+- June 26, 2025: Fixed Step 7 historical data recognition by correcting data validation to check project_data['historical_data'] where Step 2 actually stores the processed consumption data
 
 ## User Preferences
 

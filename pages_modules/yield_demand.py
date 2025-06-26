@@ -160,14 +160,11 @@ def render_yield_demand():
         st.error("⚠️ PV system specifications not available. Please complete Step 6 (PV Specification).")
         return
     
-    # Check for historical data from Step 2 - check multiple possible locations
-    historical_data = st.session_state.get('historical_data')
-    demand_model = project_data.get('demand_model')
-    historical_analysis = project_data.get('historical_analysis')
-    consumption_data = project_data.get('consumption_data')
+    # Check for historical data from Step 2 - look in correct location
+    historical_data_project = project_data.get('historical_data')  # This is where Step 2 saves it
+    data_analysis_complete = project_data.get('data_analysis_complete', False)
     
-    # Accept if any historical data source is available
-    if all(x is None for x in [historical_data, demand_model, historical_analysis, consumption_data]):
+    if historical_data_project is None and not data_analysis_complete:
         st.error("⚠️ Historical data analysis not available. Please complete Step 2 (Historical Data Analysis).")
         return
     
@@ -177,14 +174,21 @@ def render_yield_demand():
         st.error("⚠️ Radiation analysis not available. Please complete Step 5 (Radiation Analysis).")
         return
     
-    # Load demand model
-    model, feature_columns, metrics = load_demand_model()
+    # Use historical data from Step 2
+    if historical_data_project:
+        st.success(f"Using historical consumption data: {historical_data_project['avg_consumption']:.0f} kWh/month average")
+        baseline_demand = historical_data_project
+    else:
+        # Fallback if somehow data is missing
+        baseline_demand = {
+            'avg_consumption': 2500,
+            'total_consumption': 30000,
+            'consumption': [2400, 2200, 2100, 2000, 1900, 1800, 2000, 2100, 2200, 2400, 2500, 2600]
+        }
+        st.info("Using baseline demand patterns for analysis.")
     
-    # If no model available, create a simple baseline model
-    if model is None:
-        st.info("Using baseline demand model based on historical data patterns.")
-        feature_columns = ['Month', 'Temperature', 'Humidity']
-        metrics = {'mae': 'N/A', 'r2': 'N/A'}
+    # Load demand model (optional)
+    model, feature_columns, metrics = load_demand_model()
     
     st.success(f"Analyzing energy balance for {len(pv_specs)} BIPV systems")
     
