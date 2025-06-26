@@ -283,6 +283,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 26, 2025: Fixed Step 7 variable scope error by properly handling energy_balance variable access and simplified results display to prevent reference errors
 - June 26, 2025: Fixed critical syntax error in Step 7 yield_demand.py that was preventing application startup by removing complex visualization code and simplifying results display
 - June 26, 2025: Fixed Step 7 data structure issues including field name mismatches, plotly chart errors, and zero values in monthly energy balance table by aligning calculation and display field names
+- June 26, 2025: Added comprehensive AI model training explanation to Step 2 detailing its essential role in BIPV optimization including future demand prediction, optimization algorithm inputs, system sizing, and economic viability assessment
 
 ## User Preferences
 

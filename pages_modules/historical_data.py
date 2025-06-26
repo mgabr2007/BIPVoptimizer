@@ -11,6 +11,43 @@ def render_historical_data():
     st.header("Step 2: Historical Data Analysis & AI Model Training")
     st.markdown("Upload and analyze historical energy consumption data to train demand prediction models.")
     
+    # AI Model Purpose Explanation
+    with st.expander("🤖 Why AI Model Training is Essential for BIPV Optimization", expanded=True):
+        st.markdown("""
+        **The AI model training serves critical purposes in the BIPV optimization process:**
+        
+        **1. Future Energy Demand Prediction**
+        - Predicts building energy consumption patterns for the next 20-25 years (PV system lifetime)
+        - Accounts for seasonal variations, occupancy changes, and building aging effects
+        - Essential for accurate yield vs demand analysis in Step 7
+        
+        **2. Optimization Algorithm Input**
+        - Provides realistic demand profiles for genetic algorithm optimization in Step 8
+        - Enables calculation of energy independence and self-consumption rates
+        - Supports accurate financial modeling by predicting future electricity costs
+        
+        **3. System Sizing and Selection**
+        - Determines optimal PV capacity to match building consumption patterns
+        - Identifies peak demand periods for battery storage sizing
+        - Minimizes over-sizing or under-sizing of BIPV installations
+        
+        **4. Economic Viability Assessment**
+        - Calculates accurate payback periods based on predicted consumption
+        - Estimates long-term savings and return on investment
+        - Supports feed-in tariff revenue calculations for surplus generation
+        
+        **The trained RandomForest model captures complex relationships between:**
+        - Weather conditions (temperature, humidity, solar irradiance)
+        - Occupancy patterns (academic schedules, seasonal variations)
+        - Building characteristics (type, age, efficiency improvements)
+        - Historical consumption trends and growth patterns
+        
+        **Without accurate demand prediction, the optimization would rely on simplified assumptions, 
+        potentially leading to sub-optimal BIPV system configurations and inaccurate financial projections.**
+        """)
+    
+    st.divider()
+    
     # Check prerequisites
     if not st.session_state.get('project_data', {}).get('setup_complete'):
         st.error("Please complete Step 1: Project Setup first.")
