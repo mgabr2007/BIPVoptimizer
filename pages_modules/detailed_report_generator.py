@@ -13,19 +13,20 @@ from core.solar_math import safe_divide
 
 def generate_comprehensive_detailed_report():
     """Generate comprehensive detailed report with all equations, methodology, and scientific documentation"""
-    # Safe extraction of project data
-    project_data_raw = st.session_state.get('project_data', {})
-    if not isinstance(project_data_raw, dict):
-        project_data_raw = {}
-    
-    project_name = project_data_raw.get('project_name', 'Unnamed Project')
-    db_data = get_project_report_data(project_name)
-    
-    if not db_data or not isinstance(db_data, dict):
-        return "<h1>Error: No project data found for detailed analysis</h1>"
-    
-    # Extract all available data
-    project_data = project_data_raw
+    try:
+        # Safe extraction of project data
+        project_data_raw = st.session_state.get('project_data', {})
+        if not isinstance(project_data_raw, dict):
+            project_data_raw = {}
+        
+        project_name = project_data_raw.get('project_name', 'Unnamed Project')
+        db_data = get_project_report_data(project_name)
+        
+        if not db_data or not isinstance(db_data, dict):
+            return "<h1>Error: No project data found for detailed analysis</h1>"
+        
+        # Extract all available data
+        project_data = project_data_raw
     location = db_data.get('location', 'Unknown Location')
     coordinates = {'lat': db_data.get('latitude', 52.52), 'lon': db_data.get('longitude', 13.405)}
     
@@ -501,10 +502,10 @@ def generate_comprehensive_detailed_report():
                 <table>
                     <tr><th>BIM Analysis Parameter</th><th>Value</th><th>Calculation Method</th></tr>
                     <tr><td>Total Building Elements</td><td>{total_elements}</td><td>Direct CSV count</td></tr>
-                    <tr><td>Window Elements</td><td>{sum(1 for elem in building_elements if 'window' in elem.get('element_type', '').lower())}</td><td>Type filtering</td></tr>
-                    <tr><td>Curtain Wall Elements</td><td>{sum(1 for elem in building_elements if 'curtain' in elem.get('element_type', '').lower())}</td><td>Type filtering</td></tr>
+                    <tr><td>Window Elements</td><td>{sum(1 for elem in building_elements if isinstance(elem, dict) and 'window' in elem.get('element_type', '').lower())}</td><td>Type filtering</td></tr>
+                    <tr><td>Curtain Wall Elements</td><td>{sum(1 for elem in building_elements if isinstance(elem, dict) and 'curtain' in elem.get('element_type', '').lower())}</td><td>Type filtering</td></tr>
                     <tr><td>Average Glass Area</td><td>{safe_divide(total_glass_area, total_elements, 0):.2f} m²</td><td>Arithmetic mean</td></tr>
-                    <tr><td>South-Facing Elements</td><td>{sum(1 for elem in building_elements if 'South' in elem.get('orientation', ''))}</td><td>Orientation analysis</td></tr>
+                    <tr><td>South-Facing Elements</td><td>{sum(1 for elem in building_elements if isinstance(elem, dict) and 'South' in elem.get('orientation', ''))}</td><td>Orientation analysis</td></tr>
                     <tr><td>BIPV Suitable Elements</td><td>{suitable_elements}</td><td>Multi-criteria evaluation</td></tr>
                 </table>
 
@@ -517,14 +518,19 @@ def generate_comprehensive_detailed_report():
                     <tr><th>Orientation</th><th>Count</th><th>Total Area (m²)</th><th>Avg Area (m²)</th><th>BIPV Potential</th></tr>
 """
 
-    # Add orientation breakdown
+    # Add orientation breakdown with safe element access
     orientation_data = {}
     for elem in building_elements:
-        orientation = elem.get('orientation', 'Unknown')
-        if orientation not in orientation_data:
-            orientation_data[orientation] = {'count': 0, 'total_area': 0}
-        orientation_data[orientation]['count'] += 1
-        orientation_data[orientation]['total_area'] += float(elem.get('glass_area', 0))
+        if isinstance(elem, dict):
+            orientation = elem.get('orientation', 'Unknown')
+            if orientation not in orientation_data:
+                orientation_data[orientation] = {'count': 0, 'total_area': 0}
+            orientation_data[orientation]['count'] += 1
+            try:
+                glass_area = float(elem.get('glass_area', 0))
+                orientation_data[orientation]['total_area'] += glass_area
+            except (ValueError, TypeError):
+                continue
 
     for orientation, data in orientation_data.items():
         avg_area = safe_divide(data['total_area'], data['count'], 0)
@@ -568,10 +574,14 @@ def generate_comprehensive_detailed_report():
                     <tr><th>Element ID</th><th>Orientation</th><th>Annual Irradiation (kWh/m²)</th><th>Performance Index</th></tr>
 """
 
-    # Add radiation data for key elements
+    # Add radiation data for key elements with safe access
     for i, elem in enumerate(building_elements[:10]):  # Show first 10 elements
-        element_id = elem.get('element_id', f'Element_{i}')
-        orientation = elem.get('orientation', 'Unknown')
+        if isinstance(elem, dict):
+            element_id = elem.get('element_id', f'Element_{i}')
+            orientation = elem.get('orientation', 'Unknown')
+        else:
+            element_id = f'Element_{i}'
+            orientation = 'Unknown'
         # Estimate irradiation based on orientation
         irradiation = 1800 if "South" in orientation else 1400 if any(x in orientation for x in ["East", "West"]) else 900
         performance_index = safe_divide(irradiation, 1800, 0)
@@ -907,7 +917,21 @@ def generate_comprehensive_detailed_report():
     </html>
     """
     
-    return html_content
+        return html_content
+    
+    except Exception as e:
+        # Return a safe fallback report if anything fails
+        return f"""
+        <html>
+        <head><title>BIPV Analysis Report - Error</title></head>
+        <body>
+            <h1>BIPV Analysis Report</h1>
+            <p><strong>Error:</strong> Report generation encountered an issue: {str(e)}</p>
+            <p>Please ensure all workflow steps are completed properly and try again.</p>
+            <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        </body>
+        </html>
+        """
 
 def render_detailed_reporting():
     """Render the detailed reporting interface"""
