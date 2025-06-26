@@ -195,9 +195,24 @@ def render_optimization():
     yield_demand_analysis = project_data.get('yield_demand_analysis', {})
     energy_balance = yield_demand_analysis.get('energy_balance')
     
+    # Convert pv_specs to DataFrame if it's a list
+    if pv_specs is not None:
+        if isinstance(pv_specs, list):
+            pv_specs = pd.DataFrame(pv_specs)
+        elif not isinstance(pv_specs, pd.DataFrame):
+            st.error("⚠️ PV specifications data format error.")
+            return
+    
     if pv_specs is None or len(pv_specs) == 0:
         st.error("⚠️ PV specifications not available.")
         return
+    
+    # Convert energy_balance to DataFrame if it's a list
+    if energy_balance is not None:
+        if isinstance(energy_balance, list):
+            energy_balance = pd.DataFrame(energy_balance)
+        elif not isinstance(energy_balance, pd.DataFrame):
+            energy_balance = None
     
     st.success(f"Optimizing selection from {len(pv_specs)} viable BIPV systems")
     
