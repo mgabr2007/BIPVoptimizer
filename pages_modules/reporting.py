@@ -5,6 +5,7 @@ import streamlit as st
 from datetime import datetime
 from services.io import get_project_report_data
 from core.solar_math import get_currency_symbol, safe_divide
+from pages_modules.detailed_report_generator import generate_comprehensive_detailed_report
 
 
 def generate_window_elements_csv():
@@ -274,44 +275,64 @@ def render_reporting():
         return
     
     # Report generation options
-    st.subheader("Report Generation")
+    st.subheader("📊 Report Generation Options")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        include_charts = st.checkbox("Include Interactive Charts", value=True, key="include_charts")
-        include_recommendations = st.checkbox("Include Optimization Recommendations", value=True, key="include_recommendations")
+        st.info("**Standard Report**\nExecutive summary with key metrics and financial analysis")
+        if st.button("📋 Generate Standard Report", key="generate_standard_report"):
+            with st.spinner("Generating standard BIPV analysis report..."):
+                try:
+                    html_report = generate_comprehensive_html_report()
+                    
+                    st.success("Standard report generated successfully!")
+                    
+                    # Download button for HTML report
+                    st.download_button(
+                        label="📥 Download Standard Report (HTML)",
+                        data=html_report,
+                        file_name=f"BIPV_Standard_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                        mime="text/html",
+                        key="download_standard_report"
+                    )
+                    
+                except Exception as e:
+                    st.error(f"Error generating standard report: {str(e)}")
     
     with col2:
-        report_format = st.selectbox(
-            "Report Format",
-            ["Comprehensive HTML Report"],
-            key="report_format"
-        )
-    
-    # Generate comprehensive report
-    if st.button("Generate Comprehensive Report", key="generate_report", type="primary"):
-        with st.spinner("Generating comprehensive BIPV analysis report..."):
-            try:
-                html_report = generate_comprehensive_html_report()
-                
-                st.success("Report generated successfully!")
-                
-                # Download button for HTML report
-                st.download_button(
-                    label="Download HTML Report",
-                    data=html_report,
-                    file_name=f"BIPV_Analysis_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                    mime="text/html",
-                    key="download_html_report"
-                )
-                
-                # Preview report
-                with st.expander("Report Preview", expanded=False):
-                    st.components.v1.html(html_report, height=600, scrolling=True)
-                
-            except Exception as e:
-                st.error(f"Error generating report: {str(e)}")
+        st.info("**Detailed Scientific Report**\nComplete methodology with equations, assumptions, and validation")
+        if st.button("🔬 Generate Detailed Scientific Report", key="generate_detailed_report"):
+            with st.spinner("Generating comprehensive detailed report with all equations and methodology..."):
+                try:
+                    detailed_report = generate_comprehensive_detailed_report()
+                    
+                    st.success("Detailed scientific report generated successfully!")
+                    
+                    # Download button for detailed report
+                    st.download_button(
+                        label="📥 Download Detailed Scientific Report (HTML)",
+                        data=detailed_report.encode('utf-8'),
+                        file_name=f"BIPV_Detailed_Scientific_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                        mime="text/html",
+                        key="download_detailed_report"
+                    )
+                    
+                    st.info("📋 Detailed report includes: Complete methodology, mathematical equations, validation framework, uncertainty analysis, and scientific documentation following international standards.")
+                    
+                except Exception as e:
+                    st.error(f"Error generating detailed report: {str(e)}")
+                    # Provide fallback
+                    st.warning("Generating simplified report due to data constraints...")
+                    simple_report = "<h1>BIPV Analysis Report</h1><p>Basic analysis completed. Please ensure all workflow steps are completed for comprehensive reporting.</p>"
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    st.download_button(
+                        label="📥 Download Basic Report",
+                        data=simple_report.encode('utf-8'),
+                        file_name=f"BIPV_Basic_Report_{timestamp}.html",
+                        mime="text/html",
+                        key="download_fallback_report"
+                    )
     
     # CSV data export
     st.subheader("Data Export")
