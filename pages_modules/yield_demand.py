@@ -355,15 +355,60 @@ def render_yield_demand():
                         'system_degradation': system_degradation
                     }
                 }
+                
+                # Display results immediately after calculation
+                st.subheader("📊 Analysis Results")
+                
+                # Key metrics
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("Total Annual Yield", f"{total_annual_yield:,.0f} kWh")
+                
+                with col2:
+                    st.metric("Annual Demand", f"{annual_demand:,.0f} kWh")
+                
+                with col3:
+                    st.metric("Coverage Ratio", f"{coverage_ratio:.1f}%")
+                
+                with col4:
+                    st.metric("Annual Savings", f"€{total_annual_savings:,.0f}")
+                
+                # Monthly energy balance chart
+                if energy_balance:
+                    st.subheader("📈 Monthly Energy Balance")
+                    
+                    balance_df = pd.DataFrame(energy_balance)
+                    
+                    import plotly.express as px
+                    fig = px.bar(
+                        balance_df,
+                        x='month',
+                        y=['demand', 'generation'],
+                        title="Monthly Energy Demand vs Generation",
+                        labels={'value': 'Energy (kWh)', 'variable': 'Type'},
+                        barmode='group'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Energy balance table
+                    st.subheader("📋 Monthly Energy Balance Details")
+                    st.dataframe(balance_df, use_container_width=True)
+                # Save to database with error handling
+                if 'project_id' in st.session_state and st.session_state.project_id:
+                    try:
+                        db_manager.save_yield_demand_data(
+                            st.session_state.project_id,
+                            st.session_state.project_data['yield_demand_analysis']
+                        )
+                    except Exception as db_error:
+                        st.warning(f"Could not save to database: {str(db_error)}")
+                else:
+                    st.info("Analysis saved to session only (no project ID available)")
+                
                 st.session_state.yield_demand_completed = True
                 
-                # Save to database
-                db_manager.save_yield_demand_data(
-                    st.session_state.project_data['project_id'],
-                    st.session_state.project_data['yield_demand_analysis']
-                )
-                
-                st.success("✅ Yield vs demand analysis completed successfully!")
+                st.success("✅ Energy yield vs demand analysis completed successfully!")
                 
             except Exception as e:
                 st.error(f"Error during yield analysis: {str(e)}")
