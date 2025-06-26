@@ -46,6 +46,46 @@ def render_historical_data():
         potentially leading to sub-optimal BIPV system configurations and inaccurate financial projections.**
         """)
     
+    # Data Sources and Assumptions Explanation
+    with st.expander("📊 Data Sources and Model Assumptions in Step 2", expanded=False):
+        st.markdown("""
+        **Where the AI Model Gets Its Data:**
+        
+        **1. Weather Conditions:**
+        - **Source**: Optional columns in your uploaded CSV file (Temperature, Humidity, Solar_Irradiance)
+        - **If Not Provided**: Uses weather data from Step 3 (OpenWeatherMap API) based on your location
+        - **Assumption**: If neither available, assumes typical climate patterns for your geographic region
+        
+        **2. Occupancy Patterns:**
+        - **Source**: Optional 'Occupancy' column in your CSV file (building occupancy percentage 0-100)
+        - **Building Type Selection**: Your choice from dropdown (University, K-12 School, Research Facility, etc.)
+        - **Occupancy Pattern**: Your selection (Academic Year, Year-Round, Summer Programs)
+        - **Assumption**: If occupancy data missing, applies standard patterns based on building type and schedule
+        
+        **3. Building Characteristics:**
+        - **Source**: Building type and occupancy pattern selections you make in this step
+        - **Building Area**: Currently assumes 5,000 m² for energy intensity calculations
+        - **Age and Efficiency**: Inferred from consumption patterns and building type
+        - **Assumption**: Typical educational building characteristics applied if specific data unavailable
+        
+        **4. Historical Consumption Trends:**
+        - **Source**: Required 'Date' and 'Consumption' columns in your uploaded CSV file
+        - **Must Have**: At least 12 months of actual energy consumption data in kWh
+        - **Growth Patterns**: Calculated from your historical data trends
+        - **No Assumption**: This is the only required authentic data - no synthetic alternatives
+        
+        **Key Assumptions Made by the AI Model:**
+        - Building area of 5,000 m² for benchmark calculations (affects energy intensity metrics only)
+        - Standard educational building efficiency ratings when specific building data unavailable
+        - Typical academic calendar patterns if occupancy data not provided
+        - Regional climate averages if weather data columns missing from CSV
+        - 25-year system lifetime for demand projections
+        - 2% annual energy consumption growth rate if not evident from historical data
+        
+        **Critical Requirement:**
+        The Date and Consumption columns with real historical data are mandatory - the AI model cannot function with synthetic consumption data as this would invalidate all subsequent optimization calculations.
+        """)
+    
     st.divider()
     
     # Check prerequisites
