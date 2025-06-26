@@ -445,21 +445,18 @@ def render_yield_demand():
             # Monthly analysis table
             st.subheader("📋 Monthly Energy Balance")
             
-            display_columns = ['date', 'predicted_demand', 'total_yield_kwh', 'net_import', 'self_consumption_ratio']
-            if 'total_savings' in energy_balance.columns:
-                display_columns.append('total_savings')
+            # Convert list of dictionaries to display format
+            balance_display = []
+            for i, row in enumerate(energy_balance[:12]):  # Show first 12 months
+                balance_display.append({
+                    'Month': i + 1,
+                    'Demand (kWh)': f"{row.get('predicted_demand', 0):.0f}",
+                    'Generation (kWh)': f"{row.get('total_yield_kwh', 0):.0f}",
+                    'Net Import (kWh)': f"{row.get('net_import', 0):.0f}",
+                    'Self-Consumption (%)': f"{row.get('self_consumption_ratio', 0):.1%}",
+                    'Monthly Savings (€)': f"€{row.get('total_savings', 0):.0f}"
+                })
             
-            st.dataframe(
-                energy_balance[display_columns].round(2),
-                use_container_width=True,
-                column_config={
-                    'date': 'Date',
-                    'predicted_demand': st.column_config.NumberColumn('Demand (kWh)', format="%.0f"),
-                    'total_yield_kwh': st.column_config.NumberColumn('Generation (kWh)', format="%.0f"),
-                    'net_import': st.column_config.NumberColumn('Net Import (kWh)', format="%.0f"),
-                    'self_consumption_ratio': st.column_config.NumberColumn('Self-Consumption (%)', format="%.1%"),
-                    'total_savings': st.column_config.NumberColumn('Monthly Savings (€)', format="€%.0f")
-                }
-            )
+            st.dataframe(balance_display, use_container_width=True)
         else:
             st.info("No energy balance analysis available. Please run the yield vs demand analysis first.")
