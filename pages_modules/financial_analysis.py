@@ -354,10 +354,17 @@ def render_financial_analysis():
                 st.session_state.financial_completed = True
                 
                 # Save to database
-                db_manager.save_financial_analysis(
-                    st.session_state.project_data['project_id'],
-                    financial_analysis_results
-                )
+                project_id = st.session_state.get('project_id') or st.session_state.project_data.get('project_id')
+                if project_id:
+                    try:
+                        db_manager.save_financial_analysis(
+                            project_id,
+                            financial_analysis_results
+                        )
+                    except Exception as db_error:
+                        st.warning(f"Database save failed: {str(db_error)}")
+                else:
+                    st.warning("Project ID not found - results saved to session only")
                 
                 st.success("✅ Financial and environmental analysis completed successfully!")
                 
