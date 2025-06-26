@@ -461,21 +461,5 @@ def render_yield_demand():
                     'total_savings': st.column_config.NumberColumn('Monthly Savings (€)', format="€%.0f")
                 }
             )
-                
-                # Energy balance visualization
-                st.subheader("📈 Monthly Energy Balance Chart")
-                
-                import plotly.express as px
-                fig = px.bar(
-                    balance_df,
-                    x='month',
-                    y=['demand', 'generation'],
-                    title="Monthly Energy Demand vs Generation",
-                    labels={'value': 'Energy (kWh)', 'variable': 'Type'},
-                    barmode='group'
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("No energy balance data available. Please run the yield analysis first.")
         else:
             st.info("No energy balance analysis available. Please run the yield vs demand analysis first.")
