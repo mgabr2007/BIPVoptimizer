@@ -353,11 +353,17 @@ def render_optimization():
                 st.session_state.project_data['optimization_results'] = optimization_results
                 st.session_state.optimization_completed = True
                 
-                # Save to database
-                db_manager.save_optimization_results(
-                    st.session_state.project_data['project_id'],
-                    optimization_results
-                )
+                # Save to database with validation
+                if 'project_id' in st.session_state.project_data and st.session_state.project_data['project_id']:
+                    try:
+                        db_manager.save_optimization_results(
+                            st.session_state.project_data['project_id'],
+                            optimization_results
+                        )
+                    except Exception as db_error:
+                        st.warning(f"Could not save to database: {str(db_error)}")
+                else:
+                    st.info("Results saved to session. Database save skipped (no project ID).")
                 
                 st.success(f"✅ Optimization completed! Found {len(solutions_df)} viable solutions.")
                 
