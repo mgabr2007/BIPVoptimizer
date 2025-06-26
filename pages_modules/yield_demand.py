@@ -332,7 +332,7 @@ def render_yield_demand():
                     energy_balance.append(balance_data)
                 
                 # Calculate summary metrics
-                total_annual_savings = sum([month['electricity_cost_savings'] for month in energy_balance])
+                total_annual_savings = sum([month['total_savings'] for month in energy_balance])
                 total_feed_in_revenue = sum([month['feed_in_revenue'] for month in energy_balance])
                 coverage_ratio = (total_annual_yield / annual_demand * 100) if annual_demand > 0 else 0
                 
@@ -384,7 +384,7 @@ def render_yield_demand():
                     fig = px.bar(
                         balance_df,
                         x='month',
-                        y=['demand', 'generation'],
+                        y=['predicted_demand', 'total_yield_kwh'],
                         title="Monthly Energy Demand vs Generation",
                         labels={'value': 'Energy (kWh)', 'variable': 'Type'},
                         barmode='group'
