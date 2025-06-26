@@ -72,55 +72,104 @@ def predict_future_demand(model, feature_columns, start_date, end_date):
     return demand_df
 
 def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data):
-    """Calculate monthly PV yield profiles for each system."""
+    """Calculate monthly PV yield profiles for each system using actual TMY data."""
     
     if pv_specs is None or len(pv_specs) == 0:
         return pd.DataFrame()
     
     yield_profiles = []
     
+    # Create monthly irradiation profiles from TMY data
+    monthly_irradiation_profile = {}
+    if tmy_data and len(tmy_data) > 0:
+        # Calculate monthly totals from hourly TMY data
+        for month in range(1, 13):
+            month_total = 0
+            hours_in_month = 0
+            
+            for hour_data in tmy_data:
+                # Calculate which month this day belongs to
+                day = hour_data.get('day', 1)
+                if day <= 31:
+                    hour_month = 1
+                elif day <= 59:
+                    hour_month = 2
+                elif day <= 90:
+                    hour_month = 3
+                elif day <= 120:
+                    hour_month = 4
+                elif day <= 151:
+                    hour_month = 5
+                elif day <= 181:
+                    hour_month = 6
+                elif day <= 212:
+                    hour_month = 7
+                elif day <= 243:
+                    hour_month = 8
+                elif day <= 273:
+                    hour_month = 9
+                elif day <= 304:
+                    hour_month = 10
+                elif day <= 334:
+                    hour_month = 11
+                else:
+                    hour_month = 12
+                
+                if hour_month == month:
+                    month_total += hour_data.get('ghi', 0) / 1000  # Convert Wh/m² to kWh/m²
+                    hours_in_month += 1
+            
+            monthly_irradiation_profile[month] = month_total
+    else:
+        # Use typical monthly distribution for Berlin climate
+        annual_ghi = 1200  # kWh/m² typical for Berlin
+        monthly_distribution = [0.03, 0.05, 0.08, 0.11, 0.14, 0.15, 0.14, 0.12, 0.09, 0.06, 0.03, 0.02]
+        for month in range(1, 13):
+            monthly_irradiation_profile[month] = annual_ghi * monthly_distribution[month-1]
+    
+    # Calculate yield for each PV system
     for _, system in pv_specs.iterrows():
         element_id = system['element_id']
+        annual_yield = system.get('annual_energy_kwh', 0)
         
-        # Get radiation data for this element
-        element_radiation = radiation_data[radiation_data['element_id'] == element_id]
+        # Get element-specific radiation data if available
+        element_radiation = None
+        if radiation_data is not None and len(radiation_data) > 0:
+            element_matches = radiation_data[radiation_data['element_id'] == element_id]
+            if len(element_matches) > 0:
+                element_radiation = element_matches.iloc[0]
         
-        if len(element_radiation) > 0:
-            monthly_irradiation = element_radiation.iloc[0].get('monthly_irradiation', {})
-            
-            if isinstance(monthly_irradiation, dict):
-                for month in range(1, 13):
-                    month_irradiation = monthly_irradiation.get(str(month), monthly_irradiation.get(month, 0))
-                    
-                    # Calculate monthly yield
-                    # Yield = System Power (kW) × Monthly Irradiation (kWh/m²) × Performance Ratio
-                    performance_ratio = 0.85  # System efficiency factor
-                    monthly_yield = system['system_power_kw'] * month_irradiation * performance_ratio
-                    
-                    yield_profiles.append({
-                        'element_id': element_id,
-                        'month': month,
-                        'yield_kwh': monthly_yield,
-                        'system_power_kw': system['system_power_kw'],
-                        'irradiation': month_irradiation,
-                        'orientation': system.get('orientation', 'Unknown')
-                    })
+        for month in range(1, 13):
+            # Use element-specific monthly irradiation if available
+            if element_radiation is not None:
+                monthly_irradiation_data = element_radiation.get('monthly_irradiation', {})
+                if isinstance(monthly_irradiation_data, dict):
+                    month_irradiation = monthly_irradiation_data.get(str(month), 
+                                                                  monthly_irradiation_data.get(month, 
+                                                                  monthly_irradiation_profile[month]))
+                else:
+                    month_irradiation = monthly_irradiation_profile[month]
             else:
-                # If monthly data not available, distribute annually
-                annual_yield = system['annual_energy_kwh']
-                monthly_distribution = [0.05, 0.06, 0.08, 0.09, 0.11, 0.12, 0.12, 0.11, 0.09, 0.08, 0.06, 0.05]
-                
-                for month in range(1, 13):
-                    monthly_yield = annual_yield * monthly_distribution[month-1]
-                    
-                    yield_profiles.append({
-                        'element_id': element_id,
-                        'month': month,
-                        'yield_kwh': monthly_yield,
-                        'system_power_kw': system['system_power_kw'],
-                        'irradiation': 0,
-                        'orientation': system.get('orientation', 'Unknown')
-                    })
+                month_irradiation = monthly_irradiation_profile[month]
+            
+            # Calculate monthly yield based on irradiation
+            # Use ratio of monthly to annual irradiation to distribute annual yield
+            annual_irradiation = sum(monthly_irradiation_profile.values())
+            if annual_irradiation > 0:
+                monthly_yield = annual_yield * (month_irradiation / annual_irradiation)
+            else:
+                # Fallback to seasonal distribution
+                monthly_distribution = [0.03, 0.05, 0.08, 0.11, 0.14, 0.15, 0.14, 0.12, 0.09, 0.06, 0.03, 0.02]
+                monthly_yield = annual_yield * monthly_distribution[month-1]
+            
+            yield_profiles.append({
+                'element_id': element_id,
+                'month': month,
+                'yield_kwh': monthly_yield,
+                'system_power_kw': system['system_power_kw'],
+                'irradiation': month_irradiation,
+                'orientation': system.get('orientation', 'Unknown')
+            })
     
     return pd.DataFrame(yield_profiles)
 
