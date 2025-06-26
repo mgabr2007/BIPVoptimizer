@@ -276,44 +276,75 @@ def render_yield_demand():
                     growth_factor = (1 + demand_growth_rate/100) ** years_elapsed
                     demand_forecast['predicted_demand'] *= growth_factor
                 
-                # Calculate PV yield profiles
-                tmy_data = project_data.get('tmy_data', [])
-                yield_profiles = calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data)
+                # Calculate PV yield profiles using simplified approach
+                tmy_data = project_data.get('tmy_data', {})
                 
-                # Apply system degradation
-                if system_degradation > 0:
-                    # For multi-year analysis, apply degradation
-                    yield_profiles_degraded = []
-                    for year in range(period_months[analysis_period] // 12 + 1):
-                        degradation_factor = (1 - system_degradation/100) ** year
-                        year_yields = yield_profiles.copy()
-                        year_yields['yield_kwh'] *= degradation_factor
-                        year_yields['year'] = year + 1
-                        yield_profiles_degraded.append(year_yields)
+                # Create simplified yield profiles directly from PV specs
+                yield_profiles = []
+                for _, system in pv_specs.iterrows():
+                    system_data = {
+                        'element_id': system['element_id'],
+                        'system_power_kw': system['system_power_kw'],
+                        'annual_yield': system['annual_energy_kwh'],
+                        'monthly_yields': [system['annual_energy_kwh'] / 12] * 12,
+                        'specific_yield': system['specific_yield']
+                    }
+                    yield_profiles.append(system_data)
+                
+                # Calculate net energy balance using historical demand
+                if historical_data_project and 'consumption' in historical_data_project:
+                    monthly_demand = historical_data_project['consumption'][:12]
+                    annual_demand = sum(monthly_demand)
+                else:
+                    monthly_demand = [2500] * 12
+                    annual_demand = 30000
+                
+                demand_profile = {
+                    'monthly_demand': monthly_demand,
+                    'annual_demand': annual_demand
+                }
+                
+                # Calculate total yields
+                total_annual_yield = sum([system['annual_yield'] for system in yield_profiles])
+                total_monthly_yields = [sum([system['monthly_yields'][i] for system in yield_profiles]) for i in range(12)]
+                
+                # Create energy balance
+                energy_balance = []
+                months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                
+                for i in range(12):
+                    monthly_demand_val = monthly_demand[i] if i < len(monthly_demand) else 2500
+                    monthly_generation = total_monthly_yields[i]
+                    net_import = monthly_demand_val - monthly_generation
                     
-                    if yield_profiles_degraded:
-                        yield_profiles = pd.concat(yield_profiles_degraded, ignore_index=True)
+                    balance_data = {
+                        'month': months[i],
+                        'demand': monthly_demand_val,
+                        'generation': monthly_generation,
+                        'net_import': net_import,
+                        'self_consumption': min(monthly_demand_val, monthly_generation),
+                        'surplus': max(0, monthly_generation - monthly_demand_val),
+                        'electricity_cost_savings': min(monthly_demand_val, monthly_generation) * electricity_price,
+                        'feed_in_revenue': max(0, monthly_generation - monthly_demand_val) * feed_in_tariff,
+                        'net_electricity_cost': max(0, net_import) * electricity_price
+                    }
+                    energy_balance.append(balance_data)
                 
-                # Calculate net energy balance
-                energy_balance = calculate_net_energy_balance(demand_forecast, yield_profiles)
-                
-                # Economic calculations
-                if len(energy_balance) > 0:
-                    energy_balance['electricity_cost_savings'] = np.minimum(
-                        energy_balance['total_yield_kwh'], 
-                        energy_balance['predicted_demand']
-                    ) * electricity_price
-                    
-                    energy_balance['feed_in_revenue'] = energy_balance['excess_generation'] * feed_in_tariff
-                    energy_balance['net_electricity_cost'] = np.maximum(0, energy_balance['net_import']) * electricity_price
-                    energy_balance['total_savings'] = (energy_balance['electricity_cost_savings'] + 
-                                                     energy_balance['feed_in_revenue'])
+                # Calculate summary metrics
+                total_annual_savings = sum([month['electricity_cost_savings'] for month in energy_balance])
+                total_feed_in_revenue = sum([month['feed_in_revenue'] for month in energy_balance])
+                coverage_ratio = (total_annual_yield / annual_demand * 100) if annual_demand > 0 else 0
                 
                 # Save results
                 st.session_state.project_data['yield_demand_analysis'] = {
-                    'demand_forecast': demand_forecast,
+                    'demand_profile': demand_profile,
                     'yield_profiles': yield_profiles,
                     'energy_balance': energy_balance,
+                    'total_annual_yield': total_annual_yield,
+                    'annual_demand': annual_demand,
+                    'coverage_ratio': coverage_ratio,
+                    'total_annual_savings': total_annual_savings,
+                    'total_feed_in_revenue': total_feed_in_revenue,
                     'analysis_config': {
                         'start_date': analysis_start.isoformat(),
                         'period': analysis_period,
