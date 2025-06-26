@@ -101,12 +101,44 @@ def render_facade_extraction():
                         azimuth = float(element_data.get('Azimuth (°)', 0))
                         glass_area = float(element_data.get('Glass Area (m²)', 0))
                         
+                        # Extract window dimensions if available
+                        window_width = element_data.get('Width (m)', element_data.get('Window Width', element_data.get('width', None)))
+                        window_height = element_data.get('Height (m)', element_data.get('Window Height', element_data.get('height', None)))
+                        
+                        # Calculate dimensions from glass area if not provided
+                        if window_width is None or window_height is None:
+                            if glass_area > 0:
+                                # Estimate dimensions based on typical window aspect ratios
+                                if 'arched' in family.lower() or 'arch' in family.lower():
+                                    # Arched windows typically wider than tall
+                                    aspect_ratio = 1.2  # width/height
+                                    window_height = (glass_area / aspect_ratio) ** 0.5
+                                    window_width = glass_area / window_height
+                                elif 'casement' in family.lower():
+                                    # Casement windows typically taller than wide
+                                    aspect_ratio = 0.8  # width/height
+                                    window_height = (glass_area / aspect_ratio) ** 0.5
+                                    window_width = glass_area / window_height
+                                else:
+                                    # Standard rectangular windows
+                                    aspect_ratio = 1.0  # square-ish
+                                    window_height = (glass_area / aspect_ratio) ** 0.5
+                                    window_width = glass_area / window_height
+                            else:
+                                # Default dimensions for windows with no area data
+                                window_width = 1.2
+                                window_height = 1.5
+                        else:
+                            # Convert to float if provided as strings
+                            window_width = float(window_width) if window_width else 1.2
+                            window_height = float(window_height) if window_height else 1.5
+                        
                         orientation = get_orientation_from_azimuth(azimuth)
                         
                         is_window = category.lower() in ['windows', 'window', 'curtain wall', 'curtainwall', 'glazing']
                         
                         if is_window:
-                            window_area = glass_area if glass_area > 0 else 1.5  # Default area
+                            window_area = glass_area if glass_area > 0 else window_width * window_height
                             
                             # PV suitability scoring
                             suitable = False
@@ -129,6 +161,8 @@ def render_facade_extraction():
                                 'azimuth': azimuth,
                                 'glass_area': glass_area,
                                 'window_area': window_area,
+                                'window_width': window_width,
+                                'window_height': window_height,
                                 'suitable': suitable,
                                 'pv_suitable': suitable
                             })

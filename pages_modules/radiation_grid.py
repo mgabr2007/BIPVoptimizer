@@ -322,8 +322,8 @@ def render_radiation_grid():
                         'orientation': row.get('orientation', 'Unknown'),
                         'level': row.get('level', 'Level 1'),
                         'wall_hosted_id': row.get('wall_hosted_id', 'N/A'),
-                        'width': row.get('width', 1.2),
-                        'height': row.get('height', 1.5)
+                        'width': row.get('window_width', row.get('width', row.get('Width', 1.2))),
+                        'height': row.get('window_height', row.get('height', row.get('Height', 1.5)))
                     })
                 suitable_elements = elements_list
             
@@ -335,8 +335,8 @@ def render_radiation_grid():
                 area = element.get('glass_area', 1.5)  # Use actual BIM glass area
                 orientation = element.get('orientation', 'Unknown')
                 level = element.get('level', 'Level 1')
-                width = element.get('width', 1.2)
-                height = element.get('height', 1.5)
+                width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
+                height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
                 
                 # Update progress indicators with BIM data details
                 element_progress.text(f"Processing: {element_id} | {orientation} | {area:.1f}m² | {level}")
