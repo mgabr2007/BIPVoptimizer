@@ -272,6 +272,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 25, 2025: Fixed Step 6 dependency check by updating data source validation to properly recognize building elements and radiation analysis data from previous steps
 - June 25, 2025: Fixed Step 6 BIPV system viability calculations by reducing minimum system size requirements and implementing flexible panel sizing for small window areas
 - June 25, 2025: Fixed Step 7 dependency validation to properly check for actual data availability instead of session state flags, ensuring proper recognition of completed Steps 2, 5, and 6
+- June 25, 2025: Fixed Step 6 project_id error in PV specification calculations by adding proper validation and error handling for database operations
 
 ## User Preferences
 

@@ -294,21 +294,27 @@ def render_pv_specification():
                 st.session_state.project_data['selected_panel_specs'] = panel_specs_updated
                 st.session_state.pv_specs_completed = True
                 
-                # Save to database
-                db_manager.save_pv_specifications(
-                    st.session_state.project_data['project_id'],
-                    {
-                        'panel_type': selected_panel_type,
-                        'panel_specifications': panel_specs_updated,
-                        'system_specifications': pv_specifications.to_dict('records'),
-                        'configuration': {
-                            'performance_ratio': performance_ratio,
-                            'installation_cost_factor': installation_cost_factor,
-                            'inverter_cost_per_kw': inverter_cost_per_kw,
-                            'min_system_size': min_system_size
-                        }
-                    }
-                )
+                # Save to database if project_id exists
+                if 'project_id' in st.session_state and st.session_state.project_id:
+                    try:
+                        db_manager.save_pv_specifications(
+                            st.session_state.project_id,
+                            {
+                                'panel_type': selected_panel_type,
+                                'panel_specifications': panel_specs_updated,
+                                'system_specifications': pv_specifications.to_dict('records'),
+                                'configuration': {
+                                    'performance_ratio': performance_ratio,
+                                    'installation_cost_factor': installation_cost_factor,
+                                    'inverter_cost_per_kw': inverter_cost_per_kw,
+                                    'min_system_size': min_system_size
+                                }
+                            }
+                        )
+                    except Exception as db_error:
+                        st.warning(f"Could not save to database: {str(db_error)}")
+                else:
+                    st.info("PV specifications saved to session only (no project ID available)")
                 
                 st.success("✅ BIPV system specifications calculated successfully!")
                 
