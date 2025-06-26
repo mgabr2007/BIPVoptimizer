@@ -165,7 +165,7 @@ def calculate_system_specifications(element_data, panel_specs, radiation_data):
                 'total_installation_cost': total_cost,
                 'cost_per_kwh': safe_divide(total_cost, annual_energy_kwh, 0),
                 'annual_irradiation': annual_irradiation,
-                'orientation': element.get('Orientation', 'Unknown'),
+                'orientation': element.get('orientation', element.get('Orientation', 'Unknown')),
                 'transparency': panel_specs.get('transparency', 0.2)
             }
             

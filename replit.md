@@ -287,6 +287,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 26, 2025: Collapsed all expandable sections across workflow steps by changing expanded=True to expanded=False for cleaner default interface presentation
 - June 26, 2025: Fixed duplicate Environmental Considerations sections in Step 3 by removing the redundant section inside the weather fetch conditional block
 - June 26, 2025: Fixed Step 7 monthly PV yield calculations to use proper seasonal variation based on TMY data instead of showing identical yields every month, implementing realistic monthly solar irradiation distribution for accurate energy balance analysis
+- June 26, 2025: Fixed Step 6 orientation display issue by correcting field name mapping from BIM data - changed from 'Orientation' to 'orientation' to properly show building element orientations (North, South, East, West) in Individual System Specifications
 
 ## User Preferences
 
