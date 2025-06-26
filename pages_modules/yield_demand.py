@@ -461,162 +461,21 @@ def render_yield_demand():
                     'total_savings': st.column_config.NumberColumn('Monthly Savings (€)', format="€%.0f")
                 }
             )
-            
-            # Visualizations
-            st.subheader("📈 Energy Balance Visualization")
-            
-            tab1, tab2, tab3, tab4 = st.tabs(["Monthly Balance", "Cumulative Analysis", "Self-Consumption", "Economic Impact"])
-            
-            with tab1:
-                # Monthly demand vs generation
-                fig_monthly = go.Figure()
                 
-                fig_monthly.add_trace(go.Scatter(
-                    x=energy_balance['date'],
-                    y=energy_balance['predicted_demand'],
-                    mode='lines+markers',
-                    name='Energy Demand',
-                    line=dict(color='red')
-                ))
+                # Energy balance visualization
+                st.subheader("📈 Monthly Energy Balance Chart")
                 
-                fig_monthly.add_trace(go.Scatter(
-                    x=energy_balance['date'],
-                    y=energy_balance['total_yield_kwh'],
-                    mode='lines+markers',
-                    name='BIPV Generation',
-                    line=dict(color='green')
-                ))
-                
-                fig_monthly.update_layout(
-                    title="Monthly Energy Demand vs BIPV Generation",
-                    xaxis_title="Date",
-                    yaxis_title="Energy (kWh)",
-                    hovermode='x unified'
+                import plotly.express as px
+                fig = px.bar(
+                    balance_df,
+                    x='month',
+                    y=['demand', 'generation'],
+                    title="Monthly Energy Demand vs Generation",
+                    labels={'value': 'Energy (kWh)', 'variable': 'Type'},
+                    barmode='group'
                 )
-                
-                st.plotly_chart(fig_monthly, use_container_width=True)
-            
-            with tab2:
-                # Cumulative analysis
-                energy_balance['cumulative_demand'] = energy_balance['predicted_demand'].cumsum()
-                energy_balance['cumulative_generation'] = energy_balance['total_yield_kwh'].cumsum()
-                energy_balance['cumulative_net_import'] = energy_balance['net_import'].cumsum()
-                
-                fig_cumulative = go.Figure()
-                
-                fig_cumulative.add_trace(go.Scatter(
-                    x=energy_balance['date'],
-                    y=energy_balance['cumulative_demand'],
-                    mode='lines',
-                    name='Cumulative Demand',
-                    line=dict(color='red')
-                ))
-                
-                fig_cumulative.add_trace(go.Scatter(
-                    x=energy_balance['date'],
-                    y=energy_balance['cumulative_generation'],
-                    mode='lines',
-                    name='Cumulative Generation',
-                    line=dict(color='green')
-                ))
-                
-                fig_cumulative.update_layout(
-                    title="Cumulative Energy Analysis",
-                    xaxis_title="Date",
-                    yaxis_title="Cumulative Energy (kWh)"
-                )
-                
-                st.plotly_chart(fig_cumulative, use_container_width=True)
-            
-            with tab3:
-                # Self-consumption analysis
-                fig_self_cons = px.line(
-                    energy_balance,
-                    x='date',
-                    y='self_consumption_ratio',
-                    title="Self-Consumption Ratio Over Time",
-                    labels={'self_consumption_ratio': 'Self-Consumption Ratio', 'date': 'Date'}
-                )
-                fig_self_cons.update_traces(line_color='blue')
-                fig_self_cons.update_layout(yaxis_tickformat='.1%')
-                
-                st.plotly_chart(fig_self_cons, use_container_width=True)
-                
-                # Monthly self-consumption distribution
-                monthly_self_cons = energy_balance.groupby(energy_balance['date'].dt.month)['self_consumption_ratio'].mean()
-                
-                fig_monthly_self = px.bar(
-                    x=monthly_self_cons.index,
-                    y=monthly_self_cons.values,
-                    title="Average Self-Consumption by Month",
-                    labels={'x': 'Month', 'y': 'Self-Consumption Ratio'}
-                )
-                fig_monthly_self.update_layout(yaxis_tickformat='.1%')
-                
-                st.plotly_chart(fig_monthly_self, use_container_width=True)
-            
-            with tab4:
-                if 'total_savings' in energy_balance.columns:
-                    # Economic impact over time
-                    energy_balance['cumulative_savings'] = energy_balance['total_savings'].cumsum()
-                    
-                    fig_savings = px.line(
-                        energy_balance,
-                        x='date',
-                        y='cumulative_savings',
-                        title="Cumulative Energy Cost Savings",
-                        labels={'cumulative_savings': 'Cumulative Savings (€)', 'date': 'Date'}
-                    )
-                    fig_savings.update_traces(line_color='green')
-                    
-                    st.plotly_chart(fig_savings, use_container_width=True)
-                    
-                    # Monthly savings breakdown
-                    if all(col in energy_balance.columns for col in ['electricity_cost_savings', 'feed_in_revenue']):
-                        fig_savings_breakdown = go.Figure()
-                        
-                        fig_savings_breakdown.add_trace(go.Bar(
-                            x=energy_balance['date'],
-                            y=energy_balance['electricity_cost_savings'],
-                            name='Electricity Cost Savings',
-                            marker_color='lightgreen'
-                        ))
-                        
-                        fig_savings_breakdown.add_trace(go.Bar(
-                            x=energy_balance['date'],
-                            y=energy_balance['feed_in_revenue'],
-                            name='Feed-in Revenue',
-                            marker_color='darkgreen'
-                        ))
-                        
-                        fig_savings_breakdown.update_layout(
-                            title="Monthly Savings Breakdown",
-                            xaxis_title="Date",
-                            yaxis_title="Savings (€)",
-                            barmode='stack'
-                        )
-                        
-                        st.plotly_chart(fig_savings_breakdown, use_container_width=True)
-                else:
-                    st.info("Economic impact data not available")
-            
-            # Export results
-            st.subheader("💾 Export Analysis Results")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if st.button("📊 Download Energy Balance (CSV)", key="download_energy_balance"):
-                    csv_data = energy_balance.to_csv(index=False)
-                    st.download_button(
-                        label="Download CSV",
-                        data=csv_data,
-                        file_name=f"energy_balance_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
-                    )
-            
-            with col2:
-                st.info("Energy balance ready for optimization analysis")
-        
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No energy balance data available. Please run the yield analysis first.")
         else:
-            st.warning("No energy balance data available. Please run the analysis.")
+            st.info("No energy balance analysis available. Please run the yield vs demand analysis first.")
