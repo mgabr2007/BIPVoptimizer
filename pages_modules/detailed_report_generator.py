@@ -13,17 +13,26 @@ from core.solar_math import safe_divide
 
 def generate_comprehensive_detailed_report():
     """Generate comprehensive detailed report with all equations, methodology, and scientific documentation"""
-    project_name = st.session_state.get('project_data', {}).get('project_name', 'Unnamed Project')
+    # Safe extraction of project data
+    project_data_raw = st.session_state.get('project_data', {})
+    if not isinstance(project_data_raw, dict):
+        project_data_raw = {}
+    
+    project_name = project_data_raw.get('project_name', 'Unnamed Project')
     db_data = get_project_report_data(project_name)
     
-    if not db_data:
+    if not db_data or not isinstance(db_data, dict):
         return "<h1>Error: No project data found for detailed analysis</h1>"
     
     # Extract all available data
-    project_data = st.session_state.get('project_data', {})
+    project_data = project_data_raw
     location = db_data.get('location', 'Unknown Location')
     coordinates = {'lat': db_data.get('latitude', 52.52), 'lon': db_data.get('longitude', 13.405)}
+    
+    # Safe extraction of building elements
     building_elements = db_data.get('building_elements', [])
+    if not isinstance(building_elements, list):
+        building_elements = []
     
     # Get analysis data from session state with proper type checking
     historical_data = project_data.get('historical_data', {})
@@ -67,19 +76,40 @@ def generate_comprehensive_detailed_report():
             return default
         return default if default is not None else 0
     
-    # Calculate comprehensive metrics
+    # Calculate comprehensive metrics with safe data handling
     total_elements = len(building_elements)
-    suitable_elements = sum(1 for elem in building_elements if elem.get('pv_suitable', False))
-    total_glass_area = sum(float(elem.get('glass_area', 0)) for elem in building_elements if elem.get('glass_area'))
+    suitable_elements = 0
+    total_glass_area = 0.0
+    
+    for elem in building_elements:
+        if isinstance(elem, dict):
+            if elem.get('pv_suitable', False):
+                suitable_elements += 1
+            glass_area = elem.get('glass_area', 0)
+            if glass_area:
+                try:
+                    total_glass_area += float(glass_area)
+                except (ValueError, TypeError):
+                    continue
     
     # Weather parameters
     avg_temperature = safe_get(weather_data, 'temperature', 15)
     avg_humidity = safe_get(weather_data, 'humidity', 65)
     annual_ghi = safe_get(tmy_data, 'annual_ghi', 1200)
     
-    # PV system metrics
-    total_capacity = sum(float(spec.get('system_power_kw', 0)) for spec in pv_specs if isinstance(spec, dict))
-    total_annual_yield = sum(float(spec.get('annual_energy_kwh', 0)) for spec in pv_specs if isinstance(spec, dict))
+    # PV system metrics with safe extraction
+    total_capacity = 0.0
+    total_annual_yield = 0.0
+    
+    for spec in pv_specs:
+        if isinstance(spec, dict):
+            try:
+                capacity = float(spec.get('system_power_kw', 0))
+                yield_kwh = float(spec.get('annual_energy_kwh', 0))
+                total_capacity += capacity
+                total_annual_yield += yield_kwh
+            except (ValueError, TypeError):
+                continue
     avg_specific_yield = safe_divide(total_annual_yield, total_capacity, 0) if total_capacity > 0 else 0
     
     # Financial metrics
