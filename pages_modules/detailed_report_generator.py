@@ -25,15 +25,38 @@ def generate_comprehensive_detailed_report():
     coordinates = {'lat': db_data.get('latitude', 52.52), 'lon': db_data.get('longitude', 13.405)}
     building_elements = db_data.get('building_elements', [])
     
-    # Get analysis data from session state
+    # Get analysis data from session state with proper type checking
     historical_data = project_data.get('historical_data', {})
+    if not isinstance(historical_data, dict):
+        historical_data = {}
+    
     weather_data = project_data.get('weather_analysis', {})
+    if not isinstance(weather_data, dict):
+        weather_data = {}
+    
     tmy_data = project_data.get('tmy_data', {})
+    if not isinstance(tmy_data, dict):
+        tmy_data = {}
+    
     radiation_data = project_data.get('radiation_data', [])
+    if not isinstance(radiation_data, list):
+        radiation_data = []
+    
     pv_specs = project_data.get('pv_specifications', [])
+    if not isinstance(pv_specs, list):
+        pv_specs = []
+    
     yield_demand_analysis = project_data.get('yield_demand_analysis', {})
+    if not isinstance(yield_demand_analysis, dict):
+        yield_demand_analysis = {}
+    
     optimization_results = project_data.get('optimization_results', {})
+    if not isinstance(optimization_results, dict):
+        optimization_results = {}
+    
     financial_analysis = project_data.get('financial_analysis', {})
+    if not isinstance(financial_analysis, dict):
+        financial_analysis = {}
     
     # Safe data extraction with defaults
     def safe_get(data, key, default=None):
@@ -888,6 +911,7 @@ def render_detailed_reporting():
                 st.error(f"Error generating comprehensive report: {str(e)}")
                 # Provide fallback report
                 st.warning("Generating simplified report due to data constraints...")
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 simple_report = "<h1>BIPV Analysis Report</h1><p>Basic analysis completed. Please ensure all workflow steps are completed for comprehensive reporting.</p>"
                 st.download_button(
                     label="📥 Download Basic Report",
