@@ -14,27 +14,44 @@ from services.weather_stations import find_nearest_stations, get_station_summary
 
 
 def get_location_from_coordinates(lat, lon):
-    """Get location name from coordinates using OpenWeatherMap reverse geocoding"""
+    """Get detailed location name from coordinates using OpenWeatherMap reverse geocoding"""
     api_key = os.environ.get('OPENWEATHER_API_KEY')
     if not api_key:
         return f"Location at {lat:.4f}°, {lon:.4f}°"
     
     try:
-        url = f"http://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit=1&appid={api_key}"
+        # Use higher limit to get more detailed location options
+        url = f"http://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit=5&appid={api_key}"
         response = requests.get(url, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
             if data:
+                # Try to find the most specific location (neighborhood/district level)
+                for location_data in data:
+                    name = location_data.get('name', '')
+                    local_names = location_data.get('local_names', {})
+                    state = location_data.get('state', '')
+                    country = location_data.get('country', '')
+                    
+                    # Check for neighborhood-level names in local_names
+                    neighborhood = local_names.get('en', name)
+                    
+                    # Build detailed location name prioritizing neighborhood
+                    if neighborhood and state and country:
+                        if neighborhood != state:  # Avoid duplicate names
+                            return f"{neighborhood}, {state}, {country}"
+                        else:
+                            return f"{state}, {country}"
+                    elif name and country:
+                        return f"{name}, {country}"
+                
+                # Fallback to first result
                 location_data = data[0]
                 city = location_data.get('name', '')
-                state = location_data.get('state', '')
                 country = location_data.get('country', '')
-                
-                # Build location name
-                parts = [city, state, country]
-                location_name = ', '.join([part for part in parts if part])
-                return location_name if location_name else f"Location at {lat:.4f}°, {lon:.4f}°"
+                if city and country:
+                    return f"{city}, {country}"
         
         return f"Location at {lat:.4f}°, {lon:.4f}°"
     
@@ -133,18 +150,20 @@ def render_project_setup():
         max_distance_km=search_radius
     )
     
-    # Create enhanced folium map with weather stations
+    # Create enhanced folium map with weather stations (maintain zoom level)
+    current_zoom = st.session_state.get('map_zoom', 8)
     m = folium.Map(
         location=[st.session_state.map_coordinates['lat'], st.session_state.map_coordinates['lng']],
-        zoom_start=8,
+        zoom_start=current_zoom,
         tiles="OpenStreetMap"
     )
     
-    # Add marker for current location
+    # Add marker for current location with neighborhood-specific name
+    current_location_name = st.session_state.get('location_name', 'Selected Location')
     folium.Marker(
         [st.session_state.map_coordinates['lat'], st.session_state.map_coordinates['lng']],
-        popup="Selected Project Location",
-        tooltip="Project Location",
+        popup=f"<b>{current_location_name}</b><br>Lat: {st.session_state.map_coordinates['lat']:.4f}°<br>Lon: {st.session_state.map_coordinates['lng']:.4f}°",
+        tooltip=f"Project Location: {current_location_name}",
         icon=folium.Icon(color="red", icon="building", prefix="fa")
     ).add_to(m)
     
@@ -173,16 +192,33 @@ def render_project_setup():
     map_data = None
     if location_method == "Interactive Map":
         map_data = st_folium(m, key="location_map", height=450, width=700)
-        # Update coordinates and location name when map is clicked
+        
+        # Store current zoom level to prevent reset
+        if map_data and map_data.get('zoom'):
+            st.session_state.map_zoom = map_data['zoom']
+        
+        # Update coordinates and location name when map is clicked (but avoid reset)
         if map_data and map_data['last_clicked'] is not None:
             new_coords = map_data['last_clicked']
-            # Update coordinates in session state
-            st.session_state.map_coordinates = new_coords
-            # Update location name based on new coordinates
-            st.session_state.location_name = get_location_from_coordinates(
-                new_coords['lat'], new_coords['lng']
-            )
-            st.rerun()
+            # Only update if coordinates actually changed (prevent reset loops)
+            current_lat = st.session_state.map_coordinates['lat']
+            current_lon = st.session_state.map_coordinates['lng']
+            
+            # Check if coordinates changed significantly (avoid tiny movements)
+            lat_diff = abs(new_coords['lat'] - current_lat)
+            lon_diff = abs(new_coords['lng'] - current_lon)
+            
+            if lat_diff > 0.0001 or lon_diff > 0.0001:  # Only update for meaningful changes
+                # Update coordinates in session state
+                st.session_state.map_coordinates = new_coords
+                # Update location name based on new coordinates with neighborhood details
+                with st.spinner("Getting location details..."):
+                    st.session_state.location_name = get_location_from_coordinates(
+                        new_coords['lat'], new_coords['lng']
+                    )
+                # Store map state to prevent reset
+                st.session_state.map_needs_update = True
+                st.rerun()
     else:
         # Display map without interaction for manual coordinates
         st_folium(m, key="location_map_display", height=450, width=700)
