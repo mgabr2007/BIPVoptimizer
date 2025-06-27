@@ -175,6 +175,27 @@ def render_optimization():
     
     st.header("🎯 Step 8: Multi-Objective BIPV Optimization")
     
+    # AI Model Performance Impact Notice
+    project_data = st.session_state.get('project_data', {})
+    if project_data.get('model_r2_score') is not None:
+        r2_score = project_data['model_r2_score']
+        status = project_data.get('model_performance_status', 'Unknown')
+        
+        if r2_score >= 0.85:
+            color = "green"
+            icon = "🟢"
+        elif r2_score >= 0.70:
+            color = "orange"
+            icon = "🟡"
+        else:
+            color = "red"
+            icon = "🔴"
+        
+        st.info(f"{icon} Optimization uses AI demand predictions (R² score: **{r2_score:.3f}** - {status} performance)")
+        
+        if r2_score < 0.70:
+            st.warning("Low AI model performance may impact optimization accuracy. Results may be less reliable.")
+    
     # Check dependencies
     required_steps = ['yield_demand_completed', 'pv_specs_completed']
     missing_steps = [step for step in required_steps if not st.session_state.get(step, False)]

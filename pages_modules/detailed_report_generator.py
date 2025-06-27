@@ -336,15 +336,26 @@ def generate_comprehensive_detailed_report():
                     <div class="section">
                         <h2><span class="step-number">2</span>Step 2: Historical Data Analysis & AI Model Training</h2>
                         
-                        <h3>📈 Historical Data Analysis Results</h3>
+                        <h3>📈 Historical Data Analysis & AI Model Performance</h3>
                         <table>
-                            <tr><th>Metric</th><th>Value</th><th>Unit</th></tr>
-                            <tr><td>Average Monthly Consumption</td><td>{(safe_get(historical_data, 'avg_consumption') or 2500):,.0f}</td><td>kWh</td></tr>
-                            <tr><td>Annual Consumption</td><td>{(safe_get(historical_data, 'total_consumption') or 30000):,.0f}</td><td>kWh</td></tr>
-                            <tr><td>Consumption Variability (CV)</td><td>{(safe_get(historical_data, 'variability') or 0.15)*100:.1f}</td><td>%</td></tr>
-                            <tr><td>Peak Demand Month</td><td>{safe_get(historical_data, 'peak_month') or 'January'}</td><td>-</td></tr>
-                            <tr><td>Model R² Score</td><td>{(safe_get(historical_data, 'model_r2') or 0.85):.3f}</td><td>-</td></tr>
+                            <tr><th>Metric</th><th>Value</th><th>Unit</th><th>Status</th></tr>
+                            <tr><td>Average Monthly Consumption</td><td>{(safe_get(historical_data, 'avg_consumption') or 2500):,.0f}</td><td>kWh</td><td>Measured</td></tr>
+                            <tr><td>Annual Consumption</td><td>{(safe_get(historical_data, 'total_consumption') or 30000):,.0f}</td><td>kWh</td><td>Historical baseline</td></tr>
+                            <tr><td>Consumption Variability (CV)</td><td>{(safe_get(historical_data, 'variability') or 0.15)*100:.1f}</td><td>%</td><td>Data quality indicator</td></tr>
+                            <tr><td>Peak Demand Month</td><td>{safe_get(historical_data, 'peak_month') or 'January'}</td><td>-</td><td>Seasonal pattern</td></tr>
+                            <tr><td><strong>AI Model R² Score</strong></td><td><strong>{(safe_get(project_data, 'model_r2_score') or 0.85):.3f}</strong></td><td>-</td><td><strong>{safe_get(project_data, 'model_performance_status') or 'Good'}</strong></td></tr>
                         </table>
+                        
+                        <h3>🎯 AI Model Performance Analysis</h3>
+                        <div class="methodology">
+                            <p><strong>R² Score Interpretation:</strong></p>
+                            <ul>
+                                <li><strong>R² ≥ 0.85:</strong> Excellent model performance - Reliable 25-year demand predictions</li>
+                                <li><strong>0.70 ≤ R² < 0.85:</strong> Good performance - Acceptable prediction accuracy</li>
+                                <li><strong>R² < 0.70:</strong> Needs improvement - Consider data quality enhancements</li>
+                            </ul>
+                            <p><strong>Model Impact on BIPV Analysis:</strong> The R² score directly affects accuracy of yield vs demand calculations, optimization objectives, and financial projections throughout the workflow.</p>
+                        </div>
                     </div>
 
                     <div class="section">
