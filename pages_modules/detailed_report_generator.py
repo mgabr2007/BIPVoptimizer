@@ -764,6 +764,11 @@ def generate_comprehensive_detailed_report():
                             <p><strong>Financial Analysis Methodology:</strong> Discounted cash flow analysis over 25-year project lifetime using real discount rate of 4%. Includes all capital costs, operating expenses, maintenance, inverter replacement, and end-of-life considerations.</p>
                         </div>
 
+                        <h3>📊 25-Year Financial Analysis - Cash Flow Projection</h3>
+                        <div class="chart-container">
+                            {financial_chart}
+                        </div>
+                        
                         <h3>🌱 Environmental Impact Assessment</h3>
                         <table>
                             <tr><th>Environmental Metric</th><th>Value</th><th>Impact Assessment</th></tr>
@@ -772,6 +777,11 @@ def generate_comprehensive_detailed_report():
                             <tr><td>Energy Payback Time</td><td>2.5 years</td><td>BIPV typical range</td></tr>
                             <tr><td>Carbon Payback Time</td><td>3.2 years</td><td>Manufacturing offset</td></tr>
                         </table>
+                        
+                        <h3>📊 Environmental Impact Visualization</h3>
+                        <div class="chart-container">
+                            {environmental_chart}
+                        </div>
                     </div>
 
                     <div class="section">
