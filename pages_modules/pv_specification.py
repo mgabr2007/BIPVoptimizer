@@ -135,10 +135,9 @@ def calculate_bipv_system_specifications(element_data, glass_specs, radiation_da
             specification = {
                 'element_id': element_id,
                 'element_area': element_area,
-                'panels_horizontal': layout['panels_horizontal'],
-                'panels_vertical': layout['panels_vertical'],
-                'total_panels': layout['total_panels'],
-                'coverage_ratio': layout['coverage_ratio'],
+                'bipv_glass_area': coverage['bipv_glass_area'],
+                'coverage_ratio': coverage['coverage_ratio'],
+                'frame_factor': coverage['frame_factor'],
                 'system_power_wp': system_power_wp,
                 'system_power_kw': system_power_kw,
                 'annual_energy_kwh': annual_energy_kwh,
@@ -212,7 +211,7 @@ def render_pv_specification():
     with col2:
         st.markdown("**Base Specs (Modifiable):**")
         st.metric("Base Efficiency", f"{base_specs['efficiency']*100:.1f}%")
-        st.metric("Base Power Rating", f"{base_specs['power_rating']} Wp")
+        st.metric("Base Power Density", f"{base_specs['glass_properties']['power_density']} W/m²")
         st.metric("Base Transparency", f"{base_specs['transparency']*100:.0f}%")
     
     # Detailed panel customization
@@ -256,13 +255,13 @@ def render_pv_specification():
                 help="Photovoltaic conversion efficiency under STC conditions"
             ) / 100
             
-            power_rating = st.number_input(
-                "Power Rating (Wp)",
-                min_value=50, max_value=500,
-                value=base_specs['power_rating'],
-                step=5,
-                key="power_rating",
-                help="Nominal power output under Standard Test Conditions (1000 W/m², 25°C)"
+            power_density = st.number_input(
+                "Power Density (W/m²)",
+                min_value=50.0, max_value=250.0,
+                value=base_specs['glass_properties']['power_density'],
+                step=5.0,
+                key="power_density",
+                help="Power generation per square meter of BIPV glass surface"
             )
         
         with col2:
@@ -288,7 +287,7 @@ def render_pv_specification():
             current_at_pmax = st.number_input(
                 "Current at Pmax (A)",
                 min_value=5.0, max_value=15.0,
-                value=power_rating/voltage_at_pmax,
+                value=power_density/voltage_at_pmax,
                 step=0.1,
                 key="current_pmax",
                 help="Current at maximum power point"
@@ -311,7 +310,7 @@ def render_pv_specification():
             glass_thickness = st.number_input(
                 "Glass Thickness (mm)",
                 min_value=4.0, max_value=20.0,
-                value=base_specs.get('dimensions', {}).get('thickness', 0.008)*1000,
+                value=base_specs['glass_properties']['thickness']*1000,
                 step=0.5,
                 key="glass_thickness",
                 help="BIPV glass thickness including embedded PV cells (typical: 6-12mm)"
@@ -508,7 +507,7 @@ def render_pv_specification():
     final_panel_specs = {
         'panel_type': selected_panel_type,
         'efficiency': panel_efficiency,
-        'power_rating': power_rating,
+        'power_density': power_density,
         'temperature_coefficient': temperature_coefficient,
         'voltage_at_pmax': voltage_at_pmax,
         'current_at_pmax': current_at_pmax,
