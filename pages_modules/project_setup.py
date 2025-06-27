@@ -195,7 +195,7 @@ def render_project_setup():
             "Choose Weather Station",
             station_options,
             help="Select the weather station that best represents your project's climate conditions",
-            key="selected_weather_station"
+            key="weather_station_selector"
         )
         
         if selected_station_name:
