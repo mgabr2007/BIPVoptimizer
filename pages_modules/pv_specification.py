@@ -308,7 +308,7 @@ def render_pv_specification():
             glass_thickness = st.number_input(
                 "Glass Thickness (mm)",
                 min_value=4.0, max_value=20.0,
-                value=base_specs['dimensions']['thickness']*1000,
+                value=base_specs.get('dimensions', {}).get('thickness', 0.008)*1000,
                 step=0.5,
                 key="glass_thickness",
                 help="BIPV glass thickness including embedded PV cells (typical: 6-12mm)"
@@ -348,7 +348,7 @@ def render_pv_specification():
             cost_per_m2 = st.number_input(
                 "Cost per m² (EUR)",
                 min_value=200.0, max_value=800.0,
-                value=base_specs['cost_per_watt']*power_density if 'cost_per_watt' in base_specs else 400.0,
+                value=base_specs.get('cost_per_wp', 0.85)*power_density if power_density else 400.0,
                 step=10.0,
                 key="cost_per_m2",
                 help="Total cost per square meter of BIPV glass including installation"
@@ -550,7 +550,7 @@ def render_pv_specification():
     
     with col2:
         st.markdown("**BIPV Glass Properties:**")
-        thickness_changed = final_panel_specs['glass_properties']['thickness'] != base_specs['dimensions']['thickness']
+        thickness_changed = final_panel_specs['glass_properties']['thickness'] != base_specs.get('dimensions', {}).get('thickness', 0.008)
         power_density_changed = final_panel_specs['glass_properties']['power_density'] != base_specs['efficiency']*1000
         transparency_changed = final_panel_specs['transparency'] != base_specs['transparency']
         
@@ -575,7 +575,7 @@ def render_pv_specification():
         final_panel_specs['power_rating'] != base_specs['power_rating'],
         final_panel_specs['cost_per_wp'] != base_specs['cost_per_wp'],
         final_panel_specs['transparency'] != base_specs['transparency'],
-        final_panel_specs['glass_properties']['thickness'] != base_specs['dimensions']['thickness'],
+        final_panel_specs['glass_properties']['thickness'] != base_specs.get('dimensions', {}).get('thickness', 0.008),
         final_panel_specs['glass_properties']['power_density'] != base_specs['efficiency']*1000
     ])
     
