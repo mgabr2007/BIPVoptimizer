@@ -402,6 +402,34 @@ def render_pv_specification():
                 )
                 st.plotly_chart(fig_power, use_container_width=True)
                 
+                # Explanation for orientation power distribution
+                st.info("""
+                **Understanding Orientation Power Distribution:**
+                
+                Total installed power reflects your building's actual window distribution, not solar performance. 
+                Orientations with more windows will show higher total power even if individual windows perform worse.
+                
+                • **Higher bars** = More window area available on that facade
+                • **Solar performance** is shown separately in performance metrics
+                • **North facades** often have more windows due to architectural design
+                • **South-facing** windows typically perform best per m² but may be fewer in number
+                """)
+                
+                # Window count by orientation
+                window_counts = pv_specs.groupby('orientation').size().reset_index(name='window_count')
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("**Window Count by Orientation:**")
+                    for _, row in window_counts.iterrows():
+                        st.write(f"• {row['orientation']}: {row['window_count']} windows")
+                
+                with col2:
+                    avg_power_per_window = pv_specs.groupby('orientation')['system_power_kw'].mean().reset_index()
+                    st.write("**Average Power per Window:**")
+                    for _, row in avg_power_per_window.iterrows():
+                        st.write(f"• {row['orientation']}: {row['system_power_kw']:.2f} kW")
+                
                 # Power vs Area scatter
                 fig_scatter = px.scatter(
                     pv_specs,
