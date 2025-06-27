@@ -58,48 +58,70 @@ BIPV_GLASS_DATABASE = {
     }
 }
 
-def calculate_panel_layout(element_area, element_width, element_height, panel_width, panel_height, spacing_factor=0.05):
-    """Calculate optimal panel layout for given element dimensions."""
+def calculate_bipv_glass_coverage(element_area, frame_factor=0.10):
+    """Calculate BIPV glass coverage for window elements."""
     
-    # Account for spacing between panels
-    effective_panel_width = panel_width * (1 + spacing_factor)
-    effective_panel_height = panel_height * (1 + spacing_factor)
+    # Net glazed area after accounting for window frame
+    glazed_area = element_area * (1 - frame_factor)
+    frame_area = element_area * frame_factor
     
-    # Calculate how many panels fit in each dimension
-    panels_horizontal = int(element_width // effective_panel_width)
-    panels_vertical = int(element_height // effective_panel_height)
-    
-    # Total panels and coverage
-    total_panels = panels_horizontal * panels_vertical
-    panel_area = panel_width * panel_height
-    total_panel_area = total_panels * panel_area
-    coverage_ratio = total_panel_area / element_area if element_area > 0 else 0
+    # BIPV glass covers the entire glazed area (no separate panels)
+    coverage_ratio = (1 - frame_factor)
     
     return {
-        'panels_horizontal': panels_horizontal,
-        'panels_vertical': panels_vertical,
-        'total_panels': total_panels,
-        'total_panel_area': total_panel_area,
+        'total_area': element_area,
+        'glazed_area': glazed_area,
+        'frame_area': frame_area,
         'coverage_ratio': coverage_ratio,
-        'unused_area': element_area - total_panel_area
+        'bipv_glass_area': glazed_area
     }
 
-def calculate_system_specifications(element_data, panel_specs, layout_data):
-    """Calculate complete system specifications for each element."""
+def calculate_bipv_system_specifications(element_data, glass_specs, coverage_data):
+    """Calculate complete BIPV system specifications for each element."""
     
     specifications = []
     
     for i, (_, element) in enumerate(element_data.iterrows()):
-        layout = layout_data[i]
+        coverage = coverage_data[i]
         
-        if layout['total_panels'] > 0:
-            # Basic calculations
-            total_power = layout['total_panels'] * panel_specs['power_rating']
-            total_cost = total_power * panel_specs['cost_per_wp']
+        if coverage['bipv_glass_area'] > 0:
+            # Basic calculations for BIPV glass
+            glass_area = coverage['bipv_glass_area']
+            total_power = glass_area * glass_specs['power_per_m2'] / 1000  # Convert to kW
+            total_cost = glass_area * glass_specs['cost_per_m2']
             
-            # Performance calculations
-            annual_irradiation = element.get('corrected_annual_irradiation', element.get('annual_irradiation', 1500))
-            annual_energy = (total_power / 1000) * annual_irradiation * panel_specs['efficiency'] / 0.20  # Normalize efficiency
+            # Performance calculations for BIPV glass
+            annual_radiation = element.get('annual_radiation', 1200)  # kWh/m²/year
+            performance_ratio = 0.85  # BIPV glass performance ratio
+            annual_energy = glass_area * glass_specs['efficiency'] * annual_radiation * performance_ratio
+            
+            # Specific yield (kWh/kWp)
+            specific_yield = annual_energy / total_power if total_power > 0 else 0
+            
+            # Installation costs
+            installation_cost = total_cost * 1.5  # Including inverter, wiring, etc.
+            
+            specification = {
+                'element_id': element.get('Element ID', f'Element_{i+1}'),
+                'orientation': element.get('orientation', 'Unknown'),
+                'glass_area': glass_area,
+                'frame_area': coverage['frame_area'],
+                'total_area': coverage['total_area'],
+                'system_power_kw': total_power,
+                'annual_energy_kwh': annual_energy,
+                'specific_yield': specific_yield,
+                'glass_cost': total_cost,
+                'installation_cost': installation_cost,
+                'total_cost': total_cost + installation_cost,
+                'cost_per_kwh': (total_cost + installation_cost) / annual_energy if annual_energy > 0 else 0,
+                'transparency': glass_specs['transparency'],
+                'efficiency': glass_specs['efficiency'],
+                'annual_radiation': annual_radiation
+            }
+            
+            specifications.append(specification)
+    
+    return pd.DataFrame(specifications)
             
             spec = {
                 'element_id': element['element_id'],
@@ -245,27 +267,18 @@ def render_pv_specification():
                 layout_results = []
                 
                 for _, element in radiation_df.iterrows():
-                    # Estimate element dimensions (simplified)
-                    aspect_ratio = element.get('aspect_ratio', 1.5)
-                    element_width = np.sqrt(element['area'] * aspect_ratio)
-                    element_height = element['area'] / element_width
-                    
-                    layout = calculate_panel_layout(
+                    # Calculate BIPV glass coverage (no separate panels)
+                    coverage = calculate_bipv_glass_coverage(
                         element['area'],
-                        element_width,
-                        element_height,
-                        panel_specs['dimensions']['width'],
-                        panel_specs['dimensions']['height'],
-                        spacing_factor
+                        frame_factor
                     )
-                    
-                    layout_results.append(layout)
+                    layout_results.append(coverage)
                 
-                # Calculate system specifications
-                system_specs = calculate_system_specifications(radiation_df, panel_specs, layout_results)
+                # Calculate BIPV system specifications
+                system_specs = calculate_bipv_system_specifications(radiation_df, glass_specs, layout_results)
                 
-                # Filter by minimum panels requirement
-                system_specs = system_specs[system_specs['panels_count'] >= min_panels]
+                # Filter by minimum glass area requirement (0.5 m² minimum)
+                system_specs = system_specs[system_specs['glass_area'] >= 0.5]
                 
                 # Apply installation cost factor
                 system_specs['total_installation_cost'] = system_specs['installation_cost'] * installation_factor
@@ -273,8 +286,8 @@ def render_pv_specification():
                 
                 # Store results
                 st.session_state.project_data['pv_specifications'] = system_specs.to_dict()
-                st.session_state.project_data['selected_panel_type'] = selected_panel_type
-                st.session_state.project_data['panel_specs'] = panel_specs
+                st.session_state.project_data['selected_glass_type'] = selected_glass_type
+                st.session_state.project_data['glass_specs'] = glass_specs
                 
                 st.success(f"✅ Layout calculated for {len(system_specs)} viable elements!")
                 
