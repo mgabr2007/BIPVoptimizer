@@ -18,6 +18,7 @@ from pages_modules.yield_demand import render_yield_demand
 from pages_modules.optimization import render_optimization
 from pages_modules.financial_analysis import render_financial_analysis
 from pages_modules.reporting import render_reporting
+from services.perplexity_agent import render_perplexity_consultation
 
 # Import workflow visualization
 from components.workflow_visualization import (
@@ -70,7 +71,8 @@ def main():
         ("yield_demand", "7️⃣ Yield vs Demand", "Energy balance analysis"),
         ("optimization", "8️⃣ Optimization", "Multi-objective optimization"),
         ("financial_analysis", "9️⃣ Financial Analysis", "Economic viability"),
-        ("reporting", "🔟 Reporting", "Results and export")
+        ("reporting", "🔟 Reporting", "Results and export"),
+        ("ai_consultation", "🤖 AI Consultation", "Expert analysis and recommendations")
     ]
     
     # Render navigation buttons for workflow steps
@@ -174,6 +176,8 @@ def main():
             render_financial_analysis()
         elif current_step == 'reporting':
             render_reporting()
+        elif current_step == 'ai_consultation':
+            render_perplexity_consultation()
         else:
             st.error(f"Unknown step: {current_step}")
     except Exception as e:

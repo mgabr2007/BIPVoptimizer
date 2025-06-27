@@ -1,0 +1,282 @@
+"""
+Perplexity AI Consultation Agent for BIPV Optimizer
+Analyzes all workflow results and provides research conclusions with optimization recommendations
+"""
+
+import streamlit as st
+import requests
+import json
+from services.io import get_project_report_data
+from core.solar_math import safe_divide
+
+
+class PerplexityBIPVAgent:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.base_url = "https://api.perplexity.ai/chat/completions"
+        self.headers = {
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        }
+    
+    def analyze_bipv_results(self, project_data, building_elements, financial_analysis):
+        """Analyze complete BIPV results and provide research conclusions"""
+        
+        # Prepare comprehensive data summary for analysis
+        data_summary = self._prepare_data_summary(project_data, building_elements, financial_analysis)
+        
+        # Create research-focused prompt
+        prompt = f"""
+        As a BIPV (Building-Integrated Photovoltaics) research consultant, analyze the following comprehensive analysis results and provide:
+
+        1. KEY RESEARCH FINDINGS (5-7 bullet points)
+        2. TECHNICAL OPTIMIZATION RECOMMENDATIONS (specific parameter adjustments)
+        3. ECONOMIC VIABILITY ASSESSMENT
+        4. RESEARCH METHODOLOGY IMPROVEMENTS
+
+        BIPV Analysis Data:
+        {data_summary}
+
+        Focus on actionable insights for improving calculation accuracy, optimizing system performance, and enhancing economic viability. Reference current BIPV research and industry best practices.
+        """
+        
+        return self._query_perplexity(prompt)
+    
+    def get_optimization_recommendations(self, low_performance_areas):
+        """Get specific recommendations for improving low-performing aspects"""
+        
+        prompt = f"""
+        Based on BIPV system analysis showing these performance concerns:
+        {low_performance_areas}
+
+        Provide specific technical recommendations for:
+        1. Input parameter refinements
+        2. Calculation methodology improvements  
+        3. System design optimizations
+        4. Economic model enhancements
+
+        Reference latest BIPV research papers and industry standards (2023-2025).
+        """
+        
+        return self._query_perplexity(prompt)
+    
+    def _prepare_data_summary(self, project_data, building_elements, financial_analysis):
+        """Prepare comprehensive data summary for AI analysis"""
+        
+        # Extract key metrics
+        total_elements = len(building_elements) if building_elements else 0
+        suitable_elements = sum(1 for elem in building_elements 
+                              if isinstance(elem, dict) and elem.get('pv_suitable', False))
+        
+        # Orientation breakdown
+        orientation_count = {}
+        total_glass_area = 0
+        for elem in building_elements:
+            if isinstance(elem, dict):
+                orientation = elem.get('orientation', 'Unknown')
+                orientation_count[orientation] = orientation_count.get(orientation, 0) + 1
+                try:
+                    glass_area = float(elem.get('glass_area', 0))
+                    total_glass_area += glass_area
+                except (ValueError, TypeError):
+                    continue
+        
+        # Financial metrics
+        financial_metrics = financial_analysis.get('financial_metrics', {}) if financial_analysis else {}
+        npv = financial_metrics.get('npv', 0)
+        payback_period = financial_metrics.get('payback_period', 0)
+        irr = financial_metrics.get('irr', 0)
+        total_investment = financial_metrics.get('total_investment', 0)
+        
+        # Historical data
+        historical_data = project_data.get('historical_data', {})
+        r_squared = historical_data.get('r_squared', 0)
+        total_consumption = historical_data.get('total_consumption', 0)
+        
+        # Weather data
+        weather_data = project_data.get('weather_analysis', {})
+        annual_ghi = weather_data.get('annual_ghi', 1200)
+        
+        # PV specifications
+        pv_specs = project_data.get('pv_specifications', [])
+        if isinstance(pv_specs, dict) and 'system_power_kw' in pv_specs:
+            # Convert DataFrame dict format
+            total_capacity = sum(pv_specs.get('system_power_kw', {}).values())
+            total_annual_yield = sum(pv_specs.get('annual_energy_kwh', {}).values())
+        elif isinstance(pv_specs, list):
+            total_capacity = sum(spec.get('system_power_kw', 0) for spec in pv_specs)
+            total_annual_yield = sum(spec.get('annual_energy_kwh', 0) for spec in pv_specs)
+        else:
+            total_capacity = 0
+            total_annual_yield = 0
+        
+        summary = f"""
+        PROJECT OVERVIEW:
+        - Location: {project_data.get('location', 'Unknown')}
+        - Total Building Elements: {total_elements}
+        - BIPV Suitable Elements: {suitable_elements} ({safe_divide(suitable_elements, total_elements, 0)*100:.1f}%)
+        - Total Glass Area: {total_glass_area:.1f} m²
+        
+        ORIENTATION DISTRIBUTION:
+        {json.dumps(orientation_count, indent=2)}
+        
+        ENERGY PERFORMANCE:
+        - AI Model R² Score: {r_squared:.3f}
+        - Annual Building Consumption: {total_consumption:,.0f} kWh
+        - Annual Solar GHI: {annual_ghi:.0f} kWh/m²
+        - Total PV System Capacity: {total_capacity:.1f} kW
+        - Annual PV Generation: {total_annual_yield:.0f} kWh
+        - Self-Sufficiency Ratio: {safe_divide(total_annual_yield, total_consumption, 0)*100:.1f}%
+        
+        FINANCIAL PERFORMANCE:
+        - Net Present Value: €{npv:,.0f}
+        - Internal Rate of Return: {irr*100:.1f}%
+        - Payback Period: {payback_period:.1f} years
+        - Total Investment: €{total_investment:,.0f}
+        
+        PERFORMANCE INDICATORS:
+        - Economic Viability: {"Positive" if npv > 0 else "Negative"}
+        - AI Model Quality: {"Excellent" if r_squared > 0.85 else "Good" if r_squared > 0.7 else "Needs Improvement"}
+        - Technical Potential: {"High" if suitable_elements > total_elements*0.6 else "Medium" if suitable_elements > total_elements*0.3 else "Low"}
+        """
+        
+        return summary
+    
+    def _query_perplexity(self, prompt):
+        """Send query to Perplexity API and return response"""
+        
+        payload = {
+            "model": "llama-3.1-sonar-small-128k-online",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an expert BIPV research consultant with deep knowledge of building-integrated photovoltaics, solar energy systems, and building energy optimization. Provide precise, actionable insights based on current research and industry best practices."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "max_tokens": 1500,
+            "temperature": 0.2,
+            "top_p": 0.9,
+            "return_images": False,
+            "return_related_questions": False,
+            "search_recency_filter": "month",
+            "stream": False
+        }
+        
+        try:
+            response = requests.post(self.base_url, headers=self.headers, json=payload)
+            response.raise_for_status()
+            
+            result = response.json()
+            return result['choices'][0]['message']['content']
+            
+        except requests.exceptions.RequestException as e:
+            return f"Error connecting to Perplexity API: {str(e)}"
+        except (KeyError, IndexError) as e:
+            return f"Error parsing API response: {str(e)}"
+        except Exception as e:
+            return f"Unexpected error: {str(e)}"
+
+
+def render_perplexity_consultation():
+    """Render Perplexity AI consultation interface"""
+    
+    st.header("🤖 AI Research Consultation")
+    st.write("Get expert analysis and optimization recommendations from Perplexity AI")
+    
+    # Initialize agent with API key
+    import os
+    api_key = os.getenv("PERPLEXITY_API_KEY", "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")
+    agent = PerplexityBIPVAgent(api_key)
+    
+    # Get project data
+    project_data = st.session_state.get('project_data', {})
+    project_name = project_data.get('project_name', 'Current Project')
+    
+    # Load data from database
+    db_data = get_project_report_data(project_name)
+    if not db_data:
+        st.warning("No project data found. Please complete the workflow analysis first.")
+        return
+    
+    building_elements = db_data.get('building_elements', [])
+    financial_analysis = project_data.get('financial_analysis', {})
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🔍 Analyze Complete Results", type="primary"):
+            with st.spinner("Consulting AI research expert..."):
+                analysis = agent.analyze_bipv_results(project_data, building_elements, financial_analysis)
+                st.session_state.perplexity_analysis = analysis
+    
+    with col2:
+        if st.button("💡 Get Optimization Tips"):
+            # Identify low performance areas
+            low_performance = []
+            
+            # Check AI model performance
+            r_squared = project_data.get('historical_data', {}).get('r_squared', 0)
+            if r_squared < 0.85:
+                low_performance.append(f"AI model R² score: {r_squared:.3f} (needs improvement)")
+            
+            # Check economic viability
+            financial_metrics = financial_analysis.get('financial_metrics', {})
+            npv = financial_metrics.get('npv', 0)
+            payback_period = financial_metrics.get('payback_period', 0)
+            if npv <= 0:
+                low_performance.append(f"Negative NPV: €{npv:,.0f}")
+            if payback_period > 15:
+                low_performance.append(f"Long payback period: {payback_period:.1f} years")
+            
+            # Check BIPV suitability
+            suitable_count = sum(1 for elem in building_elements 
+                               if isinstance(elem, dict) and elem.get('pv_suitable', False))
+            total_count = len(building_elements)
+            suitability_ratio = safe_divide(suitable_count, total_count, 0)
+            if suitability_ratio < 0.5:
+                low_performance.append(f"Low BIPV suitability: {suitability_ratio*100:.1f}% of elements")
+            
+            if not low_performance:
+                low_performance = ["System shows good overall performance - seeking advanced optimization strategies"]
+            
+            with st.spinner("Getting optimization recommendations..."):
+                recommendations = agent.get_optimization_recommendations(low_performance)
+                st.session_state.perplexity_recommendations = recommendations
+    
+    # Display results
+    if hasattr(st.session_state, 'perplexity_analysis'):
+        st.subheader("📊 Expert Analysis Results")
+        st.markdown(st.session_state.perplexity_analysis)
+        
+        # Download option
+        st.download_button(
+            label="📄 Download Analysis Report",
+            data=st.session_state.perplexity_analysis,
+            file_name=f"BIPV_AI_Analysis_{project_name.replace(' ', '_')}.txt",
+            mime="text/plain"
+        )
+    
+    if hasattr(st.session_state, 'perplexity_recommendations'):
+        st.subheader("🔧 Optimization Recommendations")
+        st.markdown(st.session_state.perplexity_recommendations)
+        
+        # Download option
+        st.download_button(
+            label="📄 Download Recommendations",
+            data=st.session_state.perplexity_recommendations,
+            file_name=f"BIPV_Optimization_Tips_{project_name.replace(' ', '_')}.txt",
+            mime="text/plain"
+        )
+    
+    # Add methodology note
+    st.info("""
+    **AI Consultation Methodology:**
+    - Analysis based on latest BIPV research and industry standards
+    - Recommendations tailored to your specific project data
+    - Focuses on improving calculation accuracy and system performance
+    - References current publications and best practices (2023-2025)
+    """)
