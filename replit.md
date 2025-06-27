@@ -306,6 +306,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 27, 2025: Enhanced detailed report generator with comprehensive interactive visualizations including building element orientation distribution charts, solar radiation analysis heatmaps, monthly energy balance graphs, BIPV technology performance comparisons, 25-year financial cash flow projections, and environmental impact visualizations using authentic workflow calculation data
 - June 27, 2025: Integrated Perplexity AI consultation agent as Step 12 providing expert BIPV analysis, research-based conclusions, and optimization recommendations using current industry standards and publications (2023-2025)
 - June 27, 2025: Fixed workflow navigation to properly reflect 11 actual analysis steps (excluding welcome page) with corrected step numbering and added "Finish & New Calculation" button to final AI consultation step for proper workflow completion
+- June 27, 2025: Enhanced Step 6 with comprehensive BIPV panel customization interface allowing users to modify premade panel types and use custom specifications for calculations, including visual modification indicators (🔧), customization help guide, dynamic button text, and enhanced database storage of custom specifications with modification tracking
 
 ## User Preferences
 

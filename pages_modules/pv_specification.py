@@ -183,36 +183,61 @@ def render_pv_specification():
     st.success(f"Designing BIPV systems for {len(suitable_elements)} building elements")
     
     # Panel selection section
-    st.subheader("🔧 BIPV Panel Selection")
+    st.subheader("🔧 BIPV Panel Selection & Customization")
     
     # Create two columns for panel selection
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.markdown("Select BIPV panel technology from our database or customize specifications:")
+        st.markdown("**Start with a premade panel type, then customize all specifications below:**")
         
         # Predefined panel selection
         panel_types = list(BIPV_PANEL_DATABASE.keys())
         selected_panel_type = st.selectbox(
-            "BIPV Panel Type", 
+            "Base BIPV Panel Type (Starting Point)", 
             panel_types,
             key="panel_type_selector",
-            help="Choose from validated BIPV panel specifications based on current market technologies"
+            help="Choose a starting point from validated BIPV technologies. You can modify ALL specifications in the detailed sections below."
         )
         
         # Get base specifications
         base_specs = BIPV_PANEL_DATABASE[selected_panel_type]
         
-        st.info(f"**{selected_panel_type}:** {base_specs['description']}")
+        st.info(f"**Starting with {selected_panel_type}:** {base_specs['description']}")
+        st.success("💡 **Tip:** Modify any specification below - your custom values will be used for all calculations!")
     
     with col2:
-        st.markdown("**Quick Specs:**")
-        st.metric("Efficiency", f"{base_specs['efficiency']*100:.1f}%")
-        st.metric("Power Rating", f"{base_specs['power_rating']} Wp")
-        st.metric("Transparency", f"{base_specs['transparency']*100:.0f}%")
+        st.markdown("**Base Specs (Modifiable):**")
+        st.metric("Base Efficiency", f"{base_specs['efficiency']*100:.1f}%")
+        st.metric("Base Power Rating", f"{base_specs['power_rating']} Wp")
+        st.metric("Base Transparency", f"{base_specs['transparency']*100:.0f}%")
     
     # Detailed panel customization
-    st.subheader("📋 Detailed Panel Specifications")
+    st.subheader("📋 Customize Panel Specifications")
+    st.markdown("**Modify any parameter below - all changes will be used in calculations:**")
+    
+    # Add help section explaining customization
+    with st.expander("ℹ️ How Panel Customization Works", expanded=False):
+        st.markdown("""
+        **Step-by-step customization process:**
+        
+        1. **Select a base panel type** above as your starting point
+        2. **Modify any specifications** in the sections below - change efficiency, dimensions, costs, etc.
+        3. **View your customized specs** in the summary section
+        4. **Calculate systems** using your exact specifications
+        
+        **Key features:**
+        - 🔧 Icons show which parameters you've modified from the base type
+        - All calculations use your custom values, not the original database values
+        - Your customizations are saved to the project database
+        - You can create completely custom panel specifications by modifying all parameters
+        
+        **Example use cases:**
+        - Adjust efficiency based on specific manufacturer data
+        - Modify dimensions to match actual available panel sizes
+        - Update costs based on current market prices
+        - Fine-tune performance parameters for your specific installation
+        """)
     
     # Create expandable sections for different parameter categories
     with st.expander("⚡ Electrical Specifications", expanded=False):
@@ -486,34 +511,63 @@ def render_pv_specification():
         'hail_resistance': hail_resistance
     }
     
-    # Display selected specifications summary
-    st.subheader("📊 Selected BIPV Specifications Summary")
+    # Display customized specifications summary
+    st.subheader("📊 Your Customized BIPV Specifications")
+    st.markdown("**These are your final specifications that will be used for all calculations:**")
     
+    # Show comparison between base and customized specs
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.markdown("**Electrical Performance:**")
-        st.write(f"• Efficiency: {final_panel_specs['efficiency']*100:.1f}%")
-        st.write(f"• Power Rating: {final_panel_specs['power_rating']} Wp")
-        st.write(f"• Temperature Coeff: {final_panel_specs['temperature_coefficient']*100:.2f}%/°C")
-        st.write(f"• Performance Ratio: {final_panel_specs['performance_ratio']*100:.0f}%")
+        efficiency_changed = final_panel_specs['efficiency'] != base_specs['efficiency']
+        power_changed = final_panel_specs['power_rating'] != base_specs['power_rating']
+        temp_changed = final_panel_specs['temperature_coefficient'] != base_specs['temperature_coefficient']
+        perf_changed = final_panel_specs['performance_ratio'] != 0.85  # Default performance ratio
+        
+        st.write(f"• Efficiency: {final_panel_specs['efficiency']*100:.1f}% {'🔧' if efficiency_changed else ''}")
+        st.write(f"• Power Rating: {final_panel_specs['power_rating']} Wp {'🔧' if power_changed else ''}")
+        st.write(f"• Temperature Coeff: {final_panel_specs['temperature_coefficient']*100:.2f}%/°C {'🔧' if temp_changed else ''}")
+        st.write(f"• Performance Ratio: {final_panel_specs['performance_ratio']*100:.0f}% {'🔧' if perf_changed else ''}")
     
     with col2:
         st.markdown("**Physical Properties:**")
-        st.write(f"• Dimensions: {final_panel_specs['dimensions']['width']:.2f} × {final_panel_specs['dimensions']['height']:.2f} m")
+        width_changed = final_panel_specs['dimensions']['width'] != base_specs['dimensions']['width']
+        height_changed = final_panel_specs['dimensions']['height'] != base_specs['dimensions']['height']
+        transparency_changed = final_panel_specs['transparency'] != base_specs['transparency']
+        
+        st.write(f"• Dimensions: {final_panel_specs['dimensions']['width']:.2f} × {final_panel_specs['dimensions']['height']:.2f} m {'🔧' if width_changed or height_changed else ''}")
         st.write(f"• Thickness: {final_panel_specs['dimensions']['thickness']*1000:.1f} mm")
-        st.write(f"• Transparency: {final_panel_specs['transparency']*100:.0f}%")
+        st.write(f"• Transparency: {final_panel_specs['transparency']*100:.0f}% {'🔧' if transparency_changed else ''}")
         st.write(f"• Weight: {final_panel_specs['weight']:.1f} kg/m²")
     
     with col3:
         st.markdown("**Economic Parameters:**")
-        st.write(f"• Panel Cost: {final_panel_specs['cost_per_wp']:.2f} €/Wp")
+        cost_changed = final_panel_specs['cost_per_wp'] != base_specs['cost_per_wp']
+        
+        st.write(f"• Panel Cost: {final_panel_specs['cost_per_wp']:.2f} €/Wp {'🔧' if cost_changed else ''}")
         st.write(f"• Inverter Cost: {final_panel_specs['inverter_cost_per_kw']} €/kW")
         st.write(f"• Installation Factor: {final_panel_specs['installation_factor']*100:.0f}%")
         st.write(f"• Warranty: {final_panel_specs['warranty_years']} years")
     
+    # Show modifications indicator
+    modifications_made = any([
+        final_panel_specs['efficiency'] != base_specs['efficiency'],
+        final_panel_specs['power_rating'] != base_specs['power_rating'],
+        final_panel_specs['cost_per_wp'] != base_specs['cost_per_wp'],
+        final_panel_specs['transparency'] != base_specs['transparency'],
+        final_panel_specs['dimensions']['width'] != base_specs['dimensions']['width'],
+        final_panel_specs['dimensions']['height'] != base_specs['dimensions']['height']
+    ])
+    
+    if modifications_made:
+        st.success("🔧 Custom modifications detected - your personalized specifications will be used for calculations!")
+    else:
+        st.info(f"Using standard {selected_panel_type} specifications - modify any parameter above to customize")
+    
     # Calculate system specifications using the comprehensive panel specifications
-    if st.button("⚡ Calculate BIPV System Specifications", type="primary", key="calculate_bipv_systems"):
+    button_text = "⚡ Calculate BIPV Systems with Custom Specifications" if modifications_made else "⚡ Calculate BIPV Systems with Standard Specifications"
+    if st.button(button_text, type="primary", key="calculate_bipv_systems"):
         
         with st.spinner("Calculating BIPV system specifications for all building elements..."):
             # Calculate BIPV specifications using the comprehensive panel data
@@ -526,15 +580,21 @@ def render_pv_specification():
             if len(bipv_specifications) > 0:
                 st.session_state.pv_specifications = bipv_specifications
                 st.session_state.pv_specs_completed = True
+                st.session_state.customized_panel_specs = final_panel_specs
+                st.session_state.modifications_made = modifications_made
                 
-                # Save to database
+                # Save customized specifications to database
                 try:
                     project_name = st.session_state.get('project_data', {}).get('project_name', 'Default Project')
                     db_manager.save_pv_specifications(project_name, {
-                        'panel_specs': final_panel_specs,
+                        'base_panel_type': selected_panel_type,
+                        'customized_panel_specs': final_panel_specs,
+                        'modifications_made': modifications_made,
                         'system_specifications': bipv_specifications.to_dict('records') if hasattr(bipv_specifications, 'to_dict') else bipv_specifications,
                         'calculation_timestamp': datetime.now().isoformat()
                     })
+                    if modifications_made:
+                        st.info("Custom panel specifications saved to database")
                 except Exception as e:
                     st.warning(f"Could not save to database: {str(e)}")
                 
@@ -547,6 +607,16 @@ def render_pv_specification():
     if pv_specifications is not None and len(pv_specifications) > 0:
         
         st.subheader("📋 BIPV System Specifications Results")
+        
+        # Show what specifications were used
+        if 'customized_panel_specs' in st.session_state:
+            specs_used = st.session_state.get('customized_panel_specs', final_panel_specs)
+            modifications_used = st.session_state.get('modifications_made', False)
+            
+            if modifications_used:
+                st.success("Results calculated using your custom panel modifications")
+            else:
+                st.info(f"Results calculated using standard {selected_panel_type} specifications")
         
         # Summary metrics
         col1, col2, col3, col4 = st.columns(4)
