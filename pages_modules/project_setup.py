@@ -14,58 +14,92 @@ from services.weather_stations import find_nearest_stations, get_station_summary
 
 
 def get_location_from_coordinates(lat, lon):
-    """Get highly specific location name from coordinates using OpenWeatherMap reverse geocoding"""
+    """Get specific location name with district/neighborhood details from coordinates"""
     api_key = os.environ.get('OPENWEATHER_API_KEY')
     if not api_key:
         return f"Location at {lat:.4f}°, {lon:.4f}°"
     
     try:
-        # Use higher limit to get detailed location hierarchy
+        # Get multiple geocoding results for better location hierarchy
         url = f"http://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit=10&appid={api_key}"
         response = requests.get(url, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
             if data:
-                # Extract all location components to build specific address
-                location_parts = []
+                # Debug output if enabled
+                if st.session_state.get('debug_geocoding', False):
+                    st.write(f"Debug: Found {len(data)} location results")
+                    for i, loc in enumerate(data[:3]):
+                        st.json(loc)
+                
+                # Extract unique location names from all results
+                location_names = []
                 seen_names = set()
                 
+                # Collect all unique names from the API results
                 for location_data in data:
                     name = location_data.get('name', '')
                     local_names = location_data.get('local_names', {})
-                    state = location_data.get('state', '')
-                    country = location_data.get('country', '')
                     
-                    # Get the most specific name available
-                    specific_name = local_names.get('en', name) if local_names else name
+                    # Try multiple name sources for better coverage
+                    potential_names = [
+                        name,
+                        local_names.get('en') if local_names else None,
+                        local_names.get('de') if local_names else None,
+                        local_names.get('feature_name') if local_names else None
+                    ]
                     
-                    # Add unique location components
-                    if specific_name and specific_name not in seen_names and specific_name != country:
-                        location_parts.append(specific_name)
-                        seen_names.add(specific_name)
+                    for potential_name in potential_names:
+                        if (potential_name and 
+                            potential_name not in seen_names and 
+                            len(potential_name.strip()) > 2 and
+                            potential_name != data[0].get('country', '') and
+                            potential_name != data[0].get('state', '')):
+                            location_names.append(potential_name.strip())
+                            seen_names.add(potential_name.strip())
+                            if len(location_names) >= 3:  # Collect up to 3 specific names
+                                break
                     
-                    if state and state not in seen_names and state != country and state != specific_name:
-                        location_parts.append(state)
-                        seen_names.add(state)
+                    if len(location_names) >= 3:
+                        break
                 
-                # Add country last if available
-                if data[0].get('country'):
-                    location_parts.append(data[0]['country'])
+                # Build hierarchical location string
+                final_parts = []
                 
-                # Build hierarchical location name (most specific to general)
-                if len(location_parts) >= 3:
-                    # Format: "Neighborhood/District, City/Area, State, Country"
-                    return ', '.join(location_parts[:4])  # Limit to 4 components
-                elif len(location_parts) >= 2:
-                    # Format: "Area, State, Country" 
-                    return ', '.join(location_parts)
-                elif len(location_parts) == 1:
-                    return location_parts[0]
+                # Add the most specific location names first
+                final_parts.extend(location_names[:2])  # Up to 2 specific area names
+                
+                # Add state if available and not already included
+                state = data[0].get('state', '')
+                if state and state not in final_parts:
+                    final_parts.append(state)
+                
+                # Add country
+                country = data[0].get('country', '')
+                if country:
+                    final_parts.append(country)
+                
+                # Return the formatted location name
+                if len(final_parts) >= 2:
+                    # Filter out duplicates while preserving order
+                    unique_parts = []
+                    for part in final_parts:
+                        if part not in unique_parts:
+                            unique_parts.append(part)
+                    return ', '.join(unique_parts[:4])  # Max 4 components
+                
+                # Fallback to basic format
+                city = data[0].get('name', '')
+                country = data[0].get('country', '')
+                if city and country:
+                    return f"{city}, {country}"
         
         return f"Location at {lat:.4f}°, {lon:.4f}°"
     
-    except Exception:
+    except Exception as e:
+        if st.session_state.get('debug_geocoding', False):
+            st.error(f"Geocoding error: {e}")
         return f"Location at {lat:.4f}°, {lon:.4f}°"
 
 
@@ -319,6 +353,10 @@ def render_project_setup():
     
     # Location name input (auto-updated from map selection)
     default_location = st.session_state.get('location_name', "Berlin, Germany")
+    
+    # Temporary debug option
+    debug_geocoding = st.checkbox("Show geocoding debug info", key="debug_geocoding", help="Shows raw API response for troubleshooting")
+    
     location_name = st.text_input(
         "Location Name",
         value=default_location,
