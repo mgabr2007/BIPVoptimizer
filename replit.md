@@ -319,6 +319,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 27, 2025: Fixed Step 6 cost per m² range error by reducing minimum from 200.0 to 150.0 EUR/m² and implementing intelligent cost calculation with 300 EUR/m² minimum for realistic BIPV pricing
 - June 27, 2025: Completely redesigned Step 6 BIPV glass implementation by replacing traditional solar panel database with proper BIPV glass technology specifications, eliminating all 'dimensions' references, implementing glass coverage calculations instead of panel layout, updating power calculations to use power density (W/m²) instead of discrete panel ratings, and ensuring authentic semi-transparent PV glass replacement technology throughout calculations
 - June 27, 2025: Fixed type mismatch errors in Step 6 by converting all database values to proper float/int types for numerical input consistency and resolved database save error by ensuring project_id (integer) is used instead of project_name (string) when saving PV specifications to PostgreSQL database
+- June 27, 2025: Fixed continuous map refreshing issue in Step 1 by removing st.rerun() infinite loops, implementing optimized state management with processing flags, adding canvas rendering for better performance, minimizing tracked data objects, and increasing coordinate change thresholds for improved stability
 
 ## User Preferences
 

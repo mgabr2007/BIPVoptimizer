@@ -194,12 +194,13 @@ def render_project_setup():
         max_distance_km=search_radius
     )
     
-    # Create enhanced folium map with weather stations (maintain zoom level)
-    current_zoom = st.session_state.get('map_zoom', 8)
+    # Create stable folium map with weather stations (prevent continuous refreshing)
+    current_zoom = st.session_state.get('map_zoom', 13)
     m = folium.Map(
         location=[st.session_state.map_coordinates['lat'], st.session_state.map_coordinates['lng']],
         zoom_start=current_zoom,
-        tiles="OpenStreetMap"
+        tiles="OpenStreetMap",
+        prefer_canvas=True
     )
     
     # Add marker for current location with neighborhood-specific name
@@ -232,40 +233,59 @@ def render_project_setup():
                 icon=folium.Icon(color="blue", icon="cloud", prefix="fa")
             ).add_to(m)
     
-    # Display map and capture clicks
+    # Display stable map with optimized state management
     map_data = None
     if location_method == "Interactive Map":
-        map_data = st_folium(m, key="location_map", height=450, width=700)
+        # Use stable map rendering with minimal updates
+        map_data = st_folium(
+            m, 
+            key="location_map", 
+            height=450, 
+            width=700,
+            returned_objects=["last_clicked", "zoom"],  # Only track essential data
+            feature_group_to_add=None,  # Reduce complexity
+            debug=False  # Disable debug mode for stability
+        )
         
-        # Store current zoom level to prevent reset
-        if map_data and map_data.get('zoom'):
+        # Update zoom level only when significantly changed
+        if map_data and map_data.get('zoom') and abs(map_data['zoom'] - st.session_state.get('map_zoom', 13)) > 0.5:
             st.session_state.map_zoom = map_data['zoom']
         
-        # Update coordinates and location name when map is clicked (but avoid reset)
-        if map_data and map_data['last_clicked'] is not None:
+        # Process map clicks with improved stability
+        if (map_data and 
+            map_data.get('last_clicked') is not None and 
+            not st.session_state.get('processing_click', False)):
+            
             new_coords = map_data['last_clicked']
-            # Only update if coordinates actually changed (prevent reset loops)
             current_lat = st.session_state.map_coordinates['lat']
             current_lon = st.session_state.map_coordinates['lng']
             
-            # Check if coordinates changed significantly (avoid tiny movements)
+            # Only process significant coordinate changes
             lat_diff = abs(new_coords['lat'] - current_lat)
             lon_diff = abs(new_coords['lng'] - current_lon)
             
-            if lat_diff > 0.0001 or lon_diff > 0.0001:  # Only update for meaningful changes
-                # Update coordinates in session state
+            if lat_diff > 0.001 or lon_diff > 0.001:  # Increased threshold for stability
+                # Prevent multiple simultaneous updates
+                st.session_state.processing_click = True
+                
+                # Update coordinates
                 st.session_state.map_coordinates = new_coords
-                # Update location name based on new coordinates with neighborhood details
-                with st.spinner("Getting location details..."):
-                    st.session_state.location_name = get_location_from_coordinates(
-                        new_coords['lat'], new_coords['lng']
-                    )
-                # Store map state to prevent reset
-                st.session_state.map_needs_update = True
-                st.rerun()
+                st.session_state.location_name = get_location_from_coordinates(
+                    new_coords['lat'], new_coords['lng']
+                )
+                
+                # Reset processing flag
+                st.session_state.processing_click = False
     else:
-        # Display map without interaction for manual coordinates
-        st_folium(m, key="location_map_display", height=450, width=700)
+        # Static map display for manual coordinates
+        st_folium(
+            m, 
+            key="location_map_display", 
+            height=450, 
+            width=700,
+            returned_objects=[],  # No interaction needed
+            debug=False
+        )
     
     # Display selected coordinates and weather station summary
     selected_lat = st.session_state.map_coordinates['lat']
