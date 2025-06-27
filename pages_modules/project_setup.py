@@ -20,9 +20,26 @@ def get_location_from_coordinates(lat, lon):
         return f"Location at {lat:.4f}°, {lon:.4f}°"
     
     try:
-        # Get multiple geocoding results for better location hierarchy
+        # Use OpenWeatherMap reverse geocoding with limit=10 for detailed hierarchy
         url = f"http://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit=10&appid={api_key}"
         response = requests.get(url, timeout=10)
+        
+        # Also try a direct geocoding approach for more specific results
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                # Try to get more specific location by searching nearby area
+                first_result = data[0]
+                city_name = first_result.get('name', '')
+                
+                # Make another call to get more specific results around this area
+                search_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name}&limit=5&appid={api_key}"
+                search_response = requests.get(search_url, timeout=5)
+                
+                if search_response.status_code == 200:
+                    search_data = search_response.json()
+                    # Combine results for better coverage
+                    data.extend(search_data)
         
         if response.status_code == 200:
             data = response.json()
@@ -67,47 +84,71 @@ def get_location_from_coordinates(lat, lon):
                             if len(local_name) < 15 and local_name not in location_components['district']:
                                 location_components['district'].append(local_name)
                 
-                # Build hierarchical location string from components
-                final_parts = []
+                # Extract more specific location information from multiple API results
+                location_hierarchy = []
+                all_names = set()
                 
-                # Add neighborhood first (most specific)
-                if location_components['neighborhood']:
-                    final_parts.append(location_components['neighborhood'][0])
+                # Collect all unique location names from different API results
+                for result in data[:5]:  # Check first 5 results for variety
+                    name = result.get('name', '')
+                    if name and name not in all_names and len(name) > 2:
+                        all_names.add(name)
+                        # Prioritize shorter, more specific names
+                        if len(name) < 20:
+                            location_hierarchy.append(name)
                 
-                # Add district next
-                if location_components['district']:
-                    final_parts.append(location_components['district'][0])
+                # Use the most specific available information
+                if len(location_hierarchy) >= 2:
+                    # Filter to avoid repetition but keep specificity
+                    unique_hierarchy = []
+                    for loc in location_hierarchy[:3]:
+                        if not any(existing in loc for existing in unique_hierarchy):
+                            unique_hierarchy.append(loc)
+                    
+                    # Add country for international context
+                    country = data[0].get('country', '')
+                    if country and country not in unique_hierarchy:
+                        unique_hierarchy.append(country)
+                    
+                    return ', '.join(unique_hierarchy[:3])  # Max 3 components
                 
-                # Add city if different from district
-                if location_components['city']:
-                    city_name = location_components['city'][0]
-                    if not final_parts or city_name not in final_parts:
-                        final_parts.append(city_name)
-                
-                # Add state if significant
-                if location_components['state'] and location_components['state'] not in final_parts:
-                    final_parts.append(location_components['state'])
-                
-                # Add country
-                if location_components['country']:
-                    final_parts.append(location_components['country'])
-                
-                # Return the formatted hierarchical location name
-                if len(final_parts) >= 2:
-                    return ', '.join(final_parts[:4])  # Maximum 4 components for readability
-                
-                # Enhanced fallback - try to get more specific data
+                # Enhanced fallback - use all available location data
                 first_result = data[0]
-                display_name = first_result.get('display_name', '')
-                if display_name:
-                    # Extract meaningful parts from display_name
-                    parts = [part.strip() for part in display_name.split(',')]
-                    if len(parts) >= 3:
-                        return ', '.join(parts[:3])  # Take first 3 parts for specificity
                 
-                # Basic fallback
-                city = first_result.get('name', '')
-                country = first_result.get('country', '')
+                # Try to extract detailed information from the first result
+                detailed_parts = []
+                
+                # Check for detailed address components in the first result
+                if hasattr(first_result, 'get'):
+                    # Look for local names or display name with more details
+                    local_names = first_result.get('local_names', {})
+                    if local_names:
+                        for lang in ['en', 'de']:
+                            if lang in local_names and local_names[lang] != first_result.get('name', ''):
+                                detailed_parts.append(local_names[lang])
+                    
+                    # Add the primary name if not already included
+                    primary_name = first_result.get('name', '')
+                    if primary_name and primary_name not in detailed_parts:
+                        detailed_parts.append(primary_name)
+                    
+                    # Add state if different from existing parts
+                    state = first_result.get('state', '')
+                    if state and state not in detailed_parts:
+                        detailed_parts.append(state)
+                    
+                    # Add country code for international context
+                    country = first_result.get('country', '')
+                    if country:
+                        detailed_parts.append(country)
+                
+                # Return enhanced location string
+                if len(detailed_parts) >= 2:
+                    return ', '.join(detailed_parts[:3])  # Limit to 3 components
+                
+                # Final fallback to basic format
+                city = first_result.get('name', '') if data else ''
+                country = first_result.get('country', '') if data else ''
                 if city and country:
                     return f"{city}, {country}"
         
@@ -173,6 +214,13 @@ def render_project_setup():
             index=3,
             help="Maximum distance to search for weather stations (km)",
             key="search_radius"
+        )
+        
+        # Debug option for location detection
+        debug_geocoding = st.checkbox(
+            "Debug Location Detection",
+            help="Show detailed geocoding API responses for troubleshooting",
+            key="debug_geocoding"
         )
     
     # Location input based on selected method
