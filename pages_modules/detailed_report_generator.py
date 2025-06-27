@@ -52,9 +52,32 @@ def generate_comprehensive_detailed_report():
         if not isinstance(radiation_data, list):
             radiation_data = []
         
-        pv_specs = project_data.get('pv_specifications', [])
-        if not isinstance(pv_specs, list):
-            pv_specs = []
+        pv_specs_raw = project_data.get('pv_specifications', [])
+        pv_specs = []
+        
+        # Handle different data structures for PV specifications
+        if isinstance(pv_specs_raw, dict):
+            # Debug: Check structure
+            print(f"DEBUG: PV specs structure: {list(pv_specs_raw.keys()) if pv_specs_raw else 'Empty dict'}")
+            
+            # If it's a dict (from DataFrame.to_dict()), convert to list of records
+            if 'system_power_kw' in pv_specs_raw:
+                # Convert column-based dict to row-based list
+                keys = list(pv_specs_raw.keys())
+                if keys and isinstance(pv_specs_raw[keys[0]], dict):
+                    num_records = len(pv_specs_raw[keys[0]])
+                    for i in range(num_records):
+                        record = {}
+                        for key in keys:
+                            if isinstance(pv_specs_raw[key], dict):
+                                record[key] = pv_specs_raw[key].get(i, 0)
+                            else:
+                                record[key] = pv_specs_raw[key]
+                        pv_specs.append(record)
+                    print(f"DEBUG: Converted {len(pv_specs)} PV spec records")
+        elif isinstance(pv_specs_raw, list):
+            pv_specs = pv_specs_raw
+            print(f"DEBUG: Using list of {len(pv_specs)} PV spec records")
         
         yield_demand_analysis = project_data.get('yield_demand_analysis', {})
         if not isinstance(yield_demand_analysis, dict):
@@ -113,15 +136,23 @@ def generate_comprehensive_detailed_report():
                     continue
         avg_specific_yield = safe_divide(total_annual_yield, total_capacity, 0) if total_capacity > 0 else 0
         
-        # Financial metrics
-        initial_investment = safe_get(financial_analysis, 'initial_investment', 0)
-        annual_savings = safe_get(financial_analysis, 'annual_savings', 0)
-        npv = safe_get(financial_analysis, 'npv', 0)
-        irr = safe_get(financial_analysis, 'irr', 0)
-        payback_period = safe_get(financial_analysis, 'payback_period', 0)
+        # Financial metrics - handle nested structure
+        financial_metrics = financial_analysis.get('financial_metrics', {})
+        environmental_impact = financial_analysis.get('environmental_impact', {})
+        
+        print(f"DEBUG: Financial analysis keys: {list(financial_analysis.keys()) if financial_analysis else 'Empty'}")
+        print(f"DEBUG: Financial metrics keys: {list(financial_metrics.keys()) if financial_metrics else 'Empty'}")
+        
+        initial_investment = safe_get(financial_metrics, 'total_investment', 0)
+        annual_savings = safe_get(financial_metrics, 'annual_savings', 0)
+        npv = safe_get(financial_metrics, 'npv', 0)
+        irr = safe_get(financial_metrics, 'irr', 0)
+        payback_period = safe_get(financial_metrics, 'payback_period', 0)
         
         # Environmental metrics
-        co2_savings_annual = safe_get(financial_analysis, 'co2_savings_annual', 0)
+        co2_savings_annual = safe_get(environmental_impact, 'annual_co2_savings', 0)
+        
+        print(f"DEBUG: Extracted values - NPV: {npv}, Investment: {initial_investment}, Total Capacity: {total_capacity}")
         
         # Generate comprehensive HTML report
         html_content = f"""

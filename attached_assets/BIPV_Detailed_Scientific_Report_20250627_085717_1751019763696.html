@@ -1,0 +1,491 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>BIPV Comprehensive Scientific Analysis Report</title>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.min.js"></script>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    margin: 0;
+                    padding: 20px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: #333;
+                }
+                .container {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    background: white;
+                    border-radius: 15px;
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                    overflow: hidden;
+                }
+                .header {
+                    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+                    color: white;
+                    padding: 40px;
+                    text-align: center;
+                }
+                .header h1 {
+                    margin: 0;
+                    font-size: 2.5em;
+                    font-weight: 300;
+                }
+                .content {
+                    padding: 40px;
+                }
+                .section {
+                    margin: 40px 0;
+                    padding: 30px;
+                    background: #f8f9fa;
+                    border-radius: 10px;
+                    border-left: 5px solid #3498db;
+                }
+                .step-number {
+                    background: #3498db;
+                    color: white;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-right: 15px;
+                    font-weight: bold;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                    background: white;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }
+                th, td {
+                    padding: 15px;
+                    text-align: left;
+                    border-bottom: 1px solid #ddd;
+                }
+                th {
+                    background: #34495e;
+                    color: white;
+                    font-weight: 600;
+                }
+                .equation {
+                    background: #ecf0f1;
+                    padding: 20px;
+                    margin: 15px 0;
+                    border-radius: 8px;
+                    border-left: 4px solid #e74c3c;
+                }
+                .methodology {
+                    background: #fff3cd;
+                    border: 1px solid #ffeaa7;
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin: 15px 0;
+                }
+                .assumption {
+                    background: #e8f4f8;
+                    border: 1px solid #bee5eb;
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin: 15px 0;
+                }
+                .metrics {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 20px;
+                    margin: 20px 0;
+                }
+                .metric {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    text-align: center;
+                }
+                .metric-value {
+                    font-size: 2em;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                }
+                .metric-label {
+                    font-size: 0.9em;
+                    opacity: 0.9;
+                }
+                .footer {
+                    background: #2c3e50;
+                    color: white;
+                    padding: 30px;
+                    margin-top: 40px;
+                    border-radius: 0 0 15px 15px;
+                }
+                .highlight {
+                    background: #fff3cd;
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    border: 1px solid #ffeaa7;
+                }
+                h2 {
+                    color: #2c3e50;
+                    border-bottom: 2px solid #3498db;
+                    padding-bottom: 10px;
+                }
+                h3 {
+                    color: #34495e;
+                    margin-top: 30px;
+                }
+                .warning {
+                    background: #f8d7da;
+                    border: 1px solid #f5c6cb;
+                    color: #721c24;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin: 15px 0;
+                }
+                .success {
+                    background: #d4edda;
+                    border: 1px solid #c3e6cb;
+                    color: #155724;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin: 15px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🏢 BIPV Comprehensive Scientific Analysis Report</h1>
+                    <p><strong>Project:</strong> BIPV Optimization Project | <strong>Location:</strong> Berlin, Germany</p>
+                    <p><strong>Analysis Date:</strong> 2025-06-27 08:57:17 UTC</p>
+                </div>
+                
+                <div class="content">
+                    <div class="section">
+                        <h2>📋 Executive Summary</h2>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="metric-value">407</div>
+                                <div class="metric-label">Building Elements</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">259</div>
+                                <div class="metric-label">BIPV Suitable</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">0.0 kW</div>
+                                <div class="metric-label">Total Capacity</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">€0</div>
+                                <div class="metric-label">Net Present Value</div>
+                            </div>
+                        </div>
+                        
+                        <div class="methodology">
+                            <p><strong>Analysis Overview:</strong> This comprehensive BIPV analysis follows international standards including ISO 15927-4 for TMY generation, ISO 9060 for solar resource classification, EN 410 for glazing properties, and ASHRAE 90.1 for building energy analysis. The study employs multi-objective optimization using NSGA-II algorithm to identify optimal BIPV configurations.</p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">1</span>Step 1: Project Configuration & Location Analysis</h2>
+                        
+                        <h3>🌍 Geographic & Climate Parameters</h3>
+                        <table>
+                            <tr><th>Parameter</th><th>Value</th><th>Standard/Reference</th></tr>
+                            <tr><td>Location</td><td>Berlin, Germany</td><td>User-defined coordinates</td></tr>
+                            <tr><td>Latitude</td><td>52.5200°</td><td>WGS84 datum</td></tr>
+                            <tr><td>Longitude</td><td>13.4050°</td><td>WGS84 datum</td></tr>
+                            <tr><td>Annual GHI</td><td>1200 kWh/m²</td><td>TMY analysis</td></tr>
+                            <tr><td>Average Temperature</td><td>15.0°C</td><td>OpenWeatherMap</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">2</span>Step 2: Historical Data Analysis & AI Model Training</h2>
+                        
+                        <h3>📈 Historical Data Analysis & AI Model Performance</h3>
+                        <table>
+                            <tr><th>Metric</th><th>Value</th><th>Unit</th><th>Status</th></tr>
+                            <tr><td>Average Monthly Consumption</td><td>320,418</td><td>kWh</td><td>Measured</td></tr>
+                            <tr><td>Annual Consumption</td><td>23,070,120</td><td>kWh</td><td>Historical baseline</td></tr>
+                            <tr><td>Consumption Variability (CV)</td><td>15.0</td><td>%</td><td>Data quality indicator</td></tr>
+                            <tr><td>Peak Demand Month</td><td>January</td><td>-</td><td>Seasonal pattern</td></tr>
+                            <tr><td><strong>AI Model R² Score</strong></td><td><strong>0.920</strong></td><td>-</td><td><strong>Excellent</strong></td></tr>
+                        </table>
+                        
+                        <h3>🎯 AI Model Performance Analysis</h3>
+                        <div class="methodology">
+                            <p><strong>R² Score Interpretation:</strong></p>
+                            <ul>
+                                <li><strong>R² ≥ 0.85:</strong> Excellent model performance - Reliable 25-year demand predictions</li>
+                                <li><strong>0.70 ≤ R² < 0.85:</strong> Good performance - Acceptable prediction accuracy</li>
+                                <li><strong>R² < 0.70:</strong> Needs improvement - Consider data quality enhancements</li>
+                            </ul>
+                            <p><strong>Model Impact on BIPV Analysis:</strong> The R² score directly affects accuracy of yield vs demand calculations, optimization objectives, and financial projections throughout the workflow.</p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">3</span>Step 3: Weather Environment & TMY Generation</h2>
+                        
+                        <h3>🌤️ Typical Meteorological Year (TMY) Generation</h3>
+                        <div class="equation">
+                            <h4>TMY Selection Criteria (ISO 15927-4)</h4>
+                            <p>$$WS_m = \sum_{i=1}^{n} \left|\frac{X_{m,i} - \bar{X}_i}{\sigma_i}\right| \cdot w_i$$</p>
+                            <p>Where: WS_m = weighted sum for month m, X_m,i = parameter value, w_i = weighting factor</p>
+                        </div>
+                        
+                        <table>
+                            <tr><th>TMY Parameter</th><th>Value</th><th>Quality Index</th></tr>
+                            <tr><td>Annual GHI</td><td>1200 kWh/m²</td><td>High (±5%)</td></tr>
+                            <tr><td>Temperature Range</td><td>10.0 to 30.0°C</td><td>Validated</td></tr>
+                            <tr><td>Humidity Range</td><td>55 to 85%</td><td>Validated</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">4</span>Step 4: BIM-Based Facade & Window Extraction</h2>
+                        
+                        <h3>🏗️ Building Element Analysis</h3>
+                        <div class="equation">
+                            <h4>Window Suitability Assessment</h4>
+                            <p>$$S_{window} = f(A_{glass}, \theta_{orientation}, E_{annual}, C_{structural})$$</p>
+                            <p>Where: S = suitability score, A = glass area, θ = orientation angle, E = annual irradiation, C = structural constraints</p>
+                        </div>
+                        
+                        <table>
+                            <tr><th>BIM Analysis Parameter</th><th>Value</th><th>Calculation Method</th></tr>
+                            <tr><td>Total Building Elements</td><td>407</td><td>Direct CSV count</td></tr>
+                            <tr><td>Window Elements</td><td>407</td><td>Type filtering</td></tr>
+                            <tr><td>Curtain Wall Elements</td><td>0</td><td>Type filtering</td></tr>
+                            <tr><td>Average Glass Area</td><td>8.46 m²</td><td>Arithmetic mean</td></tr>
+                            <tr><td>South-Facing Elements</td><td>72</td><td>Orientation analysis</td></tr>
+                            <tr><td>BIPV Suitable Elements</td><td>259</td><td>Multi-criteria evaluation</td></tr>
+                        </table>
+                        
+                        <h3>📊 Orientation Analysis</h3>
+                        <table>
+                            <tr><th>Orientation</th><th>Count</th><th>Total Area (m²)</th><th>Avg Area (m²)</th><th>BIPV Potential</th></tr>
+        
+                            <tr><td>East (45-135°)</td><td>93</td><td>729.5</td><td>7.8</td><td>Medium</td></tr>
+            
+                            <tr><td>West (225-315°)</td><td>94</td><td>740.2</td><td>7.9</td><td>Medium</td></tr>
+            
+                            <tr><td>North (315-45°)</td><td>148</td><td>1864.3</td><td>12.6</td><td>Low</td></tr>
+            
+                            <tr><td>South (135-225°)</td><td>72</td><td>108.7</td><td>1.5</td><td>High</td></tr>
+            
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">5</span>Step 5: Solar Radiation & Shading Analysis</h2>
+                        
+                        <h3>☀️ Irradiation Calculation Methodology</h3>
+                        <div class="equation">
+                            <h4>Surface Irradiation (Perez Model)</h4>
+                            <p>$$I_{{surface}} = I_{{beam}} \cdot R_{{beam}} + I_{{diffuse}} \cdot \left(\frac{{1 + \cos(\beta)}}{{2}}\right) + I_{{ground}} \cdot \rho \cdot \left(\frac{{1 - \cos(\beta)}}{{2}}\right)$$</p>
+                            <p>Where: I = irradiation, R = beam radiation factor, β = surface tilt, ρ = ground reflectance</p>
+                        </div>
+
+                        <h3>📊 Element-Specific Radiation Results</h3>
+                        <table>
+                            <tr><th>Element ID</th><th>Orientation</th><th>Annual Irradiation (kWh/m²)</th><th>Performance Index</th></tr>
+        
+                            <tr><td>367842</td><td>East (45-135°)</td><td>1400</td><td>0.78</td></tr>
+            
+                            <tr><td>367843</td><td>East (45-135°)</td><td>1400</td><td>0.78</td></tr>
+            
+                            <tr><td>367844</td><td>East (45-135°)</td><td>1400</td><td>0.78</td></tr>
+            
+                            <tr><td>368995</td><td>West (225-315°)</td><td>1400</td><td>0.78</td></tr>
+            
+                            <tr><td>369015</td><td>West (225-315°)</td><td>1400</td><td>0.78</td></tr>
+            
+                            <tr><td>370300</td><td>West (225-315°)</td><td>1400</td><td>0.78</td></tr>
+            
+                            <tr><td>371062</td><td>East (45-135°)</td><td>1400</td><td>0.78</td></tr>
+            
+                            <tr><td>371063</td><td>East (45-135°)</td><td>1400</td><td>0.78</td></tr>
+            
+                            <tr><td>371064</td><td>East (45-135°)</td><td>1400</td><td>0.78</td></tr>
+            
+                            <tr><td>371165</td><td>West (225-315°)</td><td>1400</td><td>0.78</td></tr>
+            
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">6</span>Step 6: PV Technology Specification</h2>
+                        
+                        <h3>⚡ BIPV Technology Analysis</h3>
+                        <div class="equation">
+                            <h4>PV System Sizing</h4>
+                            <p>$$P_{system} = A_{available} \cdot \eta_{module} \cdot I_{STC} \cdot PR$$</p>
+                            <p>Where: P = system power, A = available area, η = module efficiency, I_STC = standard test conditions, PR = performance ratio</p>
+                        </div>
+                        
+                        <table>
+                            <tr><th>PV Parameter</th><th>Value</th><th>Standard/Target</th></tr>
+                            <tr><td>Total System Capacity</td><td>0.0 kW</td><td>Optimized sizing</td></tr>
+                            <tr><td>Annual Energy Production</td><td>0 kWh</td><td>PVSyst methodology</td></tr>
+                            <tr><td>Specific Yield</td><td>0 kWh/kW</td><td>>1200 kWh/kW target</td></tr>
+                            <tr><td>Performance Ratio</td><td>0.85</td><td>BIPV typical range</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">7</span>Step 7: Energy Yield vs Demand Analysis</h2>
+                        
+                        <h3>⚡ Energy Balance Assessment</h3>
+                        <div class="equation">
+                            <h4>Net Energy Balance</h4>
+                            <p>$$E_{net} = E_{demand} - E_{generation} + E_{losses}$$</p>
+                            <p>Where: E_net = net energy import, E_demand = building demand, E_generation = PV generation, E_losses = system losses</p>
+                        </div>
+                        
+                        <table>
+                            <tr><th>Energy Parameter</th><th>Value</th><th>Performance Target</th></tr>
+                            <tr><td>Annual Demand</td><td>23,070,120 kWh</td><td>Historical baseline</td></tr>
+                            <tr><td>Annual Generation</td><td>0 kWh</td><td>Weather-corrected</td></tr>
+                            <tr><td>Self-Consumption Rate</td><td>0.0%</td><td>>30% target</td></tr>
+                            <tr><td>Grid Independence</td><td>0.0%</td><td>Coverage ratio</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">8</span>Step 8: Multi-Objective Optimization</h2>
+                        
+                        <h3>🎯 Genetic Algorithm Optimization (NSGA-II)</h3>
+                        <div class="equation">
+                            <h4>Objective Functions</h4>
+                            <p>$$\min f_1 = E_{import} = \sum_{t=1}^{8760} \max(0, D_t - G_t)$$</p>
+                            <p>$$\max f_2 = ROI = \frac{NPV}{I_0} \times 100$$</p>
+                            <p>Where: D_t = hourly demand, G_t = hourly generation, I_0 = initial investment</p>
+                        </div>
+                        
+                        <table>
+                            <tr><th>Optimization Parameter</th><th>Value</th><th>Algorithm Setting</th></tr>
+                            <tr><td>Population Size</td><td>100</td><td>NSGA-II standard</td></tr>
+                            <tr><td>Generations</td><td>50</td><td>Convergence analysis</td></tr>
+                            <tr><td>Crossover Rate</td><td>0.9</td><td>High exploration</td></tr>
+                            <tr><td>Mutation Rate</td><td>0.1</td><td>Fine-tuning</td></tr>
+                            <tr><td>Pareto Solutions</td><td>0</td><td>Non-dominated set</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">9</span>Step 9: Financial & Environmental Analysis</h2>
+                        
+                        <h3>💰 Economic Viability Assessment</h3>
+                        <div class="equation">
+                            <h4>Net Present Value Calculation</h4>
+                            <p>$$NPV = \sum_{t=0}^{T} \frac{CF_t}{(1+r)^t} - I_0$$</p>
+                            <p>Where: CF_t = cash flow at time t, r = discount rate, T = project lifetime, I_0 = initial investment</p>
+                        </div>
+                        
+                        <table>
+                            <tr><th>Financial Metric</th><th>Value</th><th>Performance Benchmark</th></tr>
+                            <tr><td>Initial Investment</td><td>€0</td><td>Market-based pricing</td></tr>
+                            <tr><td>Annual Savings</td><td>€0</td><td>Target: >€500/year</td></tr>
+                            <tr><td>Net Present Value</td><td>€0</td><td>Positive for viability</td></tr>
+                            <tr><td>Internal Rate of Return</td><td>0.0%</td><td>>5% for attractiveness</td></tr>
+                            <tr><td>Simple Payback</td><td>0.0 years</td><td><15 years for BIPV</td></tr>
+                            <tr><td>LCOE</td><td>0.150 €/kWh</td><td><0.20 €/kWh target</td></tr>
+                        </table>
+
+                        <div class="methodology">
+                            <p><strong>Financial Analysis Methodology:</strong> Discounted cash flow analysis over 25-year project lifetime using real discount rate of 4%. Includes all capital costs, operating expenses, maintenance, inverter replacement, and end-of-life considerations.</p>
+                        </div>
+
+                        <h3>🌱 Environmental Impact Assessment</h3>
+                        <table>
+                            <tr><th>Environmental Metric</th><th>Value</th><th>Impact Assessment</th></tr>
+                            <tr><td>Annual CO₂ Savings</td><td>0.0 tonnes</td><td>Grid emission factor</td></tr>
+                            <tr><td>Lifetime CO₂ Savings</td><td>0 tonnes</td><td>25-year projection</td></tr>
+                            <tr><td>Energy Payback Time</td><td>2.5 years</td><td>BIPV typical range</td></tr>
+                            <tr><td>Carbon Payback Time</td><td>3.2 years</td><td>Manufacturing offset</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <h2><span class="step-number">10</span>Step 10: Results Summary & Recommendations</h2>
+                        
+                        <h3>🎯 Key Findings</h3>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="metric-value">Negative</div>
+                                <div class="metric-label">Economic Viability</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">Low</div>
+                                <div class="metric-label">Environmental Impact</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">Limited</div>
+                                <div class="metric-label">Technical Potential</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">Consider</div>
+                                <div class="metric-label">Investment Decision</div>
+                            </div>
+                        </div>
+
+                        <h3>💡 Strategic Recommendations</h3>
+                        <div class="methodology">
+                            <p><strong>Implementation Strategy:</strong></p>
+                            <ol>
+                                <li><strong>Phase 1:</strong> Prioritize south-facing windows with >2 m² area for maximum ROI</li>
+                                <li><strong>Phase 2:</strong> Expand to east/west orientations based on Phase 1 performance</li>
+                                <li><strong>Phase 3:</strong> Consider energy storage integration for improved self-consumption</li>
+                                <li><strong>Monitoring:</strong> Implement real-time performance monitoring per IEC 61724-1</li>
+                                <li><strong>Optimization:</strong> Annual performance review and system optimization</li>
+                            </ol>
+                        </div>
+
+                        <h3>⚠️ Risk Factors & Mitigation</h3>
+                        <table>
+                            <tr><th>Risk Factor</th><th>Probability</th><th>Impact</th><th>Mitigation Strategy</th></tr>
+                            <tr><td>Technology Performance</td><td>Low</td><td>Medium</td><td>Performance warranties, monitoring</td></tr>
+                            <tr><td>Electricity Price Changes</td><td>Medium</td><td>High</td><td>Diversified energy portfolio</td></tr>
+                            <tr><td>Building Modifications</td><td>Medium</td><td>Low</td><td>Modular system design</td></tr>
+                            <tr><td>Regulatory Changes</td><td>Medium</td><td>Medium</td><td>Policy monitoring, flexibility</td></tr>
+                            <tr><td>Maintenance Issues</td><td>Low</td><td>Low</td><td>Preventive maintenance contracts</td></tr>
+                        </table>
+
+                        <h3>🔬 Further Research Needs</h3>
+                        <div class="assumption">
+                            <p><strong>Recommended Studies:</strong></p>
+                            <ul>
+                                <li>Detailed CFD analysis for micro-climate effects on performance</li>
+                                <li>Life cycle assessment including end-of-life recycling</li>
+                                <li>Building energy simulation coupling for demand response optimization</li>
+                                <li>Advanced materials research for higher efficiency BIPV technologies</li>
+                                <li>Grid integration studies for high BIPV penetration scenarios</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="footer">
+                        <h3>📚 Technical References & Standards</h3>
+                        <p><strong>Primary Standards:</strong> ISO 15927-4:2005, ISO 9060:2018, EN 410:2011, ASHRAE 90.1-2019, IEC 61724-1:2017, IEC 61853-1:2011</p>
+                        <p><strong>Calculation Tools:</strong> PVLIB-Python v0.9.5, NREL SPA Algorithm, Bird Clear Sky Model, NSGA-II Optimization</p>
+                        <p><strong>Data Sources:</strong> OpenWeatherMap API, PVGIS Database, IRENA Cost Database, IEA PVPS Reports</p>
+                        <p><strong>Report Generated:</strong> 2025-06-27 08:57:17 UTC | <strong>Analysis Version:</strong> BIPV Optimizer v2.1</p>
+                        <hr style="margin: 20px 0; border: 1px solid rgba(255,255,255,0.3);">
+                        <p><em>This analysis was conducted as part of PhD research at Technische Universität Berlin.</em></p>
+                        <p><strong>Research Contact:</strong> Mostafa Gabr | <strong>Institution:</strong> TU Berlin, Department of Energy Engineering</p>
+                        <p><strong>Research Profile:</strong> <a href="https://www.researchgate.net/profile/Mostafa-Gabr" style="color: #90EE90;">ResearchGate Profile</a></p>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        
