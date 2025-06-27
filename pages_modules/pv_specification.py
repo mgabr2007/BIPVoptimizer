@@ -608,6 +608,11 @@ def render_pv_specification():
                 st.session_state.customized_panel_specs = final_panel_specs
                 st.session_state.modifications_made = modifications_made
                 
+                # Also store in project_data for cross-step access
+                if 'project_data' not in st.session_state:
+                    st.session_state.project_data = {}
+                st.session_state.project_data['pv_specifications'] = bipv_specifications
+                
                 # Save customized specifications to database
                 try:
                     # Get project ID from multiple possible sources

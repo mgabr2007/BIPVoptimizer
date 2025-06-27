@@ -128,27 +128,40 @@ def render_yield_demand():
     # Check prerequisites from multiple sources
     project_data = st.session_state.get('project_data', {})
     
-    # Check PV specifications
-    pv_specs_available = (
-        st.session_state.get('pv_specifications') is not None or
-        project_data.get('pv_specifications') is not None or
-        st.session_state.get('pv_specs_completed', False)
-    )
+    # Debug option to see available data
+    debug_data = st.checkbox("Debug: Show Available Data", help="Shows what data is currently stored in session")
+    if debug_data:
+        st.write("Session State Keys:", list(st.session_state.keys()))
+        st.write("Project Data Keys:", list(project_data.keys()) if project_data else "No project data")
+        st.write("PV Specs Completed:", st.session_state.get('pv_specs_completed', False))
+        if st.session_state.get('pv_specifications') is not None:
+            st.write("PV Specifications found in session_state")
+        if project_data.get('pv_specifications') is not None:
+            st.write("PV Specifications found in project_data")
+    
+    # Check PV specifications with detailed logging
+    pv_specs_in_session = st.session_state.get('pv_specifications') is not None
+    pv_specs_in_project = project_data.get('pv_specifications') is not None
+    pv_specs_completed = st.session_state.get('pv_specs_completed', False)
+    
+    pv_specs_available = pv_specs_in_session or pv_specs_in_project or pv_specs_completed
     
     # Check radiation data
-    radiation_available = (
-        project_data.get('radiation_data') is not None or
-        project_data.get('radiation_grid') is not None
-    )
+    radiation_in_project = project_data.get('radiation_data') is not None
+    radiation_grid_in_project = project_data.get('radiation_grid') is not None
+    radiation_available = radiation_in_project or radiation_grid_in_project
     
     # Check demand model
-    demand_model_available = (
-        project_data.get('demand_model') is not None or
-        project_data.get('historical_data') is not None
-    )
+    demand_model_in_project = project_data.get('demand_model') is not None
+    historical_data_in_project = project_data.get('historical_data') is not None
+    demand_model_available = demand_model_in_project or historical_data_in_project
     
     if not pv_specs_available:
         st.warning("⚠️ PV system specifications not available. Please complete Step 6 (PV Specification).")
+        if debug_data:
+            st.write(f"PV specs in session: {pv_specs_in_session}")
+            st.write(f"PV specs in project: {pv_specs_in_project}")
+            st.write(f"PV specs completed flag: {pv_specs_completed}")
         return
         
     if not radiation_available:
