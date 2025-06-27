@@ -327,7 +327,7 @@ def render_pv_specification():
             st.subheader("Performance Density")
             power_density = st.number_input(
                 "Power Density (W/m²)",
-                min_value=20.0, max_value=150.0,
+                min_value=20.0, max_value=250.0,
                 value=base_specs['efficiency']*1000,  # Convert efficiency to W/m²
                 step=5.0,
                 key="power_density",
