@@ -320,6 +320,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 27, 2025: Completely redesigned Step 6 BIPV glass implementation by replacing traditional solar panel database with proper BIPV glass technology specifications, eliminating all 'dimensions' references, implementing glass coverage calculations instead of panel layout, updating power calculations to use power density (W/m²) instead of discrete panel ratings, and ensuring authentic semi-transparent PV glass replacement technology throughout calculations
 - June 27, 2025: Fixed type mismatch errors in Step 6 by converting all database values to proper float/int types for numerical input consistency and resolved database save error by ensuring project_id (integer) is used instead of project_name (string) when saving PV specifications to PostgreSQL database
 - June 27, 2025: Fixed continuous map refreshing issue in Step 1 by removing st.rerun() infinite loops, implementing optimized state management with processing flags, adding canvas rendering for better performance, minimizing tracked data objects, and increasing coordinate change thresholds for improved stability
+- June 27, 2025: Enhanced AI consultation system in Step 11 to provide specific references from actual analysis results, including direct quotes of calculated values (NPV, IRR, capacity, yield), orientation distributions from CSV data, building element counts, and performance metrics, ensuring recommendations are based on project-specific outcomes rather than generic BIPV advice
 
 ## User Preferences
 

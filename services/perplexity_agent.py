@@ -25,19 +25,24 @@ class PerplexityBIPVAgent:
         # Prepare comprehensive data summary for analysis
         data_summary = self._prepare_data_summary(project_data, building_elements, financial_analysis)
         
-        # Create research-focused prompt
+        # Create research-focused prompt with specific result references
         prompt = f"""
-        As a BIPV (Building-Integrated Photovoltaics) research consultant, analyze the following comprehensive analysis results and provide:
+        As a BIPV (Building-Integrated Photovoltaics) research consultant, analyze the following comprehensive analysis results and provide recommendations that DIRECTLY REFERENCE the specific data points from this analysis:
 
-        1. KEY RESEARCH FINDINGS (5-7 bullet points)
-        2. TECHNICAL OPTIMIZATION RECOMMENDATIONS (specific parameter adjustments)
-        3. ECONOMIC VIABILITY ASSESSMENT
-        4. RESEARCH METHODOLOGY IMPROVEMENTS
+        1. KEY RESEARCH FINDINGS (5-7 bullet points) - Quote specific numbers from the analysis
+        2. TECHNICAL OPTIMIZATION RECOMMENDATIONS - Reference specific orientations, capacities, and performance metrics
+        3. ECONOMIC VIABILITY ASSESSMENT - Cite the actual NPV, IRR, and payback values calculated
+        4. RESEARCH METHODOLOGY IMPROVEMENTS - Reference the AI model R² score and data quality metrics
+
+        IMPORTANT: Include direct references to the analysis results in your recommendations. For example:
+        - "Given that your analysis shows X kW total capacity across Y building elements..."
+        - "With your calculated NPV of €Z and IRR of W%..."
+        - "Your orientation analysis reveals that A% of suitable elements face South..."
 
         BIPV Analysis Data:
         {data_summary}
 
-        Focus on actionable insights for improving calculation accuracy, optimizing system performance, and enhancing economic viability. Reference current BIPV research and industry best practices.
+        Ensure every recommendation includes specific references to the calculated values, window counts, orientations, financial metrics, and performance indicators from this actual analysis. Do not provide generic advice - base everything on the specific results shown above.
         """
         
         return self._query_perplexity(prompt)
@@ -110,34 +115,56 @@ class PerplexityBIPVAgent:
             total_capacity = 0
             total_annual_yield = 0
         
+        # Calculate specific performance metrics for detailed references
+        avg_yield_per_element = safe_divide(total_annual_yield, suitable_elements, 0)
+        investment_per_kw = safe_divide(total_investment, total_capacity, 0)
+        glass_area_utilization = safe_divide(total_glass_area, total_elements, 0)
+        
+        # Identify top and bottom performing orientations
+        orientation_performance = {}
+        for orientation, count in orientation_count.items():
+            if count > 0:
+                orientation_performance[orientation] = count
+        
+        best_orientation = max(orientation_performance, key=orientation_performance.get) if orientation_performance else "Unknown"
+        worst_orientation = min(orientation_performance, key=orientation_performance.get) if orientation_performance else "Unknown"
+        
         summary = f"""
-        PROJECT OVERVIEW:
+        PROJECT ANALYSIS RESULTS - SPECIFIC DATA FOR REFERENCE:
+        
+        BUILDING CHARACTERISTICS:
         - Location: {project_data.get('location', 'Unknown')}
-        - Total Building Elements: {total_elements}
-        - BIPV Suitable Elements: {suitable_elements} ({safe_divide(suitable_elements, total_elements, 0)*100:.1f}%)
-        - Total Glass Area: {total_glass_area:.1f} m²
+        - Total Building Elements Analyzed: {total_elements} windows/facades
+        - BIPV Suitable Elements: {suitable_elements} elements ({safe_divide(suitable_elements, total_elements, 0)*100:.1f}% suitability rate)
+        - Total Available Glass Area: {total_glass_area:.1f} m²
+        - Average Glass Area per Element: {glass_area_utilization:.1f} m²/element
         
-        ORIENTATION DISTRIBUTION:
+        ORIENTATION ANALYSIS RESULTS:
         {json.dumps(orientation_count, indent=2)}
+        - Dominant Orientation: {best_orientation} ({orientation_count.get(best_orientation, 0)} elements)
+        - Least Common Orientation: {worst_orientation} ({orientation_count.get(worst_orientation, 0)} elements)
         
-        ENERGY PERFORMANCE:
-        - AI Model R² Score: {r_squared:.3f}
-        - Annual Building Consumption: {total_consumption:,.0f} kWh
-        - Annual Solar GHI: {annual_ghi:.0f} kWh/m²
-        - Total PV System Capacity: {total_capacity:.1f} kW
-        - Annual PV Generation: {total_annual_yield:.0f} kWh
-        - Self-Sufficiency Ratio: {safe_divide(total_annual_yield, total_consumption, 0)*100:.1f}%
+        ENERGY PERFORMANCE CALCULATIONS:
+        - AI Demand Model R² Score: {r_squared:.3f} ({"Excellent" if r_squared > 0.85 else "Good" if r_squared > 0.7 else "Needs Improvement"} prediction accuracy)
+        - Annual Building Energy Consumption: {total_consumption:,.0f} kWh
+        - Site Annual Solar Irradiance (GHI): {annual_ghi:.0f} kWh/m²
+        - Calculated Total PV System Capacity: {total_capacity:.1f} kW
+        - Projected Annual PV Generation: {total_annual_yield:.0f} kWh
+        - Building Self-Sufficiency Ratio: {safe_divide(total_annual_yield, total_consumption, 0)*100:.1f}%
+        - Average Yield per BIPV Element: {avg_yield_per_element:.0f} kWh/element/year
         
-        FINANCIAL PERFORMANCE:
-        - Net Present Value: €{npv:,.0f}
-        - Internal Rate of Return: {irr*100:.1f}%
-        - Payback Period: {payback_period:.1f} years
-        - Total Investment: €{total_investment:,.0f}
+        FINANCIAL ANALYSIS RESULTS:
+        - Net Present Value (NPV): €{npv:,.0f}
+        - Internal Rate of Return (IRR): {irr*100:.1f}%
+        - Simple Payback Period: {payback_period:.1f} years
+        - Total System Investment: €{total_investment:,.0f}
+        - Investment Cost per kW: €{investment_per_kw:,.0f}/kW
         
-        PERFORMANCE INDICATORS:
-        - Economic Viability: {"Positive" if npv > 0 else "Negative"}
-        - AI Model Quality: {"Excellent" if r_squared > 0.85 else "Good" if r_squared > 0.7 else "Needs Improvement"}
-        - Technical Potential: {"High" if suitable_elements > total_elements*0.6 else "Medium" if suitable_elements > total_elements*0.3 else "Low"}
+        PERFORMANCE ASSESSMENT:
+        - Economic Viability: {"Financially Viable (Positive NPV)" if npv > 0 else "Financially Challenging (Negative NPV)"}
+        - Demand Prediction Quality: {"High Confidence" if r_squared > 0.85 else "Moderate Confidence" if r_squared > 0.7 else "Low Confidence - Needs Data Improvement"}
+        - BIPV Technical Potential: {"High Potential" if suitable_elements > total_elements*0.6 else "Medium Potential" if suitable_elements > total_elements*0.3 else "Limited Potential"}
+        - System Scale: {"Large-scale Installation" if total_capacity > 50 else "Medium-scale Installation" if total_capacity > 20 else "Small-scale Installation"}
         """
         
         return summary
