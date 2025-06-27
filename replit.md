@@ -296,6 +296,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 26, 2025: Fixed Step 5 BIM Element Analysis Results to display actual window dimensions by implementing intelligent dimension calculation from glass area and window family types instead of showing identical default values for all windows
 - June 26, 2025: Completely resolved Step 10 'str' object has no attribute 'get' error by implementing comprehensive type checking, safe data extraction, database validation, and try-catch error handling throughout the detailed report generator
 - June 27, 2025: Implemented comprehensive R² score display and improvement guidance throughout the application including visual performance indicators in Step 2 with color-coded status (green/orange/red), detailed improvement recommendations with specific action steps, sidebar model performance tracking across all workflow steps, AI model impact notices in Steps 7-9 where predictions are used, and enhanced detailed report generation with R² score analysis and interpretation guidelines
+- June 27, 2025: Fixed BIPV panel dimensions confusion in Step 6 by replacing traditional solar panel database with proper BIPV glass technology specifications, showing glass efficiency (2-12%), transparency (15-40%), thickness (5-15mm), and cost per m² instead of misleading panel width/height/thickness dimensions that don't apply to BIPV systems where semi-transparent PV glass replaces window glass entirely
 
 ## User Preferences
 

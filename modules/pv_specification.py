@@ -122,45 +122,43 @@ def calculate_bipv_system_specifications(element_data, glass_specs, coverage_dat
             specifications.append(specification)
     
     return pd.DataFrame(specifications)
-            
-            spec = {
-                'element_id': element['element_id'],
-                'element_type': element.get('element_type', 'Unknown'),
-                'element_area': element['area'],
-                'orientation': element['orientation'],
-                'panels_count': layout['total_panels'],
-                'panel_area': layout['total_panel_area'],
-                'coverage_ratio': layout['coverage_ratio'],
-                'system_power_kw': total_power / 1000,
-                'annual_energy_kwh': annual_energy,
-                'specific_yield': annual_energy / (total_power / 1000) if total_power > 0 else 0,
-                'installation_cost': total_cost,
-                'cost_per_kwh': total_cost / annual_energy if annual_energy > 0 else float('inf'),
-                'panels_horizontal': layout['panels_horizontal'],
-                'panels_vertical': layout['panels_vertical']
-            }
-            
-            specifications.append(spec)
-    
-    return pd.DataFrame(specifications)
 
 def render_pv_specification():
-    """Render the PV panel specification and layout module."""
+    """Render the BIPV glass specification and system design module."""
     
-    st.header("6. PV Panel Specification")
-    st.markdown("Configure PV panel specifications and calculate optimal layouts for each surface.")
+    st.header("🏢 Step 6: BIPV Glass Specification & System Design")
+    st.markdown("Configure semi-transparent photovoltaic glass to replace existing window glass in your building.")
+    
+    # AI Model Performance Impact Notice
+    project_data = st.session_state.get('project_data', {})
+    if project_data.get('model_r2_score') is not None:
+        r2_score = project_data['model_r2_score']
+        status = project_data.get('model_performance_status', 'Unknown')
+        
+        if r2_score >= 0.85:
+            icon = "🟢"
+        elif r2_score >= 0.70:
+            icon = "🟡"
+        else:
+            icon = "🔴"
+        
+        st.info(f"{icon} System design uses building data processed in previous steps (Model R² score: **{r2_score:.3f}** - {status} performance)")
     
     # Check prerequisites
-    if 'radiation_grid' not in st.session_state.project_data:
-        st.warning("⚠️ Please complete radiation analysis in Step 5 before proceeding.")
+    if not st.session_state.get('radiation_completed', False):
+        st.error("⚠️ Radiation analysis required. Please complete Step 5 (Radiation & Shading Grid) first.")
         return
     
-    # Load radiation data
+    # Load building elements data
+    if 'radiation_grid' not in st.session_state.project_data:
+        st.error("⚠️ No radiation analysis data available.")
+        return
+    
     radiation_df = pd.DataFrame(st.session_state.project_data['radiation_grid'])
     
-    st.subheader("Panel Selection and Configuration")
+    st.subheader("BIPV Glass Technology Selection")
     
-    # Panel type selection
+    # BIPV glass type selection
     col1, col2 = st.columns(2)
     
     with col1:
@@ -208,7 +206,7 @@ def render_pv_specification():
             min_value=150.0,
             max_value=600.0,
             step=10.0,
-            help="Cost per watt-peak installed"
+            help="Cost per square meter of BIPV glass"
         )
         
         custom_transparency = st.slider(
@@ -241,30 +239,31 @@ def render_pv_specification():
         )
     
     with col2:
-        min_panels = st.number_input(
-            "Minimum Panels per Element",
-            value=1,
-            min_value=1,
-            max_value=10,
-            help="Minimum number of panels required to install on an element"
-        )
-    
-    with col3:
         installation_factor = st.slider(
             "Installation Cost Factor",
             min_value=1.0,
-            max_value=3.0,
+            max_value=2.5,
             value=1.5,
             step=0.1,
-            help="Multiplier for total installation cost (includes labor, mounting, etc.)"
+            help="Multiplier for installation costs (includes inverter, wiring, labor)"
         )
     
-    # Calculate layouts and specifications
-    if st.button("Calculate Panel Layouts"):
-        with st.spinner("Calculating optimal panel layouts for all elements..."):
+    with col3:
+        min_glass_area = st.number_input(
+            "Minimum Glass Area (m²)",
+            min_value=0.1,
+            max_value=5.0,
+            value=0.5,
+            step=0.1,
+            help="Minimum glazed area required for BIPV installation"
+        )
+    
+    # Calculate BIPV systems button
+    if st.button("🔧 Calculate BIPV Glass Systems", key="calculate_bipv_glass"):
+        with st.spinner("Calculating BIPV glass specifications..."):
             try:
-                # Calculate layouts for each element
-                layout_results = []
+                # Calculate BIPV glass coverage for each element
+                coverage_results = []
                 
                 for _, element in radiation_df.iterrows():
                     # Calculate BIPV glass coverage (no separate panels)
@@ -272,13 +271,13 @@ def render_pv_specification():
                         element['area'],
                         frame_factor
                     )
-                    layout_results.append(coverage)
+                    coverage_results.append(coverage)
                 
                 # Calculate BIPV system specifications
-                system_specs = calculate_bipv_system_specifications(radiation_df, glass_specs, layout_results)
+                system_specs = calculate_bipv_system_specifications(radiation_df, glass_specs, coverage_results)
                 
-                # Filter by minimum glass area requirement (0.5 m² minimum)
-                system_specs = system_specs[system_specs['glass_area'] >= 0.5]
+                # Filter by minimum glass area requirement
+                system_specs = system_specs[system_specs['glass_area'] >= min_glass_area]
                 
                 # Apply installation cost factor
                 system_specs['total_installation_cost'] = system_specs['installation_cost'] * installation_factor
@@ -289,156 +288,89 @@ def render_pv_specification():
                 st.session_state.project_data['selected_glass_type'] = selected_glass_type
                 st.session_state.project_data['glass_specs'] = glass_specs
                 
-                st.success(f"✅ Layout calculated for {len(system_specs)} viable elements!")
+                st.success(f"✅ BIPV glass specifications calculated for {len(system_specs)} viable windows!")
                 
                 # Display summary
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.metric("Total Elements", len(system_specs))
+                    st.metric("Total Windows", len(system_specs))
                 with col2:
-                    st.metric("Total Panels", system_specs['panels_count'].sum())
+                    st.metric("Total Glass Area", f"{system_specs['glass_area'].sum():.1f} m²")
                 with col3:
                     st.metric("Total System Power", f"{system_specs['system_power_kw'].sum():.1f} kW")
                 with col4:
                     st.metric("Total Annual Energy", f"{system_specs['annual_energy_kwh'].sum():.0f} kWh")
                 
+                # Results visualization
+                st.subheader("BIPV Glass System Results")
+                
+                # Individual System Specifications
+                with st.expander("📋 Individual BIPV Glass Specifications", expanded=False):
+                    display_df = system_specs.copy()
+                    display_df['glass_area'] = display_df['glass_area'].round(2)
+                    display_df['system_power_kw'] = display_df['system_power_kw'].round(2)
+                    display_df['annual_energy_kwh'] = display_df['annual_energy_kwh'].round(0)
+                    display_df['transparency'] = (display_df['transparency'] * 100).round(0).astype(str) + '%'
+                    display_df['efficiency'] = (display_df['efficiency'] * 100).round(1).astype(str) + '%'
+                    
+                    st.dataframe(
+                        display_df[['element_id', 'orientation', 'glass_area', 'system_power_kw', 
+                                   'annual_energy_kwh', 'transparency', 'efficiency', 'total_cost']],
+                        use_container_width=True
+                    )
+                
+                # Performance analysis
+                fig_power = px.bar(
+                    system_specs.head(20), 
+                    x='element_id', 
+                    y='system_power_kw',
+                    color='orientation',
+                    title="BIPV Glass Power by Window Element"
+                )
+                fig_power.update_layout(xaxis_tickangle=-45)
+                st.plotly_chart(fig_power, use_container_width=True)
+                
+                # Mark step as completed
+                st.session_state['pv_specs_completed'] = True
+                
+                # Save to database
+                try:
+                    from database_manager import BIPVDatabaseManager
+                    db_manager = BIPVDatabaseManager()
+                    
+                    project_name = st.session_state.project_data.get('project_name', 'Unnamed Project')
+                    db_manager.save_pv_specifications(project_name, {
+                        'glass_type': selected_glass_type,
+                        'glass_specs': glass_specs,
+                        'system_specifications': system_specs.to_dict(),
+                        'installation_parameters': {
+                            'frame_factor': frame_factor,
+                            'installation_factor': installation_factor,
+                            'min_glass_area': min_glass_area
+                        }
+                    })
+                    st.success("💾 BIPV specifications saved to database")
+                except Exception as e:
+                    st.warning(f"Database save failed: {str(e)}")
+                
             except Exception as e:
-                st.error(f"❌ Error calculating layouts: {str(e)}")
-                return
+                st.error(f"❌ Error calculating BIPV specifications: {str(e)}")
+                st.write("Please check your data and try again.")
     
-    # Display specifications if available
-    if 'pv_specifications' in st.session_state.project_data:
-        specs_df = pd.DataFrame(st.session_state.project_data['pv_specifications'])
+    # Show existing results if available
+    elif 'pv_specifications' in st.session_state.project_data:
+        st.subheader("Current BIPV Glass Specifications")
         
-        st.subheader("System Specifications Summary")
+        system_specs = pd.DataFrame(st.session_state.project_data['pv_specifications'])
         
-        # Overall system metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Total System Size", f"{specs_df['system_power_kw'].sum():.1f} kW")
+            st.metric("Total Windows", len(system_specs))
         with col2:
-            st.metric("Annual Energy Production", f"{specs_df['annual_energy_kwh'].sum():.0f} kWh")
+            st.metric("Total Glass Area", f"{system_specs['glass_area'].sum():.1f} m²")
         with col3:
-            st.metric("Average Specific Yield", f"{specs_df['specific_yield'].mean():.0f} kWh/kW")
+            st.metric("Total System Power", f"{system_specs['system_power_kw'].sum():.1f} kW")
         with col4:
-            st.metric("Total Installation Cost", f"${specs_df['total_installation_cost'].sum():,.0f}")
+            st.metric("Total Annual Energy", f"{system_specs['annual_energy_kwh'].sum():.0f} kWh")
         
-        # Performance analysis
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # System size distribution
-            fig_power = px.bar(specs_df.nlargest(15, 'system_power_kw'),
-                              x='element_id',
-                              y='system_power_kw',
-                              color='orientation',
-                              title='Top 15 Elements by System Power',
-                              labels={'system_power_kw': 'System Power (kW)'})
-            st.plotly_chart(fig_power, use_container_width=True)
-        
-        with col2:
-            # Energy production distribution
-            fig_energy = px.bar(specs_df.nlargest(15, 'annual_energy_kwh'),
-                               x='element_id',
-                               y='annual_energy_kwh',
-                               color='orientation',
-                               title='Top 15 Elements by Annual Energy',
-                               labels={'annual_energy_kwh': 'Annual Energy (kWh)'})
-            st.plotly_chart(fig_energy, use_container_width=True)
-        
-        # Cost analysis
-        st.subheader("Cost Analysis")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Cost per orientation
-            cost_by_orientation = specs_df.groupby('orientation').agg({
-                'total_installation_cost': 'sum',
-                'annual_energy_kwh': 'sum'
-            }).reset_index()
-            cost_by_orientation['cost_per_kwh'] = cost_by_orientation['total_installation_cost'] / cost_by_orientation['annual_energy_kwh']
-            
-            fig_cost_orient = px.bar(cost_by_orientation,
-                                    x='orientation',
-                                    y='cost_per_kwh',
-                                    title='Cost per kWh by Orientation',
-                                    labels={'cost_per_kwh': 'Cost per kWh ($/kWh)'})
-            st.plotly_chart(fig_cost_orient, use_container_width=True)
-        
-        with col2:
-            # Coverage ratio analysis
-            fig_coverage = px.scatter(specs_df,
-                                     x='coverage_ratio',
-                                     y='specific_yield',
-                                     color='orientation',
-                                     size='system_power_kw',
-                                     title='Coverage Ratio vs Specific Yield',
-                                     labels={'coverage_ratio': 'Panel Coverage Ratio',
-                                            'specific_yield': 'Specific Yield (kWh/kW)'})
-            st.plotly_chart(fig_coverage, use_container_width=True)
-        
-        # Detailed specifications table
-        st.subheader("Detailed Specifications Table")
-        
-        # Select columns for display
-        display_columns = ['element_id', 'orientation', 'panels_count', 'system_power_kw',
-                          'annual_energy_kwh', 'specific_yield', 'coverage_ratio', 'total_installation_cost']
-        
-        display_df = specs_df[display_columns].round(2)
-        display_df = display_df.sort_values('system_power_kw', ascending=False)
-        
-        # Format currency columns
-        display_df['total_installation_cost'] = display_df['total_installation_cost'].apply(lambda x: f"${x:,.0f}")
-        
-        st.dataframe(display_df, use_container_width=True)
-        
-        # Layout visualization for top elements
-        st.subheader("Panel Layout Examples")
-        
-        top_elements = specs_df.nlargest(6, 'system_power_kw')
-        
-        layout_data = []
-        for _, element in top_elements.iterrows():
-            layout_data.append({
-                'Element ID': element['element_id'],
-                'Orientation': element['orientation'],
-                'Panels (H×V)': f"{element['panels_horizontal']}×{element['panels_vertical']}",
-                'Total Panels': element['panels_count'],
-                'Coverage': f"{element['coverage_ratio']*100:.1f}%",
-                'Power': f"{element['system_power_kw']:.1f} kW"
-            })
-        
-        st.table(layout_data)
-        
-        # Export specifications
-        st.subheader("Export Specifications")
-        
-        if st.button("Export PV Specifications"):
-            csv_data = specs_df.to_csv(index=False)
-            st.download_button(
-                label="Download PV Specifications CSV",
-                data=csv_data,
-                file_name="pv_system_specifications.csv",
-                mime="text/csv"
-            )
-        
-        st.success("✅ PV panel specifications completed! Ready for yield analysis.")
-        
-    else:
-        st.info("👆 Please calculate panel layouts to proceed with system specifications.")
-        
-        # Show panel comparison
-        with st.expander("🔧 Panel Type Comparison"):
-            comparison_data = []
-            for panel_type, specs in PV_PANEL_DATABASE.items():
-                comparison_data.append({
-                    'Panel Type': panel_type,
-                    'Efficiency': f"{specs['efficiency']*100:.1f}%",
-                    'Power': f"{specs['power_rating']} W",
-                    'Cost': f"${specs['cost_per_wp']:.2f}/Wp",
-                    'Size': f"{specs['dimensions']['width']:.2f}×{specs['dimensions']['height']:.2f} m",
-                    'Best For': specs['description']
-                })
-            
-            st.table(comparison_data)
+        st.info("BIPV glass specifications already calculated. Use the button above to recalculate with different parameters.")
