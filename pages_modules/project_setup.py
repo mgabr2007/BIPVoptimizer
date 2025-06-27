@@ -45,7 +45,7 @@ def get_location_from_coordinates(lat, lon):
             data = response.json()
             if data:
                 # Debug output if enabled
-                if st.session_state.get('debug_geocoding', False):
+                if st.session_state.get('debug_geocoding_checkbox', False):
                     st.write(f"Debug: Found {len(data)} location results")
                     for i, loc in enumerate(data[:3]):
                         st.json(loc)
@@ -220,7 +220,7 @@ def render_project_setup():
         debug_geocoding = st.checkbox(
             "Debug Location Detection",
             help="Show detailed geocoding API responses for troubleshooting",
-            key="debug_geocoding"
+            key="debug_geocoding_checkbox"
         )
     
     # Location input based on selected method
@@ -438,8 +438,7 @@ def render_project_setup():
     # Location name input (auto-updated from map selection)
     default_location = st.session_state.get('location_name', "Berlin, Germany")
     
-    # Temporary debug option
-    debug_geocoding = st.checkbox("Show geocoding debug info", key="debug_geocoding", help="Shows raw API response for troubleshooting")
+
     
     location_name = st.text_input(
         "Location Name",
