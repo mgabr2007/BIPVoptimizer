@@ -33,65 +33,81 @@ def get_location_from_coordinates(lat, lon):
                     for i, loc in enumerate(data[:3]):
                         st.json(loc)
                 
-                # Extract unique location names from all results
-                location_names = []
-                seen_names = set()
+                # Extract comprehensive location hierarchy from API results
+                location_components = {
+                    'neighborhood': [],
+                    'district': [],
+                    'city': [],
+                    'state': data[0].get('state', ''),
+                    'country': data[0].get('country', '')
+                }
                 
-                # Collect all unique names from the API results
+                # Process all location results to build hierarchy
                 for location_data in data:
-                    name = location_data.get('name', '')
+                    name = location_data.get('name', '').strip()
                     local_names = location_data.get('local_names', {})
                     
-                    # Try multiple name sources for better coverage
-                    potential_names = [
-                        name,
-                        local_names.get('en') if local_names else None,
-                        local_names.get('de') if local_names else None,
-                        local_names.get('feature_name') if local_names else None
-                    ]
+                    # Categorize location names by specificity
+                    if name and len(name) > 2:
+                        # Check if it's a neighborhood, district, or city
+                        if any(keyword in name.lower() for keyword in ['straße', 'platz', 'weg', 'berg', 'hof', 'kiez']):
+                            if name not in location_components['neighborhood']:
+                                location_components['neighborhood'].append(name)
+                        elif len(name) < 15 and name != location_components['country'] and name != location_components['state']:
+                            if name not in location_components['district']:
+                                location_components['district'].append(name)
+                        else:
+                            if name not in location_components['city']:
+                                location_components['city'].append(name)
                     
-                    for potential_name in potential_names:
-                        if (potential_name and 
-                            potential_name not in seen_names and 
-                            len(potential_name.strip()) > 2 and
-                            potential_name != data[0].get('country', '') and
-                            potential_name != data[0].get('state', '')):
-                            location_names.append(potential_name.strip())
-                            seen_names.add(potential_name.strip())
-                            if len(location_names) >= 3:  # Collect up to 3 specific names
-                                break
-                    
-                    if len(location_names) >= 3:
-                        break
+                    # Also check local names
+                    for lang_code in ['en', 'de']:
+                        local_name = local_names.get(lang_code, '').strip() if local_names else ''
+                        if local_name and len(local_name) > 2 and local_name != name:
+                            if len(local_name) < 15 and local_name not in location_components['district']:
+                                location_components['district'].append(local_name)
                 
-                # Build hierarchical location string
+                # Build hierarchical location string from components
                 final_parts = []
                 
-                # Add the most specific location names first
-                final_parts.extend(location_names[:2])  # Up to 2 specific area names
+                # Add neighborhood first (most specific)
+                if location_components['neighborhood']:
+                    final_parts.append(location_components['neighborhood'][0])
                 
-                # Add state if available and not already included
-                state = data[0].get('state', '')
-                if state and state not in final_parts:
-                    final_parts.append(state)
+                # Add district next
+                if location_components['district']:
+                    final_parts.append(location_components['district'][0])
+                
+                # Add city if different from district
+                if location_components['city']:
+                    city_name = location_components['city'][0]
+                    if not final_parts or city_name not in final_parts:
+                        final_parts.append(city_name)
+                
+                # Add state if significant
+                if location_components['state'] and location_components['state'] not in final_parts:
+                    final_parts.append(location_components['state'])
                 
                 # Add country
-                country = data[0].get('country', '')
-                if country:
-                    final_parts.append(country)
+                if location_components['country']:
+                    final_parts.append(location_components['country'])
                 
-                # Return the formatted location name
+                # Return the formatted hierarchical location name
                 if len(final_parts) >= 2:
-                    # Filter out duplicates while preserving order
-                    unique_parts = []
-                    for part in final_parts:
-                        if part not in unique_parts:
-                            unique_parts.append(part)
-                    return ', '.join(unique_parts[:4])  # Max 4 components
+                    return ', '.join(final_parts[:4])  # Maximum 4 components for readability
                 
-                # Fallback to basic format
-                city = data[0].get('name', '')
-                country = data[0].get('country', '')
+                # Enhanced fallback - try to get more specific data
+                first_result = data[0]
+                display_name = first_result.get('display_name', '')
+                if display_name:
+                    # Extract meaningful parts from display_name
+                    parts = [part.strip() for part in display_name.split(',')]
+                    if len(parts) >= 3:
+                        return ', '.join(parts[:3])  # Take first 3 parts for specificity
+                
+                # Basic fallback
+                city = first_result.get('name', '')
+                country = first_result.get('country', '')
                 if city and country:
                     return f"{city}, {country}"
         
