@@ -302,6 +302,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 27, 2025: Updated technical specification info text in Step 6 to properly reflect BIPV glass technology by replacing traditional panel physical properties (width/height/thickness) with BIPV-specific parameters (glass efficiency, transparency, power density W/m², glass thickness, cost per m²) ensuring accurate representation of semi-transparent photovoltaic glass replacement technology
 - June 27, 2025: Added comprehensive explanation in Step 6 Power Distribution analysis helping users understand why North facades may show higher total power despite lower solar performance - clarifying that total power reflects building geometry (window count) rather than solar efficiency per unit area
 - June 27, 2025: Fixed zero values in Step 10 detailed report by resolving data structure mismatches between workflow step data saving (DataFrame.to_dict(), nested financial structures) and report generator data reading expectations, ensuring authentic calculated values appear instead of placeholder zeros
+- June 27, 2025: Fixed Step 10 CSV export error "unsupported operand type(s) for *: 'decimal.Decimal' and 'float'" by adding explicit float conversion for database decimal values in window elements CSV generation, ensuring proper mathematical operations for production calculations
 
 ## User Preferences
 

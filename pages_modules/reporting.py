@@ -49,17 +49,22 @@ def generate_window_elements_csv():
         # Estimate production (kWh) = area * radiation * efficiency * performance ratio
         efficiency = 0.15  # 15% for semi-transparent BIPV
         performance_ratio = 0.8
-        expected_production = glass_area * annual_radiation * efficiency * performance_ratio / 1000
+        
+        # Convert to float to handle decimal.Decimal types from database
+        glass_area_float = float(glass_area) if glass_area else 0.0
+        annual_radiation_float = float(annual_radiation)
+        
+        expected_production = glass_area_float * annual_radiation_float * efficiency * performance_ratio / 1000
         
         bipv_selected = element.get('pv_suitable', element.get('suitable', False))
         
-        # Window dimensions
-        window_width = (glass_area ** 0.5) * 1.2
-        window_height = glass_area / window_width if window_width > 0 else 0
+        # Window dimensions - use float conversion
+        window_width = (glass_area_float ** 0.5) * 1.2 if glass_area_float > 0 else 0
+        window_height = glass_area_float / window_width if window_width > 0 else 0
         
         building_level = element.get('level', element.get('building_level', 'Ground Floor'))
         
-        csv_row = f"{element_id},{wall_id},{glass_area:.2f},{orientation},{azimuth},{annual_radiation:.1f},{expected_production:.1f},{bipv_selected},{window_width:.2f},{window_height:.2f},{building_level}"
+        csv_row = f"{element_id},{wall_id},{glass_area_float:.2f},{orientation},{azimuth},{annual_radiation_float:.1f},{expected_production:.1f},{bipv_selected},{window_width:.2f},{window_height:.2f},{building_level}"
         csv_content.append(csv_row)
     
     return '\n'.join(csv_content)
