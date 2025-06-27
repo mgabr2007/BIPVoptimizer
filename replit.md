@@ -312,6 +312,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 27, 2025: Fixed weather station data flow between Step 1 and Step 3 by storing selected_weather_station in both session state and project_data, and implemented automatic location name updates using OpenWeatherMap reverse geocoding API when users click on map or enter manual coordinates, providing authentic location names for enhanced project identification and reporting
 - June 27, 2025: Fixed Step 6 BIPV glass technology specifications by replacing traditional solar panel dimensions (width/height/thickness) with proper BIPV glass parameters including glass thickness, power density (W/m²), transparency percentage, U-value, cost per m², and glass weight, ensuring accurate representation of semi-transparent photovoltaic glass replacement technology
 - June 27, 2025: Fixed Step 1 map interaction issues by preventing map reset on double-click through zoom level persistence and coordinate change validation, and enhanced location name detection to provide neighborhood-specific information using OpenWeatherMap reverse geocoding with multiple location options for more precise area identification
+- June 27, 2025: Enhanced Step 1 location name format to be highly specific with neighborhood-level precision, changing from simple "City, Country" format to detailed "Neighborhood, District, City, Country" hierarchy using enhanced reverse geocoding with limit=10 results and hierarchical location component extraction for maximum geographical specificity
 
 ## User Preferences
 
