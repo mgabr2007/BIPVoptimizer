@@ -515,6 +515,7 @@ def render_pv_specification():
         'transparency': transparency,
         'solar_heat_gain': solar_heat_gain,
         'cost_per_wp': cost_per_wp,
+        'cost_per_m2': cost_per_m2,
         'installation_factor': installation_factor,
         'inverter_cost_per_kw': inverter_cost_per_kw,
         'other_bos_cost': other_bos_cost,
