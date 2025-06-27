@@ -674,7 +674,15 @@ def render_pv_specification():
         
         total_capacity = pv_specifications['system_power_kw'].sum()
         total_annual_energy = pv_specifications['annual_energy_kwh'].sum()
-        total_investment = pv_specifications['total_installation_cost'].sum()
+        
+        # Use correct column name for total cost
+        if 'total_cost' in pv_specifications.columns:
+            total_investment = pv_specifications['total_cost'].sum()
+        elif 'total_installation_cost' in pv_specifications.columns:
+            total_investment = pv_specifications['total_installation_cost'].sum()
+        else:
+            total_investment = 0
+            
         avg_specific_yield = pv_specifications['specific_yield'].mean()
         
         with col1:
@@ -688,19 +696,51 @@ def render_pv_specification():
         
         # Detailed specifications table
         with st.expander("📊 Individual System Specifications", expanded=False):
-            display_df = pv_specifications[[
-                'element_id', 'orientation', 'element_area', 'glass_coverage_m2',
-                'system_power_kw', 'annual_energy_kwh', 'specific_yield',
-                'total_installation_cost', 'cost_per_kwh', 'transparency'
-            ]].copy()
+            # Check available columns and select appropriate ones
+            available_columns = list(pv_specifications.columns)
+            display_columns = []
             
-            # Format columns for better display
-            display_df['system_power_kw'] = display_df['system_power_kw'].round(3)
-            display_df['annual_energy_kwh'] = display_df['annual_energy_kwh'].round(0)
-            display_df['specific_yield'] = display_df['specific_yield'].round(0)
-            display_df['total_installation_cost'] = display_df['total_installation_cost'].round(0)
-            display_df['cost_per_kwh'] = display_df['cost_per_kwh'].round(3)
-            display_df['transparency'] = (display_df['transparency'] * 100).round(0)
+            # Build display columns based on what's available
+            if 'element_id' in available_columns:
+                display_columns.append('element_id')
+            if 'orientation' in available_columns:
+                display_columns.append('orientation')
+            if 'glass_area' in available_columns:
+                display_columns.append('glass_area')
+            elif 'element_area' in available_columns:
+                display_columns.append('element_area')
+            if 'system_power_kw' in available_columns:
+                display_columns.append('system_power_kw')
+            if 'annual_energy_kwh' in available_columns:
+                display_columns.append('annual_energy_kwh')
+            if 'specific_yield' in available_columns:
+                display_columns.append('specific_yield')
+            if 'total_cost' in available_columns:
+                display_columns.append('total_cost')
+            elif 'total_installation_cost' in available_columns:
+                display_columns.append('total_installation_cost')
+            if 'cost_per_kwh' in available_columns:
+                display_columns.append('cost_per_kwh')
+            if 'transparency' in available_columns:
+                display_columns.append('transparency')
+            
+            display_df = pv_specifications[display_columns].copy()
+            
+            # Format columns for better display (only format columns that exist)
+            if 'system_power_kw' in display_df.columns:
+                display_df['system_power_kw'] = display_df['system_power_kw'].round(3)
+            if 'annual_energy_kwh' in display_df.columns:
+                display_df['annual_energy_kwh'] = display_df['annual_energy_kwh'].round(0)
+            if 'specific_yield' in display_df.columns:
+                display_df['specific_yield'] = display_df['specific_yield'].round(0)
+            if 'total_cost' in display_df.columns:
+                display_df['total_cost'] = display_df['total_cost'].round(0)
+            elif 'total_installation_cost' in display_df.columns:
+                display_df['total_installation_cost'] = display_df['total_installation_cost'].round(0)
+            if 'cost_per_kwh' in display_df.columns:
+                display_df['cost_per_kwh'] = display_df['cost_per_kwh'].round(3)
+            if 'transparency' in display_df.columns:
+                display_df['transparency'] = (display_df['transparency'] * 100).round(0)
             
             st.dataframe(display_df, use_container_width=True, height=400)
         
