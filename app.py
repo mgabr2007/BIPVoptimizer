@@ -203,13 +203,27 @@ def render_bottom_navigation(workflow_steps, current_step):
                 st.rerun()
     
     with col2:
-        st.markdown(f"<h4 style='text-align: center;'>Step {current_index + 1} of {len(workflow_steps)}</h4>", unsafe_allow_html=True)
+        # Adjust step count to exclude welcome page from numbering
+        if current_step == 'welcome':
+            st.markdown(f"<h4 style='text-align: center;'>Welcome</h4>", unsafe_allow_html=True)
+        else:
+            step_number = current_index  # current_index already accounts for welcome at position 0
+            st.markdown(f"<h4 style='text-align: center;'>Step {step_number} of 11</h4>", unsafe_allow_html=True)
     
     with col3:
         if current_index < len(workflow_steps) - 1:
             next_step = workflow_steps[current_index + 1]
             if st.button(f"{next_step[1]} →", key="bottom_next_step", use_container_width=True):
                 st.session_state.current_step = next_step[0]
+                st.rerun()
+        elif current_step == 'ai_consultation':
+            # Show finish button on the final step
+            if st.button("🎯 Finish & New Calculation", key="finish_restart_bottom", use_container_width=True):
+                # Reset all session state for new calculation
+                for key in list(st.session_state.keys()):
+                    if key != 'current_step':
+                        del st.session_state[key]
+                st.session_state.current_step = 'welcome'
                 st.rerun()
 
 

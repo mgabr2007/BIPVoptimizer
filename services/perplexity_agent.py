@@ -280,3 +280,15 @@ def render_perplexity_consultation():
     - Focuses on improving calculation accuracy and system performance
     - References current publications and best practices (2023-2025)
     """)
+    
+    # Add finish button for workflow completion
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🎯 Finish & New Calculation", key="finish_restart_ai", use_container_width=True):
+            # Reset all session state for new calculation
+            for key in list(st.session_state.keys()):
+                if key != 'current_step':
+                    del st.session_state[key]
+            st.session_state.current_step = 'welcome'
+            st.rerun()

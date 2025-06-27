@@ -304,6 +304,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 27, 2025: Fixed zero values in Step 10 detailed report by resolving data structure mismatches between workflow step data saving (DataFrame.to_dict(), nested financial structures) and report generator data reading expectations, ensuring authentic calculated values appear instead of placeholder zeros
 - June 27, 2025: Fixed Step 10 CSV export error "unsupported operand type(s) for *: 'decimal.Decimal' and 'float'" by adding explicit float conversion for database decimal values in window elements CSV generation, ensuring proper mathematical operations for production calculations
 - June 27, 2025: Enhanced detailed report generator with comprehensive interactive visualizations including building element orientation distribution charts, solar radiation analysis heatmaps, monthly energy balance graphs, BIPV technology performance comparisons, 25-year financial cash flow projections, and environmental impact visualizations using authentic workflow calculation data
+- June 27, 2025: Integrated Perplexity AI consultation agent as Step 12 providing expert BIPV analysis, research-based conclusions, and optimization recommendations using current industry standards and publications (2023-2025)
+- June 27, 2025: Fixed workflow navigation to properly reflect 11 actual analysis steps (excluding welcome page) with corrected step numbering and added "Finish & New Calculation" button to final AI consultation step for proper workflow completion
 
 ## User Preferences
 
