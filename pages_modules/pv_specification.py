@@ -345,10 +345,14 @@ def render_pv_specification():
         
         with col3:
             st.subheader("Cost Parameters")
+            # Calculate realistic cost per m² based on BIPV technology
+            calculated_cost = base_specs.get('cost_per_wp', 0.85) * power_density if power_density else 400.0
+            default_cost = max(300.0, calculated_cost)  # Ensure minimum realistic BIPV cost
+            
             cost_per_m2 = st.number_input(
                 "Cost per m² (EUR)",
-                min_value=200.0, max_value=800.0,
-                value=base_specs.get('cost_per_wp', 0.85)*power_density if power_density else 400.0,
+                min_value=150.0, max_value=800.0,
+                value=default_cost,
                 step=10.0,
                 key="cost_per_m2",
                 help="Total cost per square meter of BIPV glass including installation"

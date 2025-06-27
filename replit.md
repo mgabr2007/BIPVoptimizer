@@ -316,6 +316,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 27, 2025: Improved Step 1 location name detection algorithm to extract multiple area names from OpenWeatherMap API results, added debug checkbox for troubleshooting geocoding responses, and enhanced name filtering to provide district-level geographical specificity when available from the reverse geocoding service
 - June 27, 2025: Fixed Step 6 slider value error by increasing Power Density maximum from 150.0 to 250.0 W/m² to accommodate high-efficiency BIPV panels (19% = 190 W/m²) and prevent value range conflicts in PV specification module
 - June 27, 2025: Fixed Step 6 'dimensions' key error by adding safe dictionary access with .get() method and default values for nested base_specs structure, and corrected cost calculation to use 'cost_per_wp' instead of non-existent 'cost_per_watt' key
+- June 27, 2025: Fixed Step 6 cost per m² range error by reducing minimum from 200.0 to 150.0 EUR/m² and implementing intelligent cost calculation with 300 EUR/m² minimum for realistic BIPV pricing
 
 ## User Preferences
 
