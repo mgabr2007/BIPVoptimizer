@@ -1,12 +1,15 @@
 """
 Project Setup page for BIPV Optimizer
+Enhanced with weather station selection interface
 """
 import streamlit as st
 import os
 import folium
 from streamlit_folium import st_folium
+import pandas as pd
 from core.solar_math import get_location_solar_parameters, get_location_electricity_rates, determine_timezone_from_coordinates, get_currency_symbol
 from services.io import get_weather_data_from_coordinates, save_project_data
+from services.weather_stations import find_nearest_stations, get_station_summary, format_station_display
 
 
 def render_project_setup():
@@ -37,36 +40,109 @@ def render_project_setup():
             key="currency_display"
         )
     
-    # Interactive map for location selection
-    st.subheader("📍 Location Selection")
-    st.markdown("Click on the map to select your project location for accurate solar and weather analysis.")
+    # Enhanced location selection with weather station integration
+    st.subheader("📍 Enhanced Location Selection")
+    st.markdown("Select your project location and choose the nearest weather station for accurate meteorological data.")
     
     # Initialize map with default coordinates (Berlin)
     if 'map_coordinates' not in st.session_state:
         st.session_state.map_coordinates = {'lat': 52.5200, 'lng': 13.4050}
     
-    # Create folium map
+    # Location selection method
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        location_method = st.radio(
+            "Location Selection Method",
+            ["Interactive Map", "Manual Coordinates"],
+            help="Choose how to specify your project location",
+            key="location_method"
+        )
+    
+    with col2:
+        search_radius = st.selectbox(
+            "Weather Station Search Radius",
+            [100, 200, 300, 500, 750, 1000],
+            index=3,
+            help="Maximum distance to search for weather stations (km)",
+            key="search_radius"
+        )
+    
+    # Location input based on selected method
+    if location_method == "Manual Coordinates":
+        coord_col1, coord_col2 = st.columns(2)
+        with coord_col1:
+            manual_lat = st.number_input(
+                "Latitude",
+                min_value=-90.0, max_value=90.0,
+                value=st.session_state.map_coordinates['lat'],
+                format="%.6f",
+                help="Project latitude in decimal degrees",
+                key="manual_lat"
+            )
+        with coord_col2:
+            manual_lon = st.number_input(
+                "Longitude",
+                min_value=-180.0, max_value=180.0,
+                value=st.session_state.map_coordinates['lng'],
+                format="%.6f",
+                help="Project longitude in decimal degrees",
+                key="manual_lon"
+            )
+        
+        # Update coordinates from manual input
+        st.session_state.map_coordinates = {'lat': manual_lat, 'lng': manual_lon}
+    
+    # Find nearby weather stations
+    nearby_stations = find_nearest_stations(
+        st.session_state.map_coordinates['lat'], 
+        st.session_state.map_coordinates['lng'], 
+        max_distance_km=search_radius
+    )
+    
+    # Create enhanced folium map with weather stations
     m = folium.Map(
         location=[st.session_state.map_coordinates['lat'], st.session_state.map_coordinates['lng']],
-        zoom_start=10,
+        zoom_start=8,
         tiles="OpenStreetMap"
     )
     
     # Add marker for current location
     folium.Marker(
         [st.session_state.map_coordinates['lat'], st.session_state.map_coordinates['lng']],
-        popup="Selected Location",
+        popup="Selected Project Location",
         tooltip="Project Location",
         icon=folium.Icon(color="red", icon="building", prefix="fa")
     ).add_to(m)
     
-    # Display map and capture clicks
-    map_data = st_folium(m, key="location_map", height=400, width=700)
+    # Add weather station markers
+    if not nearby_stations.empty:
+        for idx, station in nearby_stations.iterrows():
+            station_info = format_station_display(station)
+            folium.Marker(
+                location=[station['latitude'], station['longitude']],
+                popup=f"""
+                <b>{station['name']}</b><br>
+                Country: {station['country']}<br>
+                WMO ID: {station['wmo_id']}<br>
+                Distance: {station['distance_km']:.1f} km<br>
+                Elevation: {station['height']:.0f} m
+                """,
+                tooltip=station_info['full_info'],
+                icon=folium.Icon(color="blue", icon="cloud", prefix="fa")
+            ).add_to(m)
     
-    # Update coordinates when map is clicked
-    if map_data['last_clicked'] is not None:
-        st.session_state.map_coordinates = map_data['last_clicked']
-        st.rerun()
+    # Display map and capture clicks
+    map_data = None
+    if location_method == "Interactive Map":
+        map_data = st_folium(m, key="location_map", height=450, width=700)
+        # Update coordinates when map is clicked
+        if map_data and map_data['last_clicked'] is not None:
+            st.session_state.map_coordinates = map_data['last_clicked']
+            st.rerun()
+    else:
+        # Display map without interaction for manual coordinates
+        st_folium(m, key="location_map_display", height=450, width=700)
     
     # Display selected coordinates
     selected_lat = st.session_state.map_coordinates['lat']
