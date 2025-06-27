@@ -249,7 +249,7 @@ def render_pv_specification():
             panel_efficiency = st.number_input(
                 "Panel Efficiency (%)",
                 min_value=5.0, max_value=25.0, 
-                value=base_specs['efficiency']*100,
+                value=float(base_specs['efficiency']*100),
                 step=0.1,
                 key="panel_efficiency",
                 help="Photovoltaic conversion efficiency under STC conditions"
@@ -258,7 +258,7 @@ def render_pv_specification():
             power_density = st.number_input(
                 "Power Density (W/m²)",
                 min_value=50.0, max_value=250.0,
-                value=base_specs['glass_properties']['power_density'],
+                value=float(base_specs['glass_properties']['power_density']),
                 step=5.0,
                 key="power_density",
                 help="Power generation per square meter of BIPV glass surface"
@@ -268,7 +268,7 @@ def render_pv_specification():
             temperature_coefficient = st.number_input(
                 "Temperature Coefficient (%/°C)",
                 min_value=-0.8, max_value=-0.2,
-                value=base_specs['temperature_coefficient']*100,
+                value=float(base_specs['temperature_coefficient']*100),
                 step=0.01,
                 key="temp_coeff",
                 help="Power decrease per degree Celsius above 25°C"
@@ -327,19 +327,19 @@ def render_pv_specification():
         
         with col2:
             st.subheader("Performance Density")
-            power_density = st.number_input(
+            power_density_glass = st.number_input(
                 "Power Density (W/m²)",
                 min_value=20.0, max_value=250.0,
-                value=base_specs['efficiency']*1000,  # Convert efficiency to W/m²
+                value=float(base_specs['efficiency']*1000),  # Convert efficiency to W/m²
                 step=5.0,
-                key="power_density",
+                key="power_density_glass",
                 help="Power generation per square meter of glass surface"
             )
             
             glass_weight = st.number_input(
                 "Glass Weight (kg/m²)",
                 min_value=15.0, max_value=35.0,
-                value=25.0,
+                value=float(base_specs['glass_properties']['weight']),
                 step=0.5,
                 key="glass_weight",
                 help="Weight per square meter including glass substrate and PV cells"
@@ -377,7 +377,7 @@ def render_pv_specification():
             u_value = st.number_input(
                 "U-Value (W/m²K)",
                 min_value=0.8, max_value=2.5,
-                value=1.2,
+                value=float(base_specs['glass_properties']['u_value']),
                 step=0.1,
                 key="u_value",
                 help="Thermal transmittance of BIPV glass unit"
