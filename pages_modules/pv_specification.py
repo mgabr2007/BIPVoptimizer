@@ -12,69 +12,78 @@ from database_manager import db_manager
 from datetime import datetime
 from core.solar_math import safe_divide
 
-# BIPV Panel Database
-BIPV_PANEL_DATABASE = {
+# BIPV Glass Technology Database
+BIPV_GLASS_DATABASE = {
     "Standard BIPV Glass": {
         "efficiency": 0.16,
         "cost_per_wp": 0.85,
-        "dimensions": {"width": 1.00, "height": 1.50, "thickness": 0.008},
-        "power_rating": 240,
+        "glass_properties": {
+            "thickness": 0.008,  # 8mm glass thickness
+            "power_density": 160,  # W/m² (efficiency * 1000)
+            "u_value": 1.2,  # W/m²K thermal transmittance
+            "weight": 24.0  # kg/m²
+        },
         "temperature_coefficient": -0.004,
         "warranty_years": 25,
         "transparency": 0.20,
-        "description": "Standard semi-transparent BIPV glass panels for window integration"
+        "description": "Standard semi-transparent BIPV glass for window integration"
     },
-    "High-Efficiency BIPV": {
+    "High-Efficiency BIPV Glass": {
         "efficiency": 0.19,
         "cost_per_wp": 1.15,
-        "dimensions": {"width": 1.00, "height": 1.50, "thickness": 0.008},
-        "power_rating": 285,
+        "glass_properties": {
+            "thickness": 0.008,
+            "power_density": 190,
+            "u_value": 1.1,
+            "weight": 25.0
+        },
         "temperature_coefficient": -0.0035,
         "warranty_years": 25,
         "transparency": 0.15,
-        "description": "High-efficiency BIPV panels with advanced cell technology"
+        "description": "High-efficiency BIPV glass with advanced cell technology"
     },
     "Colored BIPV Glass": {
         "efficiency": 0.14,
         "cost_per_wp": 0.95,
-        "dimensions": {"width": 1.00, "height": 1.50, "thickness": 0.008},
-        "power_rating": 210,
+        "glass_properties": {
+            "thickness": 0.008,
+            "power_density": 140,
+            "u_value": 1.3,
+            "weight": 23.0
+        },
         "temperature_coefficient": -0.0045,
         "warranty_years": 25,
         "transparency": 0.25,
-        "description": "Aesthetically designed colored BIPV panels for architectural integration"
+        "description": "Aesthetically designed colored BIPV glass for architectural integration"
     },
-    "Thin-Film BIPV": {
+    "Thin-Film BIPV Glass": {
         "efficiency": 0.12,
         "cost_per_wp": 0.75,
-        "dimensions": {"width": 1.20, "height": 1.60, "thickness": 0.006},
-        "power_rating": 230,
+        "glass_properties": {
+            "thickness": 0.006,
+            "power_density": 120,
+            "u_value": 1.4,
+            "weight": 20.0
+        },
         "temperature_coefficient": -0.003,
         "warranty_years": 20,
         "transparency": 0.30,
-        "description": "Flexible thin-film BIPV technology for complex geometries"
+        "description": "Flexible thin-film BIPV glass technology for complex geometries"
     }
 }
 
-def calculate_panel_layout(element_area, element_width, element_height, panel_width, panel_height):
-    """Calculate optimal panel layout for a given element."""
+def calculate_bipv_glass_coverage(element_area, coverage_factor=0.90):
+    """Calculate BIPV glass coverage for window elements.
+    BIPV glass replaces entire window surface with semi-transparent PV glass."""
     
-    # Calculate number of panels that can fit
-    panels_horizontal = max(1, int(element_width / panel_width))
-    panels_vertical = max(1, int(element_height / panel_height))
-    total_panels = panels_horizontal * panels_vertical
-    
-    # Calculate coverage ratio
-    panel_area = panel_width * panel_height
-    total_panel_area = total_panels * panel_area
-    coverage_ratio = min(1.0, total_panel_area / element_area) if element_area > 0 else 0
+    # BIPV glass covers the entire window area (minus frame)
+    bipv_glass_area = element_area * coverage_factor
+    coverage_ratio = coverage_factor
     
     return {
-        'panels_horizontal': panels_horizontal,
-        'panels_vertical': panels_vertical,
-        'total_panels': total_panels,
+        'bipv_glass_area': bipv_glass_area,
         'coverage_ratio': coverage_ratio,
-        'total_panel_area': total_panel_area
+        'frame_factor': 1.0 - coverage_factor
     }
 
 def calculate_bipv_system_specifications(element_data, glass_specs, radiation_data):
@@ -102,18 +111,12 @@ def calculate_bipv_system_specifications(element_data, glass_specs, radiation_da
         else:
             annual_irradiation = 1000  # Default fallback
         
-        # Calculate layout using comprehensive panel dimensions
-        layout = calculate_panel_layout(
-            element_area,
-            element.get('Width (m)', 1.0),
-            element.get('Height (m)', 1.5),
-            glass_specs['dimensions']['width'],
-            glass_specs['dimensions']['height']
-        )
+        # Calculate BIPV glass coverage (replaces entire window surface)
+        coverage = calculate_bipv_glass_coverage(element_area, coverage_factor=0.90)
         
-        if layout['total_panels'] > 0 and annual_irradiation > 0:
-            # System power calculation using comprehensive specs
-            system_power_wp = layout['total_panels'] * glass_specs['power_rating']
+        if coverage['bipv_glass_area'] > 0 and annual_irradiation > 0:
+            # System power calculation using BIPV glass area and power density
+            system_power_wp = coverage['bipv_glass_area'] * glass_specs['glass_properties']['power_density']
             system_power_kw = system_power_wp / 1000
             
             # Annual energy production using comprehensive performance ratio
@@ -192,7 +195,7 @@ def render_pv_specification():
         st.markdown("**Start with a premade panel type, then customize all specifications below:**")
         
         # Predefined panel selection
-        panel_types = list(BIPV_PANEL_DATABASE.keys())
+        panel_types = list(BIPV_GLASS_DATABASE.keys())
         selected_panel_type = st.selectbox(
             "Base BIPV Panel Type (Starting Point)", 
             panel_types,
@@ -201,7 +204,7 @@ def render_pv_specification():
         )
         
         # Get base specifications
-        base_specs = BIPV_PANEL_DATABASE[selected_panel_type]
+        base_specs = BIPV_GLASS_DATABASE[selected_panel_type]
         
         st.info(f"**Starting with {selected_panel_type}:** {base_specs['description']}")
         st.success("💡 **Tip:** Modify any specification below - your custom values will be used for all calculations!")
