@@ -110,7 +110,7 @@ def render_welcome():
     st.markdown("""
     ---
     
-    ### 10-Step Analysis Workflow
+    ### 11-Step Analysis Workflow
     
     Our comprehensive workflow guides you through the complete BIPV analysis process:
     """)
@@ -126,7 +126,8 @@ def render_welcome():
         ("7️⃣", "Yield vs Demand", "Energy balance and grid interaction analysis"),
         ("8️⃣", "Optimization", "Multi-objective genetic algorithm optimization"),
         ("9️⃣", "Financial Analysis", "Economic viability and investment analysis"),
-        ("🔟", "Reporting", "Comprehensive analysis reports and data export")
+        ("🔟", "Reporting", "Comprehensive analysis reports and data export"),
+        ("🤖", "AI Consultation", "Expert analysis and optimization recommendations")
     ]
     
     # Display workflow in columns
@@ -170,11 +171,47 @@ def render_welcome():
     
     with col3:
         st.markdown("""
+        **🤖 AI Consultation**
+        - Perplexity AI research agent
+        - Expert analysis and recommendations
+        - Current industry standards (2023-2025)
+        - Optimization suggestions
+        """)
+    
+    # Additional Features Section
+    st.markdown("""
+    ---
+    
+    ### Enhanced Platform Capabilities
+    """)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
         **🔧 Optimization Engine**
         - Genetic algorithms (NSGA-II)
         - Multi-objective optimization
         - Pareto frontier analysis
         - Solution comparison
+        """)
+    
+    with col2:
+        st.markdown("""
+        **📊 Data Management**
+        - PostgreSQL database persistence
+        - Project save/load functionality
+        - Comprehensive data export (CSV/HTML)
+        - Session state restoration
+        """)
+    
+    with col3:
+        st.markdown("""
+        **📈 Advanced Analytics**
+        - Interactive visualizations (Plotly)
+        - R² score performance tracking
+        - Financial projections (25-year)
+        - CO₂ impact assessment
         """)
     
     # Getting Started
@@ -185,9 +222,52 @@ def render_welcome():
     
     Navigate to **Step 1: Project Setup** in the sidebar to start your comprehensive BIPV optimization study. 
     The platform implements ISO 15927-4, ISO 9060, EN 410, and ASHRAE 90.1 standards throughout the 
-    10-step workflow for scientifically validated results.
+    11-step workflow for scientifically validated results.
     
     **Important:** Complete each step in sequence - Step 4 (BIM Extraction) is mandatory for all subsequent analyses.
+    
+    **New Feature:** Step 11 includes AI consultation powered by Perplexity research agent for expert analysis and optimization recommendations.
+    """)
+    
+    # Mathematical Foundations
+    st.markdown("""
+    ---
+    
+    ### Mathematical Foundations & Recent Enhancements
+    
+    The platform implements comprehensive mathematical models with recent improvements:
+    """)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        **Core Calculations:**
+        - Solar position algorithms (ISO 15927-4)
+        - Irradiance modeling with orientation corrections
+        - BIPV glass technology specifications (2-12% efficiency)
+        - Financial analysis (NPV, IRR, payback period)
+        - Environmental impact (CO₂ savings quantification)
+        """)
+    
+    with col2:
+        st.markdown("""
+        **Recent Improvements:**
+        - Enhanced R² score tracking and performance indicators
+        - Interactive visualization with authentic workflow data
+        - Decimal-to-float conversion for database operations
+        - AI-powered research consultation integration
+        - Corrected navigation for 11-step workflow
+        """)
+    
+    # Key Features Update
+    st.info("""
+    **Latest Platform Updates:**
+    - ✅ Perplexity AI consultation agent for expert analysis
+    - ✅ Enhanced detailed reports with interactive charts
+    - ✅ Fixed navigation counting (11 analysis steps)
+    - ✅ Comprehensive visualization using authentic project data
+    - ✅ Database persistence with PostgreSQL integration
     """)
     
     # Research Attribution
