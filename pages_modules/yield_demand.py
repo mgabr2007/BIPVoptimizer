@@ -200,8 +200,28 @@ def render_yield_demand():
     
     st.header("⚖️ Step 7: Energy Yield vs Demand Analysis")
     
-    # Check dependencies - look for actual data instead of flags
+    # AI Model Performance Indicator
     project_data = st.session_state.get('project_data', {})
+    if project_data.get('model_r2_score') is not None:
+        r2_score = project_data['model_r2_score']
+        status = project_data.get('model_performance_status', 'Unknown')
+        
+        if r2_score >= 0.85:
+            color = "green"
+            icon = "🟢"
+        elif r2_score >= 0.70:
+            color = "orange"
+            icon = "🟡"
+        else:
+            color = "red"
+            icon = "🔴"
+        
+        st.info(f"{icon} Using AI model predictions with R² score: **{r2_score:.3f}** ({status} performance)")
+        
+        if r2_score < 0.70:
+            st.warning("Low model performance may affect yield vs demand accuracy. Consider improving data quality in Step 2.")
+    
+    # Check dependencies - look for actual data instead of flags
     
     # Check for PV specifications from Step 6
     pv_specs = project_data.get('pv_specifications')

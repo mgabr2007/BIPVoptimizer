@@ -96,6 +96,28 @@ def main():
     if 'project_data' in st.session_state and st.session_state.project_data:
         project_name = st.session_state.project_data.get('project_name', 'Unnamed Project')
         st.sidebar.markdown(f"**Current Project:** {project_name}")
+        
+        # AI Model Performance Status in Sidebar
+        if st.session_state.project_data.get('model_r2_score') is not None:
+            r2_score = st.session_state.project_data['model_r2_score']
+            status = st.session_state.project_data.get('model_performance_status', 'Unknown')
+            
+            if r2_score >= 0.85:
+                color = "green"
+                icon = "🟢"
+            elif r2_score >= 0.70:
+                color = "orange"
+                icon = "🟡"
+            else:
+                color = "red"
+                icon = "🔴"
+            
+            st.sidebar.markdown(f"""
+            <div style="padding: 8px; border: 2px solid {color}; border-radius: 6px; text-align: center; background: rgba(248, 249, 250, 0.9); margin: 10px 0;">
+                <strong style="font-size: 12px;">{icon} AI Model R²: {r2_score:.3f}</strong><br>
+                <span style="color: {color}; font-size: 10px;">{status} Performance</span>
+            </div>
+            """, unsafe_allow_html=True)
     
     st.sidebar.markdown("---")
     
