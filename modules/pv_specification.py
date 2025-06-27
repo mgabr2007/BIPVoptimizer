@@ -4,61 +4,57 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 
-# PV Panel Database
-PV_PANEL_DATABASE = {
-    "Standard Monocrystalline": {
-        "efficiency": 0.20,
-        "cost_per_wp": 0.45,
-        "dimensions": {"width": 1.65, "height": 1.00, "thickness": 0.035},
-        "power_rating": 330,
-        "temperature_coefficient": -0.004,
-        "warranty_years": 25,
-        "description": "Standard monocrystalline silicon panels"
-    },
-    "High-Efficiency Monocrystalline": {
-        "efficiency": 0.22,
-        "cost_per_wp": 0.65,
-        "dimensions": {"width": 1.65, "height": 1.00, "thickness": 0.035},
-        "power_rating": 365,
-        "temperature_coefficient": -0.0035,
-        "warranty_years": 25,
-        "description": "High-efficiency monocrystalline panels with PERC technology"
-    },
-    "Polycrystalline": {
-        "efficiency": 0.17,
-        "cost_per_wp": 0.35,
-        "dimensions": {"width": 1.65, "height": 1.00, "thickness": 0.035},
-        "power_rating": 280,
-        "temperature_coefficient": -0.0045,
+# BIPV Glass Technology Database
+BIPV_GLASS_DATABASE = {
+    "Semi-Transparent a-Si": {
+        "efficiency": 0.06,
+        "cost_per_m2": 280,
+        "transparency": 0.25,
+        "glass_thickness": 0.012,
+        "power_per_m2": 60,
+        "temperature_coefficient": -0.002,
         "warranty_years": 20,
-        "description": "Cost-effective polycrystalline silicon panels"
+        "description": "Amorphous silicon BIPV glass with 25% transparency"
     },
-    "Thin-Film (CdTe)": {
-        "efficiency": 0.18,
-        "cost_per_wp": 0.40,
-        "dimensions": {"width": 1.20, "height": 0.60, "thickness": 0.006},
-        "power_rating": 130,
+    "Semi-Transparent μc-Si": {
+        "efficiency": 0.08,
+        "cost_per_m2": 350,
+        "transparency": 0.20,
+        "glass_thickness": 0.015,
+        "power_per_m2": 80,
         "temperature_coefficient": -0.0025,
         "warranty_years": 25,
-        "description": "Lightweight thin-film panels for building integration"
+        "description": "Microcrystalline silicon BIPV glass with 20% transparency"
     },
-    "Bifacial Monocrystalline": {
-        "efficiency": 0.21,
-        "cost_per_wp": 0.55,
-        "dimensions": {"width": 1.65, "height": 1.00, "thickness": 0.035},
-        "power_rating": 350,
-        "temperature_coefficient": -0.0037,
-        "warranty_years": 30,
-        "description": "Bifacial panels capturing light from both sides"
-    },
-    "Building-Integrated (BIPV)": {
-        "efficiency": 0.16,
-        "cost_per_wp": 0.85,
-        "dimensions": {"width": 1.00, "height": 1.50, "thickness": 0.008},
-        "power_rating": 240,
-        "temperature_coefficient": -0.004,
+    "CdTe Transparent": {
+        "efficiency": 0.10,
+        "cost_per_m2": 320,
+        "transparency": 0.30,
+        "glass_thickness": 0.008,
+        "power_per_m2": 100,
+        "temperature_coefficient": -0.002,
         "warranty_years": 25,
-        "description": "Specialized panels designed for building integration"
+        "description": "Cadmium telluride transparent BIPV glass"
+    },
+    "Organic PV Glass": {
+        "efficiency": 0.04,
+        "cost_per_m2": 200,
+        "transparency": 0.40,
+        "glass_thickness": 0.005,
+        "power_per_m2": 40,
+        "temperature_coefficient": -0.003,
+        "warranty_years": 15,
+        "description": "Flexible organic photovoltaic glass with high transparency"
+    },
+    "Perovskite Tandem": {
+        "efficiency": 0.12,
+        "cost_per_m2": 450,
+        "transparency": 0.15,
+        "glass_thickness": 0.010,
+        "power_per_m2": 120,
+        "temperature_coefficient": -0.0035,
+        "warranty_years": 20,
+        "description": "Advanced perovskite-silicon tandem BIPV glass technology"
     }
 }
 
@@ -146,79 +142,80 @@ def render_pv_specification():
     col1, col2 = st.columns(2)
     
     with col1:
-        selected_panel_type = st.selectbox(
-            "Select PV Panel Type",
-            list(PV_PANEL_DATABASE.keys()),
-            help="Choose the type of PV panel for your installation"
+        selected_glass_type = st.selectbox(
+            "Select BIPV Glass Technology",
+            list(BIPV_GLASS_DATABASE.keys()),
+            help="Choose semi-transparent photovoltaic glass to replace existing window glass"
         )
         
-        panel_specs = PV_PANEL_DATABASE[selected_panel_type]
+        glass_specs = BIPV_GLASS_DATABASE[selected_glass_type]
         
-        # Display panel specifications
-        st.markdown("**Selected Panel Specifications:**")
+        # Display BIPV glass specifications
+        st.markdown("**Selected BIPV Glass Specifications:**")
         spec_data = {
-            "Specification": ["Efficiency", "Power Rating", "Cost per Wp", "Width", "Height", "Thickness", "Warranty"],
+            "Specification": ["Efficiency", "Power per m²", "Cost per m²", "Transparency", "Glass Thickness", "Warranty"],
             "Value": [
-                f"{panel_specs['efficiency']*100:.1f}%",
-                f"{panel_specs['power_rating']} W",
-                f"${panel_specs['cost_per_wp']:.2f}/Wp",
-                f"{panel_specs['dimensions']['width']:.2f} m",
-                f"{panel_specs['dimensions']['height']:.2f} m",
-                f"{panel_specs['dimensions']['thickness']*1000:.0f} mm",
-                f"{panel_specs['warranty_years']} years"
+                f"{glass_specs['efficiency']*100:.1f}%",
+                f"{glass_specs['power_per_m2']} W/m²",
+                f"€{glass_specs['cost_per_m2']:.0f}/m²",
+                f"{glass_specs['transparency']*100:.0f}%",
+                f"{glass_specs['glass_thickness']*1000:.0f} mm",
+                f"{glass_specs['warranty_years']} years"
             ]
         }
         st.table(spec_data)
+        
+        st.info("💡 BIPV glass replaces existing window glass with semi-transparent photovoltaic material")
     
     with col2:
-        # Custom panel specifications
-        st.markdown("**Custom Panel Settings:**")
+        # Custom glass specifications
+        st.markdown("**Custom BIPV Glass Settings:**")
         
         custom_efficiency = st.number_input(
-            "Panel Efficiency (%)",
-            value=panel_specs['efficiency'] * 100,
-            min_value=10.0,
-            max_value=30.0,
+            "Glass Efficiency (%)",
+            value=glass_specs['efficiency'] * 100,
+            min_value=2.0,
+            max_value=15.0,
             step=0.1,
-            help="Panel efficiency under standard test conditions"
+            help="BIPV glass efficiency under standard test conditions"
         ) / 100
         
         custom_cost = st.number_input(
-            "Cost per Wp ($)",
-            value=panel_specs['cost_per_wp'],
-            min_value=0.20,
-            max_value=2.00,
-            step=0.05,
+            "Cost per m² (€)",
+            value=glass_specs['cost_per_m2'],
+            min_value=150.0,
+            max_value=600.0,
+            step=10.0,
             help="Cost per watt-peak installed"
         )
         
-        custom_power = st.number_input(
-            "Panel Power Rating (W)",
-            value=panel_specs['power_rating'],
-            min_value=50,
-            max_value=500,
+        custom_transparency = st.slider(
+            "Glass Transparency (%)",
+            min_value=10,
+            max_value=50,
+            value=int(glass_specs['transparency'] * 100),
             step=5,
-            help="Nominal power rating of each panel"
-        )
+            help="Visible light transmission through BIPV glass"
+        ) / 100
         
-        # Override panel specs with custom values
-        panel_specs['efficiency'] = custom_efficiency
-        panel_specs['cost_per_wp'] = custom_cost
-        panel_specs['power_rating'] = custom_power
+        # Override glass specs with custom values
+        glass_specs['efficiency'] = custom_efficiency
+        glass_specs['cost_per_m2'] = custom_cost  
+        glass_specs['transparency'] = custom_transparency
     
-    # Installation configuration
-    st.subheader("Installation Configuration")
+    # BIPV Glass Installation Configuration
+    st.subheader("BIPV Glass Installation Configuration")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        spacing_factor = st.slider(
-            "Panel Spacing Factor",
-            min_value=0.0,
-            max_value=0.20,
-            value=0.05,
+        frame_factor = st.slider(
+            "Window Frame Factor",
+            min_value=0.05,
+            max_value=0.25,
+            value=0.10,
             step=0.01,
-            help="Additional spacing between panels (as fraction of panel size)"
+            help="Percentage of window area occupied by frame (non-glazed area)"
         )
     
     with col2:
