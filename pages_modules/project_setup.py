@@ -7,9 +7,39 @@ import os
 import folium
 from streamlit_folium import st_folium
 import pandas as pd
+import requests
 from core.solar_math import get_location_solar_parameters, get_location_electricity_rates, determine_timezone_from_coordinates, get_currency_symbol
 from services.io import get_weather_data_from_coordinates, save_project_data
 from services.weather_stations import find_nearest_stations, get_station_summary, format_station_display
+
+
+def get_location_from_coordinates(lat, lon):
+    """Get location name from coordinates using OpenWeatherMap reverse geocoding"""
+    api_key = os.environ.get('OPENWEATHER_API_KEY')
+    if not api_key:
+        return f"Location at {lat:.4f}°, {lon:.4f}°"
+    
+    try:
+        url = f"http://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit=1&appid={api_key}"
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                location_data = data[0]
+                city = location_data.get('name', '')
+                state = location_data.get('state', '')
+                country = location_data.get('country', '')
+                
+                # Build location name
+                parts = [city, state, country]
+                location_name = ', '.join([part for part in parts if part])
+                return location_name if location_name else f"Location at {lat:.4f}°, {lon:.4f}°"
+        
+        return f"Location at {lat:.4f}°, {lon:.4f}°"
+    
+    except Exception:
+        return f"Location at {lat:.4f}°, {lon:.4f}°"
 
 
 def render_project_setup():
@@ -140,9 +170,15 @@ def render_project_setup():
     map_data = None
     if location_method == "Interactive Map":
         map_data = st_folium(m, key="location_map", height=450, width=700)
-        # Update coordinates when map is clicked
+        # Update coordinates and location name when map is clicked
         if map_data and map_data['last_clicked'] is not None:
-            st.session_state.map_coordinates = map_data['last_clicked']
+            new_coords = map_data['last_clicked']
+            # Update coordinates in session state
+            st.session_state.map_coordinates = new_coords
+            # Update location name based on new coordinates
+            st.session_state.location_name = get_location_from_coordinates(
+                new_coords['lat'], new_coords['lng']
+            )
             st.rerun()
     else:
         # Display map without interaction for manual coordinates
@@ -232,11 +268,12 @@ def render_project_setup():
                   f"Consider increasing the search radius or using manual weather data entry.")
         st.session_state.selected_weather_station = None
     
-    # Location name input
+    # Location name input (auto-updated from map selection)
+    default_location = st.session_state.get('location_name', "Berlin, Germany")
     location_name = st.text_input(
         "Location Name",
-        value="Berlin, Germany",
-        help="🏙️ Enter the city and country name for reference. This helps identify the project location in reports and provides context for solar irradiance and electricity rate calculations. Format: 'City, Country'",
+        value=default_location,
+        help="🏙️ Location name auto-detected from map selection. You can modify if needed. This helps identify the project location in reports and provides context for solar irradiance and electricity rate calculations. Format: 'City, Country'",
         key="location_name_input"
     )
     
@@ -299,6 +336,7 @@ def render_project_setup():
         # Add selected weather station data if available
         selected_station = st.session_state.get('selected_weather_station')
         if selected_station:
+            project_data['selected_weather_station'] = selected_station
             project_data['weather_station'] = {
                 'wmo_id': selected_station['wmo_id'],
                 'name': selected_station['name'],
