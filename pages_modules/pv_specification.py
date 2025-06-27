@@ -300,57 +300,65 @@ def render_pv_specification():
                 help="Ratio of maximum power to open circuit voltage × short circuit current"
             )
     
-    with st.expander("📐 Physical Specifications", expanded=False):
+    with st.expander("🔬 BIPV Glass Technology Specifications", expanded=False):
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            panel_width = st.number_input(
-                "Panel Width (m)",
-                min_value=0.5, max_value=2.0,
-                value=base_specs['dimensions']['width'],
-                step=0.01,
-                key="panel_width",
-                help="Standard panel width in meters"
-            )
-            
-            panel_height = st.number_input(
-                "Panel Height (m)",
-                min_value=0.5, max_value=3.0,
-                value=base_specs['dimensions']['height'],
-                step=0.01,
-                key="panel_height",
-                help="Standard panel height in meters"
-            )
-        
-        with col2:
-            panel_thickness = st.number_input(
+            st.subheader("Glass Properties")
+            glass_thickness = st.number_input(
                 "Glass Thickness (mm)",
                 min_value=4.0, max_value=20.0,
                 value=base_specs['dimensions']['thickness']*1000,
                 step=0.5,
-                key="panel_thickness",
-                help="BIPV glass thickness including PV cells"
+                key="glass_thickness",
+                help="BIPV glass thickness including embedded PV cells (typical: 6-12mm)"
             ) / 1000
             
-            panel_weight = st.number_input(
-                "Weight (kg/m²)",
-                min_value=15.0, max_value=35.0,
-                value=25.0,
-                step=0.5,
-                key="panel_weight",
-                help="Weight per square meter including glass and PV cells"
-            )
-        
-        with col3:
             transparency = st.number_input(
                 "Transparency (%)",
                 min_value=10.0, max_value=50.0,
                 value=base_specs['transparency']*100,
                 step=1.0,
                 key="transparency",
-                help="Visible light transmission through BIPV glass"
+                help="Light transmission through semi-transparent PV glass"
             ) / 100
+        
+        with col2:
+            st.subheader("Performance Density")
+            power_density = st.number_input(
+                "Power Density (W/m²)",
+                min_value=20.0, max_value=150.0,
+                value=base_specs['efficiency']*1000,  # Convert efficiency to W/m²
+                step=5.0,
+                key="power_density",
+                help="Power generation per square meter of glass surface"
+            )
             
+            glass_weight = st.number_input(
+                "Glass Weight (kg/m²)",
+                min_value=15.0, max_value=35.0,
+                value=25.0,
+                step=0.5,
+                key="glass_weight",
+                help="Weight per square meter including glass substrate and PV cells"
+            )
+        
+        with col3:
+            st.subheader("Cost Parameters")
+            cost_per_m2 = st.number_input(
+                "Cost per m² (EUR)",
+                min_value=200.0, max_value=800.0,
+                value=base_specs['cost_per_watt']*power_density if 'cost_per_watt' in base_specs else 400.0,
+                step=10.0,
+                key="cost_per_m2",
+                help="Total cost per square meter of BIPV glass including installation"
+            )
+            
+        st.info("ℹ️ **BIPV Glass Technology**: These specifications reflect semi-transparent photovoltaic glass that replaces traditional window glass. Unlike conventional solar panels, BIPV glass maintains architectural aesthetics while generating electricity.")
+        
+        # Additional glass properties
+        col1, col2 = st.columns(2)
+        with col1:
             solar_heat_gain = st.number_input(
                 "Solar Heat Gain Coefficient",
                 min_value=0.2, max_value=0.7,
@@ -358,6 +366,15 @@ def render_pv_specification():
                 step=0.01,
                 key="shgc",
                 help="Fraction of solar radiation admitted through the glass"
+            )
+        with col2:
+            u_value = st.number_input(
+                "U-Value (W/m²K)",
+                min_value=0.8, max_value=2.5,
+                value=1.2,
+                step=0.1,
+                key="u_value",
+                help="Thermal transmittance of BIPV glass unit"
             )
     
     with st.expander("💰 Economic Specifications", expanded=False):
@@ -489,12 +506,12 @@ def render_pv_specification():
         'voltage_at_pmax': voltage_at_pmax,
         'current_at_pmax': current_at_pmax,
         'fill_factor': fill_factor,
-        'dimensions': {
-            'width': panel_width,
-            'height': panel_height,
-            'thickness': panel_thickness
+        'glass_properties': {
+            'thickness': glass_thickness,
+            'power_density': power_density,
+            'u_value': u_value
         },
-        'weight': panel_weight,
+        'weight': glass_weight,
         'transparency': transparency,
         'solar_heat_gain': solar_heat_gain,
         'cost_per_wp': cost_per_wp,
@@ -531,15 +548,16 @@ def render_pv_specification():
         st.write(f"• Performance Ratio: {final_panel_specs['performance_ratio']*100:.0f}% {'🔧' if perf_changed else ''}")
     
     with col2:
-        st.markdown("**Physical Properties:**")
-        width_changed = final_panel_specs['dimensions']['width'] != base_specs['dimensions']['width']
-        height_changed = final_panel_specs['dimensions']['height'] != base_specs['dimensions']['height']
+        st.markdown("**BIPV Glass Properties:**")
+        thickness_changed = final_panel_specs['glass_properties']['thickness'] != base_specs['dimensions']['thickness']
+        power_density_changed = final_panel_specs['glass_properties']['power_density'] != base_specs['efficiency']*1000
         transparency_changed = final_panel_specs['transparency'] != base_specs['transparency']
         
-        st.write(f"• Dimensions: {final_panel_specs['dimensions']['width']:.2f} × {final_panel_specs['dimensions']['height']:.2f} m {'🔧' if width_changed or height_changed else ''}")
-        st.write(f"• Thickness: {final_panel_specs['dimensions']['thickness']*1000:.1f} mm")
+        st.write(f"• Glass Thickness: {final_panel_specs['glass_properties']['thickness']*1000:.1f} mm {'🔧' if thickness_changed else ''}")
+        st.write(f"• Power Density: {final_panel_specs['glass_properties']['power_density']:.0f} W/m² {'🔧' if power_density_changed else ''}")
         st.write(f"• Transparency: {final_panel_specs['transparency']*100:.0f}% {'🔧' if transparency_changed else ''}")
-        st.write(f"• Weight: {final_panel_specs['weight']:.1f} kg/m²")
+        st.write(f"• Glass Weight: {final_panel_specs['weight']:.1f} kg/m²")
+        st.write(f"• U-Value: {final_panel_specs['glass_properties']['u_value']:.1f} W/m²K")
     
     with col3:
         st.markdown("**Economic Parameters:**")
@@ -556,8 +574,8 @@ def render_pv_specification():
         final_panel_specs['power_rating'] != base_specs['power_rating'],
         final_panel_specs['cost_per_wp'] != base_specs['cost_per_wp'],
         final_panel_specs['transparency'] != base_specs['transparency'],
-        final_panel_specs['dimensions']['width'] != base_specs['dimensions']['width'],
-        final_panel_specs['dimensions']['height'] != base_specs['dimensions']['height']
+        final_panel_specs['glass_properties']['thickness'] != base_specs['dimensions']['thickness'],
+        final_panel_specs['glass_properties']['power_density'] != base_specs['efficiency']*1000
     ])
     
     if modifications_made:
