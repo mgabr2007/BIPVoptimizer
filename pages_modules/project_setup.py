@@ -119,8 +119,12 @@ def render_project_setup():
     if not nearby_stations.empty:
         for idx, station in nearby_stations.iterrows():
             station_info = format_station_display(station)
+            # Convert pandas Series values to float for folium
+            lat_val = float(station['latitude'])
+            lon_val = float(station['longitude'])
+            
             folium.Marker(
-                location=[station['latitude'], station['longitude']],
+                [lat_val, lon_val],
                 popup=f"""
                 <b>{station['name']}</b><br>
                 Country: {station['country']}<br>
@@ -144,11 +148,11 @@ def render_project_setup():
         # Display map without interaction for manual coordinates
         st_folium(m, key="location_map_display", height=450, width=700)
     
-    # Display selected coordinates
+    # Display selected coordinates and weather station summary
     selected_lat = st.session_state.map_coordinates['lat']
     selected_lon = st.session_state.map_coordinates['lng']
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Latitude", f"{selected_lat:.4f}°")
     with col2:
@@ -157,6 +161,76 @@ def render_project_setup():
         # Auto-determine timezone
         timezone = determine_timezone_from_coordinates(selected_lat, selected_lon)
         st.metric("Timezone", timezone)
+    with col4:
+        stations_summary = get_station_summary(nearby_stations)
+        st.metric("Nearby Stations", stations_summary['total_stations'])
+    
+    # Weather station selection interface
+    if not nearby_stations.empty:
+        st.subheader("🌡️ Weather Station Selection")
+        st.markdown("Select the most appropriate weather station for your project's meteorological data:")
+        
+        # Station summary
+        stations_summary = get_station_summary(nearby_stations)
+        if stations_summary['total_stations'] > 0:
+            countries_text = ", ".join(stations_summary['countries'][:3])
+            if len(stations_summary['countries']) > 3:
+                countries_text += f" and {len(stations_summary['countries'])-3} more"
+            
+            st.info(f"Found {stations_summary['total_stations']} stations within {search_radius} km. "
+                   f"Countries: {countries_text}. "
+                   f"Closest station: {stations_summary['closest_distance']:.1f} km away.")
+        
+        # Station selection
+        station_options = []
+        station_details = {}
+        
+        for idx, station in nearby_stations.head(10).iterrows():  # Show top 10 closest
+            station_info = format_station_display(station)
+            display_name = f"{station['name']} ({station['country']}) - {station['distance_km']:.1f} km"
+            station_options.append(display_name)
+            station_details[display_name] = station.to_dict()
+        
+        selected_station_name = st.selectbox(
+            "Choose Weather Station",
+            station_options,
+            help="Select the weather station that best represents your project's climate conditions",
+            key="selected_weather_station"
+        )
+        
+        if selected_station_name:
+            selected_station_data = station_details[selected_station_name]
+            
+            # Display selected station details
+            with st.expander("📋 Selected Station Details", expanded=True):
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.write("**Station Information:**")
+                    st.write(f"• Name: {selected_station_data['name']}")
+                    st.write(f"• WMO ID: {selected_station_data['wmo_id']}")
+                    st.write(f"• Country: {selected_station_data['country']}")
+                
+                with col2:
+                    st.write("**Location Details:**")
+                    st.write(f"• Latitude: {selected_station_data['latitude']:.4f}°")
+                    st.write(f"• Longitude: {selected_station_data['longitude']:.4f}°")
+                    st.write(f"• Elevation: {selected_station_data['height']:.0f} m")
+                
+                with col3:
+                    st.write("**Distance Analysis:**")
+                    st.write(f"• Distance: {selected_station_data['distance_km']:.1f} km")
+                    st.write(f"• Search Radius: {search_radius} km")
+                    coverage_pct = (selected_station_data['distance_km'] / search_radius) * 100
+                    st.write(f"• Coverage: {coverage_pct:.1f}% of search area")
+            
+            # Save selected station to session state
+            st.session_state.selected_weather_station = selected_station_data
+    
+    else:
+        st.warning(f"No weather stations found within {search_radius} km of the selected location. "
+                  f"Consider increasing the search radius or using manual weather data entry.")
+        st.session_state.selected_weather_station = None
     
     # Location name input
     location_name = st.text_input(
@@ -207,7 +281,7 @@ def render_project_setup():
     st.subheader("📋 Project Configuration Summary")
     
     if st.button("💾 Save Project Configuration", key="save_project", type="primary"):
-        # Prepare project data
+        # Prepare enhanced project data with weather station information
         project_data = {
             'project_name': project_name,
             'location': location_name,
@@ -217,8 +291,25 @@ def render_project_setup():
             },
             'timezone': timezone,
             'currency': currency,
-            'setup_complete': True
+            'setup_complete': True,
+            'location_method': location_method,
+            'search_radius': search_radius
         }
+        
+        # Add selected weather station data if available
+        selected_station = st.session_state.get('selected_weather_station')
+        if selected_station:
+            project_data['weather_station'] = {
+                'wmo_id': selected_station['wmo_id'],
+                'name': selected_station['name'],
+                'country': selected_station['country'],
+                'coordinates': {
+                    'lat': selected_station['latitude'],
+                    'lon': selected_station['longitude']
+                },
+                'elevation': selected_station['height'],
+                'distance_km': selected_station['distance_km']
+            }
         
         # Get location-specific parameters
         location_params = get_location_solar_parameters(location_name)
@@ -237,8 +328,8 @@ def render_project_setup():
             st.session_state.project_id = project_id
             st.success("✅ Project configuration saved successfully!")
             
-            # Display configuration summary
-            col1, col2 = st.columns(2)
+            # Display enhanced configuration summary
+            col1, col2, col3 = st.columns(3)
             
             with col1:
                 st.info(f"""
@@ -248,6 +339,7 @@ def render_project_setup():
                 - Coordinates: {selected_lat:.4f}°, {selected_lon:.4f}°
                 - Timezone: {timezone}
                 - Currency: {get_currency_symbol(currency)} ({currency})
+                - Selection Method: {location_method}
                 """)
             
             with col2:
@@ -261,6 +353,27 @@ def render_project_setup():
                 - Import Rate: {get_currency_symbol(currency)}{electricity_rates['import_rate']:.3f}/kWh
                 - Export Rate: {get_currency_symbol(currency)}{electricity_rates['export_rate']:.3f}/kWh
                 """)
+            
+            with col3:
+                if selected_station:
+                    st.info(f"""
+                    **Weather Station:**
+                    - Name: {selected_station['name']}
+                    - Country: {selected_station['country']}
+                    - WMO ID: {selected_station['wmo_id']}
+                    - Distance: {selected_station['distance_km']:.1f} km
+                    - Elevation: {selected_station['height']:.0f} m
+                    - Search Radius: {search_radius} km
+                    """)
+                else:
+                    st.warning(f"""
+                    **Weather Station:**
+                    - No station selected
+                    - Search radius: {search_radius} km
+                    - Stations found: {stations_summary['total_stations']}
+                    
+                    Consider increasing search radius or using manual weather data.
+                    """)
             
 
         else:

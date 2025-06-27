@@ -307,6 +307,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 27, 2025: Integrated Perplexity AI consultation agent as Step 12 providing expert BIPV analysis, research-based conclusions, and optimization recommendations using current industry standards and publications (2023-2025)
 - June 27, 2025: Fixed workflow navigation to properly reflect 11 actual analysis steps (excluding welcome page) with corrected step numbering and added "Finish & New Calculation" button to final AI consultation step for proper workflow completion
 - June 27, 2025: Enhanced Step 6 with comprehensive BIPV panel customization interface allowing users to modify premade panel types and use custom specifications for calculations, including visual modification indicators (🔧), customization help guide, dynamic button text, and enhanced database storage of custom specifications with modification tracking
+- June 27, 2025: Revised Step 1 location selection with comprehensive weather station integration using attached CLIMAT station list, featuring dual location input methods (interactive map/manual coordinates), configurable search radius (100-1000km), automatic nearest station detection, detailed station information display with WMO IDs and distances, enhanced map visualization with station markers, and improved project configuration saving with weather station metadata for meteorological data accuracy
 
 ## User Preferences
 
