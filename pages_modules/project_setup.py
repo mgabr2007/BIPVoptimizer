@@ -120,8 +120,11 @@ def render_project_setup():
                 key="manual_lon"
             )
         
-        # Update coordinates from manual input
-        st.session_state.map_coordinates = {'lat': manual_lat, 'lng': manual_lon}
+        # Update coordinates and location name from manual input
+        if manual_lat != st.session_state.map_coordinates['lat'] or manual_lon != st.session_state.map_coordinates['lng']:
+            st.session_state.map_coordinates = {'lat': manual_lat, 'lng': manual_lon}
+            # Update location name based on new coordinates
+            st.session_state.location_name = get_location_from_coordinates(manual_lat, manual_lon)
     
     # Find nearby weather stations
     nearby_stations = find_nearest_stations(
