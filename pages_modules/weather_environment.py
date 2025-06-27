@@ -147,6 +147,21 @@ def generate_tmy_from_wmo_station(weather_station, solar_params, coordinates):
     return tmy_data
 
 
+def _get_climate_zone(latitude):
+    """Determine climate zone based on latitude"""
+    abs_lat = abs(latitude)
+    if abs_lat < 23.5:
+        return "Tropical"
+    elif abs_lat < 35:
+        return "Subtropical"
+    elif abs_lat < 50:
+        return "Temperate"
+    elif abs_lat < 66.5:
+        return "Subarctic"
+    else:
+        return "Arctic"
+
+
 def render_weather_environment():
     """Render the weather and environment analysis module."""
     st.header("Step 3: Weather & Environment Integration")
@@ -183,24 +198,39 @@ def render_weather_environment():
         """)
     
     with col2:
-        # Find nearest WMO station
-        nearest_station = find_nearest_wmo_station(lat, lon)
-        if nearest_station:
+        # Display selected WMO station from Step 1
+        selected_station = st.session_state.project_data.get('selected_weather_station')
+        if selected_station:
             st.info(f"""
-            **Nearest WMO Station:**
-            - Name: {nearest_station['name']}
-            - Country: {nearest_station['country']}
-            - Station ID: {nearest_station['id']}
+            **Selected WMO Station (Step 1):**
+            - Name: {selected_station['name']}
+            - Country: {selected_station['country']}
+            - WMO ID: {selected_station['wmo_id']}
+            - Distance: {selected_station['distance_km']:.1f} km
+            - Elevation: {selected_station['height']:.0f} m ASL
+            - Climate Zone: {_get_climate_zone(selected_station['latitude'])}
             """)
+        else:
+            # Fallback to nearest station if none selected
+            nearest_station = find_nearest_wmo_station(lat, lon)
+            if nearest_station:
+                st.warning(f"""
+                **Nearest WMO Station (Fallback):**
+                - Name: {nearest_station['name']}
+                - Country: {nearest_station['country']}
+                - Station ID: {nearest_station['id']}
+                
+                *Note: No station selected in Step 1. Using nearest available.*
+                """)
     
     if api_key:
-        if st.button("🔄 Fetch Weather Data & Generate TMY", key="fetch_tmy"):
-            with st.spinner("Fetching weather data and generating TMY dataset..."):
-                # Fetch current weather
+        if st.button("🔄 Generate TMY from Selected WMO Station (ISO 15927-4)", key="fetch_tmy"):
+            with st.spinner("Generating TMY dataset using ISO 15927-4 standards from WMO station..."):
+                # Fetch current weather for validation
                 current_weather = get_weather_data_from_coordinates(lat, lon, api_key)
                 
-                # Fetch forecast data
-                forecast_data = fetch_openweather_forecast_data(lat, lon, api_key)
+                # Get selected weather station from Step 1
+                selected_station = st.session_state.project_data.get('selected_weather_station')
                 
                 if current_weather and current_weather.get('api_success'):
                     # Get solar parameters
@@ -225,13 +255,14 @@ def render_weather_environment():
                         # Store weather and TMY data
                         weather_analysis = {
                             'current_weather': current_weather,
-                            'forecast_data': forecast_data,
+                            'wmo_station': selected_station,
                             'tmy_data': tmy_data[:8760],  # First year only
                             'annual_ghi': annual_ghi,
                             'annual_dni': annual_dni,
                             'annual_dhi': annual_dhi,
                             'solar_resource_class': classify_solar_resource_iso(annual_ghi),
-                            'data_quality': 'Good',
+                            'data_quality': 'ISO_15927-4_Compliant',
+                            'generation_method': 'WMO_Station_ISO_Standards',
                             'generation_date': datetime.now().isoformat(),
                             'analysis_complete': True
                         }
@@ -248,23 +279,35 @@ def render_weather_environment():
                                 # Fallback if import fails
                                 pass
                         
-                        st.success("✅ Weather data fetched and TMY generated successfully!")
+                        st.success("✅ TMY generated successfully using ISO 15927-4 standards from WMO station data!")
                         
                         # Display results
-                        st.subheader("📊 Weather Analysis Results")
+                        st.subheader("📊 TMY Generation Results")
                         
-                        # Current conditions
+                        # WMO Station Information
+                        if selected_station:
+                            st.info(f"""
+                            **TMY Generated from WMO Station:**
+                            - Station: {selected_station['name']} ({selected_station['country']})
+                            - WMO ID: {selected_station['wmo_id']}
+                            - Distance from Project: {selected_station['distance_km']:.1f} km
+                            - Elevation: {selected_station['height']:.0f} m ASL
+                            - Climate Zone: {_get_climate_zone(selected_station['latitude'])}
+                            - Method: ISO 15927-4 standards with astronomical calculations
+                            """)
+                        
+                        # Current weather validation
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
-                            st.metric("Temperature", f"{current_weather['temperature']:.1f}°C")
+                            st.metric("Current Temperature", f"{current_weather['temperature']:.1f}°C")
                         with col2:
-                            st.metric("Humidity", f"{current_weather['humidity']}%")
+                            st.metric("Current Humidity", f"{current_weather['humidity']}%")
                         with col3:
                             st.metric("Wind Speed", f"{current_weather['wind_speed']} m/s")
                         with col4:
                             st.metric("Cloud Cover", f"{current_weather['clouds']}%")
                         
-                        st.caption(f"Current conditions: {current_weather['description'].title()}")
+                        st.caption(f"Current conditions for validation: {current_weather['description'].title()}")
                         
                         # Solar resource analysis
                         st.subheader("☀️ Solar Resource Assessment")
@@ -281,17 +324,20 @@ def render_weather_environment():
                         resource_class = classify_solar_resource_iso(annual_ghi)
                         st.info(f"**Solar Resource Classification:** {resource_class}")
                         
-                        # TMY quality assessment
+                        # TMY quality assessment with WMO station information
                         st.subheader("📈 TMY Data Quality Report")
                         
                         col1, col2 = st.columns(2)
                         with col1:
-                            st.markdown("""
+                            st.markdown(f"""
                             **Data Generation Method:**
-                            - Source: OpenWeatherMap API + ISO 15927-4 standards
+                            - Source: WMO Station + ISO 15927-4 standards
+                            - Station: {selected_station.get('name', 'Unknown') if selected_station else 'Default'}
+                            - WMO ID: {selected_station.get('wmo_id', 'N/A') if selected_station else 'N/A'}
+                            - Distance: {selected_station.get('distance_km', 0):.1f} km
                             - Temporal Resolution: Hourly (8,760 data points)
-                            - Solar Position: Calculated using astronomical algorithms
-                            - Irradiance: Derived from clearness index and solar geometry
+                            - Solar Position: ISO 15927-4 astronomical algorithms
+                            - Irradiance: ISO 9060 solar constant with air mass corrections
                             """)
                         
                         with col2:
