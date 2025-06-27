@@ -545,12 +545,12 @@ def render_pv_specification():
     with col1:
         st.markdown("**Electrical Performance:**")
         efficiency_changed = final_panel_specs['efficiency'] != base_specs['efficiency']
-        power_changed = final_panel_specs['power_rating'] != base_specs['power_rating']
+        power_changed = final_panel_specs['power_density'] != base_specs['glass_properties']['power_density']
         temp_changed = final_panel_specs['temperature_coefficient'] != base_specs['temperature_coefficient']
         perf_changed = final_panel_specs['performance_ratio'] != 0.85  # Default performance ratio
         
         st.write(f"• Efficiency: {final_panel_specs['efficiency']*100:.1f}% {'🔧' if efficiency_changed else ''}")
-        st.write(f"• Power Rating: {final_panel_specs['power_rating']} Wp {'🔧' if power_changed else ''}")
+        st.write(f"• Power Density: {final_panel_specs['power_density']} W/m² {'🔧' if power_changed else ''}")
         st.write(f"• Temperature Coeff: {final_panel_specs['temperature_coefficient']*100:.2f}%/°C {'🔧' if temp_changed else ''}")
         st.write(f"• Performance Ratio: {final_panel_specs['performance_ratio']*100:.0f}% {'🔧' if perf_changed else ''}")
     
@@ -578,10 +578,10 @@ def render_pv_specification():
     # Show modifications indicator
     modifications_made = any([
         final_panel_specs['efficiency'] != base_specs['efficiency'],
-        final_panel_specs['power_rating'] != base_specs['power_rating'],
+        final_panel_specs['power_density'] != base_specs['glass_properties']['power_density'],
         final_panel_specs['cost_per_wp'] != base_specs['cost_per_wp'],
         final_panel_specs['transparency'] != base_specs['transparency'],
-        final_panel_specs['glass_properties']['thickness'] != base_specs.get('dimensions', {}).get('thickness', 0.008),
+        final_panel_specs['glass_properties']['thickness'] != base_specs['glass_properties']['thickness'],
         final_panel_specs['glass_properties']['power_density'] != base_specs['efficiency']*1000
     ])
     
