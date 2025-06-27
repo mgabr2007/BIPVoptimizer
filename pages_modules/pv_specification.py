@@ -224,22 +224,22 @@ def render_pv_specification():
         spec_col1, spec_col2, spec_col3 = st.columns(3)
         
         with spec_col1:
-            st.write("**Physical Properties**")
-            st.write(f"• Width: {panel_specs['dimensions']['width']:.2f} m")
-            st.write(f"• Height: {panel_specs['dimensions']['height']:.2f} m")
-            st.write(f"• Thickness: {panel_specs['dimensions']['thickness']*1000:.0f} mm")
+            st.write("**BIPV Glass Properties**")
+            st.write(f"• Glass Efficiency: {panel_specs['efficiency']*100:.1f}%")
+            st.write(f"• Transparency: {panel_specs['transparency']*100:.0f}%")
+            st.write(f"• Power Density: {panel_specs['power_rating']} W/m²")
             
         with spec_col2:
-            st.write("**Performance**")
-            st.write(f"• Efficiency: {panel_specs['efficiency']*100:.1f}%")
-            st.write(f"• Power Rating: {panel_specs['power_rating']} Wp")
+            st.write("**Performance Characteristics**")
+            st.write(f"• Glass Thickness: {panel_specs.get('glass_thickness', 0.01)*1000:.0f} mm")
             st.write(f"• Temp. Coefficient: {panel_specs['temperature_coefficient']*100:.2f}%/°C")
+            st.write(f"• Performance Ratio: 0.85 (typical BIPV)")
             
         with spec_col3:
-            st.write("**Economic**")
-            st.write(f"• Cost: €{panel_specs['cost_per_wp']:.2f}/Wp")
+            st.write("**Economic & Warranty**")
+            st.write(f"• Cost: €{panel_specs.get('cost_per_m2', panel_specs['cost_per_wp']*panel_specs['power_rating']):.0f}/m²")
             st.write(f"• Warranty: {panel_specs['warranty_years']} years")
-            st.write(f"• Transparency: {panel_specs['transparency']*100:.0f}%")
+            st.write(f"• Installation Factor: 1.5x (typical BIPV)")
     
     # Advanced configuration
     with st.expander("⚙️ Advanced Configuration", expanded=False):
