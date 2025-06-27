@@ -125,19 +125,70 @@ def render_yield_demand():
     st.header("7. Yield vs. Demand Calculation")
     st.markdown("Analyze PV energy yield against predicted demand and calculate net energy balance.")
     
-    # Check prerequisites
-    prerequisites = ['pv_specifications', 'radiation_grid', 'demand_model']
-    missing = [p for p in prerequisites if p not in st.session_state.project_data]
+    # Check prerequisites from multiple sources
+    project_data = st.session_state.get('project_data', {})
     
-    if missing:
-        st.warning(f"⚠️ Missing required data: {', '.join(missing)}")
-        st.info("Please complete previous steps: PV specifications and demand model training.")
+    # Check PV specifications
+    pv_specs_available = (
+        st.session_state.get('pv_specifications') is not None or
+        project_data.get('pv_specifications') is not None or
+        st.session_state.get('pv_specs_completed', False)
+    )
+    
+    # Check radiation data
+    radiation_available = (
+        project_data.get('radiation_data') is not None or
+        project_data.get('radiation_grid') is not None
+    )
+    
+    # Check demand model
+    demand_model_available = (
+        project_data.get('demand_model') is not None or
+        project_data.get('historical_data') is not None
+    )
+    
+    if not pv_specs_available:
+        st.warning("⚠️ PV system specifications not available. Please complete Step 6 (PV Specification).")
+        return
+        
+    if not radiation_available:
+        st.warning("⚠️ Radiation analysis data not available. Please complete Step 5 (Radiation Analysis).")
+        return
+        
+    if not demand_model_available:
+        st.warning("⚠️ Historical demand data not available. Please complete Step 2 (Historical Data Analysis).")
         return
     
-    # Load data
-    pv_specs = pd.DataFrame(st.session_state.project_data['pv_specifications'])
-    radiation_df = pd.DataFrame(st.session_state.project_data['radiation_grid'])
-    tmy_data = st.session_state.project_data['tmy_data']
+    # Load data from appropriate sources
+    # Get PV specifications
+    if st.session_state.get('pv_specifications') is not None:
+        pv_specs = st.session_state['pv_specifications']
+        if not isinstance(pv_specs, pd.DataFrame):
+            pv_specs = pd.DataFrame(pv_specs)
+    elif project_data.get('pv_specifications') is not None:
+        pv_specs = pd.DataFrame(project_data['pv_specifications'])
+    else:
+        st.error("PV specifications data not found")
+        return
+    
+    # Get radiation data
+    if project_data.get('radiation_data') is not None:
+        radiation_df = pd.DataFrame(project_data['radiation_data'])
+    elif project_data.get('radiation_grid') is not None:
+        radiation_df = pd.DataFrame(project_data['radiation_grid'])
+    else:
+        st.error("Radiation analysis data not found")
+        return
+    
+    # Get TMY data
+    tmy_data = project_data.get('tmy_data')
+    if tmy_data is None:
+        weather_analysis = project_data.get('weather_analysis', {})
+        tmy_data = weather_analysis.get('tmy_data')
+    
+    if tmy_data is None:
+        st.error("Weather/TMY data not found")
+        return
     
     # Load demand model
     model, feature_columns, metrics = load_demand_model()
