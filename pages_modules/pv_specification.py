@@ -319,7 +319,7 @@ def render_pv_specification():
             transparency = st.number_input(
                 "Transparency (%)",
                 min_value=10.0, max_value=50.0,
-                value=base_specs['transparency']*100,
+                value=float(base_specs['transparency']*100),
                 step=1.0,
                 key="transparency",
                 help="Light transmission through semi-transparent PV glass"
@@ -428,7 +428,7 @@ def render_pv_specification():
             warranty_years = st.number_input(
                 "Warranty Period (years)",
                 min_value=10, max_value=30,
-                value=base_specs['warranty_years'],
+                value=int(base_specs['warranty_years']),
                 step=1,
                 key="warranty_years",
                 help="Manufacturer warranty period for power output"
