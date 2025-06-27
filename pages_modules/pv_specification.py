@@ -610,18 +610,22 @@ def render_pv_specification():
                 
                 # Save customized specifications to database
                 try:
-                    project_name = st.session_state.get('project_data', {}).get('project_name', 'Default Project')
-                    db_manager.save_pv_specifications(project_name, {
-                        'base_panel_type': selected_panel_type,
-                        'customized_panel_specs': final_panel_specs,
-                        'modifications_made': modifications_made,
-                        'system_specifications': bipv_specifications.to_dict('records') if hasattr(bipv_specifications, 'to_dict') else bipv_specifications,
-                        'calculation_timestamp': datetime.now().isoformat()
-                    })
-                    if modifications_made:
-                        st.info("Custom panel specifications saved to database")
+                    project_data = st.session_state.get('project_data', {})
+                    project_id = project_data.get('project_id')
+                    if project_id:
+                        db_manager.save_pv_specifications(project_id, {
+                            'base_panel_type': selected_panel_type,
+                            'customized_panel_specs': final_panel_specs,
+                            'modifications_made': modifications_made,
+                            'system_specifications': bipv_specifications.to_dict('records') if hasattr(bipv_specifications, 'to_dict') else bipv_specifications,
+                            'calculation_timestamp': datetime.now().isoformat()
+                        })
+                        if modifications_made:
+                            st.info("Custom panel specifications saved to database")
+                    else:
+                        st.warning("No project ID available for database saving")
                 except Exception as e:
-                    st.warning(f"Could not save to database: {str(e)}")
+                    st.warning(f"Error saving PV specifications: {str(e)}")
                 
                 st.success(f"✅ Successfully calculated specifications for {len(bipv_specifications)} BIPV systems")
             else:
