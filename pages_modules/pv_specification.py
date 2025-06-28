@@ -223,9 +223,63 @@ def render_pv_specification():
     if st.button("⚡ Calculate BIPV Systems", type="primary", key="calculate_bipv_systems"):
         
         with st.spinner("Calculating BIPV system specifications for all building elements..."):
-                key="cost_per_wp",
-                help="Panel cost per watt peak including PV cells and glass"
+            # Calculate BIPV specifications using the simplified panel data
+            bipv_specifications = calculate_bipv_system_specifications(
+                suitable_elements, 
+                final_panel_specs, 
+                coverage_data
             )
+            
+            if bipv_specifications is not None and len(bipv_specifications) > 0:
+                st.session_state['pv_specifications'] = bipv_specifications.to_dict('records')
+                
+                # Save to database
+                project_name = st.session_state.get('project_name', 'Unnamed Project')
+                try:
+                    project_id = db_manager.save_project({'project_name': project_name})
+                    if project_id:
+                        db_manager.save_pv_specifications(int(project_id), {
+                            'panel_specs': final_panel_specs,
+                            'bipv_specifications': bipv_specifications.to_dict('records'),
+                            'summary_stats': {
+                                'total_elements': len(bipv_specifications),
+                                'total_capacity': bipv_specifications['capacity_kw'].sum(),
+                                'total_area': bipv_specifications['glass_area_m2'].sum(),
+                                'avg_efficiency': final_panel_specs['efficiency']
+                            }
+                        })
+                except Exception as e:
+                    st.warning(f"Could not save to database: {e}")
+                
+                # Display results
+                st.success(f"✅ Successfully calculated BIPV specifications for {len(bipv_specifications)} building elements")
+                
+                # Summary metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    total_capacity = bipv_specifications['capacity_kw'].sum()
+                    st.metric("Total Capacity", f"{total_capacity:.1f} kW")
+                with col2:
+                    total_area = bipv_specifications['glass_area_m2'].sum()
+                    st.metric("Total BIPV Area", f"{total_area:.0f} m²")
+                with col3:
+                    avg_specific_power = total_capacity * 1000 / total_area if total_area > 0 else 0
+                    st.metric("Avg Power Density", f"{avg_specific_power:.0f} W/m²")
+                with col4:
+                    total_cost = (bipv_specifications['total_cost_eur'].sum() if 'total_cost_eur' in bipv_specifications.columns else 0)
+                    st.metric("Total Cost", f"{total_cost:,.0f} EUR")
+                
+                # Display detailed specifications table
+                st.subheader("Individual Element Specifications")
+                display_df = bipv_specifications[['element_id', 'glass_area_m2', 'capacity_kw', 'annual_energy_kwh', 'total_cost_eur']].copy()
+                display_df.columns = ['Element ID', 'Area (m²)', 'Capacity (kW)', 'Annual Energy (kWh)', 'Cost (EUR)']
+                st.dataframe(display_df, use_container_width=True)
+                
+            else:
+                st.error("Could not calculate BIPV specifications. Please check your data.")
+    
+    st.markdown("---")
+    st.markdown("**Next Step:** Proceed to Step 7 (Yield vs Demand Analysis) to compare energy generation with building consumption.")
             
             installation_factor = st.number_input(
                 "Installation Cost Factor",
