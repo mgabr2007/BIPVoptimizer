@@ -223,11 +223,20 @@ def render_yield_demand():
     
     # Check dependencies - look for actual data instead of flags
     
-    # Check for PV specifications from Step 6
+    # Check for PV specifications from Step 6 (multiple possible locations)
     pv_specs = project_data.get('pv_specifications')
+    if pv_specs is None:
+        pv_specs = st.session_state.get('pv_specifications')
+    
     if pv_specs is None or len(pv_specs) == 0:
         st.error("⚠️ PV system specifications not available. Please complete Step 6 (PV Specification).")
         return
+    
+    # Convert to DataFrame if needed
+    if isinstance(pv_specs, list):
+        pv_specs = pd.DataFrame(pv_specs)
+    
+    st.success(f"✅ PV specifications found ({len(pv_specs)} systems)")
     
     # Check for historical data from Step 2 - look in correct location
     historical_data_project = project_data.get('historical_data')  # This is where Step 2 saves it
@@ -237,11 +246,24 @@ def render_yield_demand():
         st.error("⚠️ Historical data analysis not available. Please complete Step 2 (Historical Data Analysis).")
         return
     
-    # Check for radiation data from Step 5
+    # Check for radiation data from Step 5 (multiple possible locations)
     radiation_data = project_data.get('radiation_data')
-    if radiation_data is None or len(radiation_data) == 0:
+    radiation_completed = st.session_state.get('radiation_completed', False)
+    
+    if radiation_data is None and not radiation_completed:
         st.error("⚠️ Radiation analysis not available. Please complete Step 5 (Radiation Analysis).")
         return
+    
+    # Convert radiation data if needed
+    if isinstance(radiation_data, pd.DataFrame):
+        radiation_data_df = radiation_data
+    elif isinstance(radiation_data, dict) and 'element_radiation' in radiation_data:
+        radiation_data_df = pd.DataFrame(radiation_data['element_radiation'])
+    else:
+        radiation_data_df = None
+    
+    if radiation_data_df is not None:
+        st.success(f"✅ Radiation analysis found ({len(radiation_data_df)} elements)")
     
     # Use historical data from Step 2
     if historical_data_project:
