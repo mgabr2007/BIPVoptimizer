@@ -27,8 +27,20 @@ st.set_page_config(
     }
 )
 
-# Add SEO-friendly custom CSS and metadata injection
+# Inject Open Graph meta tags for social media sharing
 st.markdown("""
+<meta property="og:title" content="BIPV Optimizer – Building Integrated Photovoltaics Analysis Platform">
+<meta property="og:description" content="An AI-powered tool to evaluate, optimize, and visualize BIPV deployment scenarios for retrofitting educational buildings.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://bipv-optimizer.replit.app/">
+<meta property="og:site_name" content="BIPV Optimizer">
+<meta property="og:locale" content="en_US">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="BIPV Optimizer – Building Integrated Photovoltaics Analysis Platform">
+<meta name="twitter:description" content="An AI-powered tool to evaluate, optimize, and visualize BIPV deployment scenarios for retrofitting educational buildings.">
+<meta name="twitter:url" content="https://bipv-optimizer.replit.app/">
+
 <style>
     .main-header {
         font-size: 2.5rem;
@@ -49,7 +61,7 @@ st.markdown("""
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "BIPV Optimizer",
-    "description": "Advanced Building-Integrated Photovoltaics analysis platform for comprehensive solar energy system optimization",
+    "description": "An AI-powered tool to evaluate, optimize, and visualize BIPV deployment scenarios for retrofitting educational buildings.",
     "applicationCategory": "Engineering Software",
     "operatingSystem": "Web Browser",
     "author": {
