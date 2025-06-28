@@ -252,18 +252,19 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
             )
             
             # Get irradiance components (with defaults)
-            ghi = hour_data.get('GHI', hour_data.get('ghi', 0))
-            dni = hour_data.get('DNI', hour_data.get('dni', 0))
-            dhi = hour_data.get('DHI', hour_data.get('dhi', ghi * 0.1))  # Estimate DHI if missing
+            ghi = float(hour_data.get('GHI', hour_data.get('ghi', 0)) or 0)
+            dni = float(hour_data.get('DNI', hour_data.get('dni', 0)) or 0)
+            dhi = float(hour_data.get('DHI', hour_data.get('dhi', ghi * 0.1)) or 0)  # Estimate DHI if missing
             
             surface_irradiance = calculate_irradiance_on_surface(
                 ghi, dni, dhi, solar_pos, tilt, azimuth
             )
             
             # Apply shading if available
-            if shading_factors:
+            if shading_factors is not None:
                 shading_factor = shading_factors.get(str(hour_data['hour']), {}).get('shading_factor', 1.0)
-                surface_irradiance *= shading_factor
+                if shading_factor is not None:
+                    surface_irradiance = surface_irradiance * shading_factor
             
             hourly_irradiance.append(surface_irradiance)
         
@@ -271,8 +272,12 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
         irradiance_array = np.array(hourly_irradiance)
         
         # Calculate monthly irradiation
-        tmy_df['irradiance'] = irradiance_array
-        monthly_irradiation = tmy_df.groupby(tmy_df['datetime'].dt.month)['irradiance'].sum() / 1000  # Convert W to kW
+        tmy_df_copy = tmy_df.copy()
+        tmy_df_copy['irradiance'] = irradiance_array
+        monthly_sums = tmy_df_copy.groupby(tmy_df_copy['datetime'].dt.month)['irradiance'].sum()
+        monthly_irradiation = {}
+        for month in monthly_sums.index:
+            monthly_irradiation[month] = float(monthly_sums.iloc[month-1]) / 1000  # Convert W to kW
         
         # Calculate statistics
         annual_irradiation = irradiance_array.sum() / 1000  # kWh/m²/year
@@ -290,7 +295,7 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
             'peak_irradiance': peak_irradiance,
             'avg_irradiance': avg_irradiance,
             'capacity_factor': safe_divide(avg_irradiance, 1000, 0),  # Simplified capacity factor
-            'monthly_irradiation': monthly_irradiation.to_dict()
+            'monthly_irradiation': monthly_irradiation
         }
         
         radiation_grid.append(element_radiation)
