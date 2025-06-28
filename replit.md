@@ -336,6 +336,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 28, 2025: Fixed Monthly Solar Profile graph in Step 3 to display months in chronological order (Jan-Dec) using pandas DataFrame instead of dictionary for proper month sequencing
 - June 28, 2025: Added comprehensive progress bar to CSV upload functionality in Step 4 with real-time element processing tracking, status updates, and visual progress indication (0-100%) for enhanced user experience during BIM data upload
 - June 28, 2025: Enhanced Step 5 Shading Configuration with comprehensive explanatory content including time-based shading factor purposes, typical values, impact on BIPV analysis, example scenarios, and detailed help text for morning/midday/evening shading parameters
+- June 28, 2025: Integrated building walls CSV uploader in Step 5 to replace manual shading factors with precise geometric self-shading calculations using actual BIM wall data for accurate shadow analysis based on wall dimensions, orientations, and multi-story building geometry
 
 ## User Preferences
 
