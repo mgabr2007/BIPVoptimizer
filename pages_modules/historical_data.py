@@ -12,8 +12,17 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data)
     """Generate 25-year demand forecast based on historical data and AI model."""
     import numpy as np
     
-    # Calculate base consumption and seasonal patterns
-    base_consumption = sum(consumption_data) / len(consumption_data) if consumption_data else 50000
+    # Calculate base consumption - use annual total, not monthly average
+    if consumption_data:
+        if len(consumption_data) >= 12:
+            # Use full year data
+            base_consumption = sum(consumption_data[:12])  # Annual total
+        else:
+            # Extrapolate to annual from available months
+            monthly_avg = sum(consumption_data) / len(consumption_data)
+            base_consumption = monthly_avg * 12  # Estimate annual total
+    else:
+        base_consumption = 300000  # Default annual consumption in kWh
     
     # Calculate growth rate based on data trend
     if len(consumption_data) >= 12:
@@ -34,12 +43,23 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data)
     # Generate seasonal patterns based on historical data
     seasonal_factors = []
     if len(consumption_data) >= 12:
-        yearly_avg = sum(consumption_data[:12]) / 12
-        seasonal_factors = [c / yearly_avg for c in consumption_data[:12]]
+        # Use actual monthly distribution from historical data
+        total_annual = sum(consumption_data[:12])
+        monthly_avg = total_annual / 12
+        seasonal_factors = [c / monthly_avg for c in consumption_data[:12]]
     else:
-        # Default seasonal pattern for buildings (higher in winter/summer)
-        # Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
-        seasonal_factors = [1.2, 1.15, 1.05, 0.95, 0.85, 0.8, 0.75, 0.8, 0.9, 1.0, 1.1, 1.15]
+        # Use actual monthly pattern from available data, extrapolated
+        if consumption_data:
+            # Normalize available months to create seasonal pattern
+            monthly_avg = sum(consumption_data) / len(consumption_data)
+            seasonal_factors = [c / monthly_avg for c in consumption_data]
+            # Extend to 12 months by repeating pattern
+            while len(seasonal_factors) < 12:
+                seasonal_factors.extend(seasonal_factors[:min(len(consumption_data), 12 - len(seasonal_factors))])
+            seasonal_factors = seasonal_factors[:12]
+        else:
+            # Default seasonal pattern for educational buildings
+            seasonal_factors = [1.1, 1.05, 1.0, 0.95, 0.9, 0.8, 0.75, 0.8, 0.95, 1.0, 1.05, 1.1]
     
     # Generate 25 years of monthly predictions with proper calendar alignment
     monthly_predictions = []
