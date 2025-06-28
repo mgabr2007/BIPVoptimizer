@@ -566,14 +566,15 @@ def render_historical_data():
                 
                 # Add forecast data points continuing from where historical ends
                 forecast_values = forecast_data['monthly_predictions'][:24]
+                forecast_start_date = forecast_data['forecast_start_date']
+                
                 for i in range(len(forecast_values)):
-                    # Calculate month and year for forecast
-                    total_months = len(hist_data) + i
-                    month_idx = total_months % 12
-                    year_offset = total_months // 12
-                    forecast_year = current_year + year_offset
+                    # Calculate proper forecast date by adding months to start date
+                    year = forecast_start_date.year + (forecast_start_date.month + i - 1) // 12
+                    month = (forecast_start_date.month + i - 1) % 12 + 1
                     
-                    all_timeline.append(f"{months_labels[month_idx]} {forecast_year}")
+                    timeline_label = f"{months_labels[month-1]} {year}"
+                    all_timeline.append(timeline_label)
                     all_values.append(forecast_values[i])
                 
                 # Split the data for different visual styling
