@@ -297,6 +297,19 @@ def render_project_setup():
                 icon=folium.Icon(color="blue", icon="cloud", prefix="fa")
             ).add_to(m)
     
+    # Custom CSS to reduce map spacing
+    st.markdown("""
+    <style>
+    .stApp > div[data-testid="stVerticalBlock"] > div.element-container:has(iframe[title="streamlit_folium.st_folium"]) {
+        margin-bottom: -1rem !important;
+        padding-bottom: 0 !important;
+    }
+    iframe[title="streamlit_folium.st_folium"] {
+        margin-bottom: 0 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Display stable map with optimized state management
     map_data = None
     if location_method == "Interactive Map":
@@ -351,7 +364,7 @@ def render_project_setup():
             debug=False
         )
     
-    # Display selected coordinates and weather station summary
+    # Display selected coordinates and weather station summary  
     selected_lat = st.session_state.map_coordinates['lat']
     selected_lon = st.session_state.map_coordinates['lng']
     
