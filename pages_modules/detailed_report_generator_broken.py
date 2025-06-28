@@ -910,7 +910,7 @@ def generate_comprehensive_detailed_report():
                 <hr style="margin: 20px 0; border: 1px solid rgba(255,255,255,0.3);">
                 <p><em>This analysis was conducted as part of PhD research at Technische Universität Berlin.</em></p>
                 <p><strong>Research Contact:</strong> Mostafa Gabr | <strong>Institution:</strong> TU Berlin, Department of Energy Engineering</p>
-                <p><strong>Research Profile:</strong> <a href="https://www.researchgate.net/profile/Mostafa-Gabr" style="color: #90EE90;">ResearchGate Profile</a></p>
+                <p><strong>Research Profile:</strong> <a href="https://www.researchgate.net/profile/Mostafa-Gabr-4" style="color: #90EE90;">ResearchGate Profile</a></p>
             </div>
         </div>
     </body>

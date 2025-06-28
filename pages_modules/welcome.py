@@ -279,5 +279,5 @@ def render_welcome():
     **Developed by:** Mostafa Gabr  
     **Institution:** Technische Universität Berlin  
     **Research Focus:** Building-Integrated Photovoltaics Optimization  
-    **Contact:** [ResearchGate Profile](https://www.researchgate.net/profile/Mostafa-Gabr)
+    **Contact:** [ResearchGate Profile](https://www.researchgate.net/profile/Mostafa-Gabr-4)
     """)

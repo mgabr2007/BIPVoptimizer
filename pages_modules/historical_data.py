@@ -229,7 +229,7 @@ def create_forecast_summary_report(forecast_data, consumption_data):
         "• Update model annually with new consumption data for improved accuracy",
         "",
         "For technical questions, contact: Mostafa Gabr, TU Berlin",
-        "ResearchGate: https://www.researchgate.net/profile/Mostafa-Gabr-2"
+        "ResearchGate: https://www.researchgate.net/profile/Mostafa-Gabr-4"
     ])
     
     return "\n".join(report_lines)

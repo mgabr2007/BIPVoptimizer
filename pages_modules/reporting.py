@@ -258,7 +258,7 @@ def generate_comprehensive_html_report():
             <p><strong>Developed by:</strong> Mostafa Gabr</p>
             <p><strong>Institution:</strong> Technische Universität Berlin</p>
             <p><strong>Research Focus:</strong> Building-Integrated Photovoltaics Optimization</p>
-            <p><strong>Contact:</strong> <a href="https://www.researchgate.net/profile/Mostafa-Gabr">ResearchGate Profile</a></p>
+            <p><strong>Contact:</strong> <a href="https://www.researchgate.net/profile/Mostafa-Gabr-4">ResearchGate Profile</a></p>
         </div>
     </body>
     </html>
