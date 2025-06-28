@@ -102,18 +102,75 @@ class PerplexityBIPVAgent:
         weather_data = project_data.get('weather_analysis', {})
         annual_ghi = weather_data.get('annual_ghi', 1200)
         
-        # PV specifications
+        # Enhanced PV specifications extraction with multiple data sources
         pv_specs = project_data.get('pv_specifications', [])
+        total_capacity = 0
+        total_annual_yield = 0
+        
+        # Try different data structure formats
         if isinstance(pv_specs, dict) and 'system_power_kw' in pv_specs:
             # Convert DataFrame dict format
-            total_capacity = sum(pv_specs.get('system_power_kw', {}).values())
-            total_annual_yield = sum(pv_specs.get('annual_energy_kwh', {}).values())
+            capacity_dict = pv_specs.get('system_power_kw', {})
+            yield_dict = pv_specs.get('annual_energy_kwh', {})
+            if isinstance(capacity_dict, dict):
+                total_capacity = sum(float(v) for v in capacity_dict.values() if v)
+            if isinstance(yield_dict, dict):
+                total_annual_yield = sum(float(v) for v in yield_dict.values() if v)
         elif isinstance(pv_specs, list):
-            total_capacity = sum(spec.get('system_power_kw', 0) for spec in pv_specs)
-            total_annual_yield = sum(spec.get('annual_energy_kwh', 0) for spec in pv_specs)
-        else:
-            total_capacity = 0
-            total_annual_yield = 0
+            for spec in pv_specs:
+                if isinstance(spec, dict):
+                    total_capacity += float(spec.get('system_power_kw', 0))
+                    total_annual_yield += float(spec.get('annual_energy_kwh', 0))
+        
+        # If no PV specs found, try yield_demand_analysis
+        if total_capacity == 0 and total_annual_yield == 0:
+            yield_analysis = project_data.get('yield_demand_analysis', {})
+            if isinstance(yield_analysis, dict):
+                summary = yield_analysis.get('summary', {})
+                if isinstance(summary, dict):
+                    total_capacity = float(summary.get('total_capacity_kw', 0))
+                    total_annual_yield = float(summary.get('total_annual_yield_kwh', 0))
+        
+        # If still no data, calculate from building elements with BIPV specifications
+        if total_capacity == 0 and total_annual_yield == 0 and building_elements:
+            for elem in building_elements:
+                if isinstance(elem, dict) and elem.get('pv_suitable', False):
+                    glass_area = float(elem.get('glass_area', 1.5))
+                    # BIPV glass: 150 W/m² power density
+                    element_capacity = glass_area * 0.15  # kW
+                    orientation = elem.get('orientation', '')
+                    # Realistic solar yield based on orientation
+                    if 'South' in orientation:
+                        annual_yield = element_capacity * 1400  # kWh/year
+                    elif any(x in orientation for x in ['East', 'West']):
+                        annual_yield = element_capacity * 1100  # kWh/year
+                    else:
+                        annual_yield = element_capacity * 800   # kWh/year for North
+                    
+                    total_capacity += element_capacity
+                    total_annual_yield += annual_yield
+        
+        # Debug logging to trace data extraction
+        print(f"DEBUG AI Consultation Data:")
+        print(f"- Project data keys: {list(project_data.keys()) if project_data else 'None'}")
+        print(f"- Building elements count: {len(building_elements)}")
+        print(f"- Total elements: {total_elements}")
+        print(f"- Suitable elements: {suitable_elements}")
+        print(f"- Total glass area: {total_glass_area}")
+        print(f"- PV specs type: {type(pv_specs)}, length: {len(pv_specs) if isinstance(pv_specs, (list, dict)) else 'N/A'}")
+        if isinstance(pv_specs, dict):
+            print(f"- PV specs keys: {list(pv_specs.keys())}")
+        print(f"- Total capacity: {total_capacity}")
+        print(f"- Total annual yield: {total_annual_yield}")
+        
+        # Check if we have yield_demand_analysis data
+        yield_analysis = project_data.get('yield_demand_analysis', {})
+        print(f"- Yield analysis available: {bool(yield_analysis)}")
+        if yield_analysis:
+            print(f"- Yield analysis keys: {list(yield_analysis.keys())}")
+            summary = yield_analysis.get('summary', {})
+            if summary:
+                print(f"- Yield summary: capacity={summary.get('total_capacity_kw', 0)}, yield={summary.get('total_annual_yield_kwh', 0)}")
         
         # Calculate specific performance metrics for detailed references
         avg_yield_per_element = safe_divide(total_annual_yield, suitable_elements, 0)
@@ -126,8 +183,13 @@ class PerplexityBIPVAgent:
             if count > 0:
                 orientation_performance[orientation] = count
         
-        best_orientation = max(orientation_performance, key=orientation_performance.get) if orientation_performance else "Unknown"
-        worst_orientation = min(orientation_performance, key=orientation_performance.get) if orientation_performance else "Unknown"
+        if orientation_performance:
+            sorted_orientations = sorted(orientation_performance.items(), key=lambda x: x[1], reverse=True)
+            best_orientation = sorted_orientations[0][0]
+            worst_orientation = sorted_orientations[-1][0]
+        else:
+            best_orientation = "Unknown"
+            worst_orientation = "Unknown"
         
         summary = f"""
         PROJECT ANALYSIS RESULTS - SPECIFIC DATA FOR REFERENCE:
@@ -223,21 +285,30 @@ def render_perplexity_consultation():
     project_data = st.session_state.get('project_data', {})
     project_name = project_data.get('project_name', 'Current Project')
     
-    # Load data from database
+    # Load comprehensive data from database
     db_data = get_project_report_data(project_name)
     if not db_data:
         st.warning("No project data found. Please complete the workflow analysis first.")
         return
     
+    # Use database data as primary source, fallback to session state
     building_elements = db_data.get('building_elements', [])
-    financial_analysis = project_data.get('financial_analysis', {})
+    financial_analysis = db_data.get('financial_analysis', project_data.get('financial_analysis', {}))
+    
+    # Merge all available data for comprehensive analysis
+    comprehensive_project_data = {
+        **project_data,
+        **db_data,
+        'building_elements': building_elements,
+        'financial_analysis': financial_analysis
+    }
     
     col1, col2 = st.columns(2)
     
     with col1:
         if st.button("🔍 Analyze Complete Results", type="primary"):
             with st.spinner("Consulting AI research expert..."):
-                analysis = agent.analyze_bipv_results(project_data, building_elements, financial_analysis)
+                analysis = agent.analyze_bipv_results(comprehensive_project_data, building_elements, financial_analysis)
                 st.session_state.perplexity_analysis = analysis
     
     with col2:
