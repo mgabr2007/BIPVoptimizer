@@ -417,13 +417,30 @@ def render_historical_data():
         if consumption_data:
             months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-            display_data = consumption_data[:12] if len(consumption_data) >= 12 else consumption_data
             
-            chart_data = {}
-            for i, month in enumerate(months[:len(display_data)]):
-                chart_data[month] = display_data[i]
+            # Create a full 12-month dataset starting with January
+            full_year_data = {}
             
-            st.bar_chart(chart_data)
+            if len(consumption_data) >= 12:
+                # If we have 12+ months, use first 12 months
+                for i in range(12):
+                    full_year_data[months[i]] = consumption_data[i]
+            else:
+                # If less than 12 months, fill missing months with average
+                avg_value = sum(consumption_data) / len(consumption_data) if consumption_data else 0
+                
+                # Fill available months
+                for i in range(len(consumption_data)):
+                    full_year_data[months[i]] = consumption_data[i]
+                
+                # Fill missing months with average
+                for i in range(len(consumption_data), 12):
+                    full_year_data[months[i]] = avg_value
+            
+            # Create ordered chart data starting with January
+            ordered_chart_data = {month: full_year_data[month] for month in months}
+            
+            st.bar_chart(ordered_chart_data)
         
         # Generate 25-year demand forecast
         try:
@@ -447,34 +464,48 @@ def render_historical_data():
                 
                 fig = go.Figure()
                 
-                # Add historical data (last 12 months)
-                months_hist = list(range(1, min(13, len(consumption_data) + 1)))
+                # Create proper month labels for historical data
+                months_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                
+                # Historical data with proper month labels
+                hist_data = consumption_data[:12] if len(consumption_data) >= 12 else consumption_data
+                hist_months = months_labels[:len(hist_data)]
+                
                 fig.add_trace(go.Scatter(
-                    x=months_hist,
-                    y=consumption_data[:12] if len(consumption_data) >= 12 else consumption_data,
+                    x=hist_months,
+                    y=hist_data,
                     mode='lines+markers',
                     name='Historical Data',
                     line=dict(color='blue', width=3)
                 ))
                 
-                # Add forecast data (next 25 years, show first 5 years in detail)
-                forecast_years = list(range(13, 73))  # Next 60 months (5 years)
-                forecast_values = forecast_data['monthly_predictions'][:60]
+                # Forecast data with extended month labels (next 2 years for clarity)
+                forecast_months = []
+                current_year = datetime.now().year + 1
+                for year_offset in range(2):  # Show 2 years of forecast
+                    for month_idx in range(12):
+                        year_label = current_year + year_offset
+                        month_label = months_labels[month_idx]
+                        forecast_months.append(f"{month_label} {year_label}")
+                
+                forecast_values = forecast_data['monthly_predictions'][:24]  # 2 years
                 
                 fig.add_trace(go.Scatter(
-                    x=forecast_years,
+                    x=forecast_months,
                     y=forecast_values,
                     mode='lines',
-                    name='AI Forecast (5 years)',
+                    name='AI Forecast (2 years)',
                     line=dict(color='red', width=2, dash='dash')
                 ))
                 
                 fig.update_layout(
                     title="Energy Demand: Historical vs AI Forecast",
-                    xaxis_title="Month",
+                    xaxis_title="Time Period",
                     yaxis_title="Consumption (kWh)",
                     hovermode='x unified',
-                    height=400
+                    height=400,
+                    xaxis=dict(tickangle=45)  # Rotate labels for better readability
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
