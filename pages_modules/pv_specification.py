@@ -70,12 +70,25 @@ def render_pv_specification():
     
     st.header("⚡ Step 6: BIPV Panel Specifications")
     
-    # Check for radiation data from Step 5
-    radiation_analysis = st.session_state.get('project_data', {}).get('radiation_analysis')
-    if radiation_analysis is None:
+    # Check for radiation data from Step 5 (multiple possible locations)
+    project_data = st.session_state.get('project_data', {})
+    radiation_data = project_data.get('radiation_data')
+    radiation_completed = st.session_state.get('radiation_completed', False)
+    
+    if radiation_data is None and not radiation_completed:
         st.warning("⚠️ Radiation analysis data required. Please complete Step 5 (Solar Radiation & Shading Analysis) first.")
         st.info("PV specification requires solar radiation data to calculate energy yield accurately.")
         return
+    
+    # Confirm radiation data is available
+    if radiation_data is not None or radiation_completed:
+        if isinstance(radiation_data, pd.DataFrame):
+            elements_count = len(radiation_data)
+        elif isinstance(radiation_data, dict) and 'element_radiation' in radiation_data:
+            elements_count = len(radiation_data['element_radiation'])
+        else:
+            elements_count = "available"
+        st.success(f"✅ Radiation analysis data found ({elements_count} elements analyzed)")
     
     # Check for building elements data from Step 4
     building_elements = st.session_state.get('building_elements')
