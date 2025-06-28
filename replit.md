@@ -340,6 +340,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 28, 2025: Simplified Step 6 BIPV panel specifications interface by reducing complex detailed sections to focus on the most essential parameters: efficiency, transparency, cost, and basic performance ratios, providing streamlined user experience while maintaining calculation accuracy
 - June 28, 2025: Fixed Monthly Solar Profile graph in Step 3 to display months in chronological order (Jan-Dec) using Plotly bar chart with category_orders parameter instead of Streamlit's basic chart which was sorting alphabetically
 - June 28, 2025: Fixed data validation issues in Steps 6, 7, and 8 by updating validation logic to check actual data locations instead of completion flags, ensuring proper recognition of completed previous steps and eliminating false warning messages about missing data
+- June 28, 2025: Enhanced Step 8 with comprehensive three-objective weighted optimization system allowing users to set custom weights for minimize cost, maximize yield, and maximize ROI objectives that sum to 100%, implementing weighted fitness function in genetic algorithm with normalized objective scoring, comprehensive multi-objective performance visualization showing objective breakdown for top solutions, and detailed weighted results analysis with interactive charts
 
 ## User Preferences
 

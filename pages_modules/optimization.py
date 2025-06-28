@@ -17,48 +17,67 @@ def create_individual(n_elements):
     return [random.randint(0, 1) for _ in range(n_elements)]
 
 def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
-    """Evaluate fitness of an individual solution."""
+    """Evaluate fitness of an individual solution using weighted multi-objective approach."""
     
     try:
         # Convert individual to selection mask
         selection_mask = np.array(individual, dtype=bool)
         
         if not any(selection_mask):
-            return (0.0, float('inf'))  # No systems selected
+            return (0.0,)  # No systems selected - return single fitness value
         
         # Calculate selected systems metrics
         selected_specs = pv_specs[selection_mask]
         
         # Calculate total metrics
-        total_power_kw = selected_specs['system_power_kw'].sum()
         total_cost = selected_specs['total_installation_cost'].sum()
         total_annual_yield = selected_specs['annual_energy_kwh'].sum()
         
-        # Calculate net import reduction (simplified)
+        # Calculate net import reduction
         if energy_balance is not None and len(energy_balance) > 0:
             total_annual_demand = energy_balance['predicted_demand'].sum()
             net_import_reduction = min(total_annual_yield, total_annual_demand)
-            new_net_import = max(0, total_annual_demand - total_annual_yield)
         else:
-            # Fallback if no energy balance data
             net_import_reduction = total_annual_yield
-            new_net_import = 0
         
-        # Calculate annual savings
+        # Calculate annual savings and ROI
         electricity_price = financial_params.get('electricity_price', 0.25)
         annual_savings = net_import_reduction * electricity_price
         
-        # Calculate ROI (simple payback consideration)
         if annual_savings > 0 and total_cost > 0:
-            roi = annual_savings / total_cost
+            roi = (annual_savings / total_cost) * 100  # ROI as percentage
         else:
             roi = 0
         
-        # Fitness: (ROI, -Net Import)
-        return (roi, -new_net_import)
+        # Get objective weights
+        weight_cost = financial_params.get('weight_cost', 33) / 100.0
+        weight_yield = financial_params.get('weight_yield', 33) / 100.0
+        weight_roi = financial_params.get('weight_roi', 34) / 100.0
+        
+        # Normalize objectives (0-1 scale)
+        # For cost: lower is better, so use 1/(1+normalized_cost)
+        max_possible_cost = pv_specs['total_installation_cost'].sum()  # If all systems selected
+        normalized_cost = total_cost / max_possible_cost if max_possible_cost > 0 else 0
+        cost_fitness = 1 / (1 + normalized_cost)  # Higher is better
+        
+        # For yield: higher is better
+        max_possible_yield = pv_specs['annual_energy_kwh'].sum()  # If all systems selected
+        yield_fitness = total_annual_yield / max_possible_yield if max_possible_yield > 0 else 0
+        
+        # For ROI: higher is better (already normalized as percentage)
+        roi_fitness = min(roi / 50.0, 1.0)  # Cap at 50% ROI for normalization
+        
+        # Calculate weighted fitness (single objective)
+        weighted_fitness = (
+            weight_cost * cost_fitness +
+            weight_yield * yield_fitness + 
+            weight_roi * roi_fitness
+        )
+        
+        return (weighted_fitness,)
     
     except Exception as e:
-        return (0.0, float('inf'))
+        return (0.0,)
 
 def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_params):
     """Run simplified genetic algorithm optimization."""
@@ -275,7 +294,44 @@ def render_optimization():
         )
     
     with col2:
-        st.write("**Optimization Objectives**")
+        st.write("**Multi-Objective Weights**")
+        st.caption("Set the importance of each objective (must sum to 100%)")
+        
+        # Three objective weights that must sum to 100%
+        weight_cost = st.slider(
+            "Minimize Cost Weight (%)",
+            0, 100, 33, 1,
+            help="Weight for minimizing total system cost. Higher values prioritize lower-cost solutions.",
+            key="weight_cost_opt"
+        )
+        
+        weight_yield = st.slider(
+            "Maximize Yield Weight (%)",
+            0, 100, 33, 1,
+            help="Weight for maximizing energy production. Higher values prioritize high-yield solutions.",
+            key="weight_yield_opt"
+        )
+        
+        weight_roi = st.slider(
+            "Maximize ROI Weight (%)",
+            0, 100, 34, 1,
+            help="Weight for maximizing return on investment. Higher values prioritize financially attractive solutions.",
+            key="weight_roi_opt"
+        )
+        
+        # Validate weights sum to 100%
+        total_weight = weight_cost + weight_yield + weight_roi
+        if total_weight != 100:
+            st.error(f"⚠️ Objective weights must sum to 100% (current: {total_weight}%)")
+            st.stop()
+        else:
+            st.success(f"✅ Objectives balanced: Cost {weight_cost}%, Yield {weight_yield}%, ROI {weight_roi}%")
+    
+    # Financial parameters section
+    st.write("**Financial Parameters**")
+    col3, col4 = st.columns(2)
+    
+    with col3:
         electricity_price = st.number_input(
             "Electricity Price (€/kWh)",
             0.15, 0.50, 0.25, 0.01,
@@ -347,7 +403,10 @@ def render_optimization():
                 financial_params = {
                     'electricity_price': electricity_price,
                     'max_investment': max_investment,
-                    'min_coverage': min_coverage / 100
+                    'min_coverage': min_coverage / 100,
+                    'weight_cost': weight_cost,
+                    'weight_yield': weight_yield,
+                    'weight_roi': weight_roi
                 }
                 
                 # Filter systems by budget constraint
@@ -424,13 +483,24 @@ def render_optimization():
         if solutions is not None and len(solutions) > 0:
             st.subheader("📊 Optimization Results")
             
+            # Weighted objectives summary
+            config = optimization_data.get('optimization_config', {})
+            financial_params = config.get('financial_params', {})
+            
+            st.info(f"""
+            **Multi-Objective Optimization Results**
+            Weighted objectives used: Cost {financial_params.get('weight_cost', 33)}%, 
+            Yield {financial_params.get('weight_yield', 33)}%, 
+            ROI {financial_params.get('weight_roi', 34)}%
+            """)
+            
             # Key metrics from best solutions
             best_solution = solutions.iloc[0]
             
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.metric("Best ROI", f"{best_solution['roi']*100:.1f}%")
+                st.metric("Best Weighted Score", f"{best_solution.get('weighted_fitness', 0.0):.3f}")
             
             with col2:
                 st.metric("Best Investment", f"€{best_solution['total_investment']:,.0f}")
@@ -441,10 +511,47 @@ def render_optimization():
             with col4:
                 st.metric("Solutions Found", len(solutions))
             
-            # Solution selection and comparison
-            st.subheader("🎯 Solution Selection & Comparison")
+            # Objectives breakdown visualization
+            st.subheader("🎯 Multi-Objective Performance Analysis")
             
-            # Solutions table
+            # Create objectives breakdown chart
+            if len(solutions) >= 3:
+                top_solutions = solutions.head(3)
+                
+                # Calculate individual objective scores for top solutions
+                objectives_data = []
+                for _, sol in top_solutions.iterrows():
+                    # Normalize scores (0-1 scale for visualization)
+                    cost_score = 1 / (1 + sol['total_investment'] / max_investment) if max_investment > 0 else 0
+                    yield_score = sol['annual_energy_kwh'] / solutions['annual_energy_kwh'].max() if solutions['annual_energy_kwh'].max() > 0 else 0
+                    roi_score = min(sol['roi'] / 0.5, 1.0) if sol['roi'] > 0 else 0  # Cap at 50% ROI
+                    
+                    objectives_data.extend([
+                        {'Solution': sol['solution_id'], 'Objective': 'Cost Efficiency', 'Score': cost_score * 100, 'Weight': financial_params.get('weight_cost', 33)},
+                        {'Solution': sol['solution_id'], 'Objective': 'Energy Yield', 'Score': yield_score * 100, 'Weight': financial_params.get('weight_yield', 33)},
+                        {'Solution': sol['solution_id'], 'Objective': 'ROI Performance', 'Score': roi_score * 100, 'Weight': financial_params.get('weight_roi', 34)}
+                    ])
+                
+                objectives_df = pd.DataFrame(objectives_data)
+                
+                # Create grouped bar chart
+                fig_objectives = px.bar(
+                    objectives_df,
+                    x='Solution',
+                    y='Score',
+                    color='Objective',
+                    title="Multi-Objective Performance Breakdown (Top 3 Solutions)",
+                    labels={'Score': 'Normalized Score (%)', 'Solution': 'Solution ID'},
+                    text='Weight'
+                )
+                fig_objectives.update_traces(texttemplate='%{text}% weight', textposition='outside')
+                fig_objectives.update_layout(height=400)
+                st.plotly_chart(fig_objectives, use_container_width=True)
+            
+            # Solution selection and comparison
+            st.subheader("📊 Detailed Solution Comparison")
+            
+            # Solutions table with weighted score
             display_columns = [
                 'solution_id', 'total_power_kw', 'total_investment', 
                 'annual_energy_kwh', 'annual_savings', 'roi', 'n_selected_elements'
