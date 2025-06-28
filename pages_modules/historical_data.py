@@ -38,26 +38,32 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data)
         seasonal_factors = [c / yearly_avg for c in consumption_data[:12]]
     else:
         # Default seasonal pattern for buildings (higher in winter/summer)
-        seasonal_factors = [1.2, 1.15, 1.1, 1.0, 0.9, 0.85, 0.8, 0.85, 0.9, 1.0, 1.1, 1.15]
+        # Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
+        seasonal_factors = [1.2, 1.15, 1.05, 0.95, 0.85, 0.8, 0.75, 0.8, 0.9, 1.0, 1.1, 1.15]
     
-    # Generate 25 years of monthly predictions
+    # Generate 25 years of monthly predictions with proper calendar alignment
     monthly_predictions = []
     annual_predictions = []
+    
+    # Use a fixed seed for consistent results
+    np.random.seed(42)
     
     for year in range(25):
         annual_consumption = base_consumption * (1 + growth_rate) ** year
         year_monthly = []
         
-        for month in range(12):
-            seasonal_factor = seasonal_factors[month]
+        for month_index in range(12):
+            # Calendar months: 0=Jan, 1=Feb, ..., 11=Dec
+            seasonal_factor = seasonal_factors[month_index]
             monthly_value = (annual_consumption / 12) * seasonal_factor
             
-            # Add some controlled randomness for realism
-            noise_factor = 1 + (np.random.random() - 0.5) * 0.1  # ±5% variation
+            # Add controlled randomness for realism but keep predictable patterns
+            noise_factor = 1 + (np.random.random() - 0.5) * 0.05  # ±2.5% variation
             monthly_value *= noise_factor
             
-            monthly_predictions.append(max(0, monthly_value))
-            year_monthly.append(max(0, monthly_value))
+            final_value = max(0, monthly_value)
+            monthly_predictions.append(final_value)
+            year_monthly.append(final_value)
         
         annual_predictions.append(sum(year_monthly))
     
@@ -67,7 +73,7 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data)
         'growth_rate': growth_rate,
         'base_consumption': base_consumption,
         'seasonal_factors': seasonal_factors,
-        'forecast_start_date': datetime.now().replace(day=1),
+        'forecast_start_date': datetime.now().replace(day=1) + timedelta(days=32),  # Start from next month
         'model_parameters': {
             'algorithm': 'RandomForest with Trend Analysis',
             'features': ['seasonality', 'temperature', 'occupancy', 'historical_trend'],
@@ -89,21 +95,23 @@ def create_forecast_csv(forecast_data):
         year = i // 12 + 1
         month = (i % 12) + 1
         
-        # Calculate the actual date
-        forecast_date = start_date + timedelta(days=30 * i)
-        date_str = forecast_date.strftime("%Y-%m")
+        # Calculate the actual date using proper month arithmetic
+        forecast_year = start_date.year + (start_date.month + i - 1) // 12
+        forecast_month = (start_date.month + i - 1) % 12 + 1
+        date_str = f"{forecast_year}-{forecast_month:02d}"
         
         annual_total = annual_data[year - 1] if year <= len(annual_data) else 0
         
+        # Correct seasonal classification based on actual month
         notes = ""
-        if month in [12, 1, 2]:
+        if forecast_month in [12, 1, 2]:
             notes = "Winter peak demand"
-        elif month in [6, 7, 8]:
+        elif forecast_month in [6, 7, 8]:
             notes = "Summer cooling load"
-        elif month in [3, 4, 5, 9, 10, 11]:
+        elif forecast_month in [3, 4, 5, 9, 10, 11]:
             notes = "Moderate consumption"
         
-        csv_lines.append(f"{year},{month},{date_str},{monthly_consumption:.2f},{annual_total:.2f},{growth_rate:.4f},{notes}")
+        csv_lines.append(f"{year},{forecast_month},{date_str},{monthly_consumption:.2f},{annual_total:.2f},{growth_rate:.4f},{notes}")
     
     return "\n".join(csv_lines)
 
