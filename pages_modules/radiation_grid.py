@@ -258,13 +258,70 @@ def render_radiation_grid():
     if include_shading:
         st.subheader("⛅ Shading Configuration")
         
+        # Add comprehensive explanation
+        with st.expander("🔍 Understanding Shading Configuration", expanded=False):
+            st.markdown("""
+            **Purpose of Time-Based Shading Factors:**
+            
+            Shading factors represent the percentage of solar radiation that reaches your building surfaces during different time periods, accounting for:
+            
+            **🌅 Morning Shading (6:00-12:00)**
+            - **Low sun angles** create longer shadows from nearby buildings, trees, or architectural features
+            - **Typical values:** 0.7-0.9 (30-10% shading loss)
+            - **Common causes:** East-facing obstructions, morning fog, building shadows
+            
+            **☀️ Midday Shading (12:00-18:00)**
+            - **Peak solar hours** with highest sun elevation and minimal shadowing
+            - **Typical values:** 0.9-1.0 (10-0% shading loss)
+            - **Common causes:** Only significant overhangs or tall adjacent structures
+            
+            **🌇 Evening Shading (18:00-20:00)**
+            - **Low sun angles** again create shadows, particularly from west-facing obstructions
+            - **Typical values:** 0.6-0.8 (40-20% shading loss)
+            - **Common causes:** West-facing buildings, vegetation, topography
+            
+            **How It Affects BIPV Analysis:**
+            - **Energy Yield:** Directly multiplies hourly solar irradiance calculations
+            - **Financial Performance:** Lower shading factors reduce electricity generation and ROI
+            - **System Sizing:** Helps determine optimal BIPV panel placement and capacity
+            - **Cost-Benefit:** Identifies which building surfaces provide best energy returns
+            
+            **Setting Values:**
+            - **1.0 = No shading** (100% solar radiation reaches surface)
+            - **0.8 = Moderate shading** (20% reduction in solar radiation)
+            - **0.5 = Heavy shading** (50% reduction in solar radiation)
+            - **0.0 = Complete shading** (No solar radiation reaches surface)
+            
+            **Example Scenarios:**
+            - **Urban building with tall neighbors:** Morning 0.7, Midday 0.9, Evening 0.6
+            - **Open suburban location:** Morning 0.9, Midday 1.0, Evening 0.8
+            - **Campus with mature trees:** Morning 0.8, Midday 0.9, Evening 0.7
+            """)
+        
+        st.info("💡 **Tip:** Adjust these values based on your building's specific environment. Default values represent typical educational building scenarios with moderate surrounding context.")
+        
         col1, col2, col3 = st.columns(3)
         with col1:
-            morning_shading = st.slider("Morning Shading (6-12h)", 0.0, 1.0, 0.9, 0.1, key="morning_shading_rad")
+            morning_shading = st.slider(
+                "Morning Shading (6-12h)", 
+                0.0, 1.0, 0.9, 0.1, 
+                key="morning_shading_rad",
+                help="Solar radiation multiplier for morning hours (6:00-12:00). 1.0 = no shading, 0.0 = complete shading. Account for eastern obstructions, building shadows, and morning conditions."
+            )
         with col2:
-            midday_shading = st.slider("Midday Shading (12-18h)", 0.0, 1.0, 1.0, 0.1, key="midday_shading_rad")
+            midday_shading = st.slider(
+                "Midday Shading (12-18h)", 
+                0.0, 1.0, 1.0, 0.1, 
+                key="midday_shading_rad",
+                help="Solar radiation multiplier for peak solar hours (12:00-18:00). Typically highest values due to optimal sun elevation. Only significant overhangs or tall structures cause shading."
+            )
         with col3:
-            evening_shading = st.slider("Evening Shading (18-20h)", 0.0, 1.0, 0.8, 0.1, key="evening_shading_rad")
+            evening_shading = st.slider(
+                "Evening Shading (18-20h)", 
+                0.0, 1.0, 0.8, 0.1, 
+                key="evening_shading_rad",
+                help="Solar radiation multiplier for evening hours (18:00-20:00). Account for western obstructions, buildings, vegetation, and topographical features that create afternoon shadows."
+            )
         
         # Create hourly shading factors
         shading_factors = {}

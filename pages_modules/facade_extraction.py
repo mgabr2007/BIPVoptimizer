@@ -65,16 +65,33 @@ def render_facade_extraction():
     
     if uploaded_csv is not None:
         try:
+            # Initialize progress tracking
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            # Step 1: File reading
+            status_text.text("Reading CSV file...")
+            progress_bar.progress(10)
+            
             content = uploaded_csv.getvalue().decode('utf-8-sig')
             headers, data = parse_csv_content(content)
             
+            # Step 2: Header cleaning
+            status_text.text("Processing headers...")
+            progress_bar.progress(20)
+            
             # Clean headers
             headers = [h.strip().replace('\ufeff', '') for h in headers]
+            
+            # Step 3: Initialize processing
+            status_text.text("Initializing element processing...")
+            progress_bar.progress(30)
             
             # Process building elements
             windows = []
             total_glass_area = 0
             suitable_elements = 0
+            total_rows = len(data)
             
             def get_orientation_from_azimuth(azimuth):
                 azimuth = float(azimuth) % 360
@@ -88,7 +105,15 @@ def render_facade_extraction():
                     return "West (225-315°)"
                 return "Unknown"
             
-            for row in data:
+            # Step 4: Process each element with progress tracking
+            status_text.text(f"Processing {total_rows} building elements...")
+            
+            for i, row in enumerate(data):
+                # Update progress for element processing (30-80% range)
+                element_progress = 30 + int((i / total_rows) * 50)
+                progress_bar.progress(element_progress)
+                status_text.text(f"Processing element {i+1} of {total_rows}...")
+                
                 if len(row) >= len(headers):
                     try:
                         element_data = dict(zip(headers, row))
@@ -169,6 +194,10 @@ def render_facade_extraction():
                     except (ValueError, TypeError):
                         continue
             
+            # Step 5: Finalizing data processing
+            status_text.text("Finalizing data processing...")
+            progress_bar.progress(85)
+            
             # Store processed data
             facade_data = {
                 'total_elements': len(windows),
@@ -188,12 +217,26 @@ def render_facade_extraction():
             st.session_state.building_elements = building_elements_df
             st.session_state.building_elements_completed = True
             
+            # Step 6: Saving to database
+            status_text.text("Saving to database...")
+            progress_bar.progress(95)
+            
             # Save to database
             if 'project_id' in st.session_state:
                 success = save_building_elements(st.session_state.project_id, windows)
                 save_project_data(st.session_state.project_data)
                 if success:
                     st.success(f"Saved {len(windows)} building elements to database")
+            
+            # Step 7: Process complete
+            status_text.text("Upload complete!")
+            progress_bar.progress(100)
+            
+            # Clear progress indicators after a brief pause
+            import time
+            time.sleep(0.5)
+            progress_bar.empty()
+            status_text.empty()
             
             st.success(f"BIM data processed successfully! Analyzed {len(windows)} building elements.")
             

@@ -334,6 +334,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 28, 2025: Implemented comprehensive SEO metadata including Open Graph, Twitter Cards, Dublin Core, Schema.org structured data, academic citation tags, PWA manifest, robots.txt, sitemap.xml, and enhanced page configuration for improved search engine visibility and social media sharing
 - June 28, 2025: Added custom Open Graph meta tags with specific title "BIPV Optimizer – Building Integrated Photovoltaics Analysis Platform" and description "An AI-powered tool to evaluate, optimize, and visualize BIPV deployment scenarios for retrofitting educational buildings" for enhanced social media link previews
 - June 28, 2025: Fixed Monthly Solar Profile graph in Step 3 to display months in chronological order (Jan-Dec) using pandas DataFrame instead of dictionary for proper month sequencing
+- June 28, 2025: Added comprehensive progress bar to CSV upload functionality in Step 4 with real-time element processing tracking, status updates, and visual progress indication (0-100%) for enhanced user experience during BIM data upload
+- June 28, 2025: Enhanced Step 5 Shading Configuration with comprehensive explanatory content including time-based shading factor purposes, typical values, impact on BIPV analysis, example scenarios, and detailed help text for morning/midday/evening shading parameters
 
 ## User Preferences
 
