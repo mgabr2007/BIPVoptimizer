@@ -333,6 +333,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 28, 2025: Enhanced monthly consumption charts to display in chronological order (Jan-Dec) instead of alphabetical sorting, and created seamless timeline continuation between historical and forecast data without visual gaps
 - June 28, 2025: Implemented comprehensive SEO metadata including Open Graph, Twitter Cards, Dublin Core, Schema.org structured data, academic citation tags, PWA manifest, robots.txt, sitemap.xml, and enhanced page configuration for improved search engine visibility and social media sharing
 - June 28, 2025: Added custom Open Graph meta tags with specific title "BIPV Optimizer – Building Integrated Photovoltaics Analysis Platform" and description "An AI-powered tool to evaluate, optimize, and visualize BIPV deployment scenarios for retrofitting educational buildings" for enhanced social media link previews
+- June 28, 2025: Fixed Monthly Solar Profile graph in Step 3 to display months in chronological order (Jan-Dec) using pandas DataFrame instead of dictionary for proper month sequencing
 
 ## User Preferences
 

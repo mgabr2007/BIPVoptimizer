@@ -4,6 +4,7 @@ Weather and Environment Integration page for BIPV Optimizer
 import streamlit as st
 import os
 import math
+import pandas as pd
 from datetime import datetime, timedelta
 from core.solar_math import calculate_solar_position_iso, classify_solar_resource_iso
 from services.io import get_weather_data_from_coordinates, fetch_openweather_forecast_data, find_nearest_wmo_station, save_project_data
@@ -354,10 +355,10 @@ def render_weather_environment():
                         # Monthly solar profile
                         st.subheader("📅 Monthly Solar Profile")
                         
-                        # Calculate monthly averages
-                        monthly_ghi = []
+                        # Calculate monthly averages with proper chronological ordering
                         month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        monthly_ghi = []
                         
                         for month in range(12):
                             month_start = month * 730  # Approximate hours per month
@@ -366,12 +367,14 @@ def render_weather_environment():
                             month_ghi = sum(hour['ghi'] for hour in month_data) / 1000  # kWh/m²
                             monthly_ghi.append(month_ghi)
                         
-                        # Create chart data
-                        chart_data = {}
-                        for i, month in enumerate(month_names):
-                            chart_data[month] = monthly_ghi[i]
+                        # Create DataFrame for proper month ordering
+                        chart_df = pd.DataFrame({
+                            'Month': month_names,
+                            'Solar Irradiation (kWh/m²)': monthly_ghi
+                        })
                         
-                        st.bar_chart(chart_data)
+                        # Display chart with chronological month order
+                        st.bar_chart(chart_df.set_index('Month'))
                         
                         # Continue button
                         if st.button("Continue to Step 4: BIM Extraction", key="continue_bim"):
