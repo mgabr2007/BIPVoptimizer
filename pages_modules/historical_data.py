@@ -464,36 +464,61 @@ def render_historical_data():
                 
                 fig = go.Figure()
                 
-                # Create proper month labels for historical data
+                # Create continuous timeline without gaps
                 months_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                 
-                # Historical data with proper month labels
+                # Historical data
                 hist_data = consumption_data[:12] if len(consumption_data) >= 12 else consumption_data
-                hist_months = months_labels[:len(hist_data)]
+                current_year = datetime.now().year
                 
+                # Create continuous timeline starting with historical data
+                all_timeline = []
+                all_values = []
+                
+                # Add historical data points
+                for i in range(len(hist_data)):
+                    all_timeline.append(f"{months_labels[i]} {current_year}")
+                    all_values.append(hist_data[i])
+                
+                # Add forecast data points continuing from where historical ends
+                forecast_values = forecast_data['monthly_predictions'][:24]
+                for i in range(len(forecast_values)):
+                    # Calculate month and year for forecast
+                    total_months = len(hist_data) + i
+                    month_idx = total_months % 12
+                    year_offset = total_months // 12
+                    forecast_year = current_year + year_offset
+                    
+                    all_timeline.append(f"{months_labels[month_idx]} {forecast_year}")
+                    all_values.append(forecast_values[i])
+                
+                # Split the data for different visual styling
+                hist_timeline = all_timeline[:len(hist_data)]
+                hist_values = all_values[:len(hist_data)]
+                
+                forecast_timeline = all_timeline[len(hist_data):]
+                forecast_vals = all_values[len(hist_data):]
+                
+                # Add transition point to connect lines smoothly
+                if len(hist_data) > 0 and len(forecast_vals) > 0:
+                    # Add last historical point to forecast for smooth connection
+                    forecast_timeline.insert(0, hist_timeline[-1])
+                    forecast_vals.insert(0, hist_values[-1])
+                
+                # Add historical data
                 fig.add_trace(go.Scatter(
-                    x=hist_months,
-                    y=hist_data,
+                    x=hist_timeline,
+                    y=hist_values,
                     mode='lines+markers',
                     name='Historical Data',
                     line=dict(color='blue', width=3)
                 ))
                 
-                # Forecast data with extended month labels (next 2 years for clarity)
-                forecast_months = []
-                current_year = datetime.now().year + 1
-                for year_offset in range(2):  # Show 2 years of forecast
-                    for month_idx in range(12):
-                        year_label = current_year + year_offset
-                        month_label = months_labels[month_idx]
-                        forecast_months.append(f"{month_label} {year_label}")
-                
-                forecast_values = forecast_data['monthly_predictions'][:24]  # 2 years
-                
+                # Add forecast data
                 fig.add_trace(go.Scatter(
-                    x=forecast_months,
-                    y=forecast_values,
+                    x=forecast_timeline,
+                    y=forecast_vals,
                     mode='lines',
                     name='AI Forecast (2 years)',
                     line=dict(color='red', width=2, dash='dash')
