@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://bipv-optimizer.replit.app/sitemap.xml
+
+# Academic research platform
+# Contact: https://www.researchgate.net/profile/Mostafa-Gabr-4

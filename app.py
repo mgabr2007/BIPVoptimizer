@@ -6,6 +6,27 @@ No project selector, minimal sidebar interface
 import streamlit as st
 import os
 
+# Configure SEO metadata and page settings
+st.set_page_config(
+    page_title="BIPV Optimizer - Building Integrated Photovoltaics Analysis Platform",
+    page_icon="🏢",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://www.researchgate.net/profile/Mostafa-Gabr-4',
+        'Report a bug': None,
+        'About': """
+        # BIPV Optimizer
+        
+        Advanced Building-Integrated Photovoltaics optimization platform for comprehensive solar energy system analysis.
+        
+        **Developed by:** Mostafa Gabr  
+        **Institution:** Technische Universität Berlin  
+        **Research Focus:** Building-Integrated Photovoltaics Optimization
+        """
+    }
+)
+
 # Import page modules
 from pages_modules.welcome import render_welcome
 from pages_modules.project_setup import render_project_setup
@@ -28,13 +49,59 @@ from components.workflow_visualization import (
     render_milestone_tracker
 )
 
-# Page configuration
-st.set_page_config(
-    page_title="BIPV Optimizer",
-    page_icon="🏢",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Enhanced SEO metadata and HTML head content
+st.markdown("""
+<head>
+    <meta name="description" content="BIPV Optimizer - Advanced Building-Integrated Photovoltaics analysis platform for comprehensive solar energy system optimization, financial modeling, and environmental impact assessment.">
+    <meta name="keywords" content="BIPV, Building Integrated Photovoltaics, Solar Energy, PV Optimization, Building Energy, Solar Analysis, Renewable Energy, Energy Efficiency, Solar Panels, Green Building, TU Berlin">
+    <meta name="author" content="Mostafa Gabr, Technische Universität Berlin">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="EN">
+    <meta name="revisit-after" content="7 days">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="BIPV Optimizer - Building Integrated Photovoltaics Analysis Platform">
+    <meta property="og:description" content="Advanced scientific platform for optimizing Building-Integrated Photovoltaic systems with comprehensive analysis, financial modeling, and environmental impact assessment.">
+    <meta property="og:site_name" content="BIPV Optimizer">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="BIPV Optimizer - Building Integrated Photovoltaics Analysis Platform">
+    <meta property="twitter:description" content="Advanced scientific platform for optimizing Building-Integrated Photovoltaic systems with comprehensive analysis, financial modeling, and environmental impact assessment.">
+    
+    <!-- Academic/Research -->
+    <meta name="citation_title" content="BIPV Optimizer: Building Integrated Photovoltaics Analysis Platform">
+    <meta name="citation_author" content="Gabr, Mostafa">
+    <meta name="citation_publication_date" content="2025">
+    <meta name="citation_institution" content="Technische Universität Berlin">
+    <meta name="citation_technical_report_institution" content="TU Berlin, Department of Energy Engineering">
+    
+    <!-- Schema.org markup for Google -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "BIPV Optimizer",
+        "description": "Advanced Building-Integrated Photovoltaics analysis platform for comprehensive solar energy system optimization",
+        "author": {
+            "@type": "Person",
+            "name": "Mostafa Gabr",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "Technische Universität Berlin"
+            }
+        },
+        "applicationCategory": "Engineering Software",
+        "operatingSystem": "Web Browser",
+        "softwareVersion": "2.1",
+        "dateModified": "2025-06-28",
+        "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "keywords": "BIPV, Building Integrated Photovoltaics, Solar Energy, PV Optimization, Building Energy Analysis"
+    }
+    </script>
+</head>
+""", unsafe_allow_html=True)
 
 # Initialize session state
 if 'current_step' not in st.session_state:

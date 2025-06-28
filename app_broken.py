@@ -4956,7 +4956,7 @@ def generate_enhanced_html_report(include_charts, include_recommendations):
     <footer style="margin-top: 50px; padding: 20px; border-top: 2px solid #2E8B57; text-align: center; font-size: 12px; color: #666;">
         <p><strong>BIPV Optimizer</strong> - Building Integrated Photovoltaic Analysis Platform</p>
         <p>PhD Research Project | Technische Universität Berlin</p>
-        <p>Contact: Mostafa Gabr | ResearchGate: https://www.researchgate.net/profile/Mostafa-Gabr</p>
+        <p>Contact: Mostafa Gabr | ResearchGate: https://www.researchgate.net/profile/Mostafa-Gabr-4</p>
         <p>Analysis Date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} | Data Source: Processed through 10-step BIPV workflow</p>
     </footer>
 </body>

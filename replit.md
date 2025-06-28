@@ -328,6 +328,9 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 27, 2025: Fixed continuous map refreshing issue in Step 1 by removing st.rerun() infinite loops, implementing optimized state management with processing flags, adding canvas rendering for better performance, minimizing tracked data objects, and increasing coordinate change thresholds for improved stability
 - June 27, 2025: Enhanced AI consultation system in Step 11 to provide specific references from actual analysis results, including direct quotes of calculated values (NPV, IRR, capacity, yield), orientation distributions from CSV data, building element counts, and performance metrics, ensuring recommendations are based on project-specific outcomes rather than generic BIPV advice
 - June 28, 2025: Fixed zero values in detailed report Steps 6 and 7 by implementing enhanced data extraction from multiple sources (PV specifications, yield analysis, building elements), added realistic fallback calculations based on actual building data, and improved financial metrics extraction with proper NPV, IRR, and payback calculations using authentic project parameters
+- June 28, 2025: Updated all ResearchGate profile links throughout application to new URL: https://www.researchgate.net/profile/Mostafa-Gabr-4 for accurate academic attribution and contact information
+- June 28, 2025: Fixed AI forecast model baseline consumption calculation to use annual totals instead of monthly averages, corrected seasonal factor calculations, and aligned forecast timeline with actual CSV historical dates instead of assuming 2025 data
+- June 28, 2025: Enhanced monthly consumption charts to display in chronological order (Jan-Dec) instead of alphabetical sorting, and created seamless timeline continuation between historical and forecast data without visual gaps
 
 ## User Preferences
 
