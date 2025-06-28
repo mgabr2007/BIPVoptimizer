@@ -29,8 +29,16 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
         # Calculate selected systems metrics
         selected_specs = pv_specs[selection_mask]
         
-        # Calculate total metrics
-        total_cost = selected_specs['total_installation_cost'].sum()
+        # Calculate total metrics (handle different possible column names)
+        if 'total_installation_cost' in selected_specs.columns:
+            total_cost = selected_specs['total_installation_cost'].sum()
+        elif 'total_cost_eur' in selected_specs.columns:
+            total_cost = selected_specs['total_cost_eur'].sum()
+        elif 'total_cost' in selected_specs.columns:
+            total_cost = selected_specs['total_cost'].sum()
+        else:
+            total_cost = 0
+            
         total_annual_yield = selected_specs['annual_energy_kwh'].sum()
         
         # Calculate net import reduction
@@ -56,7 +64,15 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
         
         # Normalize objectives (0-1 scale)
         # For cost: lower is better, so use 1/(1+normalized_cost)
-        max_possible_cost = pv_specs['total_installation_cost'].sum()  # If all systems selected
+        if 'total_installation_cost' in pv_specs.columns:
+            max_possible_cost = pv_specs['total_installation_cost'].sum()
+        elif 'total_cost_eur' in pv_specs.columns:
+            max_possible_cost = pv_specs['total_cost_eur'].sum()
+        elif 'total_cost' in pv_specs.columns:
+            max_possible_cost = pv_specs['total_cost'].sum()
+        else:
+            max_possible_cost = 1
+            
         normalized_cost = total_cost / max_possible_cost if max_possible_cost > 0 else 0
         cost_fitness = 1 / (1 + normalized_cost)  # Higher is better
         
@@ -161,8 +177,23 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
         
         if len(selected_specs) > 0:
             # Calculate solution metrics
-            total_power_kw = selected_specs['system_power_kw'].sum()
-            total_cost = selected_specs['total_installation_cost'].sum()
+            if 'system_power_kw' in selected_specs.columns:
+                total_power_kw = selected_specs['system_power_kw'].sum()
+            elif 'capacity_kw' in selected_specs.columns:
+                total_power_kw = selected_specs['capacity_kw'].sum()
+            else:
+                total_power_kw = 0
+                
+            # Handle different cost column names
+            if 'total_installation_cost' in selected_specs.columns:
+                total_cost = selected_specs['total_installation_cost'].sum()
+            elif 'total_cost_eur' in selected_specs.columns:
+                total_cost = selected_specs['total_cost_eur'].sum()
+            elif 'total_cost' in selected_specs.columns:
+                total_cost = selected_specs['total_cost'].sum()
+            else:
+                total_cost = 0
+                
             total_annual_yield = selected_specs['annual_energy_kwh'].sum()
             selected_elements = selected_specs['element_id'].tolist()
             
@@ -444,7 +475,17 @@ def render_optimization():
                 }
                 
                 # Filter systems by budget constraint
-                affordable_specs = pv_specs[pv_specs['total_installation_cost'] <= max_investment]
+                if 'total_installation_cost' in pv_specs.columns:
+                    cost_column = 'total_installation_cost'
+                elif 'total_cost_eur' in pv_specs.columns:
+                    cost_column = 'total_cost_eur'
+                elif 'total_cost' in pv_specs.columns:
+                    cost_column = 'total_cost'
+                else:
+                    st.error("Cost information not found in PV specifications data.")
+                    return
+                
+                affordable_specs = pv_specs[pv_specs[cost_column] <= max_investment]
                 
                 if len(affordable_specs) == 0:
                     st.error("No systems within budget constraint. Please increase maximum investment.")
