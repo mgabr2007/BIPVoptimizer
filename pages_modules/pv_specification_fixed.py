@@ -1,0 +1,244 @@
+"""
+PV Panel Specification & Layout page for BIPV Optimizer
+Simplified interface focusing on essential BIPV parameters
+"""
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from database_manager import db_manager
+from datetime import datetime
+from core.solar_math import safe_divide
+
+# Simplified BIPV Glass Types
+BIPV_GLASS_TYPES = {
+    "Standard": {
+        "efficiency": 0.16,
+        "transparency": 0.20,
+        "cost_per_m2": 300
+    },
+    "High-Efficiency": {
+        "efficiency": 0.19,
+        "transparency": 0.15,
+        "cost_per_m2": 400
+    },
+    "Aesthetic": {
+        "efficiency": 0.14,
+        "transparency": 0.25,
+        "cost_per_m2": 350
+    }
+}
+
+def calculate_bipv_glass_coverage(element_area, coverage_factor=0.90):
+    """Calculate BIPV glass coverage for window elements."""
+    bipv_glass_area = element_area * coverage_factor
+    return bipv_glass_area
+
+def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverage_data):
+    """Calculate complete BIPV system specifications for each element."""
+    bipv_specifications = []
+    
+    for idx, element in suitable_elements.iterrows():
+        element_id = element.get('Element ID', f"element_{idx}")
+        glass_area = float(element.get('Glass Area (m²)', 1.5))
+        
+        # Calculate BIPV specifications
+        bipv_area = calculate_bipv_glass_coverage(glass_area)
+        capacity_kw = bipv_area * panel_specs['power_density'] / 1000
+        annual_energy_kwh = capacity_kw * 1000 * panel_specs['performance_ratio']  # Simplified
+        total_cost_eur = bipv_area * panel_specs['cost_per_m2']
+        
+        bipv_spec = {
+            'element_id': element_id,
+            'glass_area_m2': glass_area,
+            'bipv_area_m2': bipv_area,
+            'capacity_kw': capacity_kw,
+            'annual_energy_kwh': annual_energy_kwh,
+            'total_cost_eur': total_cost_eur,
+            'efficiency': panel_specs['efficiency'],
+            'transparency': panel_specs['transparency']
+        }
+        
+        bipv_specifications.append(bipv_spec)
+    
+    return pd.DataFrame(bipv_specifications)
+
+def render_pv_specification():
+    """Render the simplified PV panel specification and layout module."""
+    
+    st.header("⚡ Step 6: BIPV Panel Specifications")
+    
+    # Check for radiation data from Step 5
+    radiation_analysis = st.session_state.get('project_data', {}).get('radiation_analysis')
+    if radiation_analysis is None:
+        st.warning("⚠️ Radiation analysis data required. Please complete Step 5 (Solar Radiation & Shading Analysis) first.")
+        st.info("PV specification requires solar radiation data to calculate energy yield accurately.")
+        return
+    
+    # Check for building elements data from Step 4
+    building_elements = st.session_state.get('building_elements')
+    if building_elements is None or len(building_elements) == 0:
+        st.warning("⚠️ Building elements data required. Please complete Step 4 (Facade & Window Extraction) first.")
+        st.info("BIPV specifications require building geometry data for accurate system sizing.")
+        return
+    
+    # Convert to DataFrame if needed
+    if isinstance(building_elements, list):
+        suitable_elements = pd.DataFrame(building_elements)
+    else:
+        suitable_elements = building_elements
+    
+    st.success(f"Designing BIPV systems for {len(suitable_elements)} building elements")
+    
+    # Panel selection section
+    st.subheader("🔧 BIPV Panel Selection & Customization")
+    
+    st.markdown("**Select BIPV glass type and customize the key specifications:**")
+    
+    # Simplified panel selection
+    panel_types = list(BIPV_GLASS_TYPES.keys())
+    selected_panel_type = st.selectbox(
+        "BIPV Glass Type", 
+        panel_types,
+        key="bipv_glass_type",
+        help="Choose BIPV glass technology as starting point for customization"
+    )
+    
+    # Get base specifications
+    base_specs = BIPV_GLASS_TYPES[selected_panel_type]
+    
+    # Simplified customization - only the most important parameters
+    st.subheader("🔧 Customize Key Specifications")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        panel_efficiency = st.slider(
+            "Efficiency (%)",
+            min_value=10.0, max_value=22.0, 
+            value=float(base_specs['efficiency']*100),
+            step=0.5,
+            key="panel_efficiency",
+            help="PV conversion efficiency"
+        ) / 100
+        
+    with col2:
+        transparency = st.slider(
+            "Transparency (%)",
+            min_value=10.0, max_value=40.0,
+            value=float(base_specs['transparency']*100),
+            step=5.0,
+            key="transparency",
+            help="Light transmission through BIPV glass"
+        ) / 100
+        
+    with col3:
+        cost_per_m2 = st.number_input(
+            "Cost (EUR/m²)",
+            min_value=200.0, max_value=600.0,
+            value=float(base_specs['cost_per_m2']),
+            step=25.0,
+            key="cost_per_m2",
+            help="BIPV glass cost per square meter"
+        )
+    
+    # Calculate derived specifications
+    power_density = panel_efficiency * 1000  # W/m²
+    temperature_coefficient = -0.004  # Standard value
+    
+    # Create final panel specifications
+    final_panel_specs = {
+        'type': selected_panel_type,
+        'efficiency': panel_efficiency,
+        'power_density': power_density,
+        'transparency': transparency,
+        'cost_per_m2': cost_per_m2,
+        'temperature_coefficient': temperature_coefficient,
+        'performance_ratio': 0.80,  # Standard value
+        'degradation_rate': 0.005,  # Standard value
+        'glass_properties': {
+            'thickness': 0.008,  # 8mm standard
+            'power_density': power_density,
+            'u_value': 1.2,
+            'weight': 24.0
+        },
+        'warranty_years': 25
+    }
+    
+    # Display current specifications summary
+    st.subheader("📊 Current Specifications Summary")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Efficiency", f"{panel_efficiency*100:.1f}%")
+    with col2:
+        st.metric("Power Density", f"{power_density:.0f} W/m²")
+    with col3:
+        st.metric("Transparency", f"{transparency*100:.0f}%")
+    with col4:
+        st.metric("Cost", f"{cost_per_m2:.0f} EUR/m²")
+    
+    # Calculate system specifications using building elements and radiation data
+    if st.button("⚡ Calculate BIPV Systems", type="primary", key="calculate_bipv_systems"):
+        
+        with st.spinner("Calculating BIPV system specifications for all building elements..."):
+            # Calculate BIPV specifications using the simplified panel data
+            coverage_data = {}  # Simplified coverage calculation
+            bipv_specifications = calculate_bipv_system_specifications(
+                suitable_elements, 
+                final_panel_specs, 
+                coverage_data
+            )
+            
+            if bipv_specifications is not None and len(bipv_specifications) > 0:
+                st.session_state['pv_specifications'] = bipv_specifications.to_dict('records')
+                
+                # Save to database
+                project_name = st.session_state.get('project_name', 'Unnamed Project')
+                try:
+                    project_id = db_manager.save_project({'project_name': project_name})
+                    if project_id:
+                        db_manager.save_pv_specifications(int(project_id), {
+                            'panel_specs': final_panel_specs,
+                            'bipv_specifications': bipv_specifications.to_dict('records'),
+                            'summary_stats': {
+                                'total_elements': len(bipv_specifications),
+                                'total_capacity': bipv_specifications['capacity_kw'].sum(),
+                                'total_area': bipv_specifications['glass_area_m2'].sum(),
+                                'avg_efficiency': final_panel_specs['efficiency']
+                            }
+                        })
+                except Exception as e:
+                    st.warning(f"Could not save to database: {e}")
+                
+                # Display results
+                st.success(f"✅ Successfully calculated BIPV specifications for {len(bipv_specifications)} building elements")
+                
+                # Summary metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    total_capacity = bipv_specifications['capacity_kw'].sum()
+                    st.metric("Total Capacity", f"{total_capacity:.1f} kW")
+                with col2:
+                    total_area = bipv_specifications['glass_area_m2'].sum()
+                    st.metric("Total BIPV Area", f"{total_area:.0f} m²")
+                with col3:
+                    avg_specific_power = total_capacity * 1000 / total_area if total_area > 0 else 0
+                    st.metric("Avg Power Density", f"{avg_specific_power:.0f} W/m²")
+                with col4:
+                    total_cost = (bipv_specifications['total_cost_eur'].sum() if 'total_cost_eur' in bipv_specifications.columns else 0)
+                    st.metric("Total Cost", f"{total_cost:,.0f} EUR")
+                
+                # Display detailed specifications table
+                st.subheader("Individual Element Specifications")
+                display_df = bipv_specifications[['element_id', 'glass_area_m2', 'capacity_kw', 'annual_energy_kwh', 'total_cost_eur']].copy()
+                display_df.columns = ['Element ID', 'Area (m²)', 'Capacity (kW)', 'Annual Energy (kWh)', 'Cost (EUR)']
+                st.dataframe(display_df, use_container_width=True)
+                
+            else:
+                st.error("Could not calculate BIPV specifications. Please check your data.")
+    
+    st.markdown("---")
+    st.markdown("**Next Step:** Proceed to Step 7 (Yield vs Demand Analysis) to compare energy generation with building consumption.")
