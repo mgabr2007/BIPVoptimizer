@@ -12,63 +12,22 @@ from database_manager import db_manager
 from datetime import datetime
 from core.solar_math import safe_divide
 
-# BIPV Glass Technology Database
-BIPV_GLASS_DATABASE = {
-    "Standard BIPV Glass": {
+# Simplified BIPV Glass Types
+BIPV_GLASS_TYPES = {
+    "Standard": {
         "efficiency": 0.16,
-        "cost_per_wp": 0.85,
-        "glass_properties": {
-            "thickness": 0.008,  # 8mm glass thickness
-            "power_density": 160,  # W/m² (efficiency * 1000)
-            "u_value": 1.2,  # W/m²K thermal transmittance
-            "weight": 24.0  # kg/m²
-        },
-        "temperature_coefficient": -0.004,
-        "warranty_years": 25,
         "transparency": 0.20,
-        "description": "Standard semi-transparent BIPV glass for window integration"
+        "cost_per_m2": 300
     },
-    "High-Efficiency BIPV Glass": {
+    "High-Efficiency": {
         "efficiency": 0.19,
-        "cost_per_wp": 1.15,
-        "glass_properties": {
-            "thickness": 0.008,
-            "power_density": 190,
-            "u_value": 1.1,
-            "weight": 25.0
-        },
-        "temperature_coefficient": -0.0035,
-        "warranty_years": 25,
         "transparency": 0.15,
-        "description": "High-efficiency BIPV glass with advanced cell technology"
+        "cost_per_m2": 400
     },
-    "Colored BIPV Glass": {
+    "Aesthetic": {
         "efficiency": 0.14,
-        "cost_per_wp": 0.95,
-        "glass_properties": {
-            "thickness": 0.008,
-            "power_density": 140,
-            "u_value": 1.3,
-            "weight": 23.0
-        },
-        "temperature_coefficient": -0.0045,
-        "warranty_years": 25,
         "transparency": 0.25,
-        "description": "Aesthetically designed colored BIPV glass for architectural integration"
-    },
-    "Thin-Film BIPV Glass": {
-        "efficiency": 0.12,
-        "cost_per_wp": 0.75,
-        "glass_properties": {
-            "thickness": 0.006,
-            "power_density": 120,
-            "u_value": 1.4,
-            "weight": 20.0
-        },
-        "temperature_coefficient": -0.003,
-        "warranty_years": 20,
-        "transparency": 0.30,
-        "description": "Flexible thin-film BIPV glass technology for complex geometries"
+        "cost_per_m2": 350
     }
 }
 
@@ -188,210 +147,82 @@ def render_pv_specification():
     st.subheader("🔧 BIPV Panel Selection & Customization")
     
     # Create two columns for panel selection
-    col1, col2 = st.columns([2, 1])
+    st.markdown("**Select BIPV glass type and customize the key specifications:**")
+    
+    # Simplified panel selection
+    panel_types = list(BIPV_GLASS_TYPES.keys())
+    selected_panel_type = st.selectbox(
+        "BIPV Glass Type", 
+        panel_types,
+        key="bipv_glass_type",
+        help="Choose BIPV glass technology as starting point for customization"
+    )
+    
+    # Get base specifications
+    base_specs = BIPV_GLASS_TYPES[selected_panel_type]
+    
+    # Simplified customization - only the most important parameters
+    st.subheader("🔧 Customize Key Specifications")
+    
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("**Start with a premade panel type, then customize all specifications below:**")
+        panel_efficiency = st.slider(
+            "Efficiency (%)",
+            min_value=10.0, max_value=22.0, 
+            value=float(base_specs['efficiency']*100),
+            step=0.5,
+            key="panel_efficiency",
+            help="PV conversion efficiency"
+        ) / 100
         
-        # Predefined panel selection
-        panel_types = list(BIPV_GLASS_DATABASE.keys())
-        selected_panel_type = st.selectbox(
-            "Base BIPV Panel Type (Starting Point)", 
-            panel_types,
-            key="panel_type_selector",
-            help="Choose a starting point from validated BIPV technologies. You can modify ALL specifications in the detailed sections below."
-        )
-        
-        # Get base specifications
-        base_specs = BIPV_GLASS_DATABASE[selected_panel_type]
-        
-        st.info(f"**Starting with {selected_panel_type}:** {base_specs['description']}")
-        st.success("💡 **Tip:** Modify any specification below - your custom values will be used for all calculations!")
-    
     with col2:
-        st.markdown("**Base Specs (Modifiable):**")
-        st.metric("Base Efficiency", f"{base_specs['efficiency']*100:.1f}%")
-        st.metric("Base Power Density", f"{base_specs['glass_properties']['power_density']} W/m²")
-        st.metric("Base Transparency", f"{base_specs['transparency']*100:.0f}%")
+        transparency = st.slider(
+            "Transparency (%)",
+            min_value=10.0, max_value=40.0,
+            value=float(base_specs['transparency']*100),
+            step=5.0,
+            key="transparency",
+            help="Light transmission through BIPV glass"
+        ) / 100
+        
+    with col3:
+        cost_per_m2 = st.number_input(
+            "Cost (EUR/m²)",
+            min_value=200.0, max_value=600.0,
+            value=float(base_specs['cost_per_m2']),
+            step=25.0,
+            key="cost_per_m2",
+            help="BIPV glass cost per square meter"
+        )
     
-    # Detailed panel customization
-    st.subheader("📋 Customize Panel Specifications")
-    st.markdown("**Modify any parameter below - all changes will be used in calculations:**")
+    # Calculate derived specifications
+    power_density = panel_efficiency * 1000  # W/m²
+    temperature_coefficient = -0.004  # Standard value
     
-    # Add help section explaining customization
-    with st.expander("ℹ️ How Panel Customization Works", expanded=False):
-        st.markdown("""
-        **Step-by-step customization process:**
-        
-        1. **Select a base panel type** above as your starting point
-        2. **Modify any specifications** in the sections below - change efficiency, dimensions, costs, etc.
-        3. **View your customized specs** in the summary section
-        4. **Calculate systems** using your exact specifications
-        
-        **Key features:**
-        - 🔧 Icons show which parameters you've modified from the base type
-        - All calculations use your custom values, not the original database values
-        - Your customizations are saved to the project database
-        - You can create completely custom panel specifications by modifying all parameters
-        
-        **Example use cases:**
-        - Adjust efficiency based on specific manufacturer data
-        - Modify dimensions to match actual available panel sizes
-        - Update costs based on current market prices
-        - Fine-tune performance parameters for your specific installation
-        """)
+    # Create final panel specifications
+    final_panel_specs = {
+        'type': selected_panel_type,
+        'efficiency': panel_efficiency,
+        'power_density': power_density,
+        'transparency': transparency,
+        'cost_per_m2': cost_per_m2,
+        'temperature_coefficient': temperature_coefficient,
+        'performance_ratio': 0.80,  # Standard value
+        'degradation_rate': 0.005,  # Standard value
+        'glass_properties': {
+            'thickness': 0.008,  # 8mm standard
+            'power_density': power_density,
+            'u_value': 1.2,
+            'weight': 24.0
+        },
+        'warranty_years': 25
+    }
     
-    # Create expandable sections for different parameter categories
-    with st.expander("⚡ Electrical Specifications", expanded=False):
-        col1, col2, col3 = st.columns(3)
+    # Calculate system specifications using building elements and radiation data
+    if st.button("⚡ Calculate BIPV Systems", type="primary", key="calculate_bipv_systems"):
         
-        with col1:
-            panel_efficiency = st.number_input(
-                "Panel Efficiency (%)",
-                min_value=5.0, max_value=25.0, 
-                value=float(base_specs['efficiency']*100),
-                step=0.1,
-                key="panel_efficiency",
-                help="Photovoltaic conversion efficiency under STC conditions"
-            ) / 100
-            
-            power_density = st.number_input(
-                "Power Density (W/m²)",
-                min_value=50.0, max_value=250.0,
-                value=float(base_specs['glass_properties']['power_density']),
-                step=5.0,
-                key="power_density",
-                help="Power generation per square meter of BIPV glass surface"
-            )
-        
-        with col2:
-            temperature_coefficient = st.number_input(
-                "Temperature Coefficient (%/°C)",
-                min_value=-0.8, max_value=-0.2,
-                value=float(base_specs['temperature_coefficient']*100),
-                step=0.01,
-                key="temp_coeff",
-                help="Power decrease per degree Celsius above 25°C"
-            ) / 100
-            
-            voltage_at_pmax = st.number_input(
-                "Voltage at Pmax (V)",
-                min_value=20.0, max_value=50.0,
-                value=30.0,
-                step=0.5,
-                key="voltage_pmax",
-                help="Voltage at maximum power point"
-            )
-        
-        with col3:
-            current_at_pmax = st.number_input(
-                "Current at Pmax (A)",
-                min_value=5.0, max_value=15.0,
-                value=power_density/voltage_at_pmax,
-                step=0.1,
-                key="current_pmax",
-                help="Current at maximum power point"
-            )
-            
-            fill_factor = st.number_input(
-                "Fill Factor",
-                min_value=0.65, max_value=0.85,
-                value=0.75,
-                step=0.01,
-                key="fill_factor",
-                help="Ratio of maximum power to open circuit voltage × short circuit current"
-            )
-    
-    with st.expander("🔬 BIPV Glass Technology Specifications", expanded=False):
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.subheader("Glass Properties")
-            glass_thickness = st.number_input(
-                "Glass Thickness (mm)",
-                min_value=4.0, max_value=20.0,
-                value=base_specs['glass_properties']['thickness']*1000,
-                step=0.5,
-                key="glass_thickness",
-                help="BIPV glass thickness including embedded PV cells (typical: 6-12mm)"
-            ) / 1000
-            
-            transparency = st.number_input(
-                "Transparency (%)",
-                min_value=10.0, max_value=50.0,
-                value=float(base_specs['transparency']*100),
-                step=1.0,
-                key="transparency",
-                help="Light transmission through semi-transparent PV glass"
-            ) / 100
-        
-        with col2:
-            st.subheader("Performance Density")
-            power_density_glass = st.number_input(
-                "Power Density (W/m²)",
-                min_value=20.0, max_value=250.0,
-                value=float(base_specs['efficiency']*1000),  # Convert efficiency to W/m²
-                step=5.0,
-                key="power_density_glass",
-                help="Power generation per square meter of glass surface"
-            )
-            
-            glass_weight = st.number_input(
-                "Glass Weight (kg/m²)",
-                min_value=15.0, max_value=35.0,
-                value=float(base_specs['glass_properties']['weight']),
-                step=0.5,
-                key="glass_weight",
-                help="Weight per square meter including glass substrate and PV cells"
-            )
-        
-        with col3:
-            st.subheader("Cost Parameters")
-            # Calculate realistic cost per m² based on BIPV technology
-            calculated_cost = base_specs.get('cost_per_wp', 0.85) * power_density if power_density else 400.0
-            default_cost = max(300.0, calculated_cost)  # Ensure minimum realistic BIPV cost
-            
-            cost_per_m2 = st.number_input(
-                "Cost per m² (EUR)",
-                min_value=150.0, max_value=800.0,
-                value=default_cost,
-                step=10.0,
-                key="cost_per_m2",
-                help="Total cost per square meter of BIPV glass including installation"
-            )
-            
-        st.info("ℹ️ **BIPV Glass Technology**: These specifications reflect semi-transparent photovoltaic glass that replaces traditional window glass. Unlike conventional solar panels, BIPV glass maintains architectural aesthetics while generating electricity.")
-        
-        # Additional glass properties
-        col1, col2 = st.columns(2)
-        with col1:
-            solar_heat_gain = st.number_input(
-                "Solar Heat Gain Coefficient",
-                min_value=0.2, max_value=0.7,
-                value=0.4,
-                step=0.01,
-                key="shgc",
-                help="Fraction of solar radiation admitted through the glass"
-            )
-        with col2:
-            u_value = st.number_input(
-                "U-Value (W/m²K)",
-                min_value=0.8, max_value=2.5,
-                value=float(base_specs['glass_properties']['u_value']),
-                step=0.1,
-                key="u_value",
-                help="Thermal transmittance of BIPV glass unit"
-            )
-    
-    with st.expander("💰 Economic Specifications", expanded=False):
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            cost_per_wp = st.number_input(
-                "Panel Cost (€/Wp)",
-                min_value=0.3, max_value=2.0,
-                value=base_specs['cost_per_wp'],
-                step=0.05,
+        with st.spinner("Calculating BIPV system specifications for all building elements..."):
                 key="cost_per_wp",
                 help="Panel cost per watt peak including PV cells and glass"
             )
