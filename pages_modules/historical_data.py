@@ -8,9 +8,35 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 
-def generate_demand_forecast(consumption_data, temperature_data, occupancy_data):
+def get_forecast_start_date(date_data):
+    """Determine the forecast start date based on historical data dates."""
+    if not date_data:
+        return datetime.now().replace(day=1) + timedelta(days=32)
+    
+    try:
+        # Parse the last date in historical data
+        last_date_str = date_data[-1]
+        if '-' in last_date_str:
+            # Parse YYYY-MM-DD format
+            last_date = datetime.strptime(last_date_str, '%Y-%m-%d')
+        else:
+            # Fallback to current date
+            return datetime.now().replace(day=1) + timedelta(days=32)
+        
+        # Start forecast from next month after last historical data
+        if last_date.month == 12:
+            return datetime(last_date.year + 1, 1, 1)
+        else:
+            return datetime(last_date.year, last_date.month + 1, 1)
+    except:
+        # Fallback to current date
+        return datetime.now().replace(day=1) + timedelta(days=32)
+
+
+def generate_demand_forecast(consumption_data, temperature_data, occupancy_data, date_data=None):
     """Generate 25-year demand forecast based on historical data and AI model."""
     import numpy as np
+    from datetime import datetime, timedelta
     
     # Calculate base consumption - use annual total, not monthly average
     if consumption_data:
@@ -93,7 +119,7 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data)
         'growth_rate': growth_rate,
         'base_consumption': base_consumption,
         'seasonal_factors': seasonal_factors,
-        'forecast_start_date': datetime.now().replace(day=1) + timedelta(days=32),  # Start from next month
+        'forecast_start_date': get_forecast_start_date(date_data),
         'model_parameters': {
             'algorithm': 'RandomForest with Trend Analysis',
             'features': ['seasonality', 'temperature', 'occupancy', 'historical_trend'],
@@ -374,11 +400,18 @@ def render_historical_data():
             temp_idx = next((i for i, h in enumerate(headers) if 'temperature' in h.lower()), -1)
             occupancy_idx = next((i for i, h in enumerate(headers) if 'occupancy' in h.lower()), -1)
             
+            date_data = []  # Store actual dates from CSV
+            
             for row in data:
                 if len(row) > consumption_idx and consumption_idx >= 0:
                     try:
                         consumption = float(row[consumption_idx])
                         consumption_data.append(consumption)
+                        
+                        # Extract date information
+                        if date_idx >= 0 and len(row) > date_idx:
+                            date_str = row[date_idx].strip()
+                            date_data.append(date_str)
                         
                         if temp_idx >= 0 and len(row) > temp_idx:
                             temperature = float(row[temp_idx])
@@ -478,7 +511,7 @@ def render_historical_data():
         
         # Generate 25-year demand forecast
         try:
-            forecast_data = generate_demand_forecast(consumption_data, temperature_data, occupancy_data)
+            forecast_data = generate_demand_forecast(consumption_data, temperature_data, occupancy_data, date_data)
         except Exception as e:
             st.error(f"Error generating forecast: {str(e)}")
             forecast_data = None
@@ -502,18 +535,34 @@ def render_historical_data():
                 months_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                 
-                # Historical data
+                # Historical data with actual dates from CSV
                 hist_data = consumption_data[:12] if len(consumption_data) >= 12 else consumption_data
-                current_year = datetime.now().year
                 
-                # Create continuous timeline starting with historical data
+                # Create timeline using actual dates from uploaded data
                 all_timeline = []
                 all_values = []
                 
-                # Add historical data points
-                for i in range(len(hist_data)):
-                    all_timeline.append(f"{months_labels[i]} {current_year}")
-                    all_values.append(hist_data[i])
+                # Add historical data points with actual dates
+                if date_data and len(date_data) >= len(hist_data):
+                    # Use actual dates from CSV
+                    for i in range(len(hist_data)):
+                        try:
+                            date_str = date_data[i]
+                            if '-' in date_str:
+                                date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                                timeline_label = f"{months_labels[date_obj.month-1]} {date_obj.year}"
+                            else:
+                                timeline_label = f"Month {i+1} (Historical)"
+                        except:
+                            timeline_label = f"Month {i+1} (Historical)"
+                        
+                        all_timeline.append(timeline_label)
+                        all_values.append(hist_data[i])
+                else:
+                    # Fallback to generic historical labels
+                    for i in range(len(hist_data)):
+                        all_timeline.append(f"Month {i+1} (Historical)")
+                        all_values.append(hist_data[i])
                 
                 # Add forecast data points continuing from where historical ends
                 forecast_values = forecast_data['monthly_predictions'][:24]
