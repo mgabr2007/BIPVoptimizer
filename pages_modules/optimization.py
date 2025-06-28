@@ -297,35 +297,69 @@ def render_optimization():
         st.write("**Multi-Objective Weights**")
         st.caption("Set the importance of each objective (must sum to 100%)")
         
-        # Three objective weights that must sum to 100%
+        # Auto-balancing objective weights that sum to 100%
+        st.write("🎯 **Objective Weights (Auto-balanced to 100%)**")
+        
+        # Initialize weights if not in session state
+        if 'opt_weight_cost' not in st.session_state:
+            st.session_state.opt_weight_cost = 33
+            st.session_state.opt_weight_yield = 33
+            st.session_state.opt_weight_roi = 34
+        
+        # Primary weight selector
         weight_cost = st.slider(
             "Minimize Cost Weight (%)",
-            0, 100, 33, 1,
+            0, 100, st.session_state.opt_weight_cost, 1,
             help="Weight for minimizing total system cost. Higher values prioritize lower-cost solutions.",
-            key="weight_cost_opt"
+            key="weight_cost_slider"
         )
         
-        weight_yield = st.slider(
-            "Maximize Yield Weight (%)",
-            0, 100, 33, 1,
-            help="Weight for maximizing energy production. Higher values prioritize high-yield solutions.",
-            key="weight_yield_opt"
-        )
-        
-        weight_roi = st.slider(
-            "Maximize ROI Weight (%)",
-            0, 100, 34, 1,
-            help="Weight for maximizing return on investment. Higher values prioritize financially attractive solutions.",
-            key="weight_roi_opt"
-        )
-        
-        # Validate weights sum to 100%
-        total_weight = weight_cost + weight_yield + weight_roi
-        if total_weight != 100:
-            st.error(f"⚠️ Objective weights must sum to 100% (current: {total_weight}%)")
-            st.stop()
+        # Auto-balance the remaining two weights
+        remaining = 100 - weight_cost
+        if remaining > 0:
+            # Calculate proportional split of remaining weight
+            current_yield = st.session_state.opt_weight_yield
+            current_roi = st.session_state.opt_weight_roi
+            current_total = current_yield + current_roi
+            
+            if current_total > 0:
+                weight_yield = int((current_yield / current_total) * remaining)
+                weight_roi = remaining - weight_yield
+            else:
+                weight_yield = remaining // 2
+                weight_roi = remaining - weight_yield
         else:
-            st.success(f"✅ Objectives balanced: Cost {weight_cost}%, Yield {weight_yield}%, ROI {weight_roi}%")
+            weight_yield = 0
+            weight_roi = 0
+        
+        # Update session state
+        st.session_state.opt_weight_cost = weight_cost
+        st.session_state.opt_weight_yield = weight_yield
+        st.session_state.opt_weight_roi = weight_roi
+        
+        # Display auto-calculated weights
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("Maximize Yield Weight", f"{weight_yield}%", 
+                     help="Auto-calculated to maintain 100% total")
+        with col_b:
+            st.metric("Maximize ROI Weight", f"{weight_roi}%", 
+                     help="Auto-calculated to maintain 100% total")
+        
+        # Secondary adjustment option
+        if st.checkbox("Fine-tune Yield vs ROI balance", key="fine_tune_weights"):
+            if weight_yield + weight_roi > 0:
+                yield_portion = st.slider(
+                    "Yield portion of remaining weight (%)",
+                    0, 100, int((weight_yield / (weight_yield + weight_roi)) * 100) if (weight_yield + weight_roi) > 0 else 50,
+                    help="Adjust the balance between Yield and ROI objectives"
+                )
+                remaining_for_yield_roi = 100 - weight_cost
+                weight_yield = int((yield_portion / 100) * remaining_for_yield_roi)
+                weight_roi = remaining_for_yield_roi - weight_yield
+        
+        # Always show balanced total
+        st.success(f"✅ Auto-balanced objectives: Cost {weight_cost}%, Yield {weight_yield}%, ROI {weight_roi}% = 100%")
     
     # Financial parameters section
     st.write("**Financial Parameters**")
