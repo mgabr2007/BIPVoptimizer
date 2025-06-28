@@ -52,9 +52,14 @@ Legacy modules/ (to be refactored):
 ## Key Components
 
 ### 1. Project Setup Module
-- **Purpose**: Initialize project configuration and handle BIM model uploads
-- **Features**: Timezone selection, currency settings, units configuration
-- **File Support**: Revit model uploads (.rvt files at LOD 200 and LOD 100)
+- **Purpose**: Initialize project configuration with precise location selection and weather station integration
+- **Location Detection**: Interactive folium map with dual input methods (map click/manual coordinates)
+- **Geocoding**: Hierarchical location names with neighborhood-level precision using OpenWeatherMap reverse geocoding
+- **Weather Station Integration**: Comprehensive CLIMAT station database with configurable search radius (100-1000km)
+- **Station Selection**: Automatic nearest station detection with WMO ID, distance, and metadata display
+- **Map Features**: Enhanced visualization with station markers, coordinate validation, and optimized state management
+- **Configuration**: Automatic timezone detection, standardized EUR currency, project naming with location context
+- **Data Persistence**: Weather station metadata saved for Step 3 TMY generation and meteorological accuracy
 
 ### 2. Historical Data & AI Model
 - **Purpose**: Analyze historical energy consumption and train demand prediction models
@@ -105,18 +110,19 @@ Legacy modules/ (to be refactored):
 
 ## Data Flow
 
-1. **Project Initialization**: User configures project settings (location, timezone, currency)
+1. **Project Initialization**: Interactive map-based location selection with weather station integration, hierarchical geocoding, and automatic project configuration
 2. **Historical Analysis**: Energy consumption data is processed and ML models are trained
-3. **Weather Integration**: TMY data is fetched and processed for solar calculations
+3. **Weather Integration**: ISO-compliant TMY data generated from selected WMO weather station with authentic meteorological data
 4. **Building Analysis (REQUIRED)**: BIM-extracted window elements uploaded via CSV - MANDATORY for all subsequent steps
 5. **Solar Modeling**: Radiation grids are generated with shading analysis using exact building geometry
-6. **System Design**: PV panels are specified and layouts calculated for specific window elements
+6. **System Design**: BIPV glass specifications and coverage calculations for specific window elements
 7. **Energy Modeling**: Yield predictions compared with demand forecasts using actual building data
-8. **Optimization**: Genetic algorithms find optimal PV configurations for specific building elements
+8. **Optimization**: Genetic algorithms find optimal BIPV configurations for specific building elements
 9. **Financial Analysis**: Economic viability assessed using exact system specifications
 10. **Reporting**: Comprehensive analysis reports generated with building-specific results
+11. **AI Consultation**: Research-based recommendations using actual analysis outcomes
 
-**Critical Requirement**: Steps 5-10 cannot proceed without BIM data from Step 4, as BIPV analysis requires exact building element geometry for accurate calculations.
+**Critical Requirement**: Steps 5-11 cannot proceed without BIM data from Step 4, as BIPV analysis requires exact building element geometry for accurate calculations.
 
 ## External Dependencies
 
