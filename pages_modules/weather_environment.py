@@ -373,8 +373,21 @@ def render_weather_environment():
                             'Solar Irradiation (kWh/m²)': monthly_ghi
                         })
                         
-                        # Display chart with chronological month order
-                        st.bar_chart(chart_df.set_index('Month'))
+                        # Use plotly to ensure proper month ordering
+                        import plotly.express as px
+                        fig_monthly = px.bar(
+                            chart_df,
+                            x='Month',
+                            y='Solar Irradiation (kWh/m²)',
+                            title="Monthly Solar Irradiation Profile",
+                            category_orders={'Month': month_names}  # Enforce chronological order
+                        )
+                        fig_monthly.update_layout(
+                            xaxis_title="Month",
+                            yaxis_title="Solar Irradiation (kWh/m²)",
+                            height=400
+                        )
+                        st.plotly_chart(fig_monthly, use_container_width=True)
                         
                         # Continue button
                         if st.button("Continue to Step 4: BIM Extraction", key="continue_bim"):
