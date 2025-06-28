@@ -339,6 +339,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 28, 2025: Integrated building walls CSV uploader in Step 5 to replace manual shading factors with precise geometric self-shading calculations using actual BIM wall data for accurate shadow analysis based on wall dimensions, orientations, and multi-story building geometry
 - June 28, 2025: Simplified Step 6 BIPV panel specifications interface by reducing complex detailed sections to focus on the most essential parameters: efficiency, transparency, cost, and basic performance ratios, providing streamlined user experience while maintaining calculation accuracy
 - June 28, 2025: Fixed Monthly Solar Profile graph in Step 3 to display months in chronological order (Jan-Dec) using Plotly bar chart with category_orders parameter instead of Streamlit's basic chart which was sorting alphabetically
+- June 28, 2025: Fixed data validation issues in Steps 6, 7, and 8 by updating validation logic to check actual data locations instead of completion flags, ensuring proper recognition of completed previous steps and eliminating false warning messages about missing data
 
 ## User Preferences
 

@@ -196,25 +196,34 @@ def render_optimization():
         if r2_score < 0.70:
             st.warning("Low AI model performance may impact optimization accuracy. Results may be less reliable.")
     
-    # Check dependencies
-    required_steps = ['yield_demand_completed', 'pv_specs_completed']
-    missing_steps = [step for step in required_steps if not st.session_state.get(step, False)]
-    
-    if missing_steps:
-        st.error("⚠️ Required data missing. Please complete the following steps first:")
-        for step in missing_steps:
-            step_names = {
-                'yield_demand_completed': "Step 7 (Yield vs Demand Analysis)",
-                'pv_specs_completed': "Step 6 (PV Specification)"
-            }
-            st.error(f"• {step_names.get(step, step)}")
-        return
-    
-    # Load required data
+    # Check for actual data instead of completion flags
     project_data = st.session_state.get('project_data', {})
+    
+    # Check for PV specifications from Step 6 (multiple possible locations)
     pv_specs = project_data.get('pv_specifications')
+    if pv_specs is None:
+        pv_specs = st.session_state.get('pv_specifications')
+    
+    # Check for yield/demand analysis from Step 7
     yield_demand_analysis = project_data.get('yield_demand_analysis', {})
     energy_balance = yield_demand_analysis.get('energy_balance')
+    
+    # Validate required data
+    missing_data = []
+    if pv_specs is None or len(pv_specs) == 0:
+        missing_data.append("Step 6 (PV Specification)")
+    
+    if energy_balance is None or len(energy_balance) == 0:
+        missing_data.append("Step 7 (Yield vs Demand Analysis)")
+    
+    if missing_data:
+        st.error("⚠️ Required data missing. Please complete the following steps first:")
+        for step in missing_data:
+            st.error(f"• {step}")
+        return
+    
+    # Success confirmation
+    st.success(f"✅ Ready for optimization: {len(pv_specs)} PV systems, energy balance analysis complete")
     
     # Convert pv_specs to DataFrame if it's a list
     if pv_specs is not None:
