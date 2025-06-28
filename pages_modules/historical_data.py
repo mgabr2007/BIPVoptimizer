@@ -437,10 +437,24 @@ def render_historical_data():
                 for i in range(len(consumption_data), 12):
                     full_year_data[months[i]] = avg_value
             
-            # Create ordered chart data starting with January
-            ordered_chart_data = {month: full_year_data[month] for month in months}
+            # Create ordered chart data starting with January using Plotly for proper ordering
+            import plotly.graph_objects as go
             
-            st.bar_chart(ordered_chart_data)
+            ordered_values = [full_year_data[month] for month in months]
+            
+            fig_monthly = go.Figure(data=[
+                go.Bar(x=months, y=ordered_values, marker_color='steelblue')
+            ])
+            
+            fig_monthly.update_layout(
+                title="Monthly Consumption Pattern",
+                xaxis_title="Month",
+                yaxis_title="Consumption (kWh)",
+                height=400,
+                xaxis=dict(categoryorder='array', categoryarray=months)  # Force chronological order
+            )
+            
+            st.plotly_chart(fig_monthly, use_container_width=True)
         
         # Generate 25-year demand forecast
         try:
