@@ -1111,21 +1111,41 @@ def render_historical_data():
                 st.metric("Seasonal Variation", "N/A")
                 st.info("Insufficient temperature data for seasonal analysis")
         
-        # Prediction for next steps
+        # Prediction for next steps using AI forecast results
         st.subheader("Demand Prediction for BIPV Analysis")
         
-        # Calculate future demand estimate
-        future_demand = avg_consumption * 12 * 1.02  # 2% annual growth
-        
-        st.info(f"""
-        **Projected Annual Demand:** {future_demand:,.0f} kWh/year
-        
-        This demand prediction will be used in subsequent steps to:
-        - Size BIPV system capacity
-        - Calculate energy balance scenarios
-        - Optimize PV-to-demand ratios
-        - Determine grid interaction patterns
-        """)
+        if forecast_data:
+            # Use the first year from the sophisticated AI forecast
+            future_demand = forecast_data['annual_predictions'][0]
+            growth_rate = forecast_data['growth_rate'] * 100
+            
+            st.info(f"""
+            **Projected Annual Demand:** {future_demand:,.0f} kWh/year
+            **Growth Rate:** {growth_rate:.1f}% per year
+            **Forecast Method:** AI Model with Educational Building Patterns
+            
+            This demand prediction incorporates:
+            - Historical consumption patterns from your data
+            - {st.session_state.get('building_type', 'Educational')} building characteristics
+            - {st.session_state.get('occupancy_pattern', 'Standard')} operational schedule
+            - Seasonal variations and growth trends
+            
+            This prediction will be used in subsequent steps to:
+            - Size BIPV system capacity based on actual building patterns
+            - Calculate energy balance scenarios with realistic demand
+            - Optimize PV-to-demand ratios for your building type
+            - Determine grid interaction patterns throughout the year
+            """)
+        else:
+            # Fallback to simple calculation if forecast failed
+            future_demand = avg_consumption * 12 * 1.02  # 2% annual growth
+            
+            st.warning(f"""
+            **Projected Annual Demand:** {future_demand:,.0f} kWh/year
+            **Method:** Simplified calculation (AI forecast unavailable)
+            
+            This basic prediction will be used in subsequent steps, but results may be less accurate without detailed forecasting.
+            """)
         
         if st.button("Continue to Step 3: Weather Integration", key="continue_weather"):
             st.session_state.current_step = 'weather_environment'
