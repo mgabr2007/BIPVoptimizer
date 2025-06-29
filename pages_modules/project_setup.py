@@ -456,17 +456,7 @@ def render_project_setup():
         st.error(f"No weather stations found within {search_radius} km. Try increasing the search radius.")
         st.session_state.selected_weather_station = None
     
-    # Location name input (auto-updated from map selection)
-    default_location = st.session_state.get('location_name', "Berlin, Germany")
-    
 
-    
-    location_name = st.text_input(
-        "Location Name",
-        value=default_location,
-        help="🏙️ Location name auto-detected from map selection with neighborhood-level precision. You can modify if needed. This helps identify the project location in reports and provides context for solar irradiance and electricity rate calculations. Format: 'Neighborhood, District, City, Country'",
-        key="location_name_input"
-    )
     
     # Weather data integration
     st.subheader("🌤️ Weather Data Integration")
