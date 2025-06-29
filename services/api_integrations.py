@@ -151,11 +151,108 @@ def implement_live_rate_fetching(location, country_code):
         st.caption(f"Data source: {live_rates['source']}")
         st.caption(f"Last updated: {live_rates.get('timestamp', 'Unknown')}")
         
+        # Option to override with manual input
+        if st.checkbox("Override with manual rates", key="override_api_rates"):
+            manual_rates = collect_manual_electricity_rates(location)
+            if manual_rates:
+                return manual_rates
+        
         return live_rates
     
     else:
         error_msg = live_rates.get('error', 'Unknown error') if live_rates else 'No response from API'
-        st.error(f"Live rate integration failed: {error_msg}")
-        st.info("Falling back to database estimates for analysis")
+        st.warning(f"Live rate data not available for {location}: {error_msg}")
+        st.info("Please enter electricity rates manually for accurate analysis")
+        
+        # Collect manual rates when API fails
+        manual_rates = collect_manual_electricity_rates(location)
+        return manual_rates
+
+def collect_manual_electricity_rates(location):
+    """Collect electricity rates manually from user input"""
     
-    return None
+    st.markdown("### Manual Electricity Rate Input")
+    st.write(f"Enter current electricity rates for **{location}** in EUR:")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        import_rate = st.number_input(
+            "Import Rate (EUR/kWh)",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.30,
+            step=0.001,
+            format="%.3f",
+            help="Rate you pay for electricity from the grid (typical range: 0.15-0.50 EUR/kWh)",
+            key="manual_import_rate"
+        )
+        
+        st.caption("💡 Check your utility bill for current rates")
+    
+    with col2:
+        export_rate = st.number_input(
+            "Export Rate (EUR/kWh)",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.08,
+            step=0.001,
+            format="%.3f",
+            help="Rate you receive for electricity fed back to grid (typically 0.05-0.15 EUR/kWh)",
+            key="manual_export_rate"
+        )
+        
+        st.caption("💡 Check feed-in tariff with your utility")
+    
+    # Regional guidance
+    with st.expander("Regional Rate Guidance", expanded=False):
+        st.markdown("""
+        **Typical Electricity Rates by Region (EUR/kWh):**
+        
+        🇩🇪 **Germany**: Import 0.30-0.35, Export 0.08-0.12  
+        🇫🇷 **France**: Import 0.25-0.30, Export 0.06-0.10  
+        🇮🇹 **Italy**: Import 0.28-0.33, Export 0.07-0.11  
+        🇪🇸 **Spain**: Import 0.25-0.30, Export 0.05-0.09  
+        🇳🇱 **Netherlands**: Import 0.28-0.35, Export 0.07-0.12  
+        🇬🇧 **UK**: Import 0.25-0.32, Export 0.04-0.08  
+        
+        **Note**: Rates vary by utility company, consumption tier, and time-of-use plans.
+        Check your latest electricity bill for exact rates.
+        """)
+    
+    # Validation and confirmation
+    if import_rate > 0 and export_rate >= 0:
+        
+        # Warning for unusual rates
+        if import_rate < 0.10 or import_rate > 0.60:
+            st.warning("Import rate seems unusual. Please verify with your utility bill.")
+        
+        if export_rate > import_rate:
+            st.error("Export rate cannot be higher than import rate. Please check your inputs.")
+            return None
+        
+        # Rate confirmation
+        st.success("Manual rates configured successfully")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Import Rate", f"€{import_rate:.3f}/kWh")
+        with col2:
+            st.metric("Export Rate", f"€{export_rate:.3f}/kWh")
+        with col3:
+            net_benefit = import_rate - export_rate
+            st.metric("Net Benefit", f"€{net_benefit:.3f}/kWh")
+        
+        return {
+            'success': True,
+            'source': f'Manual Input - {location}',
+            'import_rate': import_rate,
+            'export_rate': export_rate,
+            'timestamp': datetime.now().isoformat(),
+            'data_quality': 'user_input',
+            'location': location
+        }
+    
+    else:
+        st.warning("Please enter valid electricity rates to continue.")
+        return None

@@ -379,13 +379,25 @@ def enhance_project_setup_with_live_rates():
                 st.success("Live electricity rates successfully integrated!")
                 return live_rates
             else:
-                st.warning("Live rate integration ready but requires setup")
-                st.info("Using database estimates for now")
+                st.warning("Live rate integration failed - manual input required")
+                return None  # Let the manual input handle this case
         else:
             st.error("Could not determine country for live rate integration")
-            st.info("Please ensure location is set correctly or use manual coordinates")
-        
-        return True
+            st.info("Please use manual rate input below")
+            return None  # Force manual input when country detection fails
     else:
-        st.info("Using location-based rate estimates. Enable real-time fetching for official data sources.")
+        st.info("Manual electricity rate input available for accurate analysis")
+        
+        # Import the manual rate collection function
+        from services.api_integrations import collect_manual_electricity_rates
+        
+        # Get location for manual input
+        location = st.session_state.get('location_name', 'Your Location')
+        
+        manual_rates = collect_manual_electricity_rates(location)
+        if manual_rates and manual_rates.get('success'):
+            st.session_state.live_electricity_rates = manual_rates
+            st.success("Manual electricity rates configured successfully!")
+            return manual_rates
+        
         return False
