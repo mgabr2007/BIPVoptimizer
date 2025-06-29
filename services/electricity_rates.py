@@ -201,6 +201,13 @@ def enhance_project_setup_with_live_rates():
         location = st.session_state.get('location_name', '')
         coordinates = st.session_state.get('map_coordinates', {})
         
+        # Normalize coordinates format (handle both 'lon' and 'lng')
+        if coordinates:
+            if 'lng' in coordinates and 'lon' not in coordinates:
+                coordinates['lon'] = coordinates['lng']
+            if 'lat' not in coordinates or 'lon' not in coordinates:
+                coordinates = {}
+        
         # Check if location data is available
         if not location and not coordinates:
             st.error("No location data available. Please complete Step 1 project setup first.")
@@ -307,11 +314,10 @@ def enhance_project_setup_with_live_rates():
         
         # Debug information
         st.info(f"""
-        **Location Detection Debug:**
-        - Location string: "{location}"
-        - Coordinates: {coordinates}
-        - Location available: {bool(location)}
-        - Coordinates available: {bool(coordinates)}
+        **Location Detection Status:**
+        - Location string: "{location}" ({'✅' if location else '❌'})
+        - Coordinates: {coordinates.get('lat', 'N/A'):.4f}°, {coordinates.get('lon', 'N/A'):.4f}° ({'✅' if coordinates.get('lat') and coordinates.get('lon') else '❌'})
+        - Ready for rate detection: {'✅' if location or (coordinates.get('lat') and coordinates.get('lon')) else '❌'}
         """)
         
         # Try location string matching first
@@ -326,33 +332,35 @@ def enhance_project_setup_with_live_rates():
             lat = float(coordinates.get('lat', 0))
             lon = float(coordinates.get('lon', 0))
             
-            # More precise coordinate ranges
+            st.info(f"Checking coordinates: {lat:.4f}°, {lon:.4f}°")
+            
+            # More precise coordinate ranges - your coordinates (52.52, 13.405) should match Germany
             if 47.3 <= lat <= 55.1 and 5.9 <= lon <= 15.0:
                 country_code = 'DE'  # Germany
-                st.success(f"Germany detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+                st.success(f"🇩🇪 Germany detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 41.4 <= lat <= 51.1 and -5.1 <= lon <= 9.6:
                 country_code = 'FR'  # France
-                st.success(f"France detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+                st.success(f"🇫🇷 France detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 49.9 <= lat <= 60.8 and -8.6 <= lon <= 1.8:
                 country_code = 'UK'  # United Kingdom
-                st.success(f"UK detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+                st.success(f"🇬🇧 UK detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 36.0 <= lat <= 43.8 and -9.3 <= lon <= 4.3:
                 country_code = 'ES'  # Spain
-                st.success(f"Spain detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+                st.success(f"🇪🇸 Spain detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 35.5 <= lat <= 47.1 and 6.6 <= lon <= 18.5:
                 country_code = 'IT'  # Italy
-                st.success(f"Italy detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+                st.success(f"🇮🇹 Italy detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 50.8 <= lat <= 53.6 and 3.4 <= lon <= 7.2:
                 country_code = 'NL'  # Netherlands
-                st.success(f"Netherlands detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+                st.success(f"🇳🇱 Netherlands detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 24.4 <= lat <= 49.4 and -125.0 <= lon <= -66.9:
                 country_code = 'US'  # United States
-                st.success(f"USA detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+                st.success(f"🇺🇸 USA detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 35.0 <= lat <= 71.0 and -10.0 <= lon <= 40.0:
                 country_code = 'EU'  # General European region
-                st.info(f"General EU region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+                st.info(f"🇪🇺 General EU region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             else:
-                st.warning(f"Coordinates outside supported regions: {lat:.2f}°, {lon:.2f}°")
+                st.warning(f"❌ Coordinates outside supported regions: {lat:.2f}°, {lon:.2f}°")
         
         # Show detection results
         if country_code:
