@@ -74,23 +74,33 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
         monthly_avg = total_annual / 12
         base_seasonal_factors = [c / monthly_avg for c in consumption_data[:12]]
         
-        # Apply educational building modifiers if provided
+        # For existing historical data, use actual patterns without heavy modification
+        # Educational building patterns are already reflected in the historical consumption
         if occupancy_modifiers:
+            # Apply gentle adjustments only, since historical data already shows building patterns
             modified_factors = []
             for month_idx, base_factor in enumerate(base_seasonal_factors):
-                # Apply seasonal modifiers: Jun-Aug (5,6,7), Dec-Feb (11,0,1), others
-                if month_idx in [5, 6, 7]:  # Summer months (Jun-Aug)
-                    modified_factor = base_factor * occupancy_modifiers['summer_factor']
-                elif month_idx in [11, 0, 1]:  # Winter months (Dec-Feb) 
-                    modified_factor = base_factor * occupancy_modifiers['winter_factor']
-                else:  # Transition months (Mar-May, Sep-Nov)
-                    modified_factor = base_factor * occupancy_modifiers['transition_factor']
+                # Apply mild seasonal adjustments (reduced impact for historical data)
+                adjustment_strength = 0.1  # Only 10% adjustment strength
                 
+                if month_idx in [5, 6, 7]:  # Summer months (Jun-Aug)
+                    modifier = 1.0 + (occupancy_modifiers['summer_factor'] - 1.0) * adjustment_strength
+                elif month_idx in [11, 0, 1]:  # Winter months (Dec-Feb) 
+                    modifier = 1.0 + (occupancy_modifiers['winter_factor'] - 1.0) * adjustment_strength
+                else:  # Transition months (Mar-May, Sep-Nov)
+                    modifier = 1.0 + (occupancy_modifiers['transition_factor'] - 1.0) * adjustment_strength
+                
+                modified_factor = base_factor * modifier
                 modified_factors.append(modified_factor)
             
-            # Apply annual operation factor
-            annual_factor = occupancy_modifiers.get('annual_factor', 1.0)
-            seasonal_factors = [f * annual_factor for f in modified_factors]
+            # For Year-Round Operation, maintain continuity with historical data
+            if 'Year-Round' in occupancy_modifiers.get('description', ''):
+                # Minimal adjustment for year-round operations
+                seasonal_factors = modified_factors
+            else:
+                # Apply gentle annual operation factor for other patterns
+                annual_factor = 1.0 + (occupancy_modifiers.get('annual_factor', 1.0) - 1.0) * 0.05
+                seasonal_factors = [f * annual_factor for f in modified_factors]
         else:
             seasonal_factors = base_seasonal_factors
     else:
