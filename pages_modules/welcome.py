@@ -293,55 +293,80 @@ def render_welcome():
     **AI Consultation:** Step 11 includes research-powered consultation for expert analysis and optimization recommendations.
     """)
     
-    # Mathematical Foundations
+    # Mathematical Foundations with Recent Enhancements
     st.markdown("""
     ---
     
-    ### Mathematical Foundations & Recent Enhancements
+    ### Mathematical Foundations & June 2025 Enhancements
     
-    The platform implements comprehensive mathematical models with recent improvements:
+    Advanced computational models enhanced with latest research developments:
     """)
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.markdown("""
-        **Core Calculations:**
-        - Solar position algorithms (ISO 15927-4)
-        - Irradiance modeling with orientation corrections
-        - BIPV glass technology specifications (2-12% efficiency)
-        - Financial analysis (NPV, IRR, payback period)
-        - Environmental impact (CO₂ savings quantification)
+        **Core Mathematical Models:**
+        - Enhanced solar position algorithms (ISO 15927-4 compliant)
+        - Precision irradiance modeling with orientation corrections
+        - BIPV glass technology specifications (2-12% efficiency range)
+        - Comprehensive financial analysis (NPV, IRR, payback calculations)
+        - Environmental impact quantification (CO₂ savings over 25 years)
+        - Educational building energy pattern modeling
         """)
     
     with col2:
         st.markdown("""
-        **Recent Improvements:**
-        - Enhanced R² score tracking and performance indicators
-        - Interactive visualization with authentic workflow data
-        - Decimal-to-float conversion for database operations
-        - AI-powered research consultation integration
-        - Corrected navigation for 11-step workflow
+        **2025 Platform Enhancements:**
+        - AI-powered 25-year demand forecasting with R² performance tracking
+        - Interactive map-based location selection with global weather integration
+        - Educational building pattern recognition (University, K-12, Research)
+        - Fixed seasonal variation calculations for accurate climate analysis
+        - Enhanced CSV processing with mandatory building area validation
+        - Real-time weather station integration with WMO CLIMAT database
         """)
     
-    # Key Features Update
-    st.info("""
-    **Latest Platform Updates:**
-    - ✅ Perplexity AI consultation agent for expert analysis
-    - ✅ Enhanced detailed reports with interactive charts
-    - ✅ Fixed navigation counting (11 analysis steps)
-    - ✅ Comprehensive visualization using authentic project data
-    - ✅ Database persistence with PostgreSQL integration
+    # Latest Achievement Highlights
+    st.success("""
+    **Recent Achievement Highlights (June 2025):**
+    - Enhanced educational building AI forecasting with seasonal modifiers
+    - Interactive global location selection with 1000+ weather stations
+    - Mandatory building area validation preventing calculation errors
+    - Fixed seasonal variation bug affecting climate assessments
+    - Comprehensive R² score tracking for model performance validation
+    - Real-time CSV processing with progress indicators
     """)
     
-    # Research Attribution
+    # Enhanced Research Attribution
     st.markdown("""
     ---
     
-    ### Research Attribution
+    ### Research Attribution & Development
     
-    **Developed by:** Mostafa Gabr  
+    **Principal Researcher:** Mostafa Gabr  
     **Institution:** Technische Universität Berlin  
-    **Research Focus:** Building-Integrated Photovoltaics Optimization  
-    **Contact:** [ResearchGate Profile](https://www.researchgate.net/profile/Mostafa-Gabr-4)
+    **Research Domain:** Advanced Building-Integrated Photovoltaics Optimization  
+    **Academic Profile:** [ResearchGate](https://www.researchgate.net/profile/Mostafa-Gabr-4)
+    
+    **Platform Development Timeline:**
+    - **June 2025:** Major enhancements including AI forecasting improvements, interactive location selection, and educational building specialization
+    - **Ongoing Research:** PhD thesis focusing on BIPV optimization in educational buildings with machine learning integration
+    
+    This platform represents cutting-edge research in sustainable building technologies, combining artificial intelligence, 
+    building information modeling, and renewable energy optimization for practical educational facility applications.
+    """)
+    
+    # Final Call-to-Action
+    st.markdown("""
+    ---
+    
+    ### 🚀 Start Your Enhanced BIPV Analysis
+    
+    Begin with **Step 1: Interactive Project Setup** to experience the latest platform improvements including:
+    - Global weather station integration
+    - Educational building pattern recognition  
+    - AI-powered demand forecasting
+    - Comprehensive building area validation
+    
+    Navigate to the sidebar to begin your analysis journey.
     """)
