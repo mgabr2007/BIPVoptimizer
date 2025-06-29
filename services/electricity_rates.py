@@ -201,44 +201,117 @@ def enhance_project_setup_with_live_rates():
         location = st.session_state.get('location_name', '')
         coordinates = st.session_state.get('map_coordinates', {})
         
-        # Determine country code from location
+        # Enhanced country mapping with more keywords
         country_mapping = {
-            'germany': 'DE', 'berlin': 'DE', 'munich': 'DE', 'hamburg': 'DE',
-            'france': 'FR', 'paris': 'FR', 'lyon': 'FR', 'marseille': 'FR',
-            'uk': 'UK', 'london': 'UK', 'manchester': 'UK', 'birmingham': 'UK',
-            'spain': 'ES', 'madrid': 'ES', 'barcelona': 'ES', 'valencia': 'ES',
-            'italy': 'IT', 'rome': 'IT', 'milan': 'IT', 'naples': 'IT',
-            'netherlands': 'NL', 'amsterdam': 'NL', 'rotterdam': 'NL',
-            'usa': 'US', 'united states': 'US', 'phoenix': 'US', 'denver': 'US'
+            # Germany
+            'germany': 'DE', 'deutschland': 'DE', 'german': 'DE',
+            'berlin': 'DE', 'munich': 'DE', 'münchen': 'DE', 'hamburg': 'DE', 
+            'cologne': 'DE', 'köln': 'DE', 'frankfurt': 'DE', 'düsseldorf': 'DE',
+            
+            # France  
+            'france': 'FR', 'français': 'FR', 'french': 'FR',
+            'paris': 'FR', 'lyon': 'FR', 'marseille': 'FR', 'toulouse': 'FR',
+            'nice': 'FR', 'nantes': 'FR', 'strasbourg': 'FR',
+            
+            # UK
+            'uk': 'UK', 'united kingdom': 'UK', 'britain': 'UK', 'england': 'UK',
+            'london': 'UK', 'manchester': 'UK', 'birmingham': 'UK', 'glasgow': 'UK',
+            'liverpool': 'UK', 'edinburgh': 'UK', 'bristol': 'UK',
+            
+            # Spain
+            'spain': 'ES', 'españa': 'ES', 'spanish': 'ES',
+            'madrid': 'ES', 'barcelona': 'ES', 'valencia': 'ES', 'seville': 'ES',
+            'bilbao': 'ES', 'zaragoza': 'ES',
+            
+            # Italy
+            'italy': 'IT', 'italia': 'IT', 'italian': 'IT',
+            'rome': 'IT', 'roma': 'IT', 'milan': 'IT', 'milano': 'IT', 
+            'naples': 'IT', 'napoli': 'IT', 'turin': 'IT', 'florence': 'IT',
+            
+            # Netherlands
+            'netherlands': 'NL', 'holland': 'NL', 'dutch': 'NL',
+            'amsterdam': 'NL', 'rotterdam': 'NL', 'hague': 'NL', 'utrecht': 'NL',
+            
+            # USA
+            'usa': 'US', 'united states': 'US', 'america': 'US', 'american': 'US',
+            'phoenix': 'US', 'denver': 'US', 'chicago': 'US', 'new york': 'US',
+            'los angeles': 'US', 'houston': 'US', 'philadelphia': 'US'
         }
         
-        location_lower = location.lower()
+        location_lower = location.lower() if location else ''
         country_code = None
         
+        # Debug information
+        st.info(f"""
+        **Location Detection Debug:**
+        - Location string: "{location}"
+        - Coordinates: {coordinates}
+        - Location available: {bool(location)}
+        - Coordinates available: {bool(coordinates)}
+        """)
+        
+        # Try location string matching first
         for location_key, code in country_mapping.items():
             if location_key in location_lower:
                 country_code = code
+                st.success(f"Country detected from location string: {location_key} → {code}")
                 break
         
-        if not country_code and coordinates:
-            # Determine from coordinates
-            lat = coordinates.get('lat', 0)
-            if 47 <= lat <= 55 and 5 <= coordinates.get('lon', 0) <= 15:
-                country_code = 'DE'  # Germany region
-            elif 35 <= lat <= 70 and -10 <= coordinates.get('lon', 0) <= 30:
-                country_code = 'EU'  # General EU
+        # Enhanced coordinate-based detection
+        if not country_code and coordinates and coordinates.get('lat') and coordinates.get('lon'):
+            lat = float(coordinates.get('lat', 0))
+            lon = float(coordinates.get('lon', 0))
+            
+            # More precise coordinate ranges
+            if 47.3 <= lat <= 55.1 and 5.9 <= lon <= 15.0:
+                country_code = 'DE'  # Germany
+                st.success(f"Germany detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 41.4 <= lat <= 51.1 and -5.1 <= lon <= 9.6:
+                country_code = 'FR'  # France
+                st.success(f"France detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 49.9 <= lat <= 60.8 and -8.6 <= lon <= 1.8:
+                country_code = 'UK'  # United Kingdom
+                st.success(f"UK detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 36.0 <= lat <= 43.8 and -9.3 <= lon <= 4.3:
+                country_code = 'ES'  # Spain
+                st.success(f"Spain detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 35.5 <= lat <= 47.1 and 6.6 <= lon <= 18.5:
+                country_code = 'IT'  # Italy
+                st.success(f"Italy detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 50.8 <= lat <= 53.6 and 3.4 <= lon <= 7.2:
+                country_code = 'NL'  # Netherlands
+                st.success(f"Netherlands detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 24.4 <= lat <= 49.4 and -125.0 <= lon <= -66.9:
+                country_code = 'US'  # United States
+                st.success(f"USA detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 35.0 <= lat <= 71.0 and -10.0 <= lon <= 40.0:
+                country_code = 'EU'  # General European region
+                st.info(f"General EU region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            else:
+                st.warning(f"Coordinates outside supported regions: {lat:.2f}°, {lon:.2f}°")
+        
+        # Show detection results
+        if country_code:
+            st.success(f"Country code determined: {country_code}")
+        else:
+            st.error("Could not determine country from location or coordinates")
         
         # Import here to avoid circular imports
         from services.api_integrations import implement_live_rate_fetching
         
-        if location and country_code:
+        if country_code:
+            st.info(f"Attempting live rate integration for {country_code}...")
             live_rates = implement_live_rate_fetching(location, country_code)
-            if live_rates:
+            if live_rates and live_rates.get('success'):
                 st.session_state.live_electricity_rates = live_rates
+                st.success("Live electricity rates successfully integrated!")
                 return live_rates
+            else:
+                st.warning("Live rate integration ready but requires setup")
+                st.info("Using database estimates for now")
         else:
-            st.warning("Location not recognized for live rate integration")
-            st.info("Using database estimates for analysis")
+            st.error("Could not determine country for live rate integration")
+            st.info("Please ensure location is set correctly or use manual coordinates")
         
         return True
     else:
