@@ -104,8 +104,8 @@ def calculate_bipv_system_specifications(element_data, glass_specs, coverage_dat
             total_power = glass_area * glass_specs['power_per_m2'] / 1000  # Convert to kW
             total_cost = glass_area * glass_specs['cost_per_m2']
             
-            # Performance calculations for BIPV glass
-            annual_radiation = element.get('annual_radiation', 1200)  # kWh/m²/year
+            # Performance calculations for BIPV glass - use corrected radiation from Step 5
+            annual_radiation = element.get('corrected_annual_irradiation', element.get('annual_radiation', 1200))  # kWh/m²/year
             performance_ratio = 0.85  # BIPV glass performance ratio
             annual_energy = glass_area * glass_specs['efficiency'] * annual_radiation * performance_ratio
             
@@ -116,7 +116,7 @@ def calculate_bipv_system_specifications(element_data, glass_specs, coverage_dat
             installation_cost = total_cost * 1.5  # Including inverter, wiring, etc.
             
             specification = {
-                'element_id': element.get('Element ID', f'Element_{i+1}'),
+                'element_id': element.get('element_id', element.get('Element ID', element.get('ElementId', f'Element_{i+1}'))),
                 'orientation': element.get('orientation', 'Unknown'),
                 'glass_area': glass_area,
                 'frame_area': coverage['frame_area'],
@@ -294,8 +294,10 @@ def render_pv_specification():
                 
                 for _, element in radiation_df.iterrows():
                     # Calculate BIPV glass coverage (no separate panels)
+                    # Use 'area' from radiation data or fallback to glass_area from BIM
+                    element_area = element.get('area', element.get('glass_area', 1.5))
                     coverage = calculate_bipv_glass_coverage(
-                        element['area'],
+                        element_area,
                         frame_factor
                     )
                     coverage_results.append(coverage)
@@ -333,6 +335,13 @@ def render_pv_specification():
                 
                 # Individual System Specifications
                 with st.expander("📋 Individual BIPV Glass Specifications", expanded=False):
+                    # Debug Element ID mapping
+                    st.write("Debug: Element ID mapping check")
+                    st.write(f"Sample radiation data columns: {list(radiation_df.columns)}")
+                    st.write(f"Sample system specs columns: {list(system_specs.columns)}")
+                    st.write(f"First 3 Element IDs in radiation data: {radiation_df['element_id'].head(3).tolist()}")
+                    st.write(f"First 3 Element IDs in system specs: {system_specs['element_id'].head(3).tolist()}")
+                    
                     display_df = system_specs.copy()
                     display_df['glass_area'] = display_df['glass_area'].round(2)
                     display_df['system_power_kw'] = display_df['system_power_kw'].round(2)
