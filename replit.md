@@ -352,6 +352,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 29, 2025: Fixed AI forecast energy consumption drop issue by reducing educational building pattern impact strength to 10% and implementing gentle modifications that preserve historical data continuity, especially for Year-Round Operation patterns, preventing double-application of seasonal factors that were causing artificial consumption decreases
 - June 29, 2025: Updated demand prediction display to use sophisticated AI forecast results instead of simplified calculation, showing actual growth rates and building-specific characteristics in BIPV analysis projection with comprehensive forecast method attribution
 - June 29, 2025: Implemented automatic scroll-to-top functionality for all workflow navigation buttons including bottom navigation, step-specific continue buttons, and new calculation restart to improve user experience and ensure users see new content immediately after step transitions
+- June 29, 2025: Removed solar parameter estimates from Step 1 display and replaced with clear explanation that location coordinates and selected WMO weather station will be used for authentic TMY data generation in Step 3, eliminating confusing preliminary estimates that get overridden by actual meteorological calculations
 
 ## User Preferences
 

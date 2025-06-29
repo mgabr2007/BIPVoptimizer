@@ -463,6 +463,19 @@ def render_project_setup():
     # Weather data integration
     st.subheader("🌤️ Weather Data Integration")
     
+    st.info("""
+    **How Your Location Data Will Be Used:**
+    
+    📍 **Selected Coordinates & WMO Station** → Step 3 TMY Generation
+    - Your precise coordinates and selected weather station will be used in Step 3 to generate authentic Typical Meteorological Year (TMY) data
+    - TMY includes 8,760 hourly data points of solar irradiance (GHI, DNI, DHI), temperature, humidity, and wind
+    - Generated using ISO 15927-4 standards with astronomical algorithms for accurate solar positioning
+    - WMO station provides authentic meteorological reference data for your climate zone
+    
+    💰 **Electricity Rates** → Financial Analysis (Steps 7-9)
+    - Import/export rates will be used for economic calculations including ROI, payback period, and cash flow analysis
+    """)
+    
     # Check for OpenWeather API key
     api_key = os.environ.get('OPENWEATHER_API_KEY')
     
@@ -565,10 +578,10 @@ def render_project_setup():
             
             with col2:
                 st.info(f"""
-                **Solar Parameters:**
-                - Annual GHI: {location_params['ghi']} kWh/m²
-                - Clearness Index: {location_params['clearness']:.2f}
-                - Temperature Coefficient: {location_params['temp_coeff']:.4f}/°C
+                **Data Sources for Analysis:**
+                - Location coordinates will be used for TMY generation in Step 3
+                - WMO weather station will provide meteorological data
+                - Electricity rates will be used for financial calculations
                 
                 **Electricity Rates:**
                 - Import Rate: {get_currency_symbol(currency)}{electricity_rates['import_rate']:.3f}/kWh
