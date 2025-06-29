@@ -356,11 +356,24 @@ def enhance_project_setup_with_live_rates():
             elif 24.4 <= lat <= 49.4 and -125.0 <= lon <= -66.9:
                 country_code = 'US'  # United States
                 st.success(f"🇺🇸 USA detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 22.0 <= lat <= 31.7 and 25.0 <= lon <= 37.0:
+                country_code = 'EG'  # Egypt
+                st.success(f"🇪🇬 Egypt detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 12.0 <= lat <= 37.0 and 34.0 <= lon <= 48.0:
+                country_code = 'ME'  # Middle East region
+                st.info(f"🌍 Middle East region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 35.0 <= lat <= 71.0 and -10.0 <= lon <= 40.0:
                 country_code = 'EU'  # General European region
                 st.info(f"🇪🇺 General EU region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif -35.0 <= lat <= 37.0 and -18.0 <= lon <= 52.0:
+                country_code = 'AF'  # Africa region
+                st.info(f"🌍 Africa region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
+            elif 5.0 <= lat <= 55.0 and 60.0 <= lon <= 180.0:
+                country_code = 'AS'  # Asia region
+                st.info(f"🌏 Asia region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             else:
-                st.warning(f"❌ Coordinates outside supported regions: {lat:.2f}°, {lon:.2f}°")
+                country_code = 'GLOBAL'  # Global fallback
+                st.info(f"🌍 Global region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
         
         # Show detection results
         if country_code:
@@ -380,11 +393,21 @@ def enhance_project_setup_with_live_rates():
                 return live_rates
             else:
                 st.warning("Live rate integration failed - manual input required")
-                return None  # Let the manual input handle this case
+                # Continue to manual input section below
         else:
             st.error("Could not determine country for live rate integration")
             st.info("Please use manual rate input below")
-            return None  # Force manual input when country detection fails
+            # Continue to manual input section below
+        
+        # Show manual input when API fails or country not detected
+        from services.api_integrations import collect_manual_electricity_rates
+        manual_rates = collect_manual_electricity_rates(location)
+        if manual_rates and manual_rates.get('success'):
+            st.session_state.live_electricity_rates = manual_rates
+            st.success("Manual electricity rates configured successfully!")
+            return manual_rates
+        
+        return None
     else:
         st.info("Manual electricity rate input available for accurate analysis")
         

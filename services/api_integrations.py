@@ -174,6 +174,25 @@ def collect_manual_electricity_rates(location):
     st.markdown("### Manual Electricity Rate Input")
     st.write(f"Enter current electricity rates for **{location}** in EUR:")
     
+    # Set regional defaults based on location
+    default_import = 0.30
+    default_export = 0.08
+    
+    # Detect region for better defaults
+    location_lower = location.lower() if location else ""
+    if any(term in location_lower for term in ['egypt', 'cairo', 'alexandria', 'giza']):
+        default_import = 0.08
+        default_export = 0.04
+    elif any(term in location_lower for term in ['uae', 'dubai', 'abu dhabi', 'emirates']):
+        default_import = 0.12
+        default_export = 0.05
+    elif any(term in location_lower for term in ['south africa', 'cape town', 'johannesburg']):
+        default_import = 0.15
+        default_export = 0.07
+    elif any(term in location_lower for term in ['morocco', 'casablanca', 'rabat']):
+        default_import = 0.13
+        default_export = 0.08
+    
     col1, col2 = st.columns(2)
     
     with col1:
@@ -181,10 +200,10 @@ def collect_manual_electricity_rates(location):
             "Import Rate (EUR/kWh)",
             min_value=0.0,
             max_value=1.0,
-            value=0.30,
+            value=default_import,
             step=0.001,
             format="%.3f",
-            help="Rate you pay for electricity from the grid (typical range: 0.15-0.50 EUR/kWh)",
+            help="Rate you pay for electricity from the grid (typical range: 0.05-0.50 EUR/kWh depending on region)",
             key="manual_import_rate"
         )
         
@@ -195,10 +214,10 @@ def collect_manual_electricity_rates(location):
             "Export Rate (EUR/kWh)",
             min_value=0.0,
             max_value=1.0,
-            value=0.08,
+            value=default_export,
             step=0.001,
             format="%.3f",
-            help="Rate you receive for electricity fed back to grid (typically 0.05-0.15 EUR/kWh)",
+            help="Rate you receive for electricity fed back to grid (typically 0.02-0.15 EUR/kWh depending on region)",
             key="manual_export_rate"
         )
         
@@ -209,6 +228,7 @@ def collect_manual_electricity_rates(location):
         st.markdown("""
         **Typical Electricity Rates by Region (EUR/kWh):**
         
+        **Europe:**
         🇩🇪 **Germany**: Import 0.30-0.35, Export 0.08-0.12  
         🇫🇷 **France**: Import 0.25-0.30, Export 0.06-0.10  
         🇮🇹 **Italy**: Import 0.28-0.33, Export 0.07-0.11  
@@ -216,8 +236,24 @@ def collect_manual_electricity_rates(location):
         🇳🇱 **Netherlands**: Import 0.28-0.35, Export 0.07-0.12  
         🇬🇧 **UK**: Import 0.25-0.32, Export 0.04-0.08  
         
-        **Note**: Rates vary by utility company, consumption tier, and time-of-use plans.
-        Check your latest electricity bill for exact rates.
+        **Middle East & Africa:**
+        🇪🇬 **Egypt**: Import 0.05-0.12, Export 0.02-0.06  
+        🇦🇪 **UAE**: Import 0.08-0.15, Export 0.03-0.08  
+        🇿🇦 **South Africa**: Import 0.12-0.18, Export 0.04-0.10  
+        🇲🇦 **Morocco**: Import 0.10-0.16, Export 0.05-0.12  
+        
+        **Asia Pacific:**
+        🇯🇵 **Japan**: Import 0.20-0.28, Export 0.06-0.12  
+        🇦🇺 **Australia**: Import 0.22-0.32, Export 0.05-0.15  
+        🇮🇳 **India**: Import 0.06-0.14, Export 0.02-0.08  
+        
+        **Americas:**
+        🇺🇸 **USA**: Import 0.10-0.25, Export 0.03-0.12  
+        🇨🇦 **Canada**: Import 0.08-0.18, Export 0.04-0.10  
+        
+        **Note**: Rates vary significantly by utility company, consumption tier, and government subsidies.
+        Check your latest electricity bill for exact rates in your local currency.
+        Convert to EUR using current exchange rates for analysis.
         """)
     
     # Validation and confirmation
