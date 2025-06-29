@@ -954,13 +954,49 @@ def render_historical_data():
         
         
         with col3:
-            if temperature_data and len(temperature_data) >= 6:
-                summer_avg = SimpleMath.mean(temperature_data[5:8])  # Jun-Aug
-                winter_avg = SimpleMath.mean(temperature_data[11:2])  # Dec-Feb
+            if temperature_data and len(temperature_data) >= 12:
+                # Summer: Jun-Aug (indices 5,6,7)
+                summer_temps = temperature_data[5:8]
+                summer_avg = SimpleMath.mean(summer_temps) if summer_temps else 0
+                
+                # Winter: Dec-Feb (indices 11,0,1) - handle year boundary correctly
+                winter_temps = [temperature_data[11]]  # December
+                if len(temperature_data) >= 12:
+                    winter_temps.extend([temperature_data[0], temperature_data[1]])  # Jan, Feb
+                winter_avg = SimpleMath.mean(winter_temps) if winter_temps else 0
+                
                 seasonal_variation = abs(summer_avg - winter_avg) if summer_avg and winter_avg else 0
                 st.metric("Seasonal Variation", f"{seasonal_variation:.1f}°C")
+                
                 if seasonal_variation > 20:
                     st.info("High seasonal variation - Climate-responsive design beneficial")
+                elif seasonal_variation > 10:
+                    st.success("Moderate seasonal variation - Balanced energy patterns")
+                else:
+                    st.info("Low seasonal variation - Stable climate conditions")
+                    
+                # Seasonal Variation explanation with academic context
+                with st.expander("📚 Seasonal Variation - Definition & BIPV Impact", expanded=False):
+                    st.markdown(f"""
+                    **Seasonal Variation Definition:**
+                    Temperature difference between summer (Jun-Aug) and winter (Dec-Feb) months.
+                    
+                    **Your Building:** {seasonal_variation:.1f}°C difference
+                    - Summer average: {summer_avg:.1f}°C
+                    - Winter average: {winter_avg:.1f}°C
+                    
+                    **BIPV System Impact:**
+                    - **>20°C**: High variation requires adaptive HVAC, variable energy demand
+                    - **10-20°C**: Moderate variation, balanced heating/cooling loads
+                    - **<10°C**: Stable climate, consistent BIPV performance year-round
+                    
+                    **Design Implications:**
+                    Higher seasonal variation affects BIPV sizing calculations as heating loads
+                    in winter and cooling loads in summer create different energy demand patterns.
+                    """)
+            else:
+                st.metric("Seasonal Variation", "N/A")
+                st.info("Insufficient temperature data for seasonal analysis")
         
         # Prediction for next steps
         st.subheader("Demand Prediction for BIPV Analysis")
