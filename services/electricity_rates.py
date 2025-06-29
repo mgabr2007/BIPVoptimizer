@@ -197,28 +197,50 @@ def enhance_project_setup_with_live_rates():
     )
     
     if enable_live_rates:
-        st.info("""
-        **Available Data Sources:**
-        
-        🔗 **Official Utility APIs**: Direct connection to national electricity market operators
-        📊 **EU Market Data**: ENTSO-E transparency platform for European locations  
-        🌐 **Global Coverage**: IEA, IRENA, and World Bank energy databases
-        ⚡ **Real-Time Updates**: Current market rates and feed-in tariffs
-        """)
-        
         # Location-based rate detection
         location = st.session_state.get('location_name', '')
         coordinates = st.session_state.get('map_coordinates', {})
         
-        if location:
-            with st.spinner("Checking available rate sources..."):
-                rates_data = get_real_time_electricity_rates(location, coordinates)
-                display_rate_source_info(rates_data)
-                
-                # Store rate source information
-                st.session_state.electricity_rate_source = rates_data
+        # Determine country code from location
+        country_mapping = {
+            'germany': 'DE', 'berlin': 'DE', 'munich': 'DE', 'hamburg': 'DE',
+            'france': 'FR', 'paris': 'FR', 'lyon': 'FR', 'marseille': 'FR',
+            'uk': 'UK', 'london': 'UK', 'manchester': 'UK', 'birmingham': 'UK',
+            'spain': 'ES', 'madrid': 'ES', 'barcelona': 'ES', 'valencia': 'ES',
+            'italy': 'IT', 'rome': 'IT', 'milan': 'IT', 'naples': 'IT',
+            'netherlands': 'NL', 'amsterdam': 'NL', 'rotterdam': 'NL',
+            'usa': 'US', 'united states': 'US', 'phoenix': 'US', 'denver': 'US'
+        }
+        
+        location_lower = location.lower()
+        country_code = None
+        
+        for location_key, code in country_mapping.items():
+            if location_key in location_lower:
+                country_code = code
+                break
+        
+        if not country_code and coordinates:
+            # Determine from coordinates
+            lat = coordinates.get('lat', 0)
+            if 47 <= lat <= 55 and 5 <= coordinates.get('lon', 0) <= 15:
+                country_code = 'DE'  # Germany region
+            elif 35 <= lat <= 70 and -10 <= coordinates.get('lon', 0) <= 30:
+                country_code = 'EU'  # General EU
+        
+        # Import here to avoid circular imports
+        from services.api_integrations import implement_live_rate_fetching
+        
+        if location and country_code:
+            live_rates = implement_live_rate_fetching(location, country_code)
+            if live_rates:
+                st.session_state.live_electricity_rates = live_rates
+                return live_rates
+        else:
+            st.warning("Location not recognized for live rate integration")
+            st.info("Using database estimates for analysis")
         
         return True
     else:
-        st.info("Using estimated rates based on location database. Enable real-time fetching for accuracy.")
+        st.info("Using location-based rate estimates. Enable real-time fetching for official data sources.")
         return False
