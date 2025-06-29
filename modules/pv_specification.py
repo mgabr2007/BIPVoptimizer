@@ -105,9 +105,12 @@ def calculate_bipv_system_specifications(element_data, glass_specs, coverage_dat
             total_cost = glass_area * glass_specs['cost_per_m2']
             
             # Performance calculations for BIPV glass - use corrected radiation from Step 5
-            annual_radiation = element.get('corrected_annual_irradiation', element.get('annual_radiation', 1200))  # kWh/m²/year
+            annual_radiation = element.get('corrected_annual_irradiation', element.get('annual_irradiation', element.get('annual_radiation', 1200)))  # kWh/m²/year
             performance_ratio = 0.85  # BIPV glass performance ratio
-            annual_energy = glass_area * glass_specs['efficiency'] * annual_radiation * performance_ratio
+            
+            # Calculate energy based on actual element area and radiation
+            actual_glass_area = element.get('glass_area', element.get('area', glass_area))
+            annual_energy = actual_glass_area * glass_specs['efficiency'] * annual_radiation * performance_ratio
             
             # Specific yield (kWh/kWp)
             specific_yield = annual_energy / total_power if total_power > 0 else 0
@@ -116,7 +119,7 @@ def calculate_bipv_system_specifications(element_data, glass_specs, coverage_dat
             installation_cost = total_cost * 1.5  # Including inverter, wiring, etc.
             
             specification = {
-                'element_id': element.get('element_id', element.get('Element ID', element.get('ElementId', f'Element_{i+1}'))),
+                'element_id': element.get('element_id', f'Element_{i+1}'),
                 'orientation': element.get('orientation', 'Unknown'),
                 'glass_area': glass_area,
                 'frame_area': coverage['frame_area'],
@@ -130,7 +133,11 @@ def calculate_bipv_system_specifications(element_data, glass_specs, coverage_dat
                 'cost_per_kwh': (total_cost + installation_cost) / annual_energy if annual_energy > 0 else 0,
                 'transparency': glass_specs['transparency'],
                 'efficiency': glass_specs['efficiency'],
-                'annual_radiation': annual_radiation
+                'annual_radiation': annual_radiation,
+                'family': element.get('family', 'Unknown'),
+                'level': element.get('level', 'Unknown'),
+                'host_wall_id': element.get('host_wall_id', 'Unknown'),
+                'element_type': element.get('element_type', 'Window')
             }
             
             specifications.append(specification)

@@ -176,15 +176,22 @@ def render_facade_extraction():
                             total_glass_area += window_area
                             
                             windows.append({
-                                'element_id': element_id,
+                                'ElementId': element_id,  # Keep original BIM column name
+                                'element_id': element_id,  # Also store with standard name
+                                'HostWallId': host_wall_id,
                                 'wall_hosted_id': host_wall_id,
                                 'element_type': 'Window',
+                                'Category': category,
                                 'category': category,
+                                'Family': family,
                                 'family': family,
+                                'Level': level,
                                 'level': level,
                                 'orientation': orientation,
                                 'azimuth': azimuth,
+                                'tilt': 90,  # Windows are typically vertical
                                 'glass_area': glass_area,
+                                'area': glass_area,  # For radiation calculations
                                 'window_area': window_area,
                                 'window_width': window_width,
                                 'window_height': window_height,

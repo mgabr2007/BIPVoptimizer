@@ -63,17 +63,21 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
         
         # Calculate statistics
         element_radiation = {
-            'element_id': element['id'],
-            'element_type': element.get('type', 'Unknown'),
+            'element_id': element.get('ElementId', element.get('id', f"element_{element.name if hasattr(element, 'name') else 'unknown'}")),
+            'element_type': element.get('Category', element.get('type', 'Unknown')),
             'orientation': element['orientation'],
-            'area': element['area'],
+            'area': element.get('glass_area', element.get('area', 1.5)),
+            'glass_area': element.get('glass_area', element.get('area', 1.5)),
             'tilt': element['tilt'],
             'azimuth': element['azimuth'],
             'annual_irradiation': surface_irradiance.sum(),  # kWh/m²/year
             'peak_irradiance': surface_irradiance.max(),  # W/m²
             'avg_irradiance': surface_irradiance.mean(),  # W/m²
             'capacity_factor': surface_irradiance.mean() / 1000,  # Simplified capacity factor
-            'monthly_irradiation': surface_irradiance.groupby(tmy_df['datetime'].dt.month).sum().to_dict()
+            'monthly_irradiation': surface_irradiance.groupby(tmy_df['datetime'].dt.month).sum().to_dict(),
+            'family': element.get('Family', 'Unknown'),
+            'level': element.get('Level', 'Unknown'),
+            'host_wall_id': element.get('HostWallId', 'Unknown')
         }
         
         radiation_grid.append(element_radiation)
