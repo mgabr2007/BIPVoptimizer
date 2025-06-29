@@ -206,23 +206,20 @@ def render_project_setup():
         horizontal=True
     )
     
-    # Configuration panel for location settings
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        search_radius = st.selectbox(
-            "Weather Station Search Radius (km)",
-            [100, 200, 300, 500, 750, 1000],
-            index=3,
-            help="Maximum distance to search for meteorological stations",
-            key="search_radius"
-        )
+    # Configuration settings in balanced layout
+    search_radius = st.selectbox(
+        "Weather Station Search Radius (km)",
+        [100, 200, 300, 500, 750, 1000],
+        index=3,
+        help="Maximum distance to search for meteorological stations",
+        key="search_radius"
+    )
     
-    with col2:
-        debug_geocoding = st.checkbox(
-            "Show Debug Info",
-            help="Display detailed location detection information",
-            key="debug_geocoding_checkbox"
-        )
+    debug_geocoding = st.checkbox(
+        "Show Debug Info",
+        help="Display detailed location detection information",
+        key="debug_geocoding_checkbox"
+    )
     
     # Location input based on selected method
     if location_method == "Manual Coordinates":
@@ -456,60 +453,54 @@ def render_project_setup():
         key="location_name_input"
     )
     
-    col1, col2 = st.columns(2)
+    # Electricity Rate Integration
+    st.markdown("**🔌 Electricity Rate Integration**")
+    enable_live_rates = enhance_project_setup_with_live_rates()
     
-    with col1:
-        st.markdown("**🔌 Electricity Rate Integration**")
-        enable_live_rates = enhance_project_setup_with_live_rates()
+    # Current Weather Data
+    st.markdown("**🌤️ Current Weather Data**")
+    api_key = os.environ.get('OPENWEATHER_API_KEY')
     
-    with col2:
-        st.markdown("**🌤️ Current Weather Data**")
-        api_key = os.environ.get('OPENWEATHER_API_KEY')
-        
-        if api_key:
-            if st.button("Fetch Current Weather", key="fetch_weather"):
-                with st.spinner("Fetching weather data..."):
-                    weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
+    if api_key:
+        if st.button("Fetch Current Weather", key="fetch_weather"):
+            with st.spinner("Fetching weather data..."):
+                weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
+                
+                if weather_data and weather_data.get('api_success'):
+                    st.success("Weather data retrieved!")
+                    st.info(f"{weather_data['temperature']:.1f}°C • {weather_data['description'].title()}")
                     
-                    if weather_data and weather_data.get('api_success'):
-                        st.success("Weather data retrieved!")
-                        st.info(f"{weather_data['temperature']:.1f}°C • {weather_data['description'].title()}")
-                        
-                        # Store weather data
-                        st.session_state.project_data = st.session_state.get('project_data', {})
-                        st.session_state.project_data['current_weather'] = weather_data
-                        st.session_state.project_data['weather_complete'] = True
-                    else:
-                        st.error("Failed to retrieve weather data")
-        else:
-            st.caption("OpenWeather API key not configured")
+                    # Store weather data
+                    st.session_state.project_data = st.session_state.get('project_data', {})
+                    st.session_state.project_data['current_weather'] = weather_data
+                    st.session_state.project_data['weather_complete'] = True
+                else:
+                    st.error("Failed to retrieve weather data")
+    else:
+        st.caption("OpenWeather API key not configured")
     
     # STEP 1.5: Configuration Review & Save
     st.subheader("5️⃣ Configuration Review & Save")
     
     # Show current configuration before saving
     with st.expander("📋 Review Current Configuration", expanded=True):
-        review_col1, review_col2 = st.columns(2)
+        st.markdown(f"""
+        **Project Details:**
+        - Name: {project_name}
+        - Location: {location_name}
+        - Coordinates: {selected_lat:.4f}°, {selected_lon:.4f}°
+        - Timezone: {timezone}
+        """)
         
-        with review_col1:
+        if stations_summary['total_stations'] > 0:
             st.markdown(f"""
-            **Project Details:**
-            - Name: {project_name}
-            - Location: {location_name}
-            - Coordinates: {selected_lat:.4f}°, {selected_lon:.4f}°
-            - Timezone: {timezone}
+            **Weather Data Sources:**
+            - Weather stations found: {stations_summary['total_stations']}
+            - Closest station: {stations_summary['closest_distance']:.1f} km
+            - Search radius: {search_radius} km
             """)
-        
-        with review_col2:
-            if stations_summary['total_stations'] > 0:
-                st.markdown(f"""
-                **Weather Data Sources:**
-                - Weather stations found: {stations_summary['total_stations']}
-                - Closest station: {stations_summary['closest_distance']:.1f} km
-                - Search radius: {search_radius} km
-                """)
-            else:
-                st.warning(f"No weather stations found within {search_radius} km")
+        else:
+            st.warning(f"No weather stations found within {search_radius} km")
     
     if st.button("💾 Save Project Configuration", key="save_project", type="primary"):
         # Prepare enhanced project data with weather station information
@@ -579,39 +570,35 @@ def render_project_setup():
                 st.markdown("### 📋 Complete Project Configuration")
                 
                 # Create a comprehensive summary in organized sections
-                summary_col1, summary_col2 = st.columns([3, 2])
+                st.markdown(f"""
+                **🏢 Project Information**
+                - **Name:** {project_name}
+                - **Location:** {location_name}
+                - **Coordinates:** {selected_lat:.4f}°, {selected_lon:.4f}°
+                - **Timezone:** {timezone} • **Currency:** EUR
                 
-                with summary_col1:
+                **💰 Financial Parameters**
+                - **Import Rate:** €{electricity_rates['import_rate']:.3f}/kWh
+                - **Export Rate:** €{electricity_rates['export_rate']:.3f}/kWh
+                - **Rate Source:** {electricity_rates.get('source', 'database_estimates').replace('_', ' ').title()}
+                """)
+                
+                if selected_station:
                     st.markdown(f"""
-                    **🏢 Project Information**
-                    - **Name:** {project_name}
-                    - **Location:** {location_name}
-                    - **Coordinates:** {selected_lat:.4f}°, {selected_lon:.4f}°
-                    - **Timezone:** {timezone} • **Currency:** EUR
-                    
-                    **💰 Financial Parameters**
-                    - **Import Rate:** €{electricity_rates['import_rate']:.3f}/kWh
-                    - **Export Rate:** €{electricity_rates['export_rate']:.3f}/kWh
-                    - **Rate Source:** {electricity_rates.get('source', 'database_estimates').replace('_', ' ').title()}
+                    **🌡️ Selected Weather Station**
+                    - **Station:** {selected_station['name']}
+                    - **Country:** {selected_station['country']}
+                    - **WMO ID:** {selected_station['wmo_id']}
+                    - **Distance:** {selected_station['distance_km']:.1f} km
+                    - **Elevation:** {selected_station['height']:.0f} m
                     """)
-                
-                with summary_col2:
-                    if selected_station:
-                        st.markdown(f"""
-                        **🌡️ Selected Weather Station**
-                        - **Station:** {selected_station['name']}
-                        - **Country:** {selected_station['country']}
-                        - **WMO ID:** {selected_station['wmo_id']}
-                        - **Distance:** {selected_station['distance_km']:.1f} km
-                        - **Elevation:** {selected_station['height']:.0f} m
-                        """)
-                    else:
-                        st.warning(f"""
-                        **🌡️ Weather Station**
-                        - No station selected
-                        - Found: {stations_summary['total_stations']} stations
-                        - Radius: {search_radius} km
-                        """)
+                else:
+                    st.warning(f"""
+                    **🌡️ Weather Station**
+                    - No station selected
+                    - Found: {stations_summary['total_stations']} stations
+                    - Radius: {search_radius} km
+                    """)
                 
                 # Data usage explanation
                 st.info("""
