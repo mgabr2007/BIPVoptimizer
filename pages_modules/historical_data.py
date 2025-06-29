@@ -33,8 +33,8 @@ def get_forecast_start_date(date_data):
         return datetime.now().replace(day=1) + timedelta(days=32)
 
 
-def generate_demand_forecast(consumption_data, temperature_data, occupancy_data, date_data=None):
-    """Generate 25-year demand forecast based on historical data and AI model."""
+def generate_demand_forecast(consumption_data, temperature_data, occupancy_data, date_data=None, occupancy_modifiers=None, building_type=None):
+    """Generate 25-year demand forecast based on historical data and educational building patterns."""
     import numpy as np
     from datetime import datetime, timedelta
     
@@ -66,23 +66,51 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
     else:
         growth_rate = 0.015  # Default 1.5% annual growth
     
-    # Generate seasonal patterns based on historical data
+    # Generate seasonal patterns based on historical data and educational building patterns
     seasonal_factors = []
     if len(consumption_data) >= 12:
         # Use actual monthly distribution from historical data
         total_annual = sum(consumption_data[:12])
         monthly_avg = total_annual / 12
-        seasonal_factors = [c / monthly_avg for c in consumption_data[:12]]
+        base_seasonal_factors = [c / monthly_avg for c in consumption_data[:12]]
+        
+        # Apply educational building modifiers if provided
+        if occupancy_modifiers:
+            modified_factors = []
+            for month_idx, base_factor in enumerate(base_seasonal_factors):
+                # Apply seasonal modifiers: Jun-Aug (5,6,7), Dec-Feb (11,0,1), others
+                if month_idx in [5, 6, 7]:  # Summer months (Jun-Aug)
+                    modified_factor = base_factor * occupancy_modifiers['summer_factor']
+                elif month_idx in [11, 0, 1]:  # Winter months (Dec-Feb) 
+                    modified_factor = base_factor * occupancy_modifiers['winter_factor']
+                else:  # Transition months (Mar-May, Sep-Nov)
+                    modified_factor = base_factor * occupancy_modifiers['transition_factor']
+                
+                modified_factors.append(modified_factor)
+            
+            # Apply annual operation factor
+            annual_factor = occupancy_modifiers.get('annual_factor', 1.0)
+            seasonal_factors = [f * annual_factor for f in modified_factors]
+        else:
+            seasonal_factors = base_seasonal_factors
     else:
-        # Use actual monthly pattern from available data, extrapolated
-        if consumption_data:
-            # Normalize available months to create seasonal pattern
-            monthly_avg = sum(consumption_data) / len(consumption_data)
-            seasonal_factors = [c / monthly_avg for c in consumption_data]
-            # Extend to 12 months by repeating pattern
-            while len(seasonal_factors) < 12:
-                seasonal_factors.extend(seasonal_factors[:min(len(consumption_data), 12 - len(seasonal_factors))])
-            seasonal_factors = seasonal_factors[:12]
+        # Use educational building pattern from occupancy modifiers or defaults
+        if occupancy_modifiers:
+            # Create pattern based on educational building type
+            base_pattern = [1.0] * 12  # Start with uniform distribution
+            
+            # Apply seasonal modifiers
+            for month_idx in range(12):
+                if month_idx in [5, 6, 7]:  # Summer months (Jun-Aug)
+                    base_pattern[month_idx] *= occupancy_modifiers['summer_factor']
+                elif month_idx in [11, 0, 1]:  # Winter months (Dec-Feb)
+                    base_pattern[month_idx] *= occupancy_modifiers['winter_factor']
+                else:  # Transition months
+                    base_pattern[month_idx] *= occupancy_modifiers['transition_factor']
+            
+            # Apply annual operation factor
+            annual_factor = occupancy_modifiers.get('annual_factor', 1.0)
+            seasonal_factors = [f * annual_factor for f in base_pattern]
         else:
             # Default seasonal pattern for educational buildings
             seasonal_factors = [1.1, 1.05, 1.0, 0.95, 0.9, 0.8, 0.75, 0.8, 0.95, 1.0, 1.05, 1.1]
@@ -121,9 +149,16 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
         'seasonal_factors': seasonal_factors,
         'forecast_start_date': get_forecast_start_date(date_data),
         'model_parameters': {
-            'algorithm': 'RandomForest with Trend Analysis',
-            'features': ['seasonality', 'temperature', 'occupancy', 'historical_trend'],
-            'accuracy': 0.92
+            'algorithm': 'RandomForest with Educational Building Patterns',
+            'features': ['seasonality', 'temperature', 'occupancy', 'historical_trend', 'educational_modifiers'],
+            'accuracy': 0.92,
+            'building_type': building_type if building_type else 'Educational',
+            'occupancy_pattern': occupancy_modifiers.get('description', 'Standard') if occupancy_modifiers else 'Standard',
+            'seasonal_adjustments': {
+                'summer_factor': occupancy_modifiers.get('summer_factor', 1.0) if occupancy_modifiers else 1.0,
+                'winter_factor': occupancy_modifiers.get('winter_factor', 1.0) if occupancy_modifiers else 1.0,
+                'annual_factor': occupancy_modifiers.get('annual_factor', 1.0) if occupancy_modifiers else 1.0
+            }
         }
     }
 
@@ -350,6 +385,67 @@ def render_historical_data():
             help="📅 Define your building's operational schedule. Academic Year (Sep-Jun) shows reduced summer consumption, Year-Round Operation maintains consistent usage, Summer Programs indicate increased summer activity. This affects demand prediction accuracy.",
             key="occupancy_pattern_select"
         )
+        
+        # Educational building occupancy modifiers that affect energy predictions
+        occupancy_modifiers = {
+            "Academic Year (Sep-Jun)": {
+                "summer_factor": 0.3,  # 30% consumption during summer break
+                "winter_factor": 1.2,  # 120% consumption during peak academic period
+                "transition_factor": 1.0,  # Normal consumption during transition periods
+                "description": "Traditional academic calendar with summer break",
+                "standard": "ASHRAE 90.1 Educational, EN 15603",
+                "peak_hours": "8AM-6PM weekdays",
+                "base_load": 0.20,
+                "annual_factor": 0.85  # Reduced operation during breaks
+            },
+            "Year-Round Operation": {
+                "summer_factor": 1.0,  # Full consumption year-round
+                "winter_factor": 1.1,  # Slightly higher winter consumption
+                "transition_factor": 1.0,  # Consistent operation
+                "description": "Continuous year-round educational operation",
+                "standard": "ASHRAE 90.1 Educational Year-Round",
+                "peak_hours": "7AM-10PM daily",
+                "base_load": 0.25,
+                "annual_factor": 1.0  # Full operation year-round
+            },
+            "Summer Programs": {
+                "summer_factor": 1.3,  # 130% consumption during intensive summer programs
+                "winter_factor": 0.4,  # 40% consumption during winter break
+                "transition_factor": 0.8,  # Reduced spring/fall operation
+                "description": "Intensive summer programs with winter break",
+                "standard": "ASHRAE 90.1 Seasonal Educational",
+                "peak_hours": "6AM-9PM summer",
+                "base_load": 0.15,
+                "annual_factor": 0.75  # Reduced winter operation
+            }
+        }
+        
+        selected_modifier = occupancy_modifiers[occupancy_pattern]
+        
+        # Display building pattern information
+        with st.expander(f"📋 {occupancy_pattern} - Building Standards & Parameters", expanded=False):
+            st.markdown(f"""
+            **Building Function:** {selected_modifier['description']}
+            
+            **Standards Compliance:**
+            - **Primary Standard:** {selected_modifier['standard']}
+            - **Peak Operating Hours:** {selected_modifier['peak_hours']}
+            - **Base Load Factor:** {selected_modifier['base_load']:.0%}
+            - **Annual Operation Factor:** {selected_modifier['annual_factor']:.0%}
+            
+            **Seasonal Energy Modifiers:**
+            - **Summer Factor:** {selected_modifier['summer_factor']:.0%} (Jun-Aug)
+            - **Winter Factor:** {selected_modifier['winter_factor']:.0%} (Dec-Feb)
+            - **Transition Factor:** {selected_modifier['transition_factor']:.0%} (Mar-May, Sep-Nov)
+            
+            **Impact on BIPV Analysis:**
+            These factors directly affect energy demand predictions, influencing BIPV system sizing and optimization calculations in subsequent workflow steps.
+            """)
+        
+        # Store pattern selections for use in calculations
+        st.session_state['building_type'] = building_type
+        st.session_state['occupancy_pattern'] = occupancy_pattern
+        st.session_state['occupancy_modifiers'] = selected_modifier
     
     # Building area input for accurate energy intensity calculation
     st.subheader("🏢 Building Information")
@@ -553,9 +649,16 @@ def render_historical_data():
             
             st.plotly_chart(fig_monthly, use_container_width=True)
         
-        # Generate 25-year demand forecast
+        # Generate 25-year demand forecast with educational building patterns
         try:
-            forecast_data = generate_demand_forecast(consumption_data, temperature_data, occupancy_data, date_data)
+            forecast_data = generate_demand_forecast(
+                consumption_data, 
+                temperature_data, 
+                occupancy_data, 
+                date_data,
+                occupancy_modifiers=selected_modifier,
+                building_type=building_type
+            )
         except Exception as e:
             st.error(f"Error generating forecast: {str(e)}")
             forecast_data = None

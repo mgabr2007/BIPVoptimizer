@@ -348,6 +348,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 29, 2025: Made building floor area input mandatory with comprehensive validation and clarified definition as total conditioned floor area (Net Floor Area) including all heated/cooled spaces across all levels, excluding unconditioned areas like parking garages and outdoor spaces
 - June 29, 2025: Removed arbitrary 50,000 m² upper limit from building area input to accommodate large educational campuses, hospital complexes, and multi-building facilities that can exceed 100,000+ m² of conditioned floor area
 - June 29, 2025: Fixed seasonal variation calculation bug in Step 2 that was showing zero due to incorrect winter month slicing (Dec-Feb year boundary issue), implemented proper temperature data handling with summer (Jun-Aug) vs winter (Dec-Jan-Feb) comparison and added comprehensive explanatory notes with BIPV impact analysis
+- June 29, 2025: Completed educational building pattern integration into AI model energy predictions by implementing occupancy modifiers that actually affect forecast calculations, including seasonal factors (summer/winter/transition), annual operation factors, and ASHRAE-compliant building standards with comprehensive parameter display and proper integration into 25-year demand forecasting algorithm
 
 ## User Preferences
 
