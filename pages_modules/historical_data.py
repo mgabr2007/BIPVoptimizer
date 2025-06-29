@@ -353,15 +353,41 @@ def render_historical_data():
     
     # Building area input for accurate energy intensity calculation
     st.subheader("🏢 Building Information")
+    st.markdown("**⚠️ Required: Building Floor Area (Mandatory for Analysis)**")
+    
     building_area = st.number_input(
-        "Total Building Floor Area (m²)",
+        "Total Conditioned Floor Area (m²) *",
         min_value=100,
         max_value=50000,
-        value=st.session_state.get('project_data', {}).get('building_area', 5000),
+        value=st.session_state.get('project_data', {}).get('building_area', None),
         step=100,
-        help="Enter the total conditioned floor area of your building in square meters. This is essential for accurate energy intensity (kWh/m²/year) calculations.",
+        help="""
+        **Definition:** Total conditioned floor area (also called Net Floor Area or NFA) includes all heated/cooled spaces within the building envelope.
+        
+        **What to Include:**
+        - Classrooms, offices, laboratories
+        - Corridors, lobbies, common areas
+        - Mechanical rooms if conditioned
+        
+        **What to Exclude:**
+        - Unconditioned basements/attics
+        - Parking garages
+        - Outdoor areas, balconies
+        
+        **Note:** This is NOT the total built-up area or footprint. Use the sum of all conditioned floor areas across all levels.
+        """,
         key="building_area_input"
     )
+    
+    # Validation for mandatory field
+    if building_area is None or building_area <= 0:
+        st.error("⚠️ Building floor area is required to proceed with energy intensity analysis.")
+        st.stop()
+    
+    if building_area < 500:
+        st.warning("⚠️ Very small building area detected. Please verify this is the total conditioned floor area across all levels.")
+    elif building_area > 20000:
+        st.info("ℹ️ Large building detected. Ensure this includes all conditioned spaces across multiple floors.")
     
     # Store building area in project data immediately
     if 'project_data' not in st.session_state:
