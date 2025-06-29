@@ -517,6 +517,15 @@ def render_project_setup():
         else:
             st.caption("OpenWeather API key not configured")
     
+    # Location name input
+    default_location = st.session_state.get('location_name', "Berlin, Germany")
+    location_name = st.text_input(
+        "Final Location Name",
+        value=default_location,
+        help="Location name auto-detected from map selection. You can modify if needed.",
+        key="location_name_input"
+    )
+    
     # Final project configuration
     st.subheader("💾 Complete Project Setup")
     
@@ -581,10 +590,8 @@ def render_project_setup():
         project_id = save_project_data(project_data)
         if project_id:
             st.session_state.project_id = project_id
-            st.success("✅ Project configuration saved successfully!")
             
             # Consolidated project summary
-            st.success("Project configuration saved successfully!")
             
             with st.container():
                 st.markdown("### 📋 Complete Project Configuration")
