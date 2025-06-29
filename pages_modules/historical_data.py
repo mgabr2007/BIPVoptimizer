@@ -358,7 +358,6 @@ def render_historical_data():
     building_area = st.number_input(
         "Total Conditioned Floor Area (m²) *",
         min_value=100,
-        max_value=50000,
         value=st.session_state.get('project_data', {}).get('building_area', None),
         step=100,
         help="""
@@ -388,6 +387,8 @@ def render_historical_data():
         st.warning("⚠️ Very small building area detected. Please verify this is the total conditioned floor area across all levels.")
     elif building_area > 20000:
         st.info("ℹ️ Large building detected. Ensure this includes all conditioned spaces across multiple floors.")
+    elif building_area > 100000:
+        st.info("ℹ️ Very large campus/complex detected. For multi-building campuses, consider analyzing buildings individually for more precise BIPV optimization.")
     
     # Store building area in project data immediately
     if 'project_data' not in st.session_state:

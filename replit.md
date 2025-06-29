@@ -346,6 +346,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 29, 2025: Added comprehensive explanatory notes with academic sources for Energy Intensity and Peak Load Factor in Step 2 Educational Building Standards Analysis, including ASHRAE 90.1, EN 15603, and peer-reviewed research references for building energy benchmarks and BIPV sizing context
 - June 29, 2025: Fixed energy intensity calculation accuracy by adding building floor area input field in Step 2, replacing fixed 5,000 m² assumption with user-provided actual building area for accurate kWh/m²/year calculations and meaningful BIPV analysis
 - June 29, 2025: Made building floor area input mandatory with comprehensive validation and clarified definition as total conditioned floor area (Net Floor Area) including all heated/cooled spaces across all levels, excluding unconditioned areas like parking garages and outdoor spaces
+- June 29, 2025: Removed arbitrary 50,000 m² upper limit from building area input to accommodate large educational campuses, hospital complexes, and multi-building facilities that can exceed 100,000+ m² of conditioned floor area
 
 ## User Preferences
 
