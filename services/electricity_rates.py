@@ -197,9 +197,73 @@ def enhance_project_setup_with_live_rates():
     )
     
     if enable_live_rates:
-        # Location-based rate detection
+        # First, ensure location is properly set
         location = st.session_state.get('location_name', '')
         coordinates = st.session_state.get('map_coordinates', {})
+        
+        # Check if location data is available
+        if not location and not coordinates:
+            st.error("No location data available. Please complete Step 1 project setup first.")
+            st.info("Location and coordinates are required for live rate integration.")
+            st.info("Go to Step 1 and use the map or manual coordinates to set your location.")
+            return False
+        
+        # Location fetch button for convenience
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            if not location:
+                st.warning("Location name not available")
+        with col2:
+            if st.button("🔄 Refresh Location", key="refresh_location_rates"):
+                if coordinates and coordinates.get('lat') and coordinates.get('lon'):
+                    st.info("Fetching location from coordinates...")
+                    
+                    # Get location from coordinates using OpenWeatherMap
+                    from pages_modules.project_setup import get_location_from_coordinates
+                    try:
+                        detected_location = get_location_from_coordinates(
+                            coordinates['lat'], 
+                            coordinates['lon']
+                        )
+                        if detected_location:
+                            location = detected_location
+                            st.session_state.location_name = location
+                            st.success(f"Location updated: {location}")
+                            st.rerun()
+                        else:
+                            st.error("Could not detect location from coordinates")
+                    except Exception as e:
+                        st.error(f"Failed to fetch location: {str(e)}")
+                else:
+                    st.error("No coordinates available for location detection")
+        
+        # If location string is empty but coordinates exist, auto-fetch
+        if not location and coordinates and coordinates.get('lat') and coordinates.get('lon'):
+            st.info("Auto-fetching location from coordinates...")
+            
+            # Get location from coordinates using OpenWeatherMap
+            from pages_modules.project_setup import get_location_from_coordinates
+            try:
+                detected_location = get_location_from_coordinates(
+                    coordinates['lat'], 
+                    coordinates['lon']
+                )
+                if detected_location:
+                    location = detected_location
+                    st.session_state.location_name = location
+                    st.success(f"Location detected: {location}")
+                else:
+                    st.warning("Could not detect location from coordinates")
+            except Exception as e:
+                st.warning(f"Failed to fetch location: {str(e)}")
+        
+        # Display confirmed location data
+        if location:
+            st.success(f"Location confirmed: {location}")
+        if coordinates and coordinates.get('lat') and coordinates.get('lon'):
+            st.info(f"Coordinates: {coordinates.get('lat'):.4f}°, {coordinates.get('lon'):.4f}°")
+        else:
+            st.warning("No coordinates available - using location string only")
         
         # Enhanced country mapping with more keywords
         country_mapping = {
