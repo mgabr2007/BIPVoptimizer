@@ -165,17 +165,17 @@ def get_location_from_coordinates(lat, lon):
 def render_project_setup():
     """Render the project setup module with configuration inputs."""
     st.header("Step 1: Project Setup & Configuration")
-    st.markdown("Configure your BIPV optimization project parameters and location settings.")
+    st.markdown("Configure your BIPV optimization project with location selection and data integration.")
     
-    # Project basic information
-    st.subheader("Project Information")
+    # STEP 1.1: Basic Project Information
+    st.subheader("1️⃣ Project Information")
     
     col1, col2 = st.columns(2)
     with col1:
         project_name = st.text_input(
             "Project Name",
             value="BIPV Optimization Project",
-            help="📝 Enter a descriptive name for your BIPV analysis project. This name will be used for database storage and report generation. Examples: 'University Main Building BIPV', 'Office Complex Solar Integration'",
+            help="Enter a descriptive name for your BIPV analysis project",
             key="project_name_input"
         )
     
@@ -186,45 +186,43 @@ def render_project_setup():
             "Currency (Fixed)",
             value="EUR",
             disabled=True,
-            help="💰 All financial calculations are standardized to EUR (Euros). Exchange rates from local currencies are automatically applied using current market rates. This ensures consistent economic analysis across different regions.",
+            help="All financial calculations use EUR with automatic exchange rate conversion",
             key="currency_display"
         )
     
-    # Enhanced location selection with weather station integration
-    st.subheader("📍 Location & Weather Station Configuration")
+    # STEP 1.2: Location Selection
+    st.subheader("2️⃣ Location Selection")
     
     # Initialize map with default coordinates (Berlin)
     if 'map_coordinates' not in st.session_state:
         st.session_state.map_coordinates = {'lat': 52.5200, 'lng': 13.4050}
     
-    # Consolidated configuration panel
-    with st.container():
-        col1, col2, col3 = st.columns([3, 2, 1])
-        
-        with col1:
-            location_method = st.radio(
-                "Location Selection Method",
-                ["Interactive Map", "Manual Coordinates"],
-                help="Choose how to specify your project location",
-                key="location_method",
-                horizontal=True
-            )
-        
-        with col2:
-            search_radius = st.selectbox(
-                "Weather Station Search (km)",
-                [100, 200, 300, 500, 750, 1000],
-                index=3,
-                help="Maximum distance to search for weather stations",
-                key="search_radius"
-            )
-        
-        with col3:
-            debug_geocoding = st.checkbox(
-                "Debug Mode",
-                help="Show detailed location detection information",
-                key="debug_geocoding_checkbox"
-            )
+    # Location method selection
+    location_method = st.radio(
+        "Choose Location Selection Method",
+        ["Interactive Map", "Manual Coordinates"],
+        help="Select how to specify your project location",
+        key="location_method",
+        horizontal=True
+    )
+    
+    # Configuration panel for location settings
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        search_radius = st.selectbox(
+            "Weather Station Search Radius (km)",
+            [100, 200, 300, 500, 750, 1000],
+            index=3,
+            help="Maximum distance to search for meteorological stations",
+            key="search_radius"
+        )
+    
+    with col2:
+        debug_geocoding = st.checkbox(
+            "Show Debug Info",
+            help="Display detailed location detection information",
+            key="debug_geocoding_checkbox"
+        )
     
     # Location input based on selected method
     if location_method == "Manual Coordinates":
@@ -367,8 +365,8 @@ def render_project_setup():
             debug=False
         )
     
-    # Consolidated Project Status Panel
-    st.subheader("📊 Project Configuration Status")
+    # STEP 1.3: Weather Station Selection
+    st.subheader("3️⃣ Weather Station Selection")
     
     selected_lat = st.session_state.map_coordinates['lat']
     selected_lon = st.session_state.map_coordinates['lng']
@@ -378,40 +376,12 @@ def render_project_setup():
     timezone = determine_timezone_from_coordinates(selected_lat, selected_lon)
     stations_summary = get_station_summary(nearby_stations)
     
-    # Status panel with key information
-    with st.container():
-        st.markdown("**Current Configuration:**")
-        
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            # Location information card
-            st.info(f"""
-            **📍 Location:** {current_location}  
-            **🌐 Coordinates:** {selected_lat:.4f}°, {selected_lon:.4f}°  
-            **🕐 Timezone:** {timezone}  
-            **💰 Currency:** EUR (standardized)
-            """)
-        
-        with col2:
-            # Weather station summary card
-            if stations_summary['total_stations'] > 0:
-                st.success(f"""
-                **🌡️ Weather Stations Found:** {stations_summary['total_stations']}  
-                **🎯 Closest Distance:** {stations_summary['closest_distance']:.1f} km  
-                **🔍 Search Radius:** {search_radius} km  
-                **🌍 Countries:** {len(stations_summary['countries'])}
-                """)
-            else:
-                st.warning(f"""
-                **🌡️ Weather Stations:** None found  
-                **🔍 Search Radius:** {search_radius} km  
-                **💡 Try:** Increase search radius
-                """)
+    # Show current coordinates for reference
+    st.info(f"Selected coordinates: {selected_lat:.4f}°, {selected_lon:.4f}° ({current_location})")
     
     # Debug information (only when enabled)
     if debug_geocoding and current_location != 'Loading location...':
-        with st.expander("🔧 Debug Information", expanded=False):
+        with st.expander("Debug Information", expanded=False):
             st.write(f"**Geocoding Result:** {current_location}")
             st.write(f"**Coordinate Source:** {location_method}")
             st.write(f"**Station Search:** {search_radius} km radius")
@@ -474,28 +444,35 @@ def render_project_setup():
     - Import/export rates will be used for economic calculations including ROI, payback period, and cash flow analysis
     """)
     
-    # Enhanced data integration section
-    st.subheader("🔧 Data Integration & Final Setup")
+    # STEP 1.4: Data Integration & Configuration
+    st.subheader("4️⃣ Data Integration & Configuration")
+    
+    # Location name input
+    default_location = st.session_state.get('location_name', "Berlin, Germany")
+    location_name = st.text_input(
+        "Project Location Name",
+        value=default_location,
+        help="Location name auto-detected from map selection. You can modify if needed.",
+        key="location_name_input"
+    )
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**Real-Time Electricity Rates:**")
+        st.markdown("**🔌 Electricity Rate Integration**")
         enable_live_rates = enhance_project_setup_with_live_rates()
     
     with col2:
-        st.markdown("**Current Weather Data:**")
+        st.markdown("**🌤️ Current Weather Data**")
         api_key = os.environ.get('OPENWEATHER_API_KEY')
         
         if api_key:
-            if st.button("Fetch Weather", key="fetch_weather"):
+            if st.button("Fetch Current Weather", key="fetch_weather"):
                 with st.spinner("Fetching weather data..."):
                     weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
                     
                     if weather_data and weather_data.get('api_success'):
                         st.success("Weather data retrieved!")
-                        
-                        # Compact weather display
                         st.info(f"{weather_data['temperature']:.1f}°C • {weather_data['description'].title()}")
                         
                         # Store weather data
@@ -507,17 +484,32 @@ def render_project_setup():
         else:
             st.caption("OpenWeather API key not configured")
     
-    # Location name input
-    default_location = st.session_state.get('location_name', "Berlin, Germany")
-    location_name = st.text_input(
-        "Final Location Name",
-        value=default_location,
-        help="Location name auto-detected from map selection. You can modify if needed.",
-        key="location_name_input"
-    )
+    # STEP 1.5: Configuration Review & Save
+    st.subheader("5️⃣ Configuration Review & Save")
     
-    # Final project configuration
-    st.subheader("💾 Complete Project Setup")
+    # Show current configuration before saving
+    with st.expander("📋 Review Current Configuration", expanded=True):
+        review_col1, review_col2 = st.columns(2)
+        
+        with review_col1:
+            st.markdown(f"""
+            **Project Details:**
+            - Name: {project_name}
+            - Location: {location_name}
+            - Coordinates: {selected_lat:.4f}°, {selected_lon:.4f}°
+            - Timezone: {timezone}
+            """)
+        
+        with review_col2:
+            if stations_summary['total_stations'] > 0:
+                st.markdown(f"""
+                **Weather Data Sources:**
+                - Weather stations found: {stations_summary['total_stations']}
+                - Closest station: {stations_summary['closest_distance']:.1f} km
+                - Search radius: {search_radius} km
+                """)
+            else:
+                st.warning(f"No weather stations found within {search_radius} km")
     
     if st.button("💾 Save Project Configuration", key="save_project", type="primary"):
         # Prepare enhanced project data with weather station information
