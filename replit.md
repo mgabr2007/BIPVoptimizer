@@ -359,6 +359,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 29, 2025: Consolidated scattered UI messages in Step 1 Project Setup into organized sections with unified status panels, streamlined weather station selection with compact display, enhanced data integration section combining electricity rates and weather data, and comprehensive project configuration summary with clear data usage explanations for improved user experience
 - June 29, 2025: Reorganized Step 1 Project Setup into clear numbered dependency flow with 5 logical sections: (1) Project Information, (2) Location Selection, (3) Weather Station Selection, (4) Data Integration & Configuration, and (5) Configuration Review & Save, providing intuitive step-by-step guidance with better UX progression and dependency validation
 - June 29, 2025: Fixed uneven column layouts in Step 1 Project Setup causing scrolling issues by removing problematic two-column structures and implementing single-column balanced content flow, ensuring smooth vertical scrolling and consistent content presentation throughout all 5 configuration sections
+- June 29, 2025: Fixed Element ID and calculation issues in Step 6 by correcting data flow between Steps 4-6, ensuring actual BIM element IDs (not generic "element_939" etc.) are preserved through radiation analysis to PV specification calculations, and implementing proper element-specific radiation data usage for accurate BIPV glass system calculations instead of identical default values
 
 ## User Preferences
 
