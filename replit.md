@@ -344,6 +344,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 28, 2025: Added automatic balancing to Step 8 optimization objectives where adjusting cost weight automatically proportionally redistributes the remaining weight between yield and ROI objectives, maintaining 100% total with session state memory and optional fine-tuning for yield vs ROI balance
 - June 28, 2025: Fixed Step 8 'total_installation_cost' column name error by implementing flexible column name handling to accommodate actual Step 6 output columns ('total_cost_eur', 'capacity_kw') with fallback support for legacy column names, ensuring compatibility between PV specification and optimization modules
 - June 29, 2025: Added comprehensive explanatory notes with academic sources for Energy Intensity and Peak Load Factor in Step 2 Educational Building Standards Analysis, including ASHRAE 90.1, EN 15603, and peer-reviewed research references for building energy benchmarks and BIPV sizing context
+- June 29, 2025: Fixed energy intensity calculation accuracy by adding building floor area input field in Step 2, replacing fixed 5,000 m² assumption with user-provided actual building area for accurate kWh/m²/year calculations and meaningful BIPV analysis
 
 ## User Preferences
 

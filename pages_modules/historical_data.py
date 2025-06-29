@@ -351,6 +351,23 @@ def render_historical_data():
             key="occupancy_pattern_select"
         )
     
+    # Building area input for accurate energy intensity calculation
+    st.subheader("🏢 Building Information")
+    building_area = st.number_input(
+        "Total Building Floor Area (m²)",
+        min_value=100,
+        max_value=50000,
+        value=st.session_state.get('project_data', {}).get('building_area', 5000),
+        step=100,
+        help="Enter the total conditioned floor area of your building in square meters. This is essential for accurate energy intensity (kWh/m²/year) calculations.",
+        key="building_area_input"
+    )
+    
+    # Store building area in project data immediately
+    if 'project_data' not in st.session_state:
+        st.session_state.project_data = {}
+    st.session_state.project_data['building_area'] = building_area
+    
     # CSV file upload
     st.subheader("📁 Historical Energy Data Upload")
     
@@ -834,8 +851,9 @@ def render_historical_data():
         # Educational building standards compliance
         st.subheader("Educational Building Standards Analysis")
         
-        # Calculate benchmarks
-        annual_kwh_per_sqm = total_consumption / 5000 if total_consumption > 0 else 0  # Assume 5000 m²
+        # Calculate benchmarks with actual building area
+        building_area = st.session_state.get('project_data', {}).get('building_area', 5000)
+        annual_kwh_per_sqm = total_consumption / building_area if total_consumption > 0 and building_area > 0 else 0
         
         col1, col2, col3 = st.columns(3)
         with col1:
