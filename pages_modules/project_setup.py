@@ -11,6 +11,7 @@ import requests
 from core.solar_math import get_location_solar_parameters, get_location_electricity_rates, determine_timezone_from_coordinates, get_currency_symbol
 from services.io import get_weather_data_from_coordinates, save_project_data
 from services.weather_stations import find_nearest_stations, get_station_summary, format_station_display
+from services.electricity_rates import get_real_time_electricity_rates, display_rate_source_info, enhance_project_setup_with_live_rates
 
 
 def get_location_from_coordinates(lat, lon):
@@ -476,6 +477,9 @@ def render_project_setup():
     - Import/export rates will be used for economic calculations including ROI, payback period, and cash flow analysis
     """)
     
+    # Real-time electricity rate integration
+    enable_live_rates = enhance_project_setup_with_live_rates()
+    
     # Check for OpenWeather API key
     api_key = os.environ.get('OPENWEATHER_API_KEY')
     
@@ -547,7 +551,18 @@ def render_project_setup():
         
         # Get location-specific parameters
         location_params = get_location_solar_parameters(location_name)
-        electricity_rates = get_location_electricity_rates(location_name, currency)
+        
+        # Use real-time rates if enabled, otherwise fallback to database rates
+        if enable_live_rates and st.session_state.get('electricity_rate_source', {}).get('rates_available'):
+            # Implementation for live rates would go here
+            # For now, use database rates with live source annotation
+            electricity_rates = get_location_electricity_rates(location_name, currency)
+            electricity_rates['source'] = 'live_api_ready'
+            electricity_rates['live_rates_enabled'] = True
+        else:
+            electricity_rates = get_location_electricity_rates(location_name, currency)
+            electricity_rates['source'] = 'database_estimates'
+            electricity_rates['live_rates_enabled'] = False
         
         # Add calculated parameters
         project_data['solar_parameters'] = location_params
@@ -586,6 +601,7 @@ def render_project_setup():
                 **Electricity Rates:**
                 - Import Rate: {get_currency_symbol(currency)}{electricity_rates['import_rate']:.3f}/kWh
                 - Export Rate: {get_currency_symbol(currency)}{electricity_rates['export_rate']:.3f}/kWh
+                - Source: {electricity_rates.get('source', 'database_estimates').replace('_', ' ').title()}
                 """)
             
             with col3:
