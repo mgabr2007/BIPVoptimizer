@@ -48,6 +48,53 @@ st.markdown("""
         text-align: center;
         margin-bottom: 2rem;
     }
+</style>
+
+<script>
+// Auto-scroll to top functionality for step navigation
+function scrollToTop() {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+// Listen for step changes and scroll to top
+document.addEventListener('DOMContentLoaded', function() {
+    // Monitor for step navigation buttons
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                // Check if page content changed (step navigation occurred)
+                const buttons = document.querySelectorAll('button[kind="primary"]');
+                buttons.forEach(button => {
+                    if (button.innerText.includes('Continue to Step') || 
+                        button.innerText.includes('Next Step') ||
+                        button.innerText.includes('Finish')) {
+                        button.addEventListener('click', function() {
+                            setTimeout(scrollToTop, 100);
+                        });
+                    }
+                });
+            }
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});
+
+// Also scroll to top on page load if URL fragment indicates step change
+window.addEventListener('load', function() {
+    if (window.location.hash || document.referrer.includes('step')) {
+        setTimeout(scrollToTop, 200);
+    }
+});
+</script>
+
+<style>
     .stApp > header {
         background-color: transparent;
     }
@@ -193,6 +240,15 @@ def main():
     # Add compact progress indicator to sidebar
     render_compact_progress(workflow_steps, current_step)
     
+    # Check for scroll to top flag and inject JavaScript if needed
+    if st.session_state.get('scroll_to_top', False):
+        st.markdown("""
+        <script>
+        window.scrollTo({top: 0, behavior: 'smooth'});
+        </script>
+        """, unsafe_allow_html=True)
+        st.session_state.scroll_to_top = False
+    
     # Main content area with workflow visualization
     
     # Add workflow visualization toggle
@@ -264,6 +320,7 @@ def render_bottom_navigation(workflow_steps, current_step):
             prev_step = workflow_steps[current_index - 1]
             if st.button(f"← {prev_step[1]}", key="bottom_prev_step", use_container_width=True):
                 st.session_state.current_step = prev_step[0]
+                st.session_state.scroll_to_top = True
                 st.rerun()
     
     with col2:
@@ -279,6 +336,7 @@ def render_bottom_navigation(workflow_steps, current_step):
             next_step = workflow_steps[current_index + 1]
             if st.button(f"{next_step[1]} →", key="bottom_next_step", use_container_width=True):
                 st.session_state.current_step = next_step[0]
+                st.session_state.scroll_to_top = True
                 st.rerun()
         elif current_step == 'ai_consultation':
             # Show finish button on the final step

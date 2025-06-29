@@ -1149,6 +1149,7 @@ def render_historical_data():
         
         if st.button("Continue to Step 3: Weather Integration", key="continue_weather"):
             st.session_state.current_step = 'weather_environment'
+            st.session_state.scroll_to_top = True
             st.rerun()
     
     else:
