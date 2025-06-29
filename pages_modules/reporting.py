@@ -367,4 +367,5 @@ def render_reporting():
                 del st.session_state[key]
         
         st.session_state.current_step = 'welcome'
+        st.session_state.scroll_to_top = True
         st.rerun()

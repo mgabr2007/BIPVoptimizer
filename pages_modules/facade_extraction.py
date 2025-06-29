@@ -263,6 +263,7 @@ def render_facade_extraction():
             
             if st.button("Continue to Step 5: Radiation Analysis", key="continue_radiation"):
                 st.session_state.current_step = 'radiation_grid'
+                st.session_state.scroll_to_top = True
                 st.rerun()
                 
         except Exception as e:

@@ -392,6 +392,7 @@ def render_weather_environment():
                         # Continue button
                         if st.button("Continue to Step 4: BIM Extraction", key="continue_bim"):
                             st.session_state.current_step = 'facade_extraction'
+                            st.session_state.scroll_to_top = True
                             st.rerun()
                 
                 else:
