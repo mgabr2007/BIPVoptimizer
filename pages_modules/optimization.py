@@ -671,13 +671,14 @@ def render_optimization():
             with col2:
                 st.write("**Selected Elements:**")
                 selected_elements = selected_solution['selected_elements']
-                if isinstance(selected_elements, list):
-                    for element in selected_elements[:5]:  # Show first 5
-                        st.write(f"• {element}")
+                if isinstance(selected_elements, list) and len(selected_elements) > 0:
+                    # Display actual Element IDs directly (they're already correctly stored)
+                    for element_id in selected_elements[:5]:  # Show first 5
+                        st.write(f"• {element_id}")
                     if len(selected_elements) > 5:
                         st.write(f"• ... and {len(selected_elements) - 5} more")
                 else:
-                    st.write("Element list not available")
+                    st.write("No elements selected in this solution")
             
             if st.button("💾 Save Selected Solution", key="save_solution"):
                 st.session_state.project_data['selected_optimization_solution'] = selected_solution

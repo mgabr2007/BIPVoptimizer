@@ -363,6 +363,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 29, 2025: Fixed Step 8 optimization unpacking error by implementing comprehensive error handling for data structure mismatches, adding flexible column name handling for cost calculations, robust energy balance data processing for different formats (dict/DataFrame), debug information display, and fallback optimization approach when genetic algorithm fails
 - June 30, 2025: Consolidated scattered location confirmation messages in Step 1 electricity rate integration by merging multiple success messages ("Location confirmed", "Coordinates", "Location Detection Status", "Country detected", "Country code determined") into single clean display panels for improved user experience
 - June 30, 2025: Enhanced Step 5 radiation analysis to properly use Element ID relationships between walls and windows from Step 4 BIM extraction, implementing wall-window relationship analysis that connects HostWallId from windows to actual wall Element IDs, enabling precise geometric self-shading calculations and authentic building-specific solar modeling
+- June 30, 2025: Fixed Step 8 optimization schedule results to display actual window Element IDs from BIM data instead of numbered list items, ensuring optimization results show authentic building element identifiers for accurate project documentation and implementation
 
 ## User Preferences
 
