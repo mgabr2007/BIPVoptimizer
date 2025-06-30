@@ -426,7 +426,8 @@ def render_optimization():
     st.info(f"💡 Using electricity rate from Step 1: {electricity_price:.3f} €/kWh")
     
     col3, col4 = st.columns(2)
-        
+    
+    with col3:
         max_investment = st.number_input(
             "Maximum Investment (€)",
             10000, 1000000, 100000, 5000,
