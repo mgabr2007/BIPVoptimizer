@@ -168,7 +168,9 @@ for flag in completion_flags:
 
 def main():
     """Main application entry point"""
-    # Clean sidebar - no content above workflow navigation
+    # Add BIPV Optimizer logo to sidebar
+    st.sidebar.image("attached_assets/BIPVOptiLogoLightGreen_1751289503547.png", width=200)
+    st.sidebar.markdown("---")
     
     # Define workflow steps
     workflow_steps = [
