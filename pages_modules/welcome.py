@@ -6,7 +6,9 @@ import streamlit as st
 
 def render_welcome():
     """Render the welcome and introduction page"""
-    st.subheader("Building-Integrated Photovoltaics Analysis & Optimization Platform")
+    
+    # Display main banner image
+    st.image("attached_assets/MainBanner_1751259726414.jpg", use_column_width=True)
     
     st.markdown("""
     ---
