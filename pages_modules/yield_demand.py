@@ -303,18 +303,32 @@ def render_yield_demand():
         )
     
     with col2:
-        electricity_price = st.number_input(
-            "Electricity Price (€/kWh)",
-            0.10, 0.50, 0.25, 0.01,
-            key="electricity_price_yield"
-        )
+        # Use electricity rates from Step 1 project configuration
+        electricity_rates = project_data.get('electricity_rates', {})
+        default_import_rate = electricity_rates.get('import_rate', 0.25)
+        default_export_rate = electricity_rates.get('export_rate', 0.08)
         
-        feed_in_tariff = st.number_input(
-            "Feed-in Tariff (€/kWh)",
-            0.05, 0.20, 0.08, 0.01,
-            help="Price for excess energy fed back to grid",
-            key="feed_in_tariff_yield"
-        )
+        st.info(f"📊 Using electricity rates from Step 1: Import €{default_import_rate:.3f}/kWh, Export €{default_export_rate:.3f}/kWh")
+        
+        # Allow override if needed
+        override_rates = st.checkbox("Override electricity rates", value=False, help="Use custom rates instead of Step 1 values")
+        
+        if override_rates:
+            electricity_price = st.number_input(
+                "Electricity Price (€/kWh)",
+                0.10, 0.50, default_import_rate, 0.01,
+                key="electricity_price_yield"
+            )
+            
+            feed_in_tariff = st.number_input(
+                "Feed-in Tariff (€/kWh)",
+                0.05, 0.20, default_export_rate, 0.01,
+                help="Price for excess energy fed back to grid",
+                key="feed_in_tariff_yield"
+            )
+        else:
+            electricity_price = default_import_rate
+            feed_in_tariff = default_export_rate
     
     # Advanced settings
     with st.expander("⚙️ Advanced Analysis Settings", expanded=False):
