@@ -364,6 +364,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 30, 2025: Consolidated scattered location confirmation messages in Step 1 electricity rate integration by merging multiple success messages ("Location confirmed", "Coordinates", "Location Detection Status", "Country detected", "Country code determined") into single clean display panels for improved user experience
 - June 30, 2025: Enhanced Step 5 radiation analysis to properly use Element ID relationships between walls and windows from Step 4 BIM extraction, implementing wall-window relationship analysis that connects HostWallId from windows to actual wall Element IDs, enabling precise geometric self-shading calculations and authentic building-specific solar modeling
 - June 30, 2025: Fixed Step 8 optimization schedule results to display actual window Element IDs from BIM data instead of numbered list items, ensuring optimization results show authentic building element identifiers for accurate project documentation and implementation
+- June 30, 2025: Fixed Step 6 PV specifications to preserve actual BIM Element IDs throughout the radiation analysis workflow, replacing generic "element_939" placeholders with authentic building element identifiers from CSV upload for accurate system specifications and project documentation
 
 ## User Preferences
 

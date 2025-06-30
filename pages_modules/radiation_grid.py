@@ -260,9 +260,9 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
     radiation_grid = []
     
     for _, element in suitable_elements.iterrows():
-        # Get element properties with defaults
-        element_id = element.get('Element ID', element.get('id', f"element_{len(radiation_grid)}"))
-        element_area = float(element.get('Glass Area (m²)', element.get('area', 1.5)))
+        # Get element properties with defaults - preserve actual BIM Element IDs
+        element_id = element.get('Element ID', element.get('element_id', element.get('id', f"Unknown_Element_{len(radiation_grid)}")))
+        element_area = float(element.get('Glass Area (m²)', element.get('glass_area', element.get('area', 1.5))))
         orientation = element.get('Orientation', element.get('orientation', 'South'))
         azimuth = float(element.get('Azimuth (degrees)', element.get('azimuth', 180)))
         
@@ -568,8 +568,10 @@ def render_radiation_grid():
             if hasattr(suitable_elements, 'iterrows'):
                 elements_list = []
                 for _, row in suitable_elements.iterrows():
+                    # Preserve actual Element IDs from BIM upload
+                    actual_element_id = row.get('Element ID', row.get('element_id', f'Unknown_Element_{len(elements_list)+1}'))
                     elements_list.append({
-                        'element_id': row.get('element_id', f'Element_{len(elements_list)+1}'),
+                        'element_id': actual_element_id,
                         'azimuth': row.get('azimuth', 180),
                         'tilt': row.get('tilt', 90),
                         'glass_area': row.get('glass_area', 1.5),
@@ -582,8 +584,8 @@ def render_radiation_grid():
                 suitable_elements = elements_list
             
             for i, element in enumerate(suitable_elements):
-                # Extract element data from BIM upload
-                element_id = element.get('element_id', f'Element_{i+1}')
+                # Extract element data from BIM upload - preserve actual Element IDs
+                element_id = element.get('element_id', f'Unknown_Element_{i+1}')
                 azimuth = element.get('azimuth', 180)
                 tilt = element.get('tilt', 90)
                 area = element.get('glass_area', 1.5)  # Use actual BIM glass area
