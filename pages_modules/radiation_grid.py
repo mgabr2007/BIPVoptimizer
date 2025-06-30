@@ -200,8 +200,36 @@ def calculate_irradiance_on_surface(ghi, dni, dhi, solar_position, surface_tilt,
     
     return max(0, poa_global)
 
-def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, shading_factors=None):
-    """Generate radiation grid for all suitable elements."""
+def analyze_wall_window_relationship(window_id, host_wall_id, walls_data):
+    """Analyze the relationship between a window and its host wall using Element IDs."""
+    
+    relationship = {
+        'host_wall_found': False,
+        'wall_area': 0,
+        'wall_level': 'Unknown',
+        'azimuth_match': False,
+        'wall_azimuth': 0,
+        'geometric_compatibility': False
+    }
+    
+    if walls_data is not None and host_wall_id != 'Unknown':
+        # Find matching wall by Element ID
+        matching_walls = walls_data[walls_data['ElementId'] == host_wall_id]
+        
+        if not matching_walls.empty:
+            wall = matching_walls.iloc[0]
+            relationship.update({
+                'host_wall_found': True,
+                'wall_area': wall.get('Area (m²)', 0),
+                'wall_level': wall.get('Level', 'Unknown'),
+                'wall_azimuth': wall.get('Azimuth (°)', 0),
+                'geometric_compatibility': True
+            })
+    
+    return relationship
+
+def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, shading_factors=None, walls_data=None):
+    """Generate radiation grid for all suitable elements with wall-window relationship analysis."""
     
     if tmy_data is None or len(tmy_data) == 0:
         st.warning("No TMY data available for radiation calculations")
@@ -237,6 +265,12 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
         element_area = float(element.get('Glass Area (m²)', element.get('area', 1.5)))
         orientation = element.get('Orientation', element.get('orientation', 'South'))
         azimuth = float(element.get('Azimuth (degrees)', element.get('azimuth', 180)))
+        
+        # Get host wall relationship from BIM data
+        host_wall_id = element.get('HostWallId', element.get('Wall Element ID', 'Unknown'))
+        
+        # Analyze wall-window relationship if walls data is available
+        wall_relationship = analyze_wall_window_relationship(element_id, host_wall_id, walls_data)
         
         # Calculate tilt based on building type (assume vertical windows for BIPV)
         tilt = 90.0  # Vertical facade

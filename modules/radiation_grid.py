@@ -30,8 +30,8 @@ def calculate_irradiance_on_surface(ghi, dni, dhi, solar_position, surface_tilt,
         # Fallback calculation if pvlib fails
         return ghi * np.cos(np.radians(surface_tilt))
 
-def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, shading_factors=None):
-    """Generate radiation grid for all suitable elements."""
+def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, shading_factors=None, walls_data=None):
+    """Generate radiation grid for all suitable elements with wall-window relationship analysis."""
     
     # Convert TMY data
     tmy_df = pd.DataFrame(tmy_data)
@@ -61,6 +61,23 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
             )
             surface_irradiance = surface_irradiance * shading_correction
         
+        # Enhanced wall-window relationship analysis
+        host_wall_id = element.get('HostWallId', element.get('wall_hosted_id', 'Unknown'))
+        wall_info = {'exists': False, 'area': 0, 'level': 'Unknown', 'azimuth_match': False}
+        
+        # If walls data is available, find the host wall
+        if walls_data is not None and host_wall_id != 'Unknown':
+            matching_wall = walls_data[walls_data['ElementId'] == host_wall_id]
+            if not matching_wall.empty:
+                wall_row = matching_wall.iloc[0]
+                wall_info = {
+                    'exists': True,
+                    'area': wall_row.get('Area (m²)', 0),
+                    'level': wall_row.get('Level', 'Unknown'),
+                    'azimuth_match': abs(wall_row.get('Azimuth (°)', 0) - element['azimuth']) < 15,
+                    'wall_azimuth': wall_row.get('Azimuth (°)', 0)
+                }
+        
         # Calculate statistics
         element_radiation = {
             'element_id': element.get('ElementId', element.get('id', f"element_{element.name if hasattr(element, 'name') else 'unknown'}")),
@@ -77,7 +94,11 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
             'monthly_irradiation': surface_irradiance.groupby(tmy_df['datetime'].dt.month).sum().to_dict(),
             'family': element.get('Family', 'Unknown'),
             'level': element.get('Level', 'Unknown'),
-            'host_wall_id': element.get('HostWallId', 'Unknown')
+            'host_wall_id': host_wall_id,
+            'host_wall_exists': wall_info['exists'],
+            'host_wall_area': wall_info['area'],
+            'host_wall_level': wall_info['level'],
+            'azimuth_match_with_wall': wall_info.get('azimuth_match', False)
         }
         
         radiation_grid.append(element_radiation)
@@ -168,9 +189,12 @@ def render_radiation_grid():
                 # Get shading factors if available
                 shading_factors = st.session_state.project_data.get('shading_factors')
                 
-                # Generate radiation grid
+                # Get walls data if available for wall-window relationship analysis
+                walls_data = st.session_state.get('walls_data', None)
+                
+                # Generate radiation grid with wall-window relationships
                 radiation_grid = generate_radiation_grid(
-                    all_elements, tmy_data, latitude, longitude, shading_factors
+                    all_elements, tmy_data, latitude, longitude, shading_factors, walls_data
                 )
                 
                 # Apply orientation and tilt corrections
