@@ -108,16 +108,16 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
 def apply_orientation_corrections(radiation_df):
     """Apply orientation and tilt corrections to radiation calculations."""
     
-    # Orientation factor corrections (relative to south-facing)
+    # Realistic orientation factor corrections (relative to south-facing)
     orientation_corrections = {
-        'South': 1.0,
+        'South (135-225°)': 1.0,         # Optimal solar exposure
         'Southwest': 0.95,
         'Southeast': 0.95,
-        'West': 0.85,
-        'East': 0.85,
-        'Northwest': 0.70,
-        'Northeast': 0.70,
-        'North': 0.50
+        'West (225-315°)': 0.75,         # Moderate afternoon sun
+        'East (45-135°)': 0.75,          # Moderate morning sun
+        'Northwest': 0.45,
+        'Northeast': 0.45,
+        'North (315-45°)': 0.25          # Very poor - realistic for Northern Hemisphere
     }
     
     # Apply corrections

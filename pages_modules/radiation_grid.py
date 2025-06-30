@@ -313,8 +313,24 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
         for month in monthly_sums.index:
             monthly_irradiation[month] = float(monthly_sums.iloc[month-1]) / 1000  # Convert W to kW
         
-        # Calculate statistics
-        annual_irradiation = irradiance_array.sum() / 1000  # kWh/m²/year
+        # Calculate statistics with realistic orientation adjustments
+        base_annual_irradiation = irradiance_array.sum() / 1000  # kWh/m²/year
+        
+        # Apply realistic orientation corrections for Northern Hemisphere
+        orientation_factors = {
+            'South (135-225°)': 1.0,         # Optimal solar exposure
+            'Southeast': 0.95,
+            'Southwest': 0.95,
+            'West (225-315°)': 0.75,         # Moderate afternoon sun  
+            'East (45-135°)': 0.75,          # Moderate morning sun
+            'Northwest': 0.45,
+            'Northeast': 0.45,
+            'North (315-45°)': 0.30          # Realistic low value for north-facing
+        }
+        
+        orientation_factor = orientation_factors.get(orientation, 0.7)
+        annual_irradiation = max(base_annual_irradiation * orientation_factor, 200)  # Minimum 200 kWh/m²/year
+        
         peak_irradiance = irradiance_array.max()  # W/m²
         avg_irradiance = irradiance_array.mean()  # W/m²
         
