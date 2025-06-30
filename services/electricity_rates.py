@@ -264,13 +264,18 @@ def enhance_project_setup_with_live_rates():
             except Exception as e:
                 st.warning(f"Failed to fetch location: {str(e)}")
         
-        # Display confirmed location data
-        if location:
-            st.success(f"Location confirmed: {location}")
-        if coordinates and coordinates.get('lat') and coordinates.get('lon'):
-            st.info(f"Coordinates: {coordinates.get('lat'):.4f}°, {coordinates.get('lon'):.4f}°")
-        else:
+        # Display consolidated location confirmation
+        if location and coordinates and coordinates.get('lat') and coordinates.get('lon'):
+            st.success(f"""
+            **Location Confirmed:** {location}  
+            **Coordinates:** {coordinates.get('lat'):.4f}°, {coordinates.get('lon'):.4f}°  
+            **Status:** Ready for rate detection ✅
+            """)
+        elif location:
+            st.success(f"**Location Confirmed:** {location}")
             st.warning("No coordinates available - using location string only")
+        else:
+            st.warning("Location data incomplete")
         
         # Enhanced country mapping with more keywords
         country_mapping = {
@@ -312,19 +317,10 @@ def enhance_project_setup_with_live_rates():
         location_lower = location.lower() if location else ''
         country_code = None
         
-        # Debug information
-        st.info(f"""
-        **Location Detection Status:**
-        - Location string: "{location}" ({'✅' if location else '❌'})
-        - Coordinates: {coordinates.get('lat', 'N/A'):.4f}°, {coordinates.get('lon', 'N/A'):.4f}° ({'✅' if coordinates.get('lat') and coordinates.get('lon') else '❌'})
-        - Ready for rate detection: {'✅' if location or (coordinates.get('lat') and coordinates.get('lon')) else '❌'}
-        """)
-        
         # Try location string matching first
         for location_key, code in country_mapping.items():
             if location_key in location_lower:
                 country_code = code
-                st.success(f"Country detected from location string: {location_key} → {code}")
                 break
         
         # Enhanced coordinate-based detection
@@ -332,52 +328,44 @@ def enhance_project_setup_with_live_rates():
             lat = float(coordinates.get('lat', 0))
             lon = float(coordinates.get('lon', 0))
             
-            st.info(f"Checking coordinates: {lat:.4f}°, {lon:.4f}°")
-            
-            # More precise coordinate ranges - your coordinates (52.52, 13.405) should match Germany
+            # More precise coordinate ranges
             if 47.3 <= lat <= 55.1 and 5.9 <= lon <= 15.0:
                 country_code = 'DE'  # Germany
-                st.success(f"🇩🇪 Germany detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 41.4 <= lat <= 51.1 and -5.1 <= lon <= 9.6:
                 country_code = 'FR'  # France
-                st.success(f"🇫🇷 France detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 49.9 <= lat <= 60.8 and -8.6 <= lon <= 1.8:
                 country_code = 'UK'  # United Kingdom
-                st.success(f"🇬🇧 UK detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 36.0 <= lat <= 43.8 and -9.3 <= lon <= 4.3:
                 country_code = 'ES'  # Spain
-                st.success(f"🇪🇸 Spain detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 35.5 <= lat <= 47.1 and 6.6 <= lon <= 18.5:
                 country_code = 'IT'  # Italy
-                st.success(f"🇮🇹 Italy detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 50.8 <= lat <= 53.6 and 3.4 <= lon <= 7.2:
                 country_code = 'NL'  # Netherlands
-                st.success(f"🇳🇱 Netherlands detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 24.4 <= lat <= 49.4 and -125.0 <= lon <= -66.9:
                 country_code = 'US'  # United States
-                st.success(f"🇺🇸 USA detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 22.0 <= lat <= 31.7 and 25.0 <= lon <= 37.0:
                 country_code = 'EG'  # Egypt
-                st.success(f"🇪🇬 Egypt detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 12.0 <= lat <= 37.0 and 34.0 <= lon <= 48.0:
                 country_code = 'ME'  # Middle East region
-                st.info(f"🌍 Middle East region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 35.0 <= lat <= 71.0 and -10.0 <= lon <= 40.0:
                 country_code = 'EU'  # General European region
-                st.info(f"🇪🇺 General EU region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif -35.0 <= lat <= 37.0 and -18.0 <= lon <= 52.0:
                 country_code = 'AF'  # Africa region
-                st.info(f"🌍 Africa region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             elif 5.0 <= lat <= 55.0 and 60.0 <= lon <= 180.0:
                 country_code = 'AS'  # Asia region
-                st.info(f"🌏 Asia region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
             else:
                 country_code = 'GLOBAL'  # Global fallback
-                st.info(f"🌍 Global region detected from coordinates: {lat:.2f}°, {lon:.2f}°")
         
-        # Show detection results
+        # Show consolidated detection results
         if country_code:
-            st.success(f"Country code determined: {country_code}")
+            country_flags = {
+                'DE': '🇩🇪 Germany', 'FR': '🇫🇷 France', 'UK': '🇬🇧 United Kingdom',
+                'ES': '🇪🇸 Spain', 'IT': '🇮🇹 Italy', 'NL': '🇳🇱 Netherlands',
+                'US': '🇺🇸 United States', 'EG': '🇪🇬 Egypt', 'ME': '🌍 Middle East',
+                'EU': '🇪🇺 Europe', 'AF': '🌍 Africa', 'AS': '🌏 Asia', 'GLOBAL': '🌍 Global'
+            }
+            country_display = country_flags.get(country_code, country_code)
+            st.info(f"**Country/Region Detected:** {country_display}")
         else:
             st.error("Could not determine country from location or coordinates")
         
