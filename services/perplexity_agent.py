@@ -276,6 +276,27 @@ def render_perplexity_consultation():
     st.header("🤖 AI Research Consultation")
     st.write("Get expert analysis and optimization recommendations from Perplexity AI")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **AI Consultation Final Analysis:**
+        - **Complete project synthesis** → Research-based conclusions using all 10 workflow steps' authentic data
+        - **Performance benchmarking** → Industry comparison and best practice recommendations
+        - **Strategic recommendations** → Implementation guidance based on calculated NPV, IRR, and technical metrics
+        
+        **Research Applications:**
+        - **Academic validation** → Methodology verification against current BIPV research literature (2023-2025)
+        - **Industry benchmarking** → Performance comparison with published case studies and market standards
+        - **Technical optimization** → Engineering recommendations for improved system design and implementation
+        
+        **Decision Support:**
+        - **Investment guidance** → Financial risk assessment and implementation timeline recommendations
+        - **Technical validation** → Building-specific constraints and regulatory compliance verification
+        - **Future planning** → Scalability assessment and monitoring recommendations for long-term performance
+        """)
+    
     # Initialize agent with API key
     import os
     api_key = os.getenv("PERPLEXITY_API_KEY", "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")

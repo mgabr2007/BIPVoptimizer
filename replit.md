@@ -366,6 +366,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 30, 2025: Fixed Step 8 optimization schedule results to display actual window Element IDs from BIM data instead of numbered list items, ensuring optimization results show authentic building element identifiers for accurate project documentation and implementation
 - June 30, 2025: Fixed Step 6 PV specifications to preserve actual BIM Element IDs throughout the radiation analysis workflow, replacing generic "element_939" placeholders with authentic building element identifiers from CSV upload for accurate system specifications and project documentation
 - June 30, 2025: Fixed Step 7 yield vs demand analysis to automatically use electricity rates calculated in Step 1 instead of requesting duplicate manual inputs, with optional override capability for custom rates if needed
+- June 30, 2025: Implemented comprehensive centralized "How This Data Will Be Used" sections across all workflow steps (Steps 1-11) explaining data flow between stages, providing users with clear understanding of how each step's outputs feed into subsequent analysis modules, including specific data transformation details and workflow interconnections for improved user comprehension and workflow transparency
 
 ## User Preferences
 
