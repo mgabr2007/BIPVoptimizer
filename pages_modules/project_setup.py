@@ -483,7 +483,7 @@ def render_project_setup():
     st.subheader("5️⃣ Configuration Review & Save")
     
     # Show current configuration before saving
-    with st.expander("📋 Review Current Configuration", expanded=True):
+    with st.expander("📋 Review Current Configuration", expanded=False):
         st.markdown(f"""
         **Project Details:**
         - Name: {project_name}

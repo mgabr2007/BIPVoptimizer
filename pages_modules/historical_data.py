@@ -900,7 +900,7 @@ def render_historical_data():
         if r2_score < 0.85:
             st.warning("⚠️ Model performance can be improved. See recommendations below.")
             
-            with st.expander("🚀 How to Improve R² Score - Detailed Recommendations", expanded=True):
+            with st.expander("🚀 How to Improve R² Score - Detailed Recommendations", expanded=False):
                 st.markdown("### 📈 Specific Actions to Improve Model Performance:")
                 
                 improvement_recommendations = []
