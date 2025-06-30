@@ -8,7 +8,7 @@ def render_welcome():
     """Render the welcome and introduction page"""
     
     # Display main banner image
-    st.image("attached_assets/MainBanner_1751259726414.jpg", use_column_width=True)
+    st.image("attached_assets/MainBanner_1751259726414.jpg", use_container_width=True)
     
     st.markdown("""
     ---
