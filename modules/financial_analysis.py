@@ -162,6 +162,22 @@ def render_financial_analysis():
     st.header("9. Financial & Environmental Analysis")
     st.markdown("Comprehensive financial modeling and environmental impact assessment for optimized PV solutions.")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 9 → Step 10 (Reporting):**
+        - **NPV and IRR calculations** → Investment decision documentation and business case development
+        - **Cash flow projections** → 25-year financial timeline visualization and risk assessment
+        - **Payback period analysis** → Return on investment benchmarking and comparison metrics
+        
+        **Step 9 → Step 11 (AI Consultation):**
+        - **Economic viability metrics** → Expert analysis input for strategic recommendations
+        - **Financial risk assessment** → AI-powered optimization suggestions and scenario planning
+        - **Cost-benefit analysis** → Research-based conclusions on BIPV investment feasibility
+        """)
+    
     # Check prerequisites
     prerequisites = ['optimization_results']
     missing = [p for p in prerequisites if p not in st.session_state.project_data]

@@ -70,6 +70,32 @@ def render_pv_specification():
     
     st.header("⚡ Step 6: BIPV Panel Specifications")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 6 → Step 7 (Yield vs Demand):**
+        - **System capacity (kW)** → Energy generation calculations and monthly yield profiles
+        - **Annual energy yield** → Grid interaction analysis and self-consumption calculations
+        - **Element-specific specifications** → Individual system performance tracking and optimization
+        
+        **Step 6 → Step 8 (Optimization):**
+        - **Cost per system** → Genetic algorithm objective function for budget constraints
+        - **Performance ratios** → Multi-objective optimization between cost and energy yield
+        - **Technology specifications** → System selection constraints and feasibility analysis
+        
+        **Step 6 → Step 9 (Financial Analysis):**
+        - **Total installation costs** → NPV and IRR calculations for investment analysis
+        - **BIPV glass specifications** → Lifecycle cost modeling and maintenance projections
+        - **Capacity factors** → Revenue generation and payback period calculations
+        
+        **Step 6 → Step 10 (Reporting):**
+        - **Technical specifications** → System documentation and compliance validation
+        - **BIPV technology details** → Architectural integration assessment and performance benchmarking
+        - **Cost breakdown analysis** → Economic feasibility reporting and investment recommendations
+        """)
+    
     # Check for radiation data from Step 5 (multiple possible locations)
     project_data = st.session_state.get('project_data', {})
     radiation_data = project_data.get('radiation_data')

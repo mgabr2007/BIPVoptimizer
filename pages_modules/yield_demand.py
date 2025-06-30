@@ -200,6 +200,30 @@ def render_yield_demand():
     
     st.header("⚖️ Step 7: Energy Yield vs Demand Analysis")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 7 → Step 8 (Optimization):**
+        - **Net energy balance data** → Genetic algorithm objective functions for grid independence optimization
+        - **Self-consumption ratios** → Performance constraints for system selection algorithms
+        - **Monthly yield profiles** → Seasonal optimization parameters and capacity planning
+        
+        **Step 7 → Step 9 (Financial Analysis):**
+        - **Energy cost savings** → NPV and IRR calculations over 25-year system lifetime
+        - **Feed-in revenue** → Cash flow projections and payback period analysis
+        - **Grid import reductions** → Electricity bill impact assessment and ROI calculations
+        
+        **Step 7 → Step 10 (Reporting):**
+        - **Energy balance charts** → Visual documentation of BIPV system performance
+        - **Coverage ratio metrics** → Building energy independence assessment
+        - **Yield analysis methodology** → Technical validation and performance benchmarking
+        """)
+    
+    # AI Model Performance Indicator
+    project_data = st.session_state.get('project_data', {})
+    
     # AI Model Performance Indicator
     project_data = st.session_state.get('project_data', {})
     if project_data.get('model_r2_score') is not None:

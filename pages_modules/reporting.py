@@ -272,6 +272,27 @@ def render_reporting():
     st.header("Step 10: Comprehensive Reporting & Data Export")
     st.markdown("Generate detailed analysis reports and export project data for further use.")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 10 → Project Documentation:**
+        - **Standard HTML reports** → Executive summary for stakeholders and decision-makers
+        - **Detailed scientific reports** → Technical documentation for engineers and researchers
+        - **Window elements CSV** → Building-specific implementation data for contractors and architects
+        
+        **Step 10 → External Applications:**
+        - **Financial analysis results** → Integration with business planning and investment tools
+        - **BIM element specifications** → CAD software import for architectural drawing updates
+        - **Performance calculations** → Energy modeling software validation and benchmarking
+        
+        **Step 10 → Future Analysis:**
+        - **Complete project archive** → Baseline for monitoring and performance validation
+        - **Methodology documentation** → Replication and scaling to additional building projects
+        - **Research data export** → Academic publication and industry benchmarking studies
+        """)
+    
     # Check if analysis is complete
     project_data = st.session_state.get('project_data', {})
     

@@ -225,6 +225,23 @@ def render_optimization():
     
     st.header("🎯 Step 8: Multi-Objective BIPV Optimization")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 8 → Step 9 (Financial Analysis):**
+        - **Optimized system selection** → Investment cost calculations and lifecycle financial modeling
+        - **Pareto-optimal solutions** → Risk assessment and sensitivity analysis for multiple scenarios
+        - **Cost-benefit trade-offs** → NPV and IRR calculations for optimal vs alternative configurations
+        
+        **Step 8 → Step 10 (Reporting):**
+        - **Genetic algorithm results** → Technical documentation of optimization methodology and convergence
+        - **Multi-objective performance** → Visual analysis of cost, yield, and ROI trade-offs
+        - **Optimal system schedule** → Implementation recommendations and prioritization strategy
+        - **Comparative analysis** → Performance benchmarking against non-optimized baseline configurations
+        """)
+    
     # AI Model Performance Impact Notice
     project_data = st.session_state.get('project_data', {})
     if project_data.get('model_r2_score') is not None:
