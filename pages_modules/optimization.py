@@ -421,9 +421,15 @@ def render_optimization():
     st.write("**Financial Parameters**")
     
     # Get electricity price from project data (Step 1)
-    electricity_price = project_data.get('electricity_rate', 0.25)
+    electricity_rates = project_data.get('electricity_rates', {})
+    electricity_price = electricity_rates.get('import_rate', 0.25)
     
-    st.info(f"💡 Using electricity rate from Step 1: {electricity_price:.3f} €/kWh")
+    # Show rate source information
+    rate_source = electricity_rates.get('source', 'default_fallback')
+    if electricity_rates.get('live_rates_enabled'):
+        st.info(f"💡 Using live electricity rate from Step 1: {electricity_price:.3f} €/kWh (Source: {rate_source})")
+    else:
+        st.info(f"💡 Using electricity rate from Step 1: {electricity_price:.3f} €/kWh (Source: {rate_source})")
     
     col3, col4 = st.columns(2)
     

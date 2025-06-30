@@ -370,6 +370,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 30, 2025: Added professional main banner image to welcome page featuring BIPV Optimizer branding, building icon, and platform description for enhanced visual presentation and user experience
 - June 30, 2025: Fixed Step 8 optimization to automatically fetch electricity rates from Step 1 project settings instead of requesting duplicate manual input, and resolved genetic algorithm unpacking error by implementing proper single fitness value handling for weighted multi-objective optimization
 - June 30, 2025: Fixed critical solar radiation calculation error where north-facing windows showed unrealistic 900 kWh/m²/year instead of realistic 300 kWh/m²/year, causing optimization algorithm to incorrectly favor north-facing windows over south-facing ones - implemented physics-based orientation corrections with north-facing windows receiving 30% of base radiation (realistic for Northern Hemisphere) ensuring optimization properly ranks solar performance
+- June 30, 2025: Fixed Step 8 electricity rate data retrieval bug where optimization showed default 0.25 €/kWh instead of actual Step 1 rate (0.3 €/kWh) by correcting data structure access from project_data['electricity_rate'] to project_data['electricity_rates']['import_rate'], ensuring optimization uses authentic location-based electricity rates for accurate financial calculations
 
 ## User Preferences
 
