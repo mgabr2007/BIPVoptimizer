@@ -117,24 +117,24 @@ def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_para
             fitness = evaluate_individual(individual, pv_specs, energy_balance, financial_params)
             fitness_scores.append(fitness)
         
-        # Find best individuals (Pareto front approximation)
+        # Find best individuals (handle single fitness values)
         pareto_front = []
-        for i, (roi, neg_import) in enumerate(fitness_scores):
-            is_dominated = False
-            for j, (other_roi, other_neg_import) in enumerate(fitness_scores):
-                if i != j and other_roi >= roi and other_neg_import <= neg_import and (other_roi > roi or other_neg_import < neg_import):
-                    is_dominated = True
-                    break
+        for i, fitness in enumerate(fitness_scores):
+            # Handle single fitness value (weighted score)
+            if isinstance(fitness, tuple) and len(fitness) == 1:
+                fitness_value = fitness[0]
+            elif isinstance(fitness, (int, float)):
+                fitness_value = fitness
+            else:
+                fitness_value = 0
             
-            if not is_dominated:
-                pareto_front.append((i, roi, -neg_import, population[i]))
+            pareto_front.append((i, fitness_value, fitness_value, population[i]))
         
         # Store best individuals
         if pareto_front:
             best_individuals.extend(pareto_front)
-            avg_roi = np.mean([roi for _, roi, _, _ in pareto_front])
-            avg_import = np.mean([net_import for _, _, net_import, _ in pareto_front])
-            fitness_history.append({'generation': generation, 'avg_roi': avg_roi, 'avg_net_import': avg_import})
+            avg_fitness = np.mean([fitness_val for _, fitness_val, _, _ in pareto_front])
+            fitness_history.append({'generation': generation, 'avg_fitness': avg_fitness})
         
         # Selection for next generation (simple tournament selection)
         new_population = []
@@ -171,7 +171,7 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
     
     solutions = []
     
-    for i, (idx, roi, net_import, individual) in enumerate(pareto_solutions):
+    for i, (idx, fitness_value, _, individual) in enumerate(pareto_solutions):
         selection_mask = np.array(individual, dtype=bool)
         selected_specs = pv_specs[selection_mask]
         
@@ -195,11 +195,19 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
                 total_cost = 0
                 
             total_annual_yield = selected_specs['annual_energy_kwh'].sum()
-            selected_elements = selected_specs['element_id'].tolist()
+            selected_elements = selected_specs['element_id'].tolist() if 'element_id' in selected_specs.columns else [f"Element_{j}" for j in range(len(selected_specs))]
             
-            # Calculate savings
+            # Calculate net import reduction
+            if energy_balance is not None and len(energy_balance) > 0:
+                total_annual_demand = energy_balance['predicted_demand'].sum()
+                net_import = max(0, total_annual_demand - total_annual_yield)
+            else:
+                net_import = 0
+            
+            # Calculate ROI
             electricity_price = financial_params.get('electricity_price', 0.25)
-            annual_savings = min(total_annual_yield, net_import + total_annual_yield) * electricity_price
+            annual_savings = min(total_annual_yield, total_annual_demand if 'total_annual_demand' in locals() else total_annual_yield) * electricity_price
+            roi = (annual_savings / total_cost * 100) if total_cost > 0 else 0
             
             solution = {
                 'solution_id': f"Solution_{i+1}",
@@ -411,13 +419,19 @@ def render_optimization():
     
     # Financial parameters section
     st.write("**Financial Parameters**")
+    
+    # Get electricity price from project data (Step 1)
+    electricity_rate_from_step1 = project_data.get('electricity_rate', 0.25)
+    
+    st.info(f"💡 Using electricity rate from Step 1: {electricity_rate_from_step1:.3f} €/kWh")
+    
     col3, col4 = st.columns(2)
     
     with col3:
         electricity_price = st.number_input(
-            "Electricity Price (€/kWh)",
-            0.15, 0.50, 0.25, 0.01,
-            help="⚡ Current electricity price for ROI calculations. Varies by region: Germany: 0.30-0.35 €/kWh, France: 0.18-0.25 €/kWh, Denmark: 0.25-0.30 €/kWh. Use peak daytime rates if available, as BIPV generates during peak hours. Higher prices improve BIPV economics.",
+            "Electricity Price Override (€/kWh)",
+            0.15, 0.50, electricity_rate_from_step1, 0.01,
+            help="⚡ Electricity price for ROI calculations (auto-loaded from Step 1). Override only if needed for sensitivity analysis.",
             key="electricity_price_opt"
         )
         

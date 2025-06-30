@@ -368,6 +368,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 30, 2025: Fixed Step 7 yield vs demand analysis to automatically use electricity rates calculated in Step 1 instead of requesting duplicate manual inputs, with optional override capability for custom rates if needed
 - June 30, 2025: Implemented comprehensive centralized "How This Data Will Be Used" sections across all workflow steps (Steps 1-11) explaining data flow between stages, providing users with clear understanding of how each step's outputs feed into subsequent analysis modules, including specific data transformation details and workflow interconnections for improved user comprehension and workflow transparency
 - June 30, 2025: Added professional main banner image to welcome page featuring BIPV Optimizer branding, building icon, and platform description for enhanced visual presentation and user experience
+- June 30, 2025: Fixed Step 8 optimization to automatically fetch electricity rates from Step 1 project settings instead of requesting duplicate manual input, and resolved genetic algorithm unpacking error by implementing proper single fitness value handling for weighted multi-objective optimization
 
 ## User Preferences
 
