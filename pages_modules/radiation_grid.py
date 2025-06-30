@@ -329,7 +329,13 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
             'peak_irradiance': peak_irradiance,
             'avg_irradiance': avg_irradiance,
             'capacity_factor': safe_divide(avg_irradiance, 1000, 0),  # Simplified capacity factor
-            'monthly_irradiation': monthly_irradiation
+            'monthly_irradiation': monthly_irradiation,
+            'host_wall_id': host_wall_id,
+            'host_wall_found': wall_relationship['host_wall_found'],
+            'wall_area': wall_relationship['wall_area'],
+            'wall_level': wall_relationship['wall_level'],
+            'wall_azimuth': wall_relationship['wall_azimuth'],
+            'geometric_compatibility': wall_relationship['geometric_compatibility']
         }
         
         radiation_grid.append(element_radiation)
