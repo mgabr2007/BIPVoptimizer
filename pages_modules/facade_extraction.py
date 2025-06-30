@@ -10,6 +10,35 @@ def render_facade_extraction():
     st.header("Step 4: BIM Model Facade & Window Extraction")
     st.markdown("Extract building geometry and window elements from BIM models for BIPV analysis.")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 4 → Step 5 (Radiation Analysis):**
+        - **Element IDs** → Unique identification for radiation calculations and tracking
+        - **Orientations (X,Y,Z) & Azimuth** → Solar exposure calculations and shading analysis
+        - **Glass Areas** → Surface area for irradiance integration and energy yield calculations
+        - **Wall-Window relationships** → Geometric self-shading from adjacent building elements
+        
+        **Step 4 → Step 6 (PV Specification):**
+        - **Glass Areas** → BIPV glass coverage calculations and system sizing
+        - **Element dimensions** → Panel layout optimization and installation feasibility
+        - **Family/Type data** → BIPV technology compatibility and integration constraints
+        
+        **Step 4 → Step 7 (Yield vs Demand):**
+        - **Orientation-specific yields** → Directional energy generation profiles for grid interaction
+        - **Building element count** → Total BIPV capacity and coverage ratio calculations
+        
+        **Step 4 → Step 8 (Optimization):**
+        - **Element IDs** → Individual system selection for genetic algorithm optimization
+        - **Orientation distribution** → Multi-directional optimization constraints and objectives
+        
+        **Step 4 → Step 10 (Reporting):**
+        - **BIM metadata** → Building-specific technical documentation and element traceability
+        - **Orientation analysis** → Architectural integration assessment and design validation
+        """)
+    
     # Check prerequisites
     if not st.session_state.get('project_data', {}).get('setup_complete'):
         st.error("Please complete Step 1: Project Setup first.")

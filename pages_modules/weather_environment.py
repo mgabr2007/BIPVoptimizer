@@ -168,6 +168,31 @@ def render_weather_environment():
     st.header("Step 3: Weather & Environment Integration")
     st.markdown("Integrate weather data and generate Typical Meteorological Year (TMY) datasets for solar analysis.")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 3 → Step 5 (Radiation Analysis):**
+        - **TMY data (8760 hours)** → Solar position calculations and irradiance modeling using pvlib
+        - **Weather station metadata** → Atmospheric corrections and elevation adjustments
+        - **Environmental factors** → Shading analysis and solar resource classification
+        
+        **Step 3 → Step 6 (PV Specification):**
+        - **Annual solar irradiance** → BIPV glass efficiency calculations and technology selection
+        - **Climate zone classification** → Performance ratio adjustments for local conditions
+        - **Temperature profiles** → System derating and thermal performance modeling
+        
+        **Step 3 → Step 7 (Yield vs Demand):**
+        - **Monthly irradiation data** → Seasonal energy yield calculations and grid interaction analysis
+        - **Solar resource classification** → Performance benchmarking and yield predictions
+        
+        **Step 3 → Step 10 (Reporting):**
+        - **TMY generation methodology** → Technical documentation and ISO 15927-4 compliance validation
+        - **Weather station credentials** → Data source traceability and meteorological accuracy assessment
+        - **Solar resource quality** → Site suitability analysis and performance expectations
+        """)
+    
     # Check prerequisites
     if not st.session_state.get('project_data', {}).get('setup_complete'):
         st.error("Please complete Step 1: Project Setup first.")

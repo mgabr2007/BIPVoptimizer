@@ -375,6 +375,31 @@ def render_radiation_grid():
     
     st.header("☀️ Step 5: Solar Radiation & Shading Analysis")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 5 → Step 6 (PV Specification):**
+        - **Annual irradiation (kWh/m²)** → BIPV glass performance calculations and technology selection
+        - **Peak irradiance values** → System derating and inverter sizing requirements
+        - **Element-specific radiation** → Individual window system capacity calculations
+        
+        **Step 5 → Step 7 (Yield vs Demand):**
+        - **Monthly radiation profiles** → Seasonal energy generation patterns and grid interaction analysis
+        - **Orientation-specific yields** → Directional energy balance calculations
+        - **Shading-corrected irradiation** → Realistic energy production forecasting
+        
+        **Step 5 → Step 8 (Optimization):**
+        - **Element radiation rankings** → Genetic algorithm selection criteria for high-performance systems
+        - **Solar resource distribution** → Multi-objective optimization constraints and feasibility analysis
+        
+        **Step 5 → Step 10 (Reporting):**
+        - **Solar analysis methodology** → Technical documentation of pvlib calculations and ISO standards compliance
+        - **Radiation heatmaps** → Visual assessment of building solar potential and optimization opportunities
+        - **Shading analysis results** → Geometric accuracy validation and environmental impact assessment
+        """)
+    
     # Check for building elements data from Step 4
     building_elements = st.session_state.get('building_elements')
     if building_elements is None or len(building_elements) == 0:

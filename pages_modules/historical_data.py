@@ -285,6 +285,32 @@ def render_historical_data():
     st.header("Step 2: Historical Data Analysis & AI Model Training")
     st.markdown("Upload and analyze historical energy consumption data to train demand prediction models.")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 2 → Step 7 (Yield vs Demand):**
+        - **Historical consumption patterns** → AI model predictions for 25-year energy demand forecasting
+        - **Seasonal variations** → Monthly energy balance calculations and grid interaction analysis
+        - **Building characteristics** → Demand profile optimization for self-consumption maximization
+        
+        **Step 2 → Step 8 (Optimization):**
+        - **Trained AI model** → Genetic algorithm inputs for realistic demand scenarios
+        - **Peak load patterns** → BIPV system sizing constraints and capacity optimization
+        - **Growth rate predictions** → Long-term performance and ROI calculations
+        
+        **Step 2 → Step 9 (Financial Analysis):**
+        - **Energy consumption forecasts** → NPV and IRR calculations over 25-year system lifetime
+        - **Demand growth trends** → Electricity cost savings projections and payback analysis
+        - **Occupancy patterns** → Building-specific energy intensity metrics for economic modeling
+        
+        **Step 2 → Step 10 (Reporting):**
+        - **Model performance metrics (R²)** → Analysis accuracy indicators and reliability assessment
+        - **Baseline consumption data** → Before/after BIPV impact quantification
+        - **Forecast methodology** → Technical documentation and validation framework
+        """)
+    
     # AI Model Purpose Explanation
     with st.expander("🤖 Why AI Model Training is Essential for BIPV Optimization", expanded=False):
         st.markdown("""

@@ -479,6 +479,33 @@ def render_project_setup():
     else:
         st.caption("OpenWeather API key not configured")
     
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### Data Flow Through BIPV Analysis Workflow:
+        
+        **Step 1 → Step 3 (Weather Integration):**
+        - **Location coordinates** → Solar position calculations and TMY generation using ISO 15927-4 standards
+        - **Selected weather station** → Authentic meteorological data from WMO CLIMAT database
+        - **Timezone** → Proper time zone conversion for solar calculations
+        
+        **Step 1 → Step 5 (Radiation Analysis):**
+        - **Geographic location** → Climate zone classification for solar parameters
+        - **Elevation data** → Atmospheric corrections for radiation modeling
+        
+        **Step 1 → Step 7 (Yield vs Demand):**
+        - **Electricity rates** → Financial calculations and grid interaction analysis
+        - **Import/export rates** → Feed-in tariff and cost savings calculations
+        
+        **Step 1 → Step 9 (Financial Analysis):**
+        - **Currency settings** → All financial metrics and NPV calculations
+        - **Location-based parameters** → Regional electricity pricing and market conditions
+        
+        **Step 1 → Step 10 (Reporting):**
+        - **Project metadata** → Report headers and location-specific context
+        - **Configuration summary** → Technical specifications and analysis parameters
+        """)
+    
     # STEP 1.5: Configuration Review & Save
     st.subheader("5️⃣ Configuration Review & Save")
     
