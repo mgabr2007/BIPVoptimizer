@@ -421,19 +421,11 @@ def render_optimization():
     st.write("**Financial Parameters**")
     
     # Get electricity price from project data (Step 1)
-    electricity_rate_from_step1 = project_data.get('electricity_rate', 0.25)
+    electricity_price = project_data.get('electricity_rate', 0.25)
     
-    st.info(f"💡 Using electricity rate from Step 1: {electricity_rate_from_step1:.3f} €/kWh")
+    st.info(f"💡 Using electricity rate from Step 1: {electricity_price:.3f} €/kWh")
     
     col3, col4 = st.columns(2)
-    
-    with col3:
-        electricity_price = st.number_input(
-            "Electricity Price Override (€/kWh)",
-            0.15, 0.50, electricity_rate_from_step1, 0.01,
-            help="⚡ Electricity price for ROI calculations (auto-loaded from Step 1). Override only if needed for sensitivity analysis.",
-            key="electricity_price_opt"
-        )
         
         max_investment = st.number_input(
             "Maximum Investment (€)",
