@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 from services.io import get_project_report_data
 from core.solar_math import safe_divide
+from utils.color_schemes import CHART_COLORS, get_plotly_template, get_chart_color
 
 
 def generate_orientation_chart(building_elements):
@@ -27,7 +28,7 @@ def generate_orientation_chart(building_elements):
             labels=list(orientation_data.keys()),
             values=list(orientation_data.values()),
             hole=0.4,
-            marker_colors=['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+            marker_colors=CHART_COLORS['categorical'][:len(orientation_data)]
         )])
         fig.update_layout(
             title="Building Element Orientation Distribution",
@@ -57,6 +58,7 @@ def generate_radiation_heatmap(building_elements):
         df = pd.DataFrame(radiation_data)
         fig = px.bar(df, x='Element_ID', y='Annual_Radiation', 
                     color='Orientation',
+                    color_discrete_sequence=CHART_COLORS['categorical'],
                     title="Annual Solar Radiation by Building Element",
                     labels={'Annual_Radiation': 'Annual Radiation (kWh/m²)'})
         fig.update_layout(width=800, height=400, xaxis_tickangle=45)
@@ -100,10 +102,10 @@ def generate_energy_balance_chart(yield_demand_analysis):
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=months, y=demand, name='Energy Demand', 
-                            line=dict(color='#FF6B6B', width=3),
+                            line=dict(color=get_chart_color(0), width=3),
                             mode='lines+markers'))
     fig.add_trace(go.Scatter(x=months, y=yield_values, name='PV Generation', 
-                            line=dict(color='#4ECDC4', width=3),
+                            line=dict(color=get_chart_color(1), width=3),
                             mode='lines+markers'))
     
     fig.update_layout(
@@ -145,7 +147,7 @@ def generate_financial_analysis_chart(financial_analysis):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[0] + years, y=cumulative, 
                             name='Cumulative Cash Flow',
-                            line=dict(color='#45B7D1', width=3)))
+                            line=dict(color=get_chart_color(2), width=3)))
     fig.add_hline(y=0, line_dash="dash", line_color="red", 
                   annotation_text="Break-even")
     

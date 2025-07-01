@@ -3,14 +3,9 @@ headless = true
 address = "0.0.0.0"
 port = 5000
 
-[browser]
-gatherUsageStats = false
-
 [theme]
-primaryColor = "#2E8B57"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F8F5"
-textColor = "#262730"
-
-[client]
-toolbarMode = "minimal"
+primaryColor = "#FFD700"
+backgroundColor = "#FFFEF7"
+secondaryBackgroundColor = "#FFF8DC"
+textColor = "#2F2F2F"
+font = "sans serif"
