@@ -172,6 +172,58 @@ def generate_financial_analysis_chart(financial_analysis):
     return fig.to_html(include_plotlyjs='cdn', div_id="financial_chart")
 
 
+def generate_pv_performance_chart(pv_specs):
+    """Generate PV system performance chart by orientation using actual data"""
+    if not pv_specs or not isinstance(pv_specs, list):
+        return "<p>No PV performance data available for chart generation</p>"
+    
+    # Group data by orientation
+    orientation_data = {}
+    for spec in pv_specs:
+        if isinstance(spec, dict):
+            orientation = spec.get('orientation', 'Unknown')
+            if orientation not in orientation_data:
+                orientation_data[orientation] = {'count': 0, 'total_power': 0, 'total_yield': 0}
+            
+            orientation_data[orientation]['count'] += 1
+            orientation_data[orientation]['total_power'] += spec.get('system_power_kw', 0)
+            orientation_data[orientation]['total_yield'] += spec.get('annual_energy_kwh', 0)
+    
+    if not orientation_data:
+        return "<p>No PV performance data available</p>"
+    
+    orientations = list(orientation_data.keys())
+    total_power = [orientation_data[o]['total_power'] for o in orientations]
+    total_yield = [orientation_data[o]['total_yield']/1000 for o in orientations]  # Convert to MWh
+    
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name='Installed Power (kW)',
+        x=orientations,
+        y=total_power,
+        marker_color='#2E8B57',
+        yaxis='y'
+    ))
+    fig.add_trace(go.Bar(
+        name='Annual Yield (MWh)',
+        x=orientations,
+        y=total_yield,
+        marker_color='#FFA500',
+        yaxis='y2'
+    ))
+    
+    fig.update_layout(
+        title="BIPV System Performance by Orientation (Actual Results)",
+        xaxis_title="Building Orientation",
+        yaxis=dict(title="Power (kW)", side="left"),
+        yaxis2=dict(title="Annual Yield (MWh)", side="right", overlaying="y"),
+        width=800, height=400,
+        template='plotly_white',
+        legend=dict(x=0.7, y=0.9)
+    )
+    return fig.to_html(include_plotlyjs='cdn', div_id="pv_performance_chart")
+
+
 def generate_pv_technology_comparison():
     """Generate PV technology comparison chart"""
     technologies = ['Monocrystalline BIPV', 'Polycrystalline BIPV', 'Thin-Film BIPV', 'Bifacial BIPV']
@@ -420,6 +472,7 @@ def generate_comprehensive_detailed_report():
         radiation_chart = generate_radiation_heatmap(building_elements)
         energy_balance_chart = generate_energy_balance_chart(yield_demand_analysis)
         financial_chart = generate_financial_analysis_chart(financial_analysis)
+        pv_performance_chart = generate_pv_performance_chart(pv_specs)
         pv_tech_chart = generate_pv_technology_comparison()
         environmental_chart = generate_environmental_impact_chart()
         
@@ -791,6 +844,11 @@ def generate_comprehensive_detailed_report():
                         <h3>📊 BIPV Technology Performance Comparison</h3>
                         <div class="chart-container">
                             {pv_tech_chart}
+                        </div>
+                        
+                        <h3>📊 BIPV System Performance by Orientation (Actual Results)</h3>
+                        <div class="chart-container">
+                            {pv_performance_chart}
                         </div>
                     </div>
 
