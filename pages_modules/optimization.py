@@ -11,6 +11,7 @@ from datetime import datetime
 import random
 from database_manager import db_manager
 from core.solar_math import safe_divide
+from utils.color_schemes import CHART_COLORS, get_chart_color
 
 def create_individual(n_elements):
     """Create a random individual for genetic algorithm."""
