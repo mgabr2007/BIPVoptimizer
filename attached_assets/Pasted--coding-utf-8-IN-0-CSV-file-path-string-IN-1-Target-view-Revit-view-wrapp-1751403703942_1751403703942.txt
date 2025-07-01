@@ -1,0 +1,121 @@
+# -*- coding: utf-8 -*-
+# IN[0] = CSV file path (string)
+# IN[1] = Target view (Revit view / wrapper / element-id)
+
+import csv, clr
+clr.AddReference("RevitAPI")
+clr.AddReference("RevitServices")
+clr.AddReference("RevitNodes")
+
+from Autodesk.Revit.DB import (
+    ElementId, View, FilteredElementCollector, FillPatternElement,
+    Transaction, OverrideGraphicSettings, BuiltInCategory, Color
+)
+from RevitServices.Persistence import DocumentManager
+import Revit; clr.ImportExtensions(Revit.Elements)
+
+doc = DocumentManager.Instance.CurrentDBDocument
+
+# ───────────── helpers ─────────────
+def unwrap_view(v):
+    if hasattr(v, "InternalElement"):
+        v = v.InternalElement
+    if isinstance(v, View):
+        return v
+    try:
+        return doc.GetElement(ElementId(int(v)))
+    except Exception:
+        return doc.ActiveView                                  # fallback
+
+def read_pairs(path):
+    """Skip rows where selector column is False/0/blank; keep the largest
+       production value per ID; return {id:int → production:float}."""
+    pairs, skipped = {}, 0
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        rdr = csv.DictReader(f)
+        hdr = {h.lower(): h for h in rdr.fieldnames}
+
+        id_k = next((hdr[k] for k in hdr if "element_id" in k), None)
+        pr_k = next((hdr[k] for k in hdr if any(p in k for p in (
+                    "expected_production_kwh", "expected_production",
+                    "production_kwh", "production"))), None)
+        sel_k = next((hdr[k] for k in hdr if any(s in k for s in (
+                    "selected", "include", "use"))), None)
+
+        if not (id_k and pr_k):
+            raise KeyError("CSV must contain Element_ID and production columns.")
+
+        for r in rdr:
+            if sel_k:
+                flag = str(r[sel_k]).strip().lower()
+                if flag in ("false", "0", "", "no", "n"):
+                    skipped += 1
+                    continue
+            try:
+                eid  = int(r[id_k])
+                prod = float(r[pr_k])
+            except Exception:
+                skipped += 1
+                continue
+            if eid not in pairs or prod > pairs[eid]:
+                pairs[eid] = prod
+            else:
+                skipped += 1
+    return pairs, skipped
+
+def colour_scale(val, vmin, rng):
+    t = (val - vmin) / rng if rng else 0.0
+    return Color(int((1 - t) * 255), int(t * 255), 0)          # green→red
+
+# ───────────── main ─────────────
+target_view    = unwrap_view(IN[1])
+pairs, skipped = read_pairs(IN[0])
+
+values = list(pairs.values())
+vmin, vmax = min(values), max(values)
+rng        = vmax - vmin
+
+solid_id = next(fp.Id for fp in
+                FilteredElementCollector(doc).OfClass(FillPatternElement)
+                if fp.GetFillPattern().IsSolidFill)
+
+ogs_template = OverrideGraphicSettings()
+has_proj     = hasattr(ogs_template, "SetProjectionFillPatternId")
+
+with Transaction(doc, "Reset & colour windows") as tx:
+    tx.Start()
+
+    blank = OverrideGraphicSettings()
+
+    # ---------- 1) global reset ----------
+    for win in FilteredElementCollector(doc, target_view.Id)\
+                 .OfCategory(BuiltInCategory.OST_Windows)\
+                 .WhereElementIsNotElementType():
+        target_view.SetElementOverrides(win.Id, blank)
+
+    # ---------- 2) apply new colour scale ----------
+    coloured = 0
+    for eid, production in pairs.items():
+        el = doc.GetElement(ElementId(eid))
+        if not el or el.Category.Id.IntegerValue != int(BuiltInCategory.OST_Windows):
+            continue
+
+        ogs = OverrideGraphicSettings()
+        col = colour_scale(production, vmin, rng)
+
+        if has_proj:
+            ogs.SetProjectionFillPatternId(solid_id)
+            ogs.SetProjectionFillColor(col)
+        else:
+            ogs.SetSurfaceForegroundPatternId(solid_id)
+            ogs.SetSurfaceForegroundPatternColor(col)
+
+        target_view.SetElementOverrides(el.Id, ogs)
+        coloured += 1
+
+    tx.Commit()
+
+OUT = ("Rows kept after selector check : {}\n"
+       "Rows skipped (False flag / parse error / lower duplicate) : {}\n"
+       "Window elements coloured        : {}"
+       ).format(len(pairs), skipped, coloured)
