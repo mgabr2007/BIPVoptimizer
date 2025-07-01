@@ -65,50 +65,77 @@ def generate_radiation_heatmap(building_elements):
 
 
 def generate_energy_balance_chart(yield_demand_analysis):
-    """Generate monthly energy balance chart"""
+    """Generate monthly energy balance chart using actual calculated data"""
     if not isinstance(yield_demand_analysis, dict):
         return ""
     
-    monthly_data = yield_demand_analysis.get('monthly_balance', {})
-    if not monthly_data:
-        # Generate sample seasonal data
-        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        # Seasonal variation for demand and yield
-        demand = [450, 420, 380, 340, 300, 280, 270, 290, 320, 360, 400, 440]
-        yield_values = [150, 180, 280, 380, 450, 500, 520, 480, 360, 250, 160, 130]
+    # Look for actual energy balance data from Step 7
+    energy_balance = yield_demand_analysis.get('energy_balance', [])
+    
+    if energy_balance and isinstance(energy_balance, list) and len(energy_balance) > 0:
+        # Use actual calculated monthly data
+        months = []
+        demand = []
+        yield_values = []
+        
+        for month_data in energy_balance[:12]:  # First 12 months
+            if isinstance(month_data, dict):
+                month_name = month_data.get('month', 'Unknown')
+                months.append(month_name)
+                demand.append(month_data.get('predicted_demand', 0) / 1000)  # Convert to MWh
+                yield_values.append(month_data.get('total_yield_kwh', 0) / 1000)  # Convert to MWh
     else:
-        months = list(monthly_data.keys())
-        demand = [monthly_data[month].get('demand', 0) for month in months]
-        yield_values = [monthly_data[month].get('yield', 0) for month in months]
+        # Fallback: Check if there's monthly summary data elsewhere
+        monthly_data = yield_demand_analysis.get('monthly_balance', {})
+        if monthly_data:
+            months = list(monthly_data.keys())
+            demand = [monthly_data[month].get('demand', 0) / 1000 for month in months]
+            yield_values = [monthly_data[month].get('yield', 0) / 1000 for month in months]
+        else:
+            # No data available
+            return "<p>No energy balance data available for chart generation</p>"
+    
+    if not months or not demand or not yield_values:
+        return "<p>Insufficient data for chart generation</p>"
     
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=months, y=demand, name='Energy Demand', 
-                            line=dict(color='#FF6B6B', width=3)))
+                            line=dict(color='#FF6B6B', width=3),
+                            mode='lines+markers'))
     fig.add_trace(go.Scatter(x=months, y=yield_values, name='PV Generation', 
-                            line=dict(color='#4ECDC4', width=3)))
+                            line=dict(color='#4ECDC4', width=3),
+                            mode='lines+markers'))
     
     fig.update_layout(
-        title="Monthly Energy Balance Analysis",
+        title="Monthly Energy Balance Analysis (Actual Results)",
         xaxis_title="Month",
         yaxis_title="Energy (MWh)",
         width=800, height=400,
-        legend=dict(x=0.7, y=0.9)
+        legend=dict(x=0.7, y=0.9),
+        template='plotly_white'
     )
     return fig.to_html(include_plotlyjs='cdn', div_id="energy_balance_chart")
 
 
 def generate_financial_analysis_chart(financial_analysis):
-    """Generate financial analysis chart"""
+    """Generate financial analysis chart using actual calculated data"""
     if not isinstance(financial_analysis, dict):
         return ""
     
-    # Generate 25-year cash flow
-    years = list(range(1, 26))
-    initial_investment = -200000  # Example investment
-    annual_savings = 25000  # Example annual savings
+    # Extract actual financial data
+    npv = financial_analysis.get('npv', 0)
+    irr = financial_analysis.get('irr', 0) * 100 if financial_analysis.get('irr') else 0  # Convert to percentage
+    payback_period = financial_analysis.get('payback_period', 0)
+    total_investment = financial_analysis.get('total_investment', 0)
+    annual_savings = financial_analysis.get('annual_savings', 0)
     
-    cash_flow = [initial_investment] + [annual_savings] * 25
+    # Create financial metrics chart
+    metrics = ['NPV (€)', 'IRR (%)', 'Payback (years)', 'Investment (k€)', 'Annual Savings (k€)']
+    values = [npv, irr, payback_period, total_investment/1000, annual_savings/1000]
+    
+    # Generate 25-year cash flow using actual data
+    years = list(range(0, 26))
+    cash_flow = [-total_investment] + [annual_savings] * 25 if annual_savings > 0 else [-200000] + [25000] * 25
     cumulative = []
     running_total = 0
     for cf in cash_flow:
@@ -123,11 +150,25 @@ def generate_financial_analysis_chart(financial_analysis):
                   annotation_text="Break-even")
     
     fig.update_layout(
-        title="25-Year Financial Analysis - Cumulative Cash Flow",
+        title="25-Year Financial Analysis - Cumulative Cash Flow (Actual Results)",
         xaxis_title="Year",
         yaxis_title="Cumulative Cash Flow (€)",
-        width=800, height=400
+        width=800, height=400,
+        template='plotly_white'
     )
+    
+    # Add financial metrics as annotations
+    if npv > 0 and irr > 0:
+        fig.add_annotation(
+            x=12, y=max(cumulative) * 0.7,
+            text=f"NPV: €{npv:,.0f}<br>IRR: {irr:.1f}%<br>Payback: {payback_period:.1f} years",
+            showarrow=True,
+            arrowhead=2,
+            bgcolor="rgba(255,255,255,0.8)",
+            bordercolor="black",
+            borderwidth=1
+        )
+    
     return fig.to_html(include_plotlyjs='cdn', div_id="financial_chart")
 
 
