@@ -363,19 +363,19 @@ def main():
     st.sidebar.image("attached_assets/BIPVOptiLogoLightGreen_1751289503547.png", width=200)
     st.sidebar.markdown("---")
     
-    # Define workflow steps
+    # Define workflow steps with yellow-themed emojis
     workflow_steps = [
-        ("welcome", "🏠 Welcome", "Introduction to BIPV optimization"),
-        ("project_setup", "1️⃣ Project Setup", "Location and configuration"),
-        ("historical_data", "2️⃣ Historical Data", "Energy consumption analysis"),
-        ("weather_environment", "3️⃣ Weather Integration", "TMY and climate data"),
-        ("facade_extraction", "4️⃣ BIM Extraction", "Building geometry analysis"),
-        ("radiation_grid", "5️⃣ Radiation Analysis", "Solar irradiance modeling"),
-        ("pv_specification", "6️⃣ PV Specification", "Technology selection"),
-        ("yield_demand", "7️⃣ Yield vs Demand", "Energy balance analysis"),
-        ("optimization", "8️⃣ Optimization", "Multi-objective optimization"),
-        ("financial_analysis", "9️⃣ Financial Analysis", "Economic viability"),
-        ("reporting", "🔟 Reporting", "Results and export"),
+        ("welcome", "🌞 Welcome", "Introduction to BIPV optimization"),
+        ("project_setup", "📍 Project Setup", "Location and configuration"),
+        ("historical_data", "📊 Historical Data", "Energy consumption analysis"),
+        ("weather_environment", "🌤️ Weather Integration", "TMY and climate data"),
+        ("facade_extraction", "🏢 BIM Extraction", "Building geometry analysis"),
+        ("radiation_grid", "☀️ Radiation Analysis", "Solar irradiance modeling"),
+        ("pv_specification", "⚡ PV Specification", "Technology selection"),
+        ("yield_demand", "🔋 Yield vs Demand", "Energy balance analysis"),
+        ("optimization", "🎯 Optimization", "Multi-objective optimization"),
+        ("financial_analysis", "💰 Financial Analysis", "Economic viability"),
+        ("reporting", "📄 Reporting", "Results and export"),
         ("ai_consultation", "🤖 AI Consultation", "Expert analysis and recommendations")
     ]
     
