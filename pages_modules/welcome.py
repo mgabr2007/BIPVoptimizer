@@ -2,6 +2,7 @@
 Welcome page for BIPV Optimizer
 """
 import streamlit as st
+from utils.color_schemes import get_emoji, create_colored_html, YELLOW_SCHEME
 
 
 def render_welcome():
@@ -10,16 +11,19 @@ def render_welcome():
     # Display main banner image
     st.image("attached_assets/MainBanner_1751259726414.jpg", use_container_width=True)
     
-    st.markdown("""
+    st.markdown(f"""
     ---
     
-    ### Welcome to the BIPV Optimizer Platform
+    ### {get_emoji('sun')} Welcome to the BIPV Optimizer Platform {get_emoji('building')}
     
     **Building-Integrated Photovoltaics (BIPV)** represents the future of sustainable architecture, 
     where solar energy generation seamlessly integrates with building design. Our platform provides 
     comprehensive analysis and optimization tools for BIPV installations, specifically focusing on 
     **semi-transparent PV glass replacement** in educational and commercial buildings.
     """)
+    
+    # Apply yellow container styling
+    st.markdown('<div class="yellow-container">', unsafe_allow_html=True)
     
     # Core BIPV Technology Explanation
     col1, col2 = st.columns([2, 1])
@@ -69,8 +73,8 @@ def render_welcome():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("""
-        **🔬 ISO Standards**
+        st.markdown(f"""
+        **{get_emoji('tools')} ISO Standards**
         - ISO 15927-4: TMY data
         - ISO 9060: Solar radiation
         - ISO 50001: Energy management

@@ -95,11 +95,202 @@ window.addEventListener('load', function() {
 </script>
 
 <style>
-    .stApp > header {
-        background-color: transparent;
-    }
+    /* Comprehensive Yellow Theme Styling */
     .stApp {
-        background-color: #FFFFFF;
+        background: linear-gradient(135deg, #FFFEF7 0%, #FFF8DC 100%);
+        color: #2F2F2F;
+    }
+    
+    .stApp > header {
+        background-color: #FFD700;
+        border-bottom: 3px solid #FFA500;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+    }
+    
+    .css-1lcbmhc {
+        background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+        border-right: 3px solid #DAA520;
+    }
+    
+    /* Main content area */
+    .main .block-container {
+        background-color: rgba(255, 250, 205, 0.3);
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(255, 215, 0, 0.1);
+    }
+    
+    /* Headers and titles */
+    h1, h2, h3, h4, h5, h6 {
+        color: #B8860B !important;
+        text-shadow: 1px 1px 2px rgba(255, 215, 0, 0.3);
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(45deg, #FFD700, #FFA500);
+        color: #2F2F2F;
+        border: 2px solid #DAA520;
+        border-radius: 10px;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(255, 165, 0, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        background: linear-gradient(45deg, #FFA500, #FF8C00);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(255, 165, 0, 0.4);
+    }
+    
+    /* Metrics */
+    [data-testid="metric-container"] {
+        background: linear-gradient(135deg, #FFFACD, #FFE4B5);
+        border: 2px solid #FFD700;
+        border-radius: 10px;
+        padding: 1rem;
+        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+    }
+    
+    [data-testid="metric-container"] > div > div {
+        color: #B8860B !important;
+    }
+    
+    /* Info boxes */
+    .stInfo {
+        background: linear-gradient(135deg, #FFE4B5, #FFFACD);
+        border-left: 4px solid #FFD700;
+        color: #2F2F2F;
+    }
+    
+    .stSuccess {
+        background: linear-gradient(135deg, #F0FFBF, #ADFF2F);
+        border-left: 4px solid #9ACD32;
+        color: #2F2F2F;
+    }
+    
+    .stWarning {
+        background: linear-gradient(135deg, #FFE4B5, #FFDAB9);
+        border-left: 4px solid #FF8C00;
+        color: #2F2F2F;
+    }
+    
+    .stError {
+        background: linear-gradient(135deg, #FFE4E1, #FFA07A);
+        border-left: 4px solid #FF6347;
+        color: #2F2F2F;
+    }
+    
+    /* Expander */
+    .streamlit-expanderHeader {
+        background: linear-gradient(45deg, #FFD700, #FFA500);
+        color: #2F2F2F;
+        border-radius: 5px;
+        border: 1px solid #DAA520;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background: linear-gradient(45deg, #FFD700, #FFA500);
+        border-radius: 10px;
+        padding: 5px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background: rgba(255, 255, 255, 0.8);
+        color: #2F2F2F;
+        border-radius: 5px;
+        margin: 2px;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(45deg, #FFFF00, #FFD700);
+        color: #2F2F2F;
+        font-weight: bold;
+    }
+    
+    /* Progress bar */
+    .stProgress > div > div > div {
+        background: linear-gradient(45deg, #FFD700, #FFA500);
+    }
+    
+    /* Selectbox and inputs */
+    .stSelectbox > div > div {
+        background-color: #FFFACD;
+        border: 2px solid #FFD700;
+        border-radius: 8px;
+    }
+    
+    .stNumberInput > div > div {
+        background-color: #FFFACD;
+        border: 2px solid #FFD700;
+        border-radius: 8px;
+    }
+    
+    .stTextInput > div > div {
+        background-color: #FFFACD;
+        border: 2px solid #FFD700;
+        border-radius: 8px;
+    }
+    
+    /* Slider */
+    .stSlider > div > div > div {
+        background: linear-gradient(45deg, #FFD700, #FFA500);
+    }
+    
+    /* Checkbox */
+    .stCheckbox > label > div {
+        background-color: #FFD700;
+        border: 2px solid #FFA500;
+    }
+    
+    /* DataFrame styling */
+    .stDataFrame {
+        border: 2px solid #FFD700;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    /* Custom emoji and icon styling */
+    .emoji-icon {
+        filter: sepia(100%) saturate(200%) hue-rotate(45deg) brightness(1.2);
+    }
+    
+    /* Navigation styling */
+    .nav-button {
+        background: linear-gradient(45deg, #FFD700, #FFA500) !important;
+        color: #2F2F2F !important;
+        border: 2px solid #DAA520 !important;
+        border-radius: 25px !important;
+        padding: 0.5rem 2rem !important;
+        font-weight: bold !important;
+        margin: 0.5rem !important;
+        box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3) !important;
+    }
+    
+    /* Sidebar text styling */
+    .sidebar .markdown-text-container {
+        color: #2F2F2F;
+        text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+    }
+    
+    /* Custom yellow gradient backgrounds for containers */
+    .yellow-container {
+        background: linear-gradient(135deg, #FFFACD 0%, #FFE4B5 50%, #FFD700 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        border: 2px solid #FFA500;
+        box-shadow: 0 4px 16px rgba(255, 215, 0, 0.2);
+    }
+    
+    /* Icon coloring */
+    .st-emotion-cache-1v0mbdj > img {
+        filter: sepia(100%) saturate(200%) hue-rotate(45deg) brightness(1.1);
     }
 </style>
 

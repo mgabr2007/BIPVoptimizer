@@ -77,3 +77,76 @@ def get_gradient_colors(n_colors=5):
     base_colors = CHART_COLORS['gradient']
     step = len(base_colors) / n_colors
     return [base_colors[int(i * step)] for i in range(n_colors)]
+
+# Yellow-themed emojis and icons for BIPV application
+YELLOW_EMOJIS = {
+    'energy': '⚡',
+    'solar': '☀️',
+    'building': '🏢',
+    'money': '💰',
+    'chart': '📊',
+    'calculator': '🧮',
+    'gear': '⚙️',
+    'location': '📍',
+    'weather': '🌤️',
+    'database': '💾',
+    'document': '📋',
+    'success': '✅',
+    'warning': '⚠️',
+    'info': '💡',
+    'target': '🎯',
+    'rocket': '🚀',
+    'star': '⭐',
+    'medal': '🥇',
+    'light': '💡',
+    'fire': '🔥',
+    'trophy': '🏆',
+    'crown': '👑',
+    'diamond': '💎',
+    'key': '🔑',
+    'battery': '🔋',
+    'lightning': '⚡',
+    'sun': '🌞',
+    'leaf': '🍃',
+    'earth': '🌍',
+    'tools': '🔧',
+    'config': '⚙️',
+    'analysis': '📈',
+    'report': '📄',
+    'check': '✔️',
+    'arrow': '➡️',
+    'up_arrow': '⬆️',
+    'down_arrow': '⬇️',
+    'refresh': '🔄',
+    'download': '⬇️',
+    'upload': '⬆️',
+    'magnify': '🔍',
+    'flag': '🚩',
+    'bookmark': '🔖',
+    'bell': '🔔',
+    'timer': '⏱️',
+    'calendar': '📅',
+    'map': '🗺️',
+    'compass': '🧭',
+    'thermometer': '🌡️'
+}
+
+def get_emoji(key, fallback=''):
+    """Get yellow-themed emoji by key"""
+    return YELLOW_EMOJIS.get(key, fallback)
+
+def create_colored_html(text, color=None, background=None, size=None):
+    """Create HTML with yellow theme colors"""
+    if color is None:
+        color = YELLOW_SCHEME['text']
+    if background is None:
+        background = YELLOW_SCHEME['light']
+    
+    style_parts = [f"color: {color}"]
+    if background:
+        style_parts.append(f"background-color: {background}")
+    if size:
+        style_parts.append(f"font-size: {size}")
+    
+    style = "; ".join(style_parts)
+    return f'<span style="{style}">{text}</span>'
