@@ -183,8 +183,32 @@ def render_financial_analysis():
     
     st.success(f"Analyzing financial performance of {selected_solution['solution_id']}")
     
+    # Get electricity rates for display (define at top level)
+    electricity_rates = project_data.get('electricity_rates', {})
+    
+    # Show automatically loaded data
+    st.subheader("📊 Auto-Loaded Project Data")
+    
+    auto_col1, auto_col2 = st.columns(2)
+    
+    with auto_col1:
+        
+        st.info(f"**💰 Electricity Rate:** {electricity_rates.get('import_rate', 0.25):.3f} €/kWh\n"
+                f"**📍 Location:** {project_data.get('location_name', 'Not set')}\n"
+                f"**⚡ Rate Source:** {electricity_rates.get('source', 'manual')}")
+    
+    with auto_col2:
+        selected_solution = project_data.get('selected_optimization_solution', {})
+        if isinstance(selected_solution, dict) and selected_solution:
+            total_cost = selected_solution.get('total_investment', selected_solution.get('total_cost_eur', 0))
+            annual_energy = selected_solution.get('annual_energy_kwh', selected_solution.get('annual_yield_kwh', 0))
+            st.info(f"**💼 System Cost:** {total_cost:,.0f} €\n"
+                    f"**⚡ Annual Energy:** {annual_energy:,.0f} kWh\n"
+                    f"**🎯 Solution:** {selected_solution.get('solution_id', 'Selected')}")
+    
     # Financial configuration
     st.subheader("🔧 Financial Analysis Configuration")
+    st.write("**Adjust the parameters below based on your specific project requirements:**")
     
     col1, col2 = st.columns(2)
     
@@ -203,11 +227,24 @@ def render_financial_analysis():
             key="discount_rate_fin"
         )
         
+        # Get electricity price from Step 1 project setup
+        project_data = st.session_state.get('project_data', {})
+        electricity_rates = project_data.get('electricity_rates', {})
+        default_price = electricity_rates.get('import_rate', 0.25)
+        
         electricity_price = st.number_input(
             "Current Electricity Price (€/kWh)",
-            0.15, 0.50, 0.25, 0.01,
+            0.15, 0.50, default_price, 0.01,
+            help=f"💡 Auto-loaded from Step 1: {default_price:.3f} €/kWh. You can adjust if needed.",
             key="electricity_price_fin"
         )
+        
+        # Show data source
+        rate_source = electricity_rates.get('source', 'manual_input')
+        if rate_source.startswith('live_api'):
+            st.info(f"📡 Using live rate from {rate_source.replace('live_api_', '').upper()} API")
+        else:
+            st.info(f"📊 Using rate from Step 1 configuration")
     
     with col2:
         st.write("**Economic Assumptions**")
@@ -272,10 +309,46 @@ def render_financial_analysis():
     env_col1, env_col2 = st.columns(2)
     
     with env_col1:
+        # Get location-based CO₂ factor
+        location_name = project_data.get('location_name', '')
+        
+        # Determine default CO₂ factor based on location
+        default_co2 = 0.401  # Default to Germany
+        co2_help_text = "🌍 CO₂ emissions factor for grid electricity varies by country."
+        
+        if location_name:
+            location_lower = location_name.lower()
+            if any(term in location_lower for term in ['germany', 'deutschland', 'berlin', 'munich', 'hamburg']):
+                default_co2 = 0.401
+                co2_help_text += f" Detected Germany: {default_co2} kg CO₂/kWh"
+            elif any(term in location_lower for term in ['france', 'paris', 'lyon', 'marseille']):
+                default_co2 = 0.057
+                co2_help_text += f" Detected France: {default_co2} kg CO₂/kWh"
+            elif any(term in location_lower for term in ['poland', 'warsaw', 'krakow', 'gdansk']):
+                default_co2 = 0.781
+                co2_help_text += f" Detected Poland: {default_co2} kg CO₂/kWh"
+            elif any(term in location_lower for term in ['denmark', 'copenhagen', 'aarhus']):
+                default_co2 = 0.109
+                co2_help_text += f" Detected Denmark: {default_co2} kg CO₂/kWh"
+            elif any(term in location_lower for term in ['netherlands', 'holland', 'amsterdam', 'rotterdam']):
+                default_co2 = 0.311
+                co2_help_text += f" Detected Netherlands: {default_co2} kg CO₂/kWh"
+            elif any(term in location_lower for term in ['spain', 'madrid', 'barcelona', 'valencia']):
+                default_co2 = 0.256
+                co2_help_text += f" Detected Spain: {default_co2} kg CO₂/kWh"
+            elif any(term in location_lower for term in ['italy', 'rome', 'milan', 'naples']):
+                default_co2 = 0.432
+                co2_help_text += f" Detected Italy: {default_co2} kg CO₂/kWh"
+            elif any(term in location_lower for term in ['uk', 'britain', 'england', 'london', 'manchester']):
+                default_co2 = 0.233
+                co2_help_text += f" Detected UK: {default_co2} kg CO₂/kWh"
+            else:
+                co2_help_text += f" Using default: {default_co2} kg CO₂/kWh"
+        
         grid_co2_factor = st.number_input(
             "Grid CO₂ Factor (kg CO₂/kWh)",
-            0.200, 0.800, 0.401, 0.001,
-            help="🌍 CO₂ emissions factor for grid electricity varies by country. Germany: 0.401, France: 0.057, Poland: 0.781, Denmark: 0.109. This represents kg of CO₂ emitted per kWh of grid electricity. Used to calculate environmental impact of BIPV energy generation.",
+            0.050, 0.800, default_co2, 0.001,
+            help=co2_help_text + ". Used to calculate environmental impact of BIPV energy generation.",
             key="grid_co2_fin"
         )
     
@@ -286,6 +359,34 @@ def render_financial_analysis():
             help="💰 Current or projected carbon pricing for emissions trading. EU ETS: 50-100 €/ton CO₂, Social Cost of Carbon: 51 €/ton, Voluntary markets: 20-40 €/ton. This monetizes the environmental benefit of CO₂ savings from BIPV generation.",
             key="carbon_price_fin"
         )
+    
+    # How This Data Will Be Used section
+    with st.expander("📋 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        **Financial Analysis Workflow:**
+        
+        **📊 Auto-Loaded Data:**
+        - **Electricity Rates**: From Step 1 location configuration (live API or manual input)
+        - **System Cost**: From Step 8 selected optimization solution
+        - **Annual Energy**: From Step 7 yield vs demand analysis
+        - **Location**: For CO₂ factor determination and regional parameters
+        
+        **💰 Financial Calculations:**
+        - **NPV**: Net Present Value using discounted cash flows over system lifetime
+        - **IRR**: Internal Rate of Return using Newton-Raphson method
+        - **Payback Period**: Simple payback based on annual savings
+        - **Cash Flow**: Year-by-year financial projections with maintenance and replacement costs
+        
+        **🌱 Environmental Impact:**
+        - **CO₂ Savings**: Annual emissions avoided (kWh × CO₂ factor)
+        - **Carbon Value**: Monetary value of emissions reduction
+        - **Lifetime Impact**: 25-year environmental benefit calculation
+        
+        **📈 Output for Next Steps:**
+        - **Step 10**: Financial results integrated into comprehensive project reports
+        - **Step 11**: AI consultation uses financial metrics for optimization recommendations
+        - **Database**: All calculations saved for project persistence and comparison
+        """)
     
     # Analysis execution
     if st.button("🚀 Run Financial & Environmental Analysis", key="run_financial_analysis"):
