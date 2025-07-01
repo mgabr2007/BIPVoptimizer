@@ -281,12 +281,56 @@ def render_facade_extraction():
             with col1:
                 st.metric("Total Elements", len(windows))
             with col2:
-                st.metric("Suitable Elements", suitable_elements)
+                st.metric("Suitable Elements", suitable_elements, 
+                         help="Elements that meet BIPV suitability criteria - click the info section below for details")
             with col3:
                 st.metric("Total Window Area", f"{total_glass_area:.1f} m²")
             with col4:
                 suitability_rate = (suitable_elements / len(windows)) * 100 if windows else 0
                 st.metric("Suitability Rate", f"{suitability_rate:.1f}%")
+            
+            # BIPV Suitability Criteria Explanation
+            with st.expander("🔍 BIPV Suitability Criteria - What Makes Elements 'Suitable'?", expanded=False):
+                st.markdown("""
+                ### BIPV Suitability Assessment Criteria
+                
+                The system evaluates each building element against specific criteria to determine if it's suitable for BIPV installation:
+                
+                #### ✅ **Suitable Elements** (Selected for BIPV):
+                **Orientation Requirements:**
+                - **South-facing (135-225°)**: Optimal solar exposure in Northern Hemisphere
+                - **East-facing (45-135°)**: Good morning solar capture
+                - **West-facing (225-315°)**: Good afternoon solar capture
+                
+                **Technical Requirements:**
+                - All window and glazing elements regardless of area size
+                - Structural compatibility for BIPV glass replacement
+                - Access for installation and maintenance
+                
+                #### ❌ **Non-Suitable Elements** (Excluded from BIPV):
+                **Orientation Limitations:**
+                - **North-facing (315-45°)**: Poor solar performance (only 30% of south-facing efficiency)
+                - Limited annual solar radiation (900 kWh/m² vs 1800 kWh/m² for south)
+                
+                **Why North Windows Are Excluded:**
+                - Low energy production makes investment uneconomical
+                - Poor return on investment (ROI)
+                - Higher cost per kWh generated
+                - Focus resources on high-performing orientations for maximum impact
+                
+                #### 📊 **Performance Comparison by Orientation:**
+                - **South**: 1800 kWh/m²/year (100% - Optimal)
+                - **East/West**: 1400 kWh/m²/year (78% - Good)
+                - **North**: 900 kWh/m²/year (50% - Poor)
+                
+                #### 💡 **Why This Filtering Matters:**
+                1. **Economic Efficiency**: Focus investment on high-performing elements
+                2. **Maximum ROI**: Prioritize elements with best solar exposure
+                3. **System Optimization**: Ensure optimal energy production per euro invested
+                4. **Implementation Strategy**: Phase installation starting with best-performing orientations
+                
+                **Result**: Your BIPV system will only include the most economically viable window elements, maximizing energy production and financial returns.
+                """)
             
             # Orientation distribution
             st.subheader("Orientation Distribution")
