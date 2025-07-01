@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 from database_manager import db_manager
 from core.solar_math import safe_divide
+from core.carbon_factors import get_grid_carbon_factor, display_carbon_factor_info
 
 def calculate_npv(cash_flows, discount_rate):
     """Calculate Net Present Value of cash flows."""
@@ -309,48 +310,24 @@ def render_financial_analysis():
     env_col1, env_col2 = st.columns(2)
     
     with env_col1:
-        # Get location-based CO₂ factor
+        # Get location-based CO₂ factor using comprehensive database
         location_name = project_data.get('location_name', '')
+        coordinates = project_data.get('coordinates', {})
         
-        # Determine default CO₂ factor based on location
-        default_co2 = 0.401  # Default to Germany
-        co2_help_text = "🌍 CO₂ emissions factor for grid electricity varies by country."
+        # Get carbon factor data with sources
+        carbon_data = get_grid_carbon_factor(location_name, coordinates)
+        default_co2 = carbon_data['factor']
         
-        if location_name:
-            location_lower = location_name.lower()
-            if any(term in location_lower for term in ['germany', 'deutschland', 'berlin', 'munich', 'hamburg']):
-                default_co2 = 0.401
-                co2_help_text += f" Detected Germany: {default_co2} kg CO₂/kWh"
-            elif any(term in location_lower for term in ['france', 'paris', 'lyon', 'marseille']):
-                default_co2 = 0.057
-                co2_help_text += f" Detected France: {default_co2} kg CO₂/kWh"
-            elif any(term in location_lower for term in ['poland', 'warsaw', 'krakow', 'gdansk']):
-                default_co2 = 0.781
-                co2_help_text += f" Detected Poland: {default_co2} kg CO₂/kWh"
-            elif any(term in location_lower for term in ['denmark', 'copenhagen', 'aarhus']):
-                default_co2 = 0.109
-                co2_help_text += f" Detected Denmark: {default_co2} kg CO₂/kWh"
-            elif any(term in location_lower for term in ['netherlands', 'holland', 'amsterdam', 'rotterdam']):
-                default_co2 = 0.311
-                co2_help_text += f" Detected Netherlands: {default_co2} kg CO₂/kWh"
-            elif any(term in location_lower for term in ['spain', 'madrid', 'barcelona', 'valencia']):
-                default_co2 = 0.256
-                co2_help_text += f" Detected Spain: {default_co2} kg CO₂/kWh"
-            elif any(term in location_lower for term in ['italy', 'rome', 'milan', 'naples']):
-                default_co2 = 0.432
-                co2_help_text += f" Detected Italy: {default_co2} kg CO₂/kWh"
-            elif any(term in location_lower for term in ['uk', 'britain', 'england', 'london', 'manchester']):
-                default_co2 = 0.233
-                co2_help_text += f" Detected UK: {default_co2} kg CO₂/kWh"
-            else:
-                co2_help_text += f" Using default: {default_co2} kg CO₂/kWh"
-        
+        st.write("**Grid CO₂ Emissions Factor**")
         grid_co2_factor = st.number_input(
             "Grid CO₂ Factor (kg CO₂/kWh)",
-            0.050, 0.800, default_co2, 0.001,
-            help=co2_help_text + ". Used to calculate environmental impact of BIPV energy generation.",
+            0.020, 0.900, default_co2, 0.001,
+            help="CO₂ emissions per kWh of grid electricity. Used to calculate environmental impact of BIPV generation.",
             key="grid_co2_fin"
         )
+        
+        # Display source information
+        display_carbon_factor_info(carbon_data)
     
     with env_col2:
         carbon_price = st.number_input(
@@ -378,9 +355,11 @@ def render_financial_analysis():
         - **Cash Flow**: Year-by-year financial projections with maintenance and replacement costs
         
         **🌱 Environmental Impact:**
-        - **CO₂ Savings**: Annual emissions avoided (kWh × CO₂ factor)
-        - **Carbon Value**: Monetary value of emissions reduction
-        - **Lifetime Impact**: 25-year environmental benefit calculation
+        - **CO₂ Factor Sources**: Official national grid data (TSOs, regulators), IEA estimates, or IPCC regional averages
+        - **Fallback Methodology**: Coordinates-based regional estimates when country-specific data unavailable
+        - **CO₂ Savings**: Annual emissions avoided (kWh × location-specific CO₂ factor)
+        - **Carbon Value**: Monetary value of emissions reduction using market carbon pricing
+        - **Lifetime Impact**: 25-year environmental benefit calculation with data source transparency
         
         **📈 Output for Next Steps:**
         - **Step 10**: Financial results integrated into comprehensive project reports
