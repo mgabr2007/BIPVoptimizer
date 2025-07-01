@@ -1007,7 +1007,7 @@ def generate_comprehensive_detailed_report():
                         <p><strong>Report Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')} | <strong>Analysis Version:</strong> BIPV Optimizer v2.1</p>
                         <hr style="margin: 20px 0; border: 1px solid rgba(255,255,255,0.3);">
                         <p><em>This analysis was conducted as part of PhD research at Technische Universität Berlin.</em></p>
-                        <p><strong>Research Contact:</strong> Mostafa Gabr | <strong>Institution:</strong> TU Berlin, Department of Energy Engineering</p>
+                        <p><strong>Research Contact:</strong> Mostafa Gabr | <strong>Institution:</strong> <a href="https://www.tu.berlin/en/planen-bauen-umwelt/" style="color: #90EE90;">TU Berlin, Faculty VI - Planning Building Environment</a></p>
                         <p><strong>Research Profile:</strong> <a href="https://www.researchgate.net/profile/Mostafa-Gabr-4" style="color: #90EE90;">ResearchGate Profile</a></p>
                     </div>
                 </div>

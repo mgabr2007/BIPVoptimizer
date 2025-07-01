@@ -372,6 +372,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 30, 2025: Fixed critical solar radiation calculation error where north-facing windows showed unrealistic 900 kWh/m²/year instead of realistic 300 kWh/m²/year, causing optimization algorithm to incorrectly favor north-facing windows over south-facing ones - implemented physics-based orientation corrections with north-facing windows receiving 30% of base radiation (realistic for Northern Hemisphere) ensuring optimization properly ranks solar performance
 - June 30, 2025: Fixed Step 8 electricity rate data retrieval bug where optimization showed default 0.25 €/kWh instead of actual Step 1 rate (0.3 €/kWh) by correcting data structure access from project_data['electricity_rate'] to project_data['electricity_rates']['import_rate'], ensuring optimization uses authentic location-based electricity rates for accurate financial calculations
 - June 30, 2025: Added professional BIPV Optimizer logo to sidebar featuring light green branding with building icon and solar panel graphics for enhanced visual identity and user experience
+- July 1, 2025: Enhanced detailed report generation with real-data driven charts including actual NPV, IRR, payback period calculations, monthly energy balance using calculated values, PV performance by orientation using building element data, and comprehensive financial analysis with authentic project metrics instead of placeholder values
+- July 1, 2025: Updated institution reference in detailed report footer to include TU Berlin Faculty VI link (https://www.tu.berlin/en/planen-bauen-umwelt/) for proper academic attribution and website access
 
 ## User Preferences
 
