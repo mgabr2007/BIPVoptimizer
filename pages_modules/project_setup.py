@@ -164,6 +164,10 @@ def get_location_from_coordinates(lat, lon):
 
 def render_project_setup():
     """Render the project setup module with configuration inputs."""
+    
+    # Add OptiSunny character header image
+    st.image("attached_assets/step01_1751436847828.png", width=400)
+    
     st.header("Step 1: Project Setup & Configuration")
     st.markdown("Configure your BIPV optimization project with location selection and data integration.")
     

@@ -282,6 +282,10 @@ def create_forecast_summary_report(forecast_data, consumption_data):
 
 def render_historical_data():
     """Render the historical data analysis and AI model training module."""
+    
+    # Add OptiSunny character header image
+    st.image("attached_assets/step02_1751436847829.png", width=400)
+    
     st.header("Step 2: Historical Data Analysis & AI Model Training")
     st.markdown("Upload and analyze historical energy consumption data to train demand prediction models.")
     

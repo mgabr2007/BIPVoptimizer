@@ -165,6 +165,10 @@ def _get_climate_zone(latitude):
 
 def render_weather_environment():
     """Render the weather and environment analysis module."""
+    
+    # Add OptiSunny character header image
+    st.image("attached_assets/step03_1751436847829.png", width=400)
+    
     st.header("Step 3: Weather & Environment Integration")
     st.markdown("Integrate weather data and generate Typical Meteorological Year (TMY) datasets for solar analysis.")
     

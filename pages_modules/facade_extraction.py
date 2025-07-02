@@ -7,6 +7,10 @@ from services.io import parse_csv_content, save_building_elements, save_project_
 
 def render_facade_extraction():
     """Render the facade and window extraction module."""
+    
+    # Add OptiSunny character header image
+    st.image("attached_assets/step04_1751436847829.png", width=400)
+    
     st.header("Step 4: BIM Model Facade & Window Extraction")
     st.markdown("Extract building geometry and window elements from BIM models for BIPV analysis.")
     
