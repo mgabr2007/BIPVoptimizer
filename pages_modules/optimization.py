@@ -232,6 +232,9 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
 def render_optimization():
     """Render the genetic algorithm optimization module."""
     
+    # Add OptiSunny character header image
+    st.image("attached_assets/step08_1751436847831.png", width=400)
+    
     st.header("🎯 Step 8: Multi-Objective BIPV Optimization")
     
     # Data Usage Information

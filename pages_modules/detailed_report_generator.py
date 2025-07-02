@@ -1036,6 +1036,10 @@ def generate_comprehensive_detailed_report():
 
 def render_detailed_reporting():
     """Render the detailed reporting interface"""
+    
+    # Add OptiSunny character header image
+    st.image("attached_assets/step10_1751436847832.png", width=400)
+    
     st.header("📊 Step 10: Comprehensive Detailed Report Generation")
     
     st.info("Generate a comprehensive scientific report with complete methodology, equations, and analysis details.")

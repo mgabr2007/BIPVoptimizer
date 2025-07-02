@@ -131,6 +131,9 @@ def create_cash_flow_analysis(solution_data, financial_params, system_lifetime):
 def render_financial_analysis():
     """Render the financial and environmental analysis module."""
     
+    # Add OptiSunny character header image
+    st.image("attached_assets/step09_1751436847831.png", width=400)
+    
     st.header("💰 Step 9: Financial & Environmental Impact Analysis")
     
     # AI Model Performance Impact Notice

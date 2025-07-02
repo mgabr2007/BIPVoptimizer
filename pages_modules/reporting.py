@@ -269,6 +269,10 @@ def generate_comprehensive_html_report():
 
 def render_reporting():
     """Render the reporting and export module."""
+    
+    # Add OptiSunny character header image
+    st.image("attached_assets/step10_1751436847832.png", width=400)
+    
     st.header("Step 10: Comprehensive Reporting & Data Export")
     st.markdown("Generate detailed analysis reports and export project data for further use.")
     
