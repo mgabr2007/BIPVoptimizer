@@ -235,7 +235,7 @@ def render_financial_analysis():
         
         electricity_price = st.number_input(
             "Current Electricity Price (€/kWh)",
-            0.15, 0.50, default_price, 0.01,
+            0.05, 0.50, default_price, 0.01,
             help=f"💡 Auto-loaded from Step 1: {default_price:.3f} €/kWh. You can adjust if needed.",
             key="electricity_price_fin"
         )
