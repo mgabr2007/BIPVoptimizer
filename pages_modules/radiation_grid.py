@@ -389,6 +389,9 @@ def apply_orientation_corrections(radiation_df):
 def render_radiation_grid():
     """Render the radiation and shading grid analysis module."""
     
+    # Add OptiSunny character header image
+    st.image("attached_assets/step05_1751436847830.png", width=400)
+    
     st.header("☀️ Step 5: Solar Radiation & Shading Analysis")
     
     # Data Usage Information

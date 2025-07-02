@@ -68,6 +68,9 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
 def render_pv_specification():
     """Render the simplified PV panel specification and layout module."""
     
+    # Add OptiSunny character header image
+    st.image("attached_assets/step06_1751436847830.png", width=400)
+    
     st.header("⚡ Step 6: BIPV Panel Specifications")
     
     # Data Usage Information

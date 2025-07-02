@@ -198,6 +198,9 @@ def calculate_net_energy_balance(demand_df, yield_df):
 def render_yield_demand():
     """Render the yield vs demand analysis module."""
     
+    # Add OptiSunny character header image
+    st.image("attached_assets/step07_1751436847830.png", width=400)
+    
     st.header("⚖️ Step 7: Energy Yield vs Demand Analysis")
     
     # Data Usage Information
