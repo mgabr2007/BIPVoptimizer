@@ -273,6 +273,9 @@ class PerplexityBIPVAgent:
 def render_perplexity_consultation():
     """Render Perplexity AI consultation interface"""
     
+    # Add OptiSunny character header image
+    st.image("attached_assets/step11_1751436847832.png", width=400)
+    
     st.header("🤖 AI Research Consultation")
     st.write("Get expert analysis and optimization recommendations from Perplexity AI")
     
