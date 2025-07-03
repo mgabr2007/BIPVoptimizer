@@ -201,27 +201,38 @@ def render_yield_demand():
     # Add OptiSunny character header image
     st.image("attached_assets/step07_1751436847830.png", width=400)
     
-    st.header("⚖️ Step 7: Energy Yield vs Demand Analysis")
+    st.header("⚖️ Energy Yield vs Demand Analysis")
+    
+    st.markdown("""
+    ### What This Step Does
+    
+    This analysis compares the energy your BIPV systems will generate with your building's actual energy needs. 
+    We calculate how much of your electricity demand can be met by solar energy and identify potential cost savings.
+    
+    **Key Outputs:**
+    - Monthly energy balance (generation vs consumption)
+    - Self-consumption percentage
+    - Grid electricity savings
+    - Feed-in revenue from excess energy
+    """)
     
     # Data Usage Information
-    with st.expander("📊 How This Data Will Be Used", expanded=False):
+    with st.expander("📊 How This Data Flows to Next Steps", expanded=False):
         st.markdown("""
-        ### Data Flow Through BIPV Analysis Workflow:
+        **→ Step 8 (System Optimization):**
+        - Energy balance data helps optimize which windows get BIPV panels
+        - Self-consumption ratios guide system sizing decisions
+        - Monthly patterns inform seasonal performance optimization
         
-        **Step 7 → Step 8 (Optimization):**
-        - **Net energy balance data** → Genetic algorithm objective functions for grid independence optimization
-        - **Self-consumption ratios** → Performance constraints for system selection algorithms
-        - **Monthly yield profiles** → Seasonal optimization parameters and capacity planning
+        **→ Step 9 (Financial Analysis):**
+        - Energy cost savings calculate your electricity bill reductions
+        - Feed-in revenue shows income from excess solar energy
+        - Grid import data determines your return on investment
         
-        **Step 7 → Step 9 (Financial Analysis):**
-        - **Energy cost savings** → NPV and IRR calculations over 25-year system lifetime
-        - **Feed-in revenue** → Cash flow projections and payback period analysis
-        - **Grid import reductions** → Electricity bill impact assessment and ROI calculations
-        
-        **Step 7 → Step 10 (Reporting):**
-        - **Energy balance charts** → Visual documentation of BIPV system performance
-        - **Coverage ratio metrics** → Building energy independence assessment
-        - **Yield analysis methodology** → Technical validation and performance benchmarking
+        **→ Step 10 (Final Report):**
+        - Energy charts demonstrate system performance
+        - Coverage metrics show building energy independence level
+        - Analysis validates technical feasibility and benefits
         """)
     
     # AI Model Performance Indicator
@@ -311,46 +322,54 @@ def render_yield_demand():
     st.success(f"Analyzing energy balance for {len(pv_specs)} BIPV systems")
     
     # Analysis configuration
-    st.subheader("🔧 Analysis Configuration")
+    st.subheader("🔧 Configure Your Analysis")
+    
+    st.markdown("**Set up the analysis timeframe and financial parameters:**")
     
     col1, col2 = st.columns(2)
     
     with col1:
+        st.markdown("**📅 Analysis Timeline**")
         analysis_start = st.date_input(
-            "Analysis Start Date",
+            "Start Date",
             value=datetime(2024, 1, 1),
-            key="analysis_start_yield"
+            key="analysis_start_yield",
+            help="When to begin the energy analysis"
         )
         
         analysis_period = st.selectbox(
             "Analysis Period",
             ["1 Year", "2 Years", "5 Years", "10 Years"],
             index=0,
-            key="analysis_period_yield"
+            key="analysis_period_yield",
+            help="How many years to analyze energy performance"
         )
     
     with col2:
+        st.markdown("**💶 Electricity Pricing**")
+        
         # Use electricity rates from Step 1 project configuration
         electricity_rates = project_data.get('electricity_rates', {})
         default_import_rate = electricity_rates.get('import_rate', 0.25)
         default_export_rate = electricity_rates.get('export_rate', 0.08)
         
-        st.info(f"📊 Using electricity rates from Step 1: Import €{default_import_rate:.3f}/kWh, Export €{default_export_rate:.3f}/kWh")
+        st.success(f"Using rates from Step 1: €{default_import_rate:.3f}/kWh (buy), €{default_export_rate:.3f}/kWh (sell)")
         
         # Allow override if needed
-        override_rates = st.checkbox("Override electricity rates", value=False, help="Use custom rates instead of Step 1 values")
+        override_rates = st.checkbox("Use custom electricity rates", value=False, help="Override the rates from Step 1 if needed")
         
         if override_rates:
             electricity_price = st.number_input(
-                "Electricity Price (€/kWh)",
+                "Electricity Purchase Price (€/kWh)",
                 0.10, 0.50, default_import_rate, 0.01,
-                key="electricity_price_yield"
+                key="electricity_price_yield",
+                help="How much you pay for electricity from the grid"
             )
             
             feed_in_tariff = st.number_input(
-                "Feed-in Tariff (€/kWh)",
+                "Feed-in Price (€/kWh)",
                 0.05, 0.20, default_export_rate, 0.01,
-                help="Price for excess energy fed back to grid",
+                help="How much you receive for excess solar energy sold to the grid",
                 key="feed_in_tariff_yield"
             )
         else:
@@ -358,41 +377,48 @@ def render_yield_demand():
             feed_in_tariff = default_export_rate
     
     # Advanced settings
-    with st.expander("⚙️ Advanced Analysis Settings", expanded=False):
+    with st.expander("⚙️ Advanced Settings (Optional)", expanded=False):
+        st.markdown("**Fine-tune the analysis with these optional parameters:**")
+        
         adv_col1, adv_col2 = st.columns(2)
         
         with adv_col1:
+            st.markdown("**📈 Future Trends**")
             demand_growth_rate = st.slider(
-                "Annual Demand Growth Rate (%)",
+                "Annual Demand Growth (%)",
                 -2.0, 5.0, 1.0, 0.1,
-                help="Expected annual increase in energy demand",
+                help="How much your building's energy use will increase each year (typically 1-2%)",
                 key="demand_growth_yield"
             )
             
             system_degradation = st.slider(
-                "Annual System Degradation (%)",
+                "BIPV System Degradation (%/year)",
                 0.0, 1.0, 0.5, 0.1,
-                help="Annual decrease in PV system performance",
+                help="How much solar panel efficiency decreases annually (typically 0.5%)",
                 key="system_degradation_yield"
             )
         
         with adv_col2:
+            st.markdown("**🔧 Analysis Options**")
             include_demand_response = st.checkbox(
-                "Include Demand Response",
+                "Smart Energy Management",
                 value=False,
-                help="Consider demand shifting to optimize self-consumption",
+                help="Include potential for shifting energy use to match solar generation",
                 key="demand_response_yield"
             )
             
             seasonal_adjustment = st.checkbox(
-                "Apply Seasonal Adjustments",
+                "Seasonal Patterns",
                 value=True,
-                help="Account for seasonal variations in demand and generation",
+                help="Account for seasonal changes in energy use and solar production",
                 key="seasonal_adjustment_yield"
             )
     
     # Run analysis
-    if st.button("🚀 Run Yield vs Demand Analysis", key="run_yield_analysis"):
+    st.markdown("---")
+    st.markdown("**Ready to see how much energy your BIPV systems will generate?**")
+    
+    if st.button("🚀 Calculate Energy Balance", key="run_yield_analysis", type="primary"):
         with st.spinner("Calculating energy balance and economic impact..."):
             try:
                 # Determine analysis end date
@@ -495,26 +521,48 @@ def render_yield_demand():
                 }
                 
                 # Display results immediately after calculation
-                st.subheader("📊 Analysis Results")
+                st.success("✅ Energy balance analysis completed!")
                 
-                # Key metrics
+                st.subheader("📊 Your BIPV System Performance")
+                
+                st.markdown("**Here's how your building-integrated solar panels will perform:**")
+                
+                # Key metrics with better explanations
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
-                    st.metric("Total Annual Yield", f"{total_annual_yield:,.0f} kWh")
+                    st.metric(
+                        "Annual Solar Generation", 
+                        f"{total_annual_yield:,.0f} kWh",
+                        help="Total electricity your BIPV systems will generate per year"
+                    )
                 
                 with col2:
-                    st.metric("Annual Demand", f"{annual_demand:,.0f} kWh")
+                    st.metric(
+                        "Building Energy Demand", 
+                        f"{annual_demand:,.0f} kWh",
+                        help="Total electricity your building consumes per year"
+                    )
                 
                 with col3:
-                    st.metric("Coverage Ratio", f"{coverage_ratio:.1f}%")
+                    st.metric(
+                        "Energy Independence", 
+                        f"{coverage_ratio:.1f}%",
+                        help="Percentage of your energy needs met by solar power"
+                    )
                 
                 with col4:
-                    st.metric("Annual Savings", f"€{total_annual_savings:,.0f}")
+                    st.metric(
+                        "Annual Cost Savings", 
+                        f"€{total_annual_savings:,.0f}",
+                        help="Money saved on electricity bills plus income from excess energy"
+                    )
                 
                 # Monthly energy balance chart
                 if energy_balance:
-                    st.subheader("📈 Monthly Energy Balance")
+                    st.subheader("📈 Monthly Energy Pattern")
+                    
+                    st.markdown("**This chart shows your building's energy demand (orange) vs solar generation (blue) throughout the year:**")
                     
                     balance_df = pd.DataFrame(energy_balance)
                     
@@ -523,15 +571,34 @@ def render_yield_demand():
                         balance_df,
                         x='month',
                         y=['predicted_demand', 'total_yield_kwh'],
-                        title="Monthly Energy Demand vs Generation",
-                        labels={'value': 'Energy (kWh)', 'variable': 'Type'},
-                        barmode='group'
+                        title="Energy Demand vs Solar Generation by Month",
+                        labels={
+                            'value': 'Energy (kWh)', 
+                            'variable': 'Energy Type',
+                            'predicted_demand': 'Building Demand',
+                            'total_yield_kwh': 'Solar Generation'
+                        },
+                        barmode='group',
+                        color_discrete_map={
+                            'predicted_demand': '#FFA500',  # Orange for demand
+                            'total_yield_kwh': '#1f77b4'   # Blue for generation
+                        }
+                    )
+                    fig.update_layout(
+                        xaxis_title="Month",
+                        yaxis_title="Energy (kWh)",
+                        legend_title="Energy Type"
                     )
                     st.plotly_chart(fig, use_container_width=True)
                     
-                    # Energy balance table
-                    st.subheader("📋 Monthly Energy Balance Details")
-                    st.dataframe(balance_df, use_container_width=True)
+                    # Energy balance table with clear headers
+                    st.subheader("📋 Detailed Monthly Breakdown")
+                    st.markdown("**Complete month-by-month analysis of energy flows and savings:**")
+                    
+                    # Create user-friendly display
+                    display_df = balance_df[['month', 'predicted_demand', 'total_yield_kwh', 'net_import', 'total_savings']].copy()
+                    display_df.columns = ['Month', 'Building Demand (kWh)', 'Solar Generation (kWh)', 'Grid Import (kWh)', 'Monthly Savings (€)']
+                    st.dataframe(display_df, use_container_width=True)
                 # Save to database with error handling
                 if 'project_id' in st.session_state and st.session_state.project_id:
                     try:
