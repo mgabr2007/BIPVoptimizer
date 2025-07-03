@@ -179,11 +179,11 @@ def render_pv_specification():
     with col3:
         cost_per_m2 = st.number_input(
             "Cost (EUR/m²)",
-            min_value=200.0, max_value=600.0,
+            min_value=100.0, max_value=1000.0,
             value=float(base_specs['cost_per_m2']),
             step=25.0,
             key="cost_per_m2",
-            help="BIPV glass cost per square meter"
+            help="BIPV glass cost per square meter (flexible range for various technologies)"
         )
     
     # Calculate derived specifications
