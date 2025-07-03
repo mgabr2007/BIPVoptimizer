@@ -51,47 +51,83 @@ st.markdown("""
 </style>
 
 <script>
-// Auto-scroll to top functionality for step navigation
+// Enhanced auto-scroll to top functionality for all navigation
 function scrollToTop() {
     window.scrollTo({
         top: 0,
         behavior: 'smooth'
     });
+    // Also scroll the main content container to top
+    const mainContainer = document.querySelector('.main');
+    if (mainContainer) {
+        mainContainer.scrollTop = 0;
+    }
 }
 
-// Listen for step changes and scroll to top
+// Listen for all button clicks and page changes
 document.addEventListener('DOMContentLoaded', function() {
-    // Monitor for step navigation buttons
+    // Monitor for any navigation buttons
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList') {
-                // Check if page content changed (step navigation occurred)
-                const buttons = document.querySelectorAll('button[kind="primary"]');
-                buttons.forEach(button => {
-                    if (button.innerText.includes('Continue to Step') || 
-                        button.innerText.includes('Next Step') ||
-                        button.innerText.includes('Finish')) {
-                        button.addEventListener('click', function() {
-                            setTimeout(scrollToTop, 100);
-                        });
+                // Find all navigation buttons and attach scroll functionality
+                const allButtons = document.querySelectorAll('button');
+                allButtons.forEach(button => {
+                    const buttonText = button.innerText || button.textContent || '';
+                    if (buttonText.includes('Continue to Step') || 
+                        buttonText.includes('Next Step') ||
+                        buttonText.includes('→') ||
+                        buttonText.includes('←') ||
+                        buttonText.includes('Finish') ||
+                        buttonText.includes('Start') ||
+                        buttonText.includes('Begin')) {
+                        
+                        // Remove existing listeners to prevent duplicates
+                        button.removeEventListener('click', handleNavClick);
+                        // Add click handler
+                        button.addEventListener('click', handleNavClick);
                     }
                 });
             }
         });
     });
     
+    function handleNavClick() {
+        // Immediate scroll for instant feedback
+        scrollToTop();
+        // Additional scroll after potential content change
+        setTimeout(scrollToTop, 50);
+        setTimeout(scrollToTop, 150);
+        setTimeout(scrollToTop, 300);
+    }
+    
     observer.observe(document.body, {
         childList: true,
         subtree: true
     });
+    
+    // Initial setup for existing buttons
+    handleNavClick();
 });
 
-// Also scroll to top on page load if URL fragment indicates step change
-window.addEventListener('load', function() {
-    if (window.location.hash || document.referrer.includes('step')) {
-        setTimeout(scrollToTop, 200);
+// Scroll to top on any page change or rerun
+window.addEventListener('load', scrollToTop);
+window.addEventListener('beforeunload', scrollToTop);
+
+// Handle Streamlit reruns
+setInterval(function() {
+    const buttons = document.querySelectorAll('button');
+    let hasNavButton = false;
+    buttons.forEach(button => {
+        const text = button.innerText || button.textContent || '';
+        if (text.includes('→') || text.includes('←') || text.includes('Continue') || text.includes('Step')) {
+            hasNavButton = true;
+        }
+    });
+    if (hasNavButton && window.scrollY > 100) {
+        scrollToTop();
     }
-});
+}, 1000);
 </script>
 
 <style>
