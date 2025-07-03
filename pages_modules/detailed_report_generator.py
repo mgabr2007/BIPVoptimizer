@@ -46,8 +46,24 @@ def generate_radiation_heatmap(building_elements):
         if isinstance(elem, dict):
             element_id = elem.get('element_id', 'Unknown')
             orientation = elem.get('orientation', 'Unknown')
-            # Estimate radiation based on orientation
-            radiation = 1800 if "South" in orientation else 1400 if any(x in orientation for x in ["East", "West"]) else 900
+            
+            # Use actual radiation values if available, otherwise calculate realistic estimates
+            actual_radiation = elem.get('annual_irradiation', None)
+            if actual_radiation and actual_radiation > 0:
+                radiation = actual_radiation
+            else:
+                # Realistic radiation estimates based on orientation (Northern Hemisphere)
+                if "South" in orientation:
+                    radiation = 1400  # South-facing optimal
+                elif any(x in orientation for x in ["Southeast", "Southwest"]):
+                    radiation = 1300  # Near-optimal
+                elif any(x in orientation for x in ["East", "West"]):
+                    radiation = 1000  # Moderate
+                elif any(x in orientation for x in ["Northeast", "Northwest"]):
+                    radiation = 600   # Lower performance
+                else:  # North-facing
+                    radiation = 400   # Realistic low value for north-facing
+            
             radiation_data.append({
                 'Element_ID': element_id,
                 'Orientation': orientation,
@@ -405,16 +421,26 @@ def generate_comprehensive_detailed_report():
             for elem in building_elements:
                 if isinstance(elem, dict) and elem.get('pv_suitable', False):
                     glass_area = float(elem.get('glass_area', 1.5))  # Default window size
-                    # BIPV glass: 15% efficiency, 85% performance ratio
-                    element_capacity = glass_area * 0.15  # kW (150 W/m²)
+                    # BIPV glass: 8-12% efficiency typical, 80% performance ratio (more realistic)
+                    bipv_efficiency = 0.10  # 10% average efficiency
+                    performance_ratio = 0.80  # Performance ratio including losses
+                    element_capacity = glass_area * bipv_efficiency  # kW (100 W/m²)
                     orientation = elem.get('orientation', '')
-                    # Solar yield based on orientation
+                    
+                    # More realistic solar yield based on orientation and location
+                    base_irradiation = 1200  # Base irradiation for the location
                     if 'South' in orientation:
-                        annual_yield = element_capacity * 1400  # kWh/year
+                        irradiation_factor = 1.0  # 100% for south-facing
+                    elif any(x in orientation for x in ['Southeast', 'Southwest']):
+                        irradiation_factor = 0.95  # 95% for near-south
                     elif any(x in orientation for x in ['East', 'West']):
-                        annual_yield = element_capacity * 1100  # kWh/year
-                    else:
-                        annual_yield = element_capacity * 800   # kWh/year for North
+                        irradiation_factor = 0.85  # 85% for east/west
+                    elif any(x in orientation for x in ['Northeast', 'Northwest']):
+                        irradiation_factor = 0.60  # 60% for north-east/west
+                    else:  # North
+                        irradiation_factor = 0.35  # 35% for north-facing
+                    
+                    annual_yield = element_capacity * base_irradiation * irradiation_factor * performance_ratio
                     
                     total_capacity += element_capacity
                     total_annual_yield += annual_yield
@@ -437,19 +463,26 @@ def generate_comprehensive_detailed_report():
         
         # If no financial data found, calculate realistic estimates based on actual PV data
         if initial_investment == 0 and total_capacity > 0:
-            # BIPV costs: €300-500/m² for semi-transparent glass
-            initial_investment = total_glass_area * 400  # €400/m² average
+            # BIPV costs: €200-400/m² for semi-transparent glass (more realistic range)
+            # Include installation and inverter costs
+            bipv_cost_per_m2 = 300  # €300/m² average
+            installation_factor = 1.3  # 30% for installation, inverters, permits
+            initial_investment = total_glass_area * bipv_cost_per_m2 * installation_factor
         
         if annual_savings == 0 and total_annual_yield > 0:
-            # Electricity cost savings: €0.25/kWh average in Europe
-            annual_savings = total_annual_yield * 0.25
+            # Electricity cost savings: €0.30/kWh average in Europe (more realistic current rates)
+            annual_savings = total_annual_yield * 0.30
         
         if npv == 0 and initial_investment > 0 and annual_savings > 0:
-            # Simple NPV estimate: 25-year project, 4% discount rate
+            # Realistic NPV calculation: 25-year project, 4% discount rate
             discount_rate = 0.04
             lifetime = 25
-            annual_net_cash_flow = annual_savings - (initial_investment * 0.02)  # 2% annual O&M
-            npv = sum(annual_net_cash_flow / ((1 + discount_rate) ** year) for year in range(1, lifetime + 1)) - initial_investment
+            annual_maintenance = initial_investment * 0.015  # 1.5% annual O&M (more realistic)
+            annual_net_cash_flow = annual_savings - annual_maintenance
+            
+            # Calculate NPV properly: sum of discounted cash flows minus initial investment
+            present_value_cash_flows = sum(annual_net_cash_flow / ((1 + discount_rate) ** year) for year in range(1, lifetime + 1))
+            npv = present_value_cash_flows - initial_investment
         
         if irr == 0 and initial_investment > 0 and annual_savings > 0:
             # Simple IRR estimate based on payback period
