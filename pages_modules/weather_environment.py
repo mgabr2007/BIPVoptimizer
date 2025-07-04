@@ -8,7 +8,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from core.solar_math import calculate_solar_position_iso, classify_solar_resource_iso
 from services.io import get_weather_data_from_coordinates, fetch_openweather_forecast_data, find_nearest_wmo_station, save_project_data
-from utils.step_data_exporter import export_step_data
+
 
 
 def generate_tmy_from_wmo_station(weather_station, solar_params, coordinates):
@@ -420,10 +420,8 @@ def render_weather_environment():
                         st.plotly_chart(fig_monthly, use_container_width=True)
                         
                         # Continue button
-                        # Step Data Export
-                        st.markdown("---")
-                        st.subheader("📋 Export Step Analysis")
-                        export_step_data(3, "Weather & Environment Integration")
+
+
                         
                         if st.button("Continue to Step 4: BIM Extraction", key="continue_bim"):
                             st.session_state.current_step = 'facade_extraction'

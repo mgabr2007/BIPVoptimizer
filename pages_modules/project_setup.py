@@ -13,7 +13,7 @@ from services.io import get_weather_data_from_coordinates, save_project_data
 from services.weather_stations import find_nearest_stations, get_station_summary, format_station_display
 from services.electricity_rates import get_real_time_electricity_rates, display_rate_source_info, enhance_project_setup_with_live_rates
 from services.api_integrations import implement_live_rate_fetching, get_live_electricity_rates
-from utils.step_data_exporter import export_step_data
+
 
 
 def get_location_from_coordinates(lat, lon):
@@ -644,11 +644,7 @@ def render_project_setup():
         else:
             st.error("❌ Failed to save project data to database.")
     
-    # Step Data Export
-    if st.session_state.get('project_data', {}).get('setup_complete'):
-        st.markdown("---")
-        st.subheader("📋 Export Step Analysis")
-        export_step_data(1, "Project Setup & Location Analysis")
+
     
     # Navigation hint
     if st.session_state.get('project_data', {}).get('setup_complete'):

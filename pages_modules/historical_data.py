@@ -6,7 +6,7 @@ from core.solar_math import SimpleMath
 from services.io import parse_csv_content, save_project_data
 from datetime import datetime, timedelta
 import pandas as pd
-from utils.step_data_exporter import export_step_data
+
 
 
 def get_forecast_start_date(date_data):
@@ -1178,10 +1178,8 @@ def render_historical_data():
             This basic prediction will be used in subsequent steps, but results may be less accurate without detailed forecasting.
             """)
         
-        # Step Data Export
-        st.markdown("---")
-        st.subheader("📋 Export Step Analysis")
-        export_step_data(2, "Historical Data Analysis & AI Model Training")
+
+
         
         if st.button("Continue to Step 3: Weather Integration", key="continue_weather"):
             st.session_state.current_step = 'weather_environment'

@@ -6,6 +6,7 @@ from datetime import datetime
 from services.io import get_project_report_data
 from core.solar_math import get_currency_symbol, safe_divide
 from pages_modules.detailed_report_generator import generate_comprehensive_detailed_report
+from utils.comprehensive_report_generator import generate_comprehensive_report
 
 
 def generate_window_elements_csv():
@@ -304,65 +305,59 @@ def render_reporting():
         st.error("Please complete the previous analysis steps first.")
         return
     
-    # Report generation options
-    st.subheader("📊 Report Generation Options")
+    # Comprehensive Report Generation
+    st.subheader("📊 Comprehensive Analysis Report")
     
-    col1, col2 = st.columns(2)
+    st.info("""
+    **Complete 9-Step Analysis Report**
+    
+    This report includes ALL information, analysis, results, graphs, and tables from your complete BIPV analysis:
+    
+    • **Step 1:** Project Setup & Location Analysis
+    • **Step 2:** Historical Data & AI Model Training  
+    • **Step 3:** Weather & Environment Integration
+    • **Step 4:** Facade & Window Extraction from BIM
+    • **Step 5:** Radiation & Shading Grid Analysis
+    • **Step 6:** BIPV Glass Panel Specification
+    • **Step 7:** Yield vs Demand Analysis
+    • **Step 8:** Multi-Objective Optimization
+    • **Step 9:** Financial & Environmental Analysis
+    
+    **Report Contents:**
+    - Complete methodology and calculations for each step
+    - All input parameters and configuration data
+    - Detailed analysis results with performance metrics
+    - Financial projections and environmental impact
+    - Scientific standards compliance documentation
+    - Academic attribution and references
+    """)
+    
+    col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.info("**Standard Report**\nExecutive summary with key metrics and financial analysis")
-        if st.button("📋 Generate Standard Report", key="generate_standard_report"):
-            with st.spinner("Generating standard BIPV analysis report..."):
+        if st.button("📋 Generate Comprehensive Report", key="generate_comprehensive_report", use_container_width=True):
+            with st.spinner("Generating comprehensive 9-step analysis report..."):
                 try:
-                    html_report = generate_comprehensive_html_report()
+                    comprehensive_report = generate_comprehensive_report()
                     
-                    st.success("Standard report generated successfully!")
+                    st.success("✅ Comprehensive analysis report generated successfully!")
                     
-                    # Download button for HTML report
-                    st.download_button(
-                        label="📥 Download Standard Report (HTML)",
-                        data=html_report,
-                        file_name=f"BIPV_Standard_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                        mime="text/html",
-                        key="download_standard_report"
-                    )
+                    # Store in session state for download
+                    st.session_state.comprehensive_report = comprehensive_report
                     
                 except Exception as e:
-                    st.error(f"Error generating standard report: {str(e)}")
+                    st.error(f"Error generating comprehensive report: {str(e)}")
     
     with col2:
-        st.info("**Detailed Scientific Report**\nComplete methodology with equations, assumptions, and validation")
-        if st.button("🔬 Generate Detailed Scientific Report", key="generate_detailed_report"):
-            with st.spinner("Generating comprehensive detailed report with all equations and methodology..."):
-                try:
-                    detailed_report = generate_comprehensive_detailed_report()
-                    
-                    st.success("Detailed scientific report generated successfully!")
-                    
-                    # Download button for detailed report
-                    st.download_button(
-                        label="📥 Download Detailed Scientific Report (HTML)",
-                        data=detailed_report.encode('utf-8'),
-                        file_name=f"BIPV_Detailed_Scientific_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                        mime="text/html",
-                        key="download_detailed_report"
-                    )
-                    
-                    st.info("📋 Detailed report includes: Complete methodology, mathematical equations, validation framework, uncertainty analysis, and scientific documentation following international standards.")
-                    
-                except Exception as e:
-                    st.error(f"Error generating detailed report: {str(e)}")
-                    # Provide fallback
-                    st.warning("Generating simplified report due to data constraints...")
-                    simple_report = "<h1>BIPV Analysis Report</h1><p>Basic analysis completed. Please ensure all workflow steps are completed for comprehensive reporting.</p>"
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    st.download_button(
-                        label="📥 Download Basic Report",
-                        data=simple_report.encode('utf-8'),
-                        file_name=f"BIPV_Basic_Report_{timestamp}.html",
-                        mime="text/html",
-                        key="download_fallback_report"
-                    )
+        if 'comprehensive_report' in st.session_state:
+            st.download_button(
+                label="📥 Download Complete Analysis Report (HTML)",
+                data=st.session_state.comprehensive_report.encode('utf-8'),
+                file_name=f"BIPV_Comprehensive_Analysis_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                mime="text/html",
+                key="download_comprehensive_report",
+                use_container_width=True
+            )
     
     # CSV data export
     st.subheader("Data Export")

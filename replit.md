@@ -376,6 +376,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 1, 2025: Updated institution reference in detailed report footer to include TU Berlin Faculty VI link (https://www.tu.berlin/en/planen-bauen-umwelt/) for proper academic attribution and website access
 - July 1, 2025: Cleaned up project structure by removing unused legacy files including app_backup.py, app_broken.py, app_old.py, entire modules/ directory (11 files), and broken page module versions, while preserving utility files and standalone modules as requested for potential future use
 - July 1, 2025: Implemented comprehensive grid carbon intensity database (core/carbon_factors.py) with official sources including national TSOs, IEA World Energy Outlook 2023, European Environment Agency data, and IPCC AR6 regional averages, featuring intelligent fallback system using coordinates for regional estimates when country-specific data unavailable, complete source transparency with confidence levels, and support for 20+ countries with official data plus global coverage through regional estimates
+- July 4, 2025: Replaced individual step-by-step data export system with consolidated comprehensive reporting approach - created single comprehensive report generator (utils/comprehensive_report_generator.py) that covers all 9 workflow steps (project setup through financial analysis) with complete information, analysis results, graphs, tables, methodology, and scientific documentation in one downloadable HTML report accessible from Step 10
 
 ## User Preferences
 
