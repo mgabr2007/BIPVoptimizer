@@ -15,18 +15,49 @@ from utils.report_step_generators import (
     generate_step7_section, generate_step8_section, generate_step9_section
 )
 
+def generate_error_report(error_message):
+    """Generate minimal error report when main generation fails"""
+    return f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>BIPV Optimizer - Report Generation Error</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }}
+            .error {{ background: #ffebee; border: 1px solid #f44336; padding: 20px; border-radius: 8px; }}
+            .header {{ background: #4a90e2; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>BIPV Optimizer - Report Generation Error</h1>
+            <p>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        </div>
+        <div class="error">
+            <h2>Report Generation Failed</h2>
+            <p><strong>Error:</strong> {error_message}</p>
+            <p>Please complete more workflow steps and try generating the report again.</p>
+        </div>
+    </body>
+    </html>
+    """
+
 def generate_comprehensive_report():
     """Generate comprehensive report covering all 9 workflow steps"""
     
-    # Get project name
-    session_data = st.session_state.get('project_data', {})
-    project_name = session_data.get('project_name', 'BIPV Project')
-    
-    # Extract comprehensive project data
-    project_data = extract_comprehensive_project_data(project_name)
-    
-    # Extract data for each step with safe handling
     try:
+        # Get project name
+        session_data = st.session_state.get('project_data', {})
+        project_name = session_data.get('project_name', 'BIPV Project')
+        
+        # Extract comprehensive project data
+        project_data = extract_comprehensive_project_data(project_name)
+        
+        if not project_data:
+            project_data = {}
+        
+        # Extract data for each step with safe handling
         step1_data = get_step1_data(project_data)
         step2_data = get_step2_data(project_data)
         step3_data = get_step3_data(project_data)
@@ -36,9 +67,11 @@ def generate_comprehensive_report():
         step7_data = get_step7_data(project_data)
         step8_data = get_step8_data(project_data)
         step9_data = get_step9_data(project_data)
+        
     except Exception as e:
         st.error(f"Error extracting data: {e}")
-        return None
+        # Return minimal report on error
+        return generate_error_report(str(e))
     
     # Generate HTML report
     html_content = f"""

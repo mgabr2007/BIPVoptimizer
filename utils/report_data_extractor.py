@@ -88,12 +88,17 @@ def get_step4_data(project_data):
     """Extract Step 4: Building Elements data"""
     building_elements = project_data.get('building_elements', [])
     
-    if not building_elements:
+    # Handle DataFrame case
+    if hasattr(building_elements, 'to_dict'):
+        building_elements = building_elements.to_dict('records')
+    
+    if not building_elements or len(building_elements) == 0:
         return {
             'total_elements': 0,
             'total_area': 0,
             'orientation_counts': {},
-            'level_counts': {}
+            'level_counts': {},
+            'avg_area': 0
         }
     
     total_area = sum([safe_float(elem.get('glass_area', 0), 0) for elem in building_elements])
@@ -121,7 +126,11 @@ def get_step5_data(project_data):
     """Extract Step 5: Radiation Analysis data"""
     building_elements = project_data.get('building_elements', [])
     
-    if not building_elements:
+    # Handle DataFrame case
+    if hasattr(building_elements, 'to_dict'):
+        building_elements = building_elements.to_dict('records')
+    
+    if not building_elements or len(building_elements) == 0:
         return {
             'avg_radiation': 0,
             'max_radiation': 0,
@@ -170,6 +179,10 @@ def get_step6_data(project_data):
     pv_specs = project_data.get('pv_specifications', {})
     individual_systems = pv_specs.get('individual_systems', [])
     
+    # Handle DataFrame case for individual systems
+    if hasattr(individual_systems, 'to_dict'):
+        individual_systems = individual_systems.to_dict('records')
+    
     total_capacity = sum([safe_float(system.get('capacity_kw', 0), 0) for system in individual_systems])
     total_cost = sum([safe_float(system.get('total_cost_eur', 0), 0) for system in individual_systems])
     total_area = sum([safe_float(system.get('glass_area', 0), 0) for system in individual_systems])
@@ -192,7 +205,11 @@ def get_step7_data(project_data):
     yield_demand = project_data.get('yield_demand_analysis', {})
     monthly_balance = yield_demand.get('monthly_energy_balance', [])
     
-    if not monthly_balance:
+    # Handle DataFrame case for monthly balance
+    if hasattr(monthly_balance, 'to_dict'):
+        monthly_balance = monthly_balance.to_dict('records')
+    
+    if not monthly_balance or len(monthly_balance) == 0:
         return {
             'annual_demand': 0,
             'annual_generation': 0,
@@ -221,7 +238,11 @@ def get_step8_data(project_data):
     optimization = project_data.get('optimization_results', {})
     solutions = optimization.get('pareto_solutions', optimization.get('solutions', []))
     
-    if not solutions:
+    # Handle DataFrame case for solutions
+    if hasattr(solutions, 'to_dict'):
+        solutions = solutions.to_dict('records')
+    
+    if not solutions or len(solutions) == 0:
         return {
             'solution_count': 0,
             'best_cost': 0,

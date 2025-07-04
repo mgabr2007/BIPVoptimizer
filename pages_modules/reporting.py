@@ -349,15 +349,22 @@ def render_reporting():
                     st.error(f"Error generating comprehensive report: {str(e)}")
     
     with col2:
-        if 'comprehensive_report' in st.session_state:
-            st.download_button(
-                label="📥 Download Complete Analysis Report (HTML)",
-                data=st.session_state.comprehensive_report.encode('utf-8'),
-                file_name=f"BIPV_Comprehensive_Analysis_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                mime="text/html",
-                key="download_comprehensive_report",
-                use_container_width=True
-            )
+        if 'comprehensive_report' in st.session_state and st.session_state.comprehensive_report:
+            try:
+                report_data = st.session_state.comprehensive_report
+                if report_data and isinstance(report_data, str):
+                    st.download_button(
+                        label="📥 Download Complete Analysis Report (HTML)",
+                        data=report_data.encode('utf-8'),
+                        file_name=f"BIPV_Comprehensive_Analysis_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+                        mime="text/html",
+                        key="download_comprehensive_report",
+                        use_container_width=True
+                    )
+                else:
+                    st.error("Report content is invalid. Please regenerate the report.")
+            except Exception as e:
+                st.error(f"Error preparing report download: {str(e)}")
     
     # CSV data export
     st.subheader("Data Export")
