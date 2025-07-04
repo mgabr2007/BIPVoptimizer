@@ -506,7 +506,7 @@ def generate_step1_report():
             <div class="analysis-summary">
                 <h3>🏗️ Project Configuration Overview</h3>
                 <p>Project <strong>{safe_get(project_data, 'project_name', 'BIPV Project')}</strong> configured for location <strong>{location}</strong></p>
-                <p>Weather data sourced from <strong>{safe_get(weather_station, 'name', 'WMO station')}</strong> at {safe_float(safe_get(weather_station, 'distance_km'), 0):.1f} km distance</p>
+                <p>Weather data sourced from <strong>{safe_get(weather_station, 'name', 'WMO station')}</strong> at {safe_float(safe_get(weather_station, 'distance_km'), 0.0):.1f} km distance</p>
             </div>
             
             <div class="content-section">
@@ -545,7 +545,7 @@ def generate_step1_report():
                     <tr><th>Weather Parameter</th><th>Configuration</th><th>Source</th></tr>
                     <tr><td>Primary Weather Station</td><td>{safe_get(weather_station, 'name', 'Not selected')}</td><td>WMO Network</td></tr>
                     <tr><td>WMO Station ID</td><td>{safe_get(weather_station, 'wmo_id', 'N/A')}</td><td>Official ID</td></tr>
-                    <tr><td>Distance from Project</td><td>{safe_float(safe_get(weather_station, 'distance_km'), 0):.1f} km</td><td>Calculated</td></tr>
+                    <tr><td>Distance from Project</td><td>{safe_float(safe_get(weather_station, 'distance_km'), 0.0):.1f} km</td><td>Calculated</td></tr>
                     <tr><td>Country</td><td>{safe_get(weather_station, 'country', 'N/A')}</td><td>ISO Standard</td></tr>
                     <tr><td>Data Quality</td><td>ISO 15927-4 Compliant</td><td>International Standard</td></tr>
                     <tr><td>TMY Resolution</td><td>8,760 hourly records</td><td>Annual coverage</td></tr>

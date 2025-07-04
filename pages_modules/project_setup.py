@@ -402,7 +402,10 @@ def render_project_setup():
         for idx, station in nearby_stations.head(10).iterrows():  # Show top 10 closest
             display_name = f"{station['name']} ({station['country']}) - {station['distance_km']:.1f} km"
             station_options.append(display_name)
-            station_details[display_name] = station.to_dict()
+            # Convert to dict but ensure distance_km maintains precision
+            station_dict = station.to_dict()
+            station_dict['distance_km'] = float(station['distance_km'])  # Ensure proper float precision
+            station_details[display_name] = station_dict
         
         selected_station_name = st.selectbox(
             "Choose Weather Station",
