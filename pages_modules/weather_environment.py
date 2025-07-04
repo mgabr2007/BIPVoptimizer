@@ -6,7 +6,7 @@ import os
 import math
 import pandas as pd
 from datetime import datetime, timedelta
-from core.solar_math import calculate_solar_position_iso, classify_solar_resource_iso
+from core.solar_math import calculate_solar_position_iso, classify_solar_resource_iso, SimpleMath
 from services.io import get_weather_data_from_coordinates, fetch_openweather_forecast_data, find_nearest_wmo_station, save_project_data
 
 
@@ -283,6 +283,26 @@ def render_weather_environment():
                         annual_dni = sum(hour['dni'] for hour in tmy_data) / 1000
                         annual_dhi = sum(hour['dhi'] for hour in tmy_data) / 1000
                         
+                        # Calculate peak sun hours and average temperature
+                        peak_sun_hours = annual_ghi / 365  # Simplified calculation
+                        avg_temperature = SimpleMath.mean([hour['temperature'] for hour in tmy_data]) if tmy_data else 15.0
+                        
+                        # Calculate monthly profiles for reporting
+                        monthly_profiles = {}
+                        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        for month_idx in range(12):
+                            # Get hours for this month (simplified: 730 hours per month)
+                            start_hour = month_idx * 730
+                            end_hour = min((month_idx + 1) * 730, len(tmy_data))
+                            month_data = tmy_data[start_hour:end_hour]
+                            
+                            if month_data:
+                                monthly_ghi = sum(hour['ghi'] for hour in month_data) / 1000
+                                monthly_profiles[months[month_idx]] = {
+                                    'ghi': monthly_ghi,
+                                    'temperature': SimpleMath.mean([hour['temperature'] for hour in month_data])
+                                }
+                        
                         # Store weather and TMY data
                         weather_analysis = {
                             'current_weather': current_weather,
@@ -291,6 +311,16 @@ def render_weather_environment():
                             'annual_ghi': annual_ghi,
                             'annual_dni': annual_dni,
                             'annual_dhi': annual_dhi,
+                            'peak_sun_hours': peak_sun_hours,
+                            'average_temperature': avg_temperature,
+                            'monthly_profiles': monthly_profiles,
+                            'solar_resource_assessment': {
+                                'annual_ghi': annual_ghi,
+                                'annual_dni': annual_dni,
+                                'annual_dhi': annual_dhi,
+                                'peak_sun_hours': peak_sun_hours,
+                                'climate_zone': 'Temperate'
+                            },
                             'solar_resource_class': classify_solar_resource_iso(annual_ghi),
                             'data_quality': 'ISO_15927-4_Compliant',
                             'generation_method': 'WMO_Station_ISO_Standards',
@@ -470,11 +500,42 @@ def render_weather_environment():
             
             if tmy_data:
                 annual_ghi = sum(hour['ghi'] for hour in tmy_data) / 1000
+                annual_dni = sum(hour['dni'] for hour in tmy_data) / 1000
+                annual_dhi = sum(hour['dhi'] for hour in tmy_data) / 1000
+                peak_sun_hours = annual_ghi / 365
+                avg_temperature = SimpleMath.mean([hour['temperature'] for hour in tmy_data]) if tmy_data else 15.0
+                
+                # Calculate monthly profiles for reporting
+                monthly_profiles = {}
+                months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                for month_idx in range(12):
+                    start_hour = month_idx * 730
+                    end_hour = min((month_idx + 1) * 730, len(tmy_data))
+                    month_data = tmy_data[start_hour:end_hour]
+                    
+                    if month_data:
+                        monthly_ghi = sum(hour['ghi'] for hour in month_data) / 1000
+                        monthly_profiles[months[month_idx]] = {
+                            'ghi': monthly_ghi,
+                            'temperature': SimpleMath.mean([hour['temperature'] for hour in month_data])
+                        }
                 
                 weather_analysis = {
                     'current_weather': default_weather,
                     'tmy_data': tmy_data[:8760],
                     'annual_ghi': annual_ghi,
+                    'annual_dni': annual_dni,
+                    'annual_dhi': annual_dhi,
+                    'peak_sun_hours': peak_sun_hours,
+                    'average_temperature': avg_temperature,
+                    'monthly_profiles': monthly_profiles,
+                    'solar_resource_assessment': {
+                        'annual_ghi': annual_ghi,
+                        'annual_dni': annual_dni,
+                        'annual_dhi': annual_dhi,
+                        'peak_sun_hours': peak_sun_hours,
+                        'climate_zone': 'Temperate'
+                    },
                     'solar_resource_class': classify_solar_resource_iso(annual_ghi),
                     'analysis_complete': True
                 }
