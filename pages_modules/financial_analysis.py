@@ -59,8 +59,11 @@ def calculate_payback_period(cash_flows):
             if i == 0:
                 return 0
             else:
-                # Interpolate between years
-                return i - 1 + (cash_flows[i-1] / (cash_flows[i-1] - cash_flow))
+                # Interpolate between years with zero check
+                denominator = cash_flows[i-1] - cash_flow
+                if abs(denominator) < 1e-10:  # Near zero check
+                    return i - 1
+                return i - 1 + (cash_flows[i-1] / denominator)
     
     return None  # Never pays back
 

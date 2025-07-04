@@ -6,7 +6,7 @@ from datetime import datetime
 from services.io import get_project_report_data
 from core.solar_math import get_currency_symbol, safe_divide
 from pages_modules.detailed_report_generator import generate_comprehensive_detailed_report
-from utils.comprehensive_report_clean import generate_comprehensive_report
+from utils.comprehensive_report_fixed import generate_comprehensive_report_fixed
 
 
 def generate_window_elements_csv():
@@ -338,7 +338,7 @@ def render_reporting():
         if st.button("📋 Generate Comprehensive Report", key="generate_comprehensive_report", use_container_width=True):
             with st.spinner("Generating comprehensive 9-step analysis report..."):
                 try:
-                    comprehensive_report = generate_comprehensive_report()
+                    comprehensive_report = generate_comprehensive_report_fixed()
                     
                     st.success("✅ Comprehensive analysis report generated successfully!")
                     
