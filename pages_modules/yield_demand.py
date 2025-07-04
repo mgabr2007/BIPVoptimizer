@@ -330,11 +330,34 @@ def render_yield_demand():
     
     with col1:
         st.markdown("**📅 Analysis Timeline**")
+        
+        # Information about the Analysis Timeline Start Date
+        with st.expander("ℹ️ What is Analysis Timeline Start Date?", expanded=False):
+            st.markdown("""
+            **Purpose of Analysis Timeline Start Date:**
+            
+            This date sets the **beginning of your BIPV system operation** for energy balance calculations.
+            
+            **How It's Used:**
+            1. **Demand Forecasting**: Creates a 25-year energy consumption forecast starting from this date
+            2. **BIPV Yield Calculations**: Determines when solar energy generation begins 
+            3. **Financial Analysis**: Sets the start point for cost savings and payback calculations
+            4. **Seasonal Patterns**: Aligns monthly energy balance with actual calendar months
+            
+            **Recommended Settings:**
+            - **Near Future**: Choose a date 6-12 months ahead for realistic project planning
+            - **Calendar Start**: January 1st gives cleaner annual reporting
+            - **Construction Timeline**: Consider building renovation completion dates
+            
+            **Example**: If you plan BIPV installation in 2025, set the start date to January 1, 2025.
+            This ensures accurate seasonal energy patterns and proper financial timeline alignment.
+            """)
+        
         analysis_start = st.date_input(
-            "Start Date",
+            "Analysis Timeline Start Date",
             value=datetime(2024, 1, 1),
             key="analysis_start_yield",
-            help="When to begin the energy analysis"
+            help="When your BIPV system operation begins - used for demand forecasting, yield calculations, and financial analysis timeline"
         )
         
         analysis_period = st.selectbox(
