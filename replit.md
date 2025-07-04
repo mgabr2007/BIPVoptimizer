@@ -382,6 +382,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 4, 2025: Implemented comprehensive ConsolidatedDataManager system to resolve zero values in comprehensive reports by creating centralized data collection architecture across all workflow steps (Steps 4-9), standardizing data structures between individual step processing and report generation, ensuring real calculated values appear in reports instead of placeholder zeros, and adding extensive debug logging for data flow tracking and validation
 - July 4, 2025: Completed comprehensive enhancement of ALL individual step reports (Steps 1-9) with professional golden-themed styling, interactive Plotly charts, detailed analysis summaries, comprehensive data tables, and authentic calculated values from actual workflow data, providing consistent high-quality documentation across entire BIPV analysis platform
 - July 4, 2025: Successfully added individual step download buttons to main content areas of ALL workflow pages (Steps 1-10), eliminating duplicate key errors by removing footer download buttons and providing better user experience with report access directly in page content sections
+- July 4, 2025: Fixed WMO station distance calculation error in Step 1 report generation by correcting field name from 'distance' to 'distance_km', ensuring accurate distance values appear in reports instead of zero values
 
 ## User Preferences
 
