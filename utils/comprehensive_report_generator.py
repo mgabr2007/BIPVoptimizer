@@ -10,12 +10,43 @@ from datetime import datetime
 import json
 import base64
 
+def safe_get(data, *keys, default=None):
+    """Safely get nested dictionary values with multiple fallback keys"""
+    if not isinstance(data, dict):
+        return default
+    
+    for key in keys:
+        if key in data and data[key] is not None:
+            return data[key]
+    return default
+
 def generate_comprehensive_report():
     """Generate comprehensive report covering all 9 workflow steps"""
     
-    # Get project data from session state
-    project_data = st.session_state.get('project_data', {})
-    project_name = project_data.get('project_name', 'BIPV Project')
+    # Import data extractor
+    from utils.report_data_extractor import (
+        extract_comprehensive_project_data,
+        get_step1_data, get_step2_data, get_step3_data, get_step4_data,
+        get_step5_data, get_step6_data, get_step7_data, get_step8_data, get_step9_data
+    )
+    
+    # Get project name
+    session_data = st.session_state.get('project_data', {})
+    project_name = session_data.get('project_name', 'BIPV Project')
+    
+    # Extract comprehensive project data
+    project_data = extract_comprehensive_project_data(project_name)
+    
+    # Extract data for each step
+    step1_data = get_step1_data(project_data)
+    step2_data = get_step2_data(project_data)
+    step3_data = get_step3_data(project_data)
+    step4_data = get_step4_data(project_data)
+    step5_data = get_step5_data(project_data)
+    step6_data = get_step6_data(project_data)
+    step7_data = get_step7_data(project_data)
+    step8_data = get_step8_data(project_data)
+    step9_data = get_step9_data(project_data)
     
     # Build comprehensive report HTML
     html_content = f"""
@@ -125,31 +156,31 @@ def generate_comprehensive_report():
     """
     
     # Step 1: Project Setup & Location Analysis
-    html_content += generate_step1_section(project_data)
+    html_content += generate_step1_section(step1_data)
     
     # Step 2: Historical Data & AI Model
-    html_content += generate_step2_section(project_data)
+    html_content += generate_step2_section(step2_data)
     
     # Step 3: Weather & Environment Integration
-    html_content += generate_step3_section(project_data)
+    html_content += generate_step3_section(step3_data)
     
     # Step 4: Facade & Window Extraction
-    html_content += generate_step4_section(project_data)
+    html_content += generate_step4_section(step4_data)
     
     # Step 5: Radiation & Shading Analysis
-    html_content += generate_step5_section(project_data)
+    html_content += generate_step5_section(step5_data)
     
     # Step 6: PV Panel Specification
-    html_content += generate_step6_section(project_data)
+    html_content += generate_step6_section(step6_data)
     
     # Step 7: Yield vs Demand Analysis
-    html_content += generate_step7_section(project_data)
+    html_content += generate_step7_section(step7_data)
     
     # Step 8: Multi-Objective Optimization
-    html_content += generate_step8_section(project_data)
+    html_content += generate_step8_section(step8_data)
     
     # Step 9: Financial & Environmental Analysis
-    html_content += generate_step9_section(project_data)
+    html_content += generate_step9_section(step9_data)
     
     # Footer
     html_content += f"""
@@ -171,23 +202,8 @@ def generate_comprehensive_report():
     
     return html_content
 
-def generate_step1_section(project_data):
+def generate_step1_section(step1_data):
     """Generate Step 1: Project Setup & Location Analysis section"""
-    
-    location_name = project_data.get('location_name', 'Not specified')
-    latitude = project_data.get('latitude', 0)
-    longitude = project_data.get('longitude', 0)
-    timezone = project_data.get('timezone', 'UTC')
-    
-    # Weather station info
-    weather_station = project_data.get('selected_weather_station', {})
-    station_name = weather_station.get('station_name', 'Not selected')
-    station_distance = weather_station.get('distance_km', 0)
-    
-    # Electricity rates
-    electricity_rates = project_data.get('electricity_rates', {})
-    import_rate = electricity_rates.get('import_rate', 0)
-    export_rate = electricity_rates.get('export_rate', 0)
     
     return f"""
     <div class="step-section">
@@ -196,39 +212,39 @@ def generate_step1_section(project_data):
         <div class="subsection">
             <h3>Project Information</h3>
             <div class="metric">
-                <strong>Project Name:</strong> {project_data.get('project_name', 'Not specified')}
+                <strong>Project Name:</strong> {step1_data['project_name']}
             </div>
             <div class="metric">
-                <strong>Location:</strong> {location_name}
+                <strong>Location:</strong> {step1_data['location_name']}
             </div>
             <div class="metric">
-                <strong>Coordinates:</strong> {latitude:.4f}°N, {longitude:.4f}°E
+                <strong>Coordinates:</strong> {step1_data['latitude']:.4f}°N, {step1_data['longitude']:.4f}°E
             </div>
             <div class="metric">
-                <strong>Timezone:</strong> {timezone}
+                <strong>Timezone:</strong> {step1_data['timezone']}
             </div>
         </div>
         
         <div class="subsection">
             <h3>Weather Station Integration</h3>
             <div class="metric">
-                <strong>Selected WMO Station:</strong> {station_name}
+                <strong>Selected WMO Station:</strong> {step1_data['weather_station']}
             </div>
             <div class="metric">
-                <strong>Distance from Project:</strong> {station_distance:.1f} km
+                <strong>Distance from Project:</strong> {step1_data['station_distance']:.1f} km
             </div>
             <div class="metric">
-                <strong>WMO ID:</strong> {weather_station.get('wmo_id', 'Not available')}
+                <strong>WMO ID:</strong> {step1_data['wmo_id']}
             </div>
         </div>
         
         <div class="subsection">
             <h3>Electricity Rate Configuration</h3>
             <div class="metric">
-                <strong>Import Rate:</strong> €{import_rate:.3f}/kWh
+                <strong>Import Rate:</strong> €{step1_data['import_rate']:.3f}/kWh
             </div>
             <div class="metric">
-                <strong>Export Rate:</strong> €{export_rate:.3f}/kWh
+                <strong>Export Rate:</strong> €{step1_data['export_rate']:.3f}/kWh
             </div>
             <div class="metric">
                 <strong>Currency:</strong> EUR (Euro)
@@ -247,20 +263,33 @@ def generate_step1_section(project_data):
 def generate_step2_section(project_data):
     """Generate Step 2: Historical Data & AI Model section"""
     
+    # Handle both nested and direct database structure
     historical_data = project_data.get('historical_data', {})
+    if isinstance(historical_data, str):
+        historical_data = {}
+    
+    # AI model metrics - check multiple possible locations
     model_performance = historical_data.get('model_performance', {})
+    r2_score = model_performance.get('r2_score', project_data.get('r2_score', project_data.get('model_r2_score', 0)))
+    rmse = model_performance.get('rmse', project_data.get('rmse', project_data.get('model_rmse', 0)))
     
-    # AI model metrics
-    r2_score = model_performance.get('r2_score', 0)
-    rmse = model_performance.get('rmse', 0)
-    
-    # Building characteristics
-    building_area = historical_data.get('building_floor_area', 0)
-    energy_intensity = historical_data.get('energy_intensity', 0)
-    peak_load = historical_data.get('peak_load_factor', 0)
+    # Building characteristics - check database fields
+    building_area = (
+        historical_data.get('building_floor_area', 0) or 
+        project_data.get('building_floor_area', 0) or 
+        project_data.get('building_area', 5000)
+    )
+    energy_intensity = (
+        historical_data.get('energy_intensity', 0) or 
+        project_data.get('energy_intensity', 0)
+    )
+    peak_load = (
+        historical_data.get('peak_load_factor', 0) or 
+        project_data.get('peak_load_factor', 0)
+    )
     
     # Forecast data
-    forecast_data = historical_data.get('forecast_data', [])
+    forecast_data = historical_data.get('forecast_data', project_data.get('forecast_data', []))
     
     return f"""
     <div class="step-section">
@@ -381,7 +410,12 @@ def generate_step3_section(project_data):
 def generate_step4_section(project_data):
     """Generate Step 4: Facade & Window Extraction section"""
     
+    # Get building elements from database structure
     building_elements = project_data.get('building_elements', [])
+    if not building_elements:
+        # Try session state fallback
+        session_data = st.session_state.get('project_data', {})
+        building_elements = session_data.get('building_elements', [])
     
     # Analyze building elements
     total_elements = len(building_elements)
