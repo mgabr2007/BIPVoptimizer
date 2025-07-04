@@ -24,8 +24,9 @@ BIPV Optimizer is a cutting-edge platform developed as part of PhD research at *
 - 🔬 **Multi-Objective Optimization** - NSGA-II genetic algorithms for Pareto-optimal solutions
 - 💰 **Financial Analysis** - NPV, IRR, payback period with real-time electricity rates
 - 🌍 **Environmental Impact** - CO₂ emissions analysis with official grid factors
-- 📊 **Comprehensive Reporting** - Scientific reports with equations and methodology
+- 📊 **Comprehensive Reporting** - Scientific reports with real calculated values and methodology
 - 🔗 **Database Persistence** - PostgreSQL for reliable project data management
+- 🎯 **Consolidated Data Management** - Unified data flow system for accurate reporting
 
 ## 🚀 Quick Start
 
@@ -74,13 +75,14 @@ streamlit run app.py --server.port 5000
 8. **Yield vs Demand** - Energy balance analysis
 9. **Optimization** - Multi-objective genetic algorithms
 10. **Financial Analysis** - Economic viability assessment
-11. **AI Consultation** - Expert recommendations via Perplexity AI
+11. **Comprehensive Reporting** - Scientific reports with real calculated values
 
 ### Technology Stack
 
 - **Frontend**: Streamlit with Plotly visualizations
 - **Backend**: Python with modular architecture
 - **Database**: PostgreSQL for data persistence
+- **Data Management**: ConsolidatedDataManager for unified data flow
 - **ML/Optimization**: Scikit-learn, DEAP genetic algorithms
 - **Solar Modeling**: pvlib for accurate calculations
 - **APIs**: OpenWeatherMap, electricity rate services
@@ -95,7 +97,6 @@ bipv-optimizer/
 │   ├── solar_math.py          # Solar calculations & utilities
 │   └── carbon_factors.py      # Grid CO₂ intensity database
 ├── pages_modules/              # Workflow step implementations
-│   ├── welcome.py             # Introduction page
 │   ├── project_setup.py       # Location & configuration
 │   ├── historical_data.py     # AI model training
 │   ├── weather_environment.py # TMY generation
@@ -105,11 +106,13 @@ bipv-optimizer/
 │   ├── yield_demand.py        # Energy balance calculations
 │   ├── optimization.py        # Genetic algorithm optimization
 │   ├── financial_analysis.py  # Economic assessment
-│   └── reporting.py           # Report generation
-├── services/                   # External integrations
-│   └── perplexity_agent.py    # AI consultation service
+│   └── reporting.py           # Comprehensive report generation
 ├── utils/                      # Utility functions
+│   ├── consolidated_data_manager.py # Centralized data management
+│   ├── comprehensive_report_fixed.py # Report generation engine
+│   └── color_schemes.py       # UI styling utilities
 ├── components/                 # UI components
+│   └── workflow_visualization.py # Progress tracking
 ├── database_manager.py         # PostgreSQL operations
 └── attached_assets/           # Images and resources
 ```
@@ -165,6 +168,20 @@ The platform implements comprehensive equations for:
 - **Energy Consultants**: Renewable energy specialists
 - **Researchers**: Academic and industry R&D
 - **Property Developers**: Investment decision support
+
+## 🔄 Recent Improvements
+
+### Consolidated Data Management System (January 2025)
+- **Centralized Data Flow**: Implemented ConsolidatedDataManager for unified data collection across all workflow steps
+- **Real Value Reporting**: Eliminated placeholder zeros in comprehensive reports with authentic calculated values
+- **Enhanced Data Integrity**: Standardized data structures between workflow steps and report generation
+- **Improved Reliability**: Robust error handling and data validation throughout the analysis pipeline
+
+### Key Technical Enhancements
+- **Unified Data Architecture**: Single source of truth for all analysis results
+- **Real-time Data Capture**: Automatic data collection as each workflow step completes
+- **Enhanced Debugging**: Comprehensive logging system for data flow tracking
+- **Improved User Experience**: Accurate reports with actual project-specific calculations
 
 ## 🤝 Contributing
 
