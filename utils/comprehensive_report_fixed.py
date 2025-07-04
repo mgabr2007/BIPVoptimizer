@@ -5,6 +5,7 @@ Uses BIPV Optimizer yellow/green color scheme and robust data extraction
 import streamlit as st
 from datetime import datetime
 from database_manager import db_manager
+from utils.consolidated_data_manager import ConsolidatedDataManager
 
 def safe_float(value, default=0.0):
     """Safely convert value to float"""
@@ -27,37 +28,28 @@ def generate_comprehensive_report_fixed():
     """Generate comprehensive report with BIPV Optimizer color scheme"""
     
     try:
-        # Get project data from session state
-        project_data = st.session_state.get('project_data', {})
-        project_name = project_data.get('project_name', 'BIPV Optimization Project')
+        # Initialize consolidated data manager
+        consolidated_manager = ConsolidatedDataManager()
         
-        # Get database data if project_id available
-        project_id = project_data.get('project_id')
-        db_data = {}
+        # Get all consolidated analysis data
+        consolidated_data = consolidated_manager.get_consolidated_data()
         
-        if project_id:
-            try:
-                db_data = db_manager.get_project_report_data(project_name)
-                if not db_data:
-                    # Try with project_id
-                    db_data = db_manager.get_project_report_data(str(project_id))
-            except Exception as e:
-                st.warning(f"Could not load database data: {str(e)}")
-                db_data = {}
+        # Debug: Print consolidated data structure
+        print(f"DEBUG: Consolidated data keys: {list(consolidated_data.keys())}")
+        for step_key, step_data in consolidated_data.items():
+            if step_key.startswith('step') and isinstance(step_data, dict):
+                print(f"DEBUG: {step_key} has {len(step_data)} fields")
+                if 'building_elements' in step_data:
+                    print(f"  - Building elements: {len(step_data['building_elements'])}")
+                if 'individual_systems' in step_data:
+                    print(f"  - Individual systems: {len(step_data['individual_systems'])}")
         
-        # Debug: Print data structure
-        print(f"DEBUG: Project data keys: {list(project_data.keys()) if project_data else 'None'}")
-        print(f"DEBUG: DB data keys: {list(db_data.keys()) if db_data else 'None'}")
-        if db_data and 'building_elements' in db_data:
-            print(f"DEBUG: DB building_elements type: {type(db_data['building_elements'])}")
-            print(f"DEBUG: DB building_elements count: {len(db_data['building_elements']) if db_data['building_elements'] else 0}")
+        # Use consolidated data for report generation
+        combined_data = consolidated_data
         
-        # Combine session and database data safely
-        combined_data = {}
-        if isinstance(project_data, dict):
-            combined_data.update(project_data)
-        if isinstance(db_data, dict):
-            combined_data.update(db_data)
+        # Extract project info for header
+        project_info = consolidated_data.get('project_info', {})
+        project_name = project_info.get('name', 'BIPV Optimization Project')
         
         # Generate HTML report
         html_content = f"""
@@ -543,61 +535,33 @@ def generate_step3_section_fixed(data):
 """
 
 def generate_step4_section_fixed(data):
-    """Generate Step 4 section with robust data extraction"""
-    # Building elements data - check multiple possible locations
-    building_elements = (safe_get(data, 'building_elements', []) or 
-                        safe_get(data, 'building_elements_data', []) or 
-                        safe_get(data, 'elements', []) or
-                        [])
+    """Generate Step 4 section with consolidated data extraction"""
+    # Get Step 4 data from consolidated structure
+    step4_data = safe_get(data, 'step4_facade_extraction', {})
     
-    # Handle DataFrame case
+    # Extract building elements from consolidated data
+    building_elements = safe_get(step4_data, 'building_elements', [])
+    total_elements = safe_get(step4_data, 'total_elements', 0)
+    total_glass_area = safe_get(step4_data, 'total_glass_area', 0)
+    orientation_distribution = safe_get(step4_data, 'orientation_distribution', {})
+    level_distribution = safe_get(step4_data, 'level_distribution', {})
+    
+    # Debug info
+    print(f"DEBUG Step 4: Found {len(building_elements)} building elements")
+    print(f"DEBUG Step 4: Total glass area: {total_glass_area} m²")
+    print(f"DEBUG Step 4: Orientations: {list(orientation_distribution.keys())}")
+    
+    # Handle DataFrame case for backward compatibility
     if hasattr(building_elements, 'to_dict') and callable(getattr(building_elements, 'to_dict', None)):
         try:
             building_elements = building_elements.to_dict('records')
         except:
             building_elements = []
-    
-    # Debug info
-    print(f"DEBUG Step 4: Found {len(building_elements)} building elements")
-    if building_elements:
-        print(f"DEBUG Step 4: First element keys: {list(building_elements[0].keys())}")
-    
-    total_elements = len(building_elements) if building_elements else safe_float(safe_get(data, 'total_elements'), 0)
-    total_glass_area = sum(safe_float(elem.get('glass_area', elem.get('Glass_Area', 0)), 0) for elem in building_elements) if building_elements else 0
     avg_element_area = (total_glass_area / total_elements) if total_elements > 0 else 0
     
-    # Orientation analysis
-    orientation_counts = {}
-    level_counts = {}
-    
-    if building_elements and isinstance(building_elements, list):
-        for element in building_elements:
-            if isinstance(element, dict):
-                # Orientation analysis - handle both column name variations
-                orientation = (element.get('orientation') or 
-                              element.get('Orientation') or 
-                              'Unknown')
-                azimuth = safe_float(element.get('azimuth', element.get('Azimuth', 0)), 0)
-                
-                # Map azimuth to orientation if not already provided
-                if orientation == 'Unknown' and azimuth != 0:
-                    if 315 <= azimuth or azimuth < 45:
-                        orientation = "North (315-45°)"
-                    elif 45 <= azimuth < 135:
-                        orientation = "East (45-135°)"  
-                    elif 135 <= azimuth < 225:
-                        orientation = "South (135-225°)"
-                    else:
-                        orientation = "West (225-315°)"
-                    
-                orientation_counts[orientation] = orientation_counts.get(orientation, 0) + 1
-                
-                # Level analysis - handle both column name variations
-                level = (element.get('building_level') or 
-                        element.get('Level') or 
-                        element.get('level') or 
-                        'Unknown')
-                level_counts[level] = level_counts.get(level, 0) + 1
+    # Use pre-calculated orientation and level distributions from consolidated data
+    orientation_counts = orientation_distribution if orientation_distribution else {}
+    level_counts = level_distribution if level_distribution else {}
     
     # Generate orientation table
     orientation_table = ""

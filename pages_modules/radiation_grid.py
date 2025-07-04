@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 from database_manager import db_manager
 from core.solar_math import safe_divide
+from utils.consolidated_data_manager import ConsolidatedDataManager
 
 def calculate_geometric_shading_factors(walls_data, window_elements, latitude, longitude):
     """Calculate geometric shading factors using building walls data."""
@@ -742,6 +743,21 @@ def render_radiation_grid():
             # Save to session state and database
             st.session_state.project_data['radiation_data'] = radiation_data
             st.session_state.radiation_completed = True
+            
+            # Save to consolidated data manager
+            consolidated_manager = ConsolidatedDataManager()
+            step5_data = {
+                'radiation_data': radiation_data.to_dict('records'),
+                'element_radiation': radiation_data.to_dict('records'),
+                'analysis_parameters': {
+                    'include_shading': include_shading,
+                    'apply_corrections': apply_corrections,
+                    'precision': analysis_precision,
+                    'shading_factors': shading_factors
+                },
+                'radiation_complete': True
+            }
+            consolidated_manager.save_step5_data(step5_data)
             
             # Save to database if project_id exists
             if 'project_id' in st.session_state and st.session_state.project_id:

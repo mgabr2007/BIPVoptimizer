@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import pickle
 from database_manager import db_manager
 from core.solar_math import safe_divide
+from utils.consolidated_data_manager import ConsolidatedDataManager
 
 def load_demand_model():
     """Load the trained demand prediction model from session state."""
@@ -524,7 +525,7 @@ def render_yield_demand():
                 coverage_ratio = (total_annual_yield / annual_demand * 100) if annual_demand > 0 else 0
                 
                 # Save results
-                st.session_state.project_data['yield_demand_analysis'] = {
+                yield_demand_analysis = {
                     'demand_profile': demand_profile,
                     'yield_profiles': yield_profiles,
                     'energy_balance': energy_balance,
@@ -542,6 +543,25 @@ def render_yield_demand():
                         'system_degradation': system_degradation
                     }
                 }
+                
+                st.session_state.project_data['yield_demand_analysis'] = yield_demand_analysis
+                
+                # Save to consolidated data manager
+                consolidated_manager = ConsolidatedDataManager()
+                step7_data = {
+                    'yield_demand_analysis': yield_demand_analysis,
+                    'energy_balance': energy_balance,
+                    'monthly_analysis': energy_balance,
+                    'annual_metrics': {
+                        'total_annual_yield': total_annual_yield,
+                        'annual_demand': annual_demand,
+                        'coverage_ratio': coverage_ratio,
+                        'total_annual_savings': total_annual_savings,
+                        'total_feed_in_revenue': total_feed_in_revenue
+                    },
+                    'yield_complete': True
+                }
+                consolidated_manager.save_step7_data(step7_data)
                 
                 # Display results immediately after calculation
                 st.success("✅ Energy balance analysis completed!")

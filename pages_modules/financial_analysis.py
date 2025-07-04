@@ -11,6 +11,7 @@ from datetime import datetime
 from database_manager import db_manager
 from core.solar_math import safe_divide
 from core.carbon_factors import get_grid_carbon_factor, display_carbon_factor_info
+from utils.consolidated_data_manager import ConsolidatedDataManager
 
 def calculate_npv(cash_flows, discount_rate):
     """Calculate Net Present Value of cash flows."""
@@ -459,6 +460,29 @@ def render_financial_analysis():
                 
                 st.session_state.project_data['financial_analysis'] = financial_analysis_results
                 st.session_state.financial_completed = True
+                
+                # Save to consolidated data manager
+                consolidated_manager = ConsolidatedDataManager()
+                step9_data = {
+                    'financial_analysis': financial_analysis_results,
+                    'cash_flow_analysis': annual_details,
+                    'environmental_impact': {
+                        'annual_co2_savings': annual_co2_savings,
+                        'lifetime_co2_savings': lifetime_co2_savings,
+                        'carbon_value': carbon_value,
+                        'grid_co2_factor': grid_co2_factor
+                    },
+                    'economic_metrics': {
+                        'npv': npv,
+                        'irr': irr * 100 if irr else None,
+                        'payback_period': payback_period,
+                        'total_investment': selected_solution['total_investment'],
+                        'annual_savings': selected_solution['annual_savings'],
+                        'lifetime_savings': sum(cash_flows[1:])  # Exclude initial investment
+                    },
+                    'financial_complete': True
+                }
+                consolidated_manager.save_step9_data(step9_data)
                 
                 # Save to database
                 project_id = st.session_state.get('project_id') or st.session_state.project_data.get('project_id')

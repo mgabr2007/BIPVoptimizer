@@ -12,6 +12,7 @@ import random
 from database_manager import db_manager
 from core.solar_math import safe_divide
 from utils.color_schemes import CHART_COLORS, get_chart_color
+from utils.consolidated_data_manager import ConsolidatedDataManager
 
 def create_individual(n_elements):
     """Create a random individual for genetic algorithm."""
@@ -565,6 +566,17 @@ def render_optimization():
                 
                 st.session_state.project_data['optimization_results'] = optimization_results
                 st.session_state.optimization_completed = True
+                
+                # Save to consolidated data manager
+                consolidated_manager = ConsolidatedDataManager()
+                step8_data = {
+                    'optimization_results': optimization_results,
+                    'pareto_solutions': solutions_df.to_dict('records'),
+                    'solutions': solutions_df.to_dict('records'),
+                    'fitness_history': fitness_history,
+                    'optimization_complete': True
+                }
+                consolidated_manager.save_step8_data(step8_data)
                 
                 # Save to database with validation
                 if 'project_id' in st.session_state.project_data and st.session_state.project_data['project_id']:

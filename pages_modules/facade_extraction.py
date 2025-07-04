@@ -3,6 +3,7 @@ Facade and Window Extraction page for BIPV Optimizer
 """
 import streamlit as st
 from services.io import parse_csv_content, save_building_elements, save_project_data
+from utils.consolidated_data_manager import ConsolidatedDataManager
 
 
 
@@ -257,6 +258,16 @@ def render_facade_extraction():
             building_elements_df = pd.DataFrame(windows)
             st.session_state.building_elements = building_elements_df
             st.session_state.building_elements_completed = True
+            
+            # Save to consolidated data manager
+            consolidated_manager = ConsolidatedDataManager()
+            step4_data = {
+                'building_elements': windows,
+                'facade_data': facade_data,
+                'elements': windows,
+                'extraction_complete': True
+            }
+            consolidated_manager.save_step4_data(step4_data)
             
             # Step 6: Saving to database
             status_text.text("Saving to database...")

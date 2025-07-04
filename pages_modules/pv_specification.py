@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from database_manager import db_manager
 from datetime import datetime
 from core.solar_math import safe_divide
+from utils.consolidated_data_manager import ConsolidatedDataManager
 
 # Simplified BIPV Glass Types
 BIPV_GLASS_TYPES = {
@@ -236,6 +237,16 @@ def render_pv_specification():
             
             if bipv_specifications is not None and len(bipv_specifications) > 0:
                 st.session_state['pv_specifications'] = bipv_specifications.to_dict('records')
+                
+                # Save to consolidated data manager
+                consolidated_manager = ConsolidatedDataManager()
+                step6_data = {
+                    'pv_specifications': {'individual_systems': bipv_specifications.to_dict('records')},
+                    'bipv_specifications': final_panel_specs,
+                    'individual_systems': bipv_specifications.to_dict('records'),
+                    'specifications_complete': True
+                }
+                consolidated_manager.save_step6_data(step6_data)
                 
                 # Save to database
                 project_name = st.session_state.get('project_name', 'Unnamed Project')
