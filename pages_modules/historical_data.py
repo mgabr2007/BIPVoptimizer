@@ -827,13 +827,37 @@ def render_historical_data():
             with col2:
                 # Forecast summary metrics
                 st.markdown("**📊 Forecast Summary:**")
-                annual_avg = sum(forecast_data['annual_predictions']) / len(forecast_data['annual_predictions'])
-                growth_rate = forecast_data['growth_rate'] * 100
+                
+                # Calculate actual metrics from forecast data
+                annual_predictions = forecast_data['annual_predictions']
+                base_consumption = forecast_data['base_consumption']
+                growth_rate_decimal = forecast_data['growth_rate']
+                
+                # Calculate 25-year average
+                annual_avg = sum(annual_predictions) / len(annual_predictions) if annual_predictions else base_consumption
+                
+                # Calculate actual growth rate percentage
+                if len(annual_predictions) >= 2:
+                    first_year = annual_predictions[0]
+                    last_year = annual_predictions[-1]
+                    years = len(annual_predictions) - 1
+                    if first_year > 0 and years > 0:
+                        actual_growth_rate = ((last_year / first_year) ** (1/years) - 1) * 100
+                    else:
+                        actual_growth_rate = growth_rate_decimal * 100
+                else:
+                    actual_growth_rate = growth_rate_decimal * 100
+                
+                # Peak year demand
+                peak_demand = max(annual_predictions) if annual_predictions else base_consumption
+                
+                # Total 25-year demand
+                total_demand = sum(annual_predictions) if annual_predictions else base_consumption * 25
                 
                 st.metric("25-Year Avg Annual", f"{annual_avg:,.0f} kWh")
-                st.metric("Predicted Growth Rate", f"{growth_rate:.1f}%/year")
-                st.metric("Peak Year Demand", f"{max(forecast_data['annual_predictions']):,.0f} kWh")
-                st.metric("Total 25-Year Demand", f"{sum(forecast_data['annual_predictions']):,.0f} kWh")
+                st.metric("Predicted Growth Rate", f"{actual_growth_rate:.1f}%/year")
+                st.metric("Peak Year Demand", f"{peak_demand:,.0f} kWh")
+                st.metric("Total 25-Year Demand", f"{total_demand:,.0f} kWh")
             
             # Download forecast data
             st.subheader("📄 Download Forecast Results")
