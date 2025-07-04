@@ -688,7 +688,7 @@ def generate_step2_report():
                         <div class="metric-label">Annual Growth Rate</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{((baseline_annual * (1 + growth_rate/100)**25) / baseline_annual - 1) * 100:.0f}%</div>
+                        <div class="metric-value">{((baseline_annual * (1 + growth_rate/100)**25) / baseline_annual - 1) * 100 if baseline_annual > 0 else 0:.0f}%</div>
                         <div class="metric-label">Total Growth (25Y)</div>
                     </div>
                 </div>

@@ -610,6 +610,10 @@ def render_historical_data():
             max_consumption = max(consumption_data) if consumption_data else 0
             min_consumption = min(consumption_data) if consumption_data else 0
             
+            # Calculate energy metrics to prevent division by zero in reports
+            building_area = st.session_state.get('project_data', {}).get('building_area', 5000)
+            energy_intensity = total_consumption / building_area if total_consumption > 0 and building_area > 0 else 0
+            
             # Create sample data structure
             sample_data = {
                 'months': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
@@ -621,7 +625,20 @@ def render_historical_data():
                 'total_consumption': total_consumption,
                 'max_consumption': max_consumption,
                 'min_consumption': min_consumption,
-                'model_accuracy': 0.92
+                'model_accuracy': 0.92,
+                'building_area': building_area,
+                'energy_intensity': energy_intensity,
+                'consumption_data': consumption_data,
+                'model_performance': {
+                    'r2_score': 0.92,
+                    'algorithm': 'RandomForest'
+                },
+                'demand_forecast': {
+                    'baseline_annual': total_consumption,
+                    'growth_rate': 2.0
+                },
+                'peak_load_factor': max_consumption / avg_consumption if avg_consumption > 0 else 0,
+                'seasonal_variation': 0.0  # Will be calculated below if temperature data available
             }
             
             # Store historical data
@@ -1111,6 +1128,10 @@ def render_historical_data():
                 
                 seasonal_variation = abs(summer_avg - winter_avg) if summer_avg and winter_avg else 0
                 st.metric("Seasonal Variation", f"{seasonal_variation:.1f}°C")
+                
+                # Update historical_data with calculated seasonal variation
+                if 'historical_data' in st.session_state.project_data:
+                    st.session_state.project_data['historical_data']['seasonal_variation'] = seasonal_variation
                 
                 if seasonal_variation > 20:
                     st.info("High seasonal variation - Climate-responsive design beneficial")
