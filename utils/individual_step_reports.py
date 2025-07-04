@@ -1956,7 +1956,7 @@ def create_step_download_button(step_number, step_name, button_text="Download St
             data=html_content.encode('utf-8'),
             file_name=filename,
             mime="text/html",
-            key=f"download_step_{step_number}_report",
+            key=f"page_download_step_{step_number}_report",
             use_container_width=True
         )
     except Exception as e:
