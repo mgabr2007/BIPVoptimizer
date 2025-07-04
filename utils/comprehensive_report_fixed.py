@@ -45,6 +45,13 @@ def generate_comprehensive_report_fixed():
                 st.warning(f"Could not load database data: {str(e)}")
                 db_data = {}
         
+        # Debug: Print data structure
+        print(f"DEBUG: Project data keys: {list(project_data.keys()) if project_data else 'None'}")
+        print(f"DEBUG: DB data keys: {list(db_data.keys()) if db_data else 'None'}")
+        if db_data and 'building_elements' in db_data:
+            print(f"DEBUG: DB building_elements type: {type(db_data['building_elements'])}")
+            print(f"DEBUG: DB building_elements count: {len(db_data['building_elements']) if db_data['building_elements'] else 0}")
+        
         # Combine session and database data safely
         combined_data = {}
         if isinstance(project_data, dict):
