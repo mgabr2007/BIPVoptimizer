@@ -1083,13 +1083,15 @@ def generate_step3_report():
             
             for i, month in enumerate(months_ordered):
                 # Sinusoidal temperature pattern (winter low, summer high)
-                temp_offset = temp_variation * math.cos(2 * math.pi * (i + 1) / 12 + math.pi)
+                # Peak in July (month 7), minimum in January (month 1)
+                temp_offset = temp_variation * math.cos(2 * math.pi * (i - 6) / 12)
                 monthly_temp = avg_temperature + temp_offset
                 monthly_temps.append(monthly_temp)
                 
                 # Solar irradiance pattern (higher in summer, lower in winter)
+                # Synchronized with temperature for Northern Hemisphere
                 ghi_variation = 0.4  # 40% variation
-                ghi_offset = ghi_variation * math.cos(2 * math.pi * (i + 1) / 12)
+                ghi_offset = ghi_variation * math.cos(2 * math.pi * (i - 6) / 12)
                 monthly_ghi_val = annual_ghi / 12 * (1 + ghi_offset)
                 monthly_ghi.append(monthly_ghi_val)
             
