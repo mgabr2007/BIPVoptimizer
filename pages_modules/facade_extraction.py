@@ -3,6 +3,7 @@ Facade and Window Extraction page for BIPV Optimizer
 """
 import streamlit as st
 from services.io import parse_csv_content, save_building_elements, save_project_data
+from utils.step_data_exporter import export_step_data
 
 
 def render_facade_extraction():
@@ -344,6 +345,11 @@ def render_facade_extraction():
                 orientation_stats[orient] = orientation_stats.get(orient, 0) + 1
             
             st.bar_chart(orientation_stats)
+            
+            # Step Data Export
+            st.markdown("---")
+            st.subheader("📋 Export Step Analysis")
+            export_step_data(4, "Facade & Window Extraction from BIM Data")
             
             if st.button("Continue to Step 5: Radiation Analysis", key="continue_radiation"):
                 st.session_state.current_step = 'radiation_grid'
