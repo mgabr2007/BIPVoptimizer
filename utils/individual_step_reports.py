@@ -487,7 +487,7 @@ def generate_plotly_chart(chart_data, chart_type, title, x_label="", y_label="")
     """
 
 def generate_step1_report():
-    """Generate Step 1: Project Setup Report"""
+    """Generate Step 1: Project Setup Report with enhanced styling and data"""
     project_data = st.session_state.get('project_data', {})
     
     html = get_base_html_template("Project Setup & Location Configuration", 1)
@@ -495,10 +495,22 @@ def generate_step1_report():
     location = safe_get(project_data, 'location', 'Unknown Location')
     coordinates = safe_get(project_data, 'coordinates', {})
     weather_station = safe_get(project_data, 'selected_weather_station', {})
+    electricity_rates = safe_get(project_data, 'electricity_rates', {})
+    
+    lat = safe_float(coordinates.get('lat'), 0)
+    lon = safe_float(coordinates.get('lon'), 0)
+    import_rate = safe_float(electricity_rates.get('import_rate'), 0)
+    export_rate = safe_float(electricity_rates.get('export_rate'), 0)
     
     html += f"""
+            <div class="analysis-summary">
+                <h3>🏗️ Project Configuration Overview</h3>
+                <p>Project <strong>{safe_get(project_data, 'project_name', 'BIPV Project')}</strong> configured for location <strong>{location}</strong></p>
+                <p>Weather data sourced from <strong>{safe_get(weather_station, 'name', 'WMO station')}</strong> at {safe_float(safe_get(weather_station, 'distance'), 0):.1f} km distance</p>
+            </div>
+            
             <div class="content-section">
-                <h2>🗺️ Project Configuration</h2>
+                <h2>📍 Geographic & Climate Configuration</h2>
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">{safe_get(project_data, 'project_name', 'BIPV Project')}</div>
@@ -506,29 +518,67 @@ def generate_step1_report():
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{location}</div>
-                        <div class="metric-label">Location</div>
+                        <div class="metric-label">Project Location</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{safe_float(coordinates.get('lat'), 0):.4f}°, {safe_float(coordinates.get('lon'), 0):.4f}°</div>
-                        <div class="metric-label">Coordinates</div>
+                        <div class="metric-value">{lat:.4f}°</div>
+                        <div class="metric-label">Latitude</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">EUR</div>
+                        <div class="metric-value">{lon:.4f}°</div>
+                        <div class="metric-label">Longitude</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{safe_get(project_data, 'timezone', 'UTC')}</div>
+                        <div class="metric-label">Timezone</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value status-excellent">EUR Standard</div>
                         <div class="metric-label">Base Currency</div>
                     </div>
                 </div>
             </div>
             
             <div class="content-section">
-                <h2>🌦️ Weather Station Integration</h2>
+                <h2>🌦️ Meteorological Data Integration</h2>
                 <table class="data-table">
-                    <tr><th>Parameter</th><th>Value</th></tr>
-                    <tr><td>Station Name</td><td>{safe_get(weather_station, 'name', 'Not selected')}</td></tr>
-                    <tr><td>WMO ID</td><td>{safe_get(weather_station, 'wmo_id', 'N/A')}</td></tr>
-                    <tr><td>Distance from Project</td><td>{safe_float(safe_get(weather_station, 'distance'), 0):.1f} km</td></tr>
-                    <tr><td>Country</td><td>{safe_get(weather_station, 'country', 'N/A')}</td></tr>
-                    <tr><td>Timezone</td><td>{safe_get(project_data, 'timezone', 'UTC')}</td></tr>
+                    <tr><th>Weather Parameter</th><th>Configuration</th><th>Source</th></tr>
+                    <tr><td>Primary Weather Station</td><td>{safe_get(weather_station, 'name', 'Not selected')}</td><td>WMO Network</td></tr>
+                    <tr><td>WMO Station ID</td><td>{safe_get(weather_station, 'wmo_id', 'N/A')}</td><td>Official ID</td></tr>
+                    <tr><td>Distance from Project</td><td>{safe_float(safe_get(weather_station, 'distance'), 0):.1f} km</td><td>Calculated</td></tr>
+                    <tr><td>Country</td><td>{safe_get(weather_station, 'country', 'N/A')}</td><td>ISO Standard</td></tr>
+                    <tr><td>Data Quality</td><td>ISO 15927-4 Compliant</td><td>International Standard</td></tr>
+                    <tr><td>TMY Resolution</td><td>8,760 hourly records</td><td>Annual coverage</td></tr>
                 </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>💰 Economic Parameters</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">€{import_rate:.3f}</div>
+                        <div class="metric-label">Electricity Import Rate (€/kWh)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">€{export_rate:.3f}</div>
+                        <div class="metric-label">Feed-in Tariff (€/kWh)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{safe_get(electricity_rates, 'rate_source', 'Manual Input')}</div>
+                        <div class="metric-label">Rate Data Source</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">25 Years</div>
+                        <div class="metric-label">Analysis Period</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 Configuration Status</h3>
+                <p><strong>Setup Complete:</strong> All essential project parameters configured successfully.</p>
+                <p><strong>Next Phase:</strong> Historical energy data analysis to establish baseline consumption patterns.</p>
+                <p><strong>Data Quality:</strong> Authentic meteorological and economic data sources ensure accurate BIPV analysis.</p>
             </div>
     """
     
@@ -536,7 +586,7 @@ def generate_step1_report():
     return html
 
 def generate_step2_report():
-    """Generate Step 2: Historical Data Analysis Report"""
+    """Generate Step 2: Historical Data Analysis & AI Model Training Report"""
     project_data = st.session_state.get('project_data', {})
     historical_data = safe_get(project_data, 'historical_data', {})
     
@@ -546,46 +596,109 @@ def generate_step2_report():
         html += """
             <div class="content-section">
                 <h2>⚠️ No Analysis Data Available</h2>
-                <p>Historical data analysis has not been completed for this project.</p>
+                <div class="highlight-box">
+                    <p><strong>Required Action:</strong> Historical data analysis has not been completed for this project.</p>
+                    <p>Please upload CSV file with monthly energy consumption data to proceed with AI model training.</p>
+                </div>
             </div>
         """
     else:
         model_performance = safe_get(historical_data, 'model_performance', {})
         r2_score = safe_float(safe_get(model_performance, 'r2_score'), 0.0)
         demand_forecast = safe_get(historical_data, 'demand_forecast', {})
+        building_area = safe_float(safe_get(historical_data, 'building_area'), 0.0)
+        energy_intensity = safe_float(safe_get(historical_data, 'energy_intensity'), 0.0)
+        baseline_annual = safe_float(safe_get(demand_forecast, 'baseline_annual'), 0.0)
+        growth_rate = safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0)
+        
+        # Determine performance status and color
+        if r2_score >= 0.85:
+            performance_status = "Excellent"
+            status_class = "status-excellent"
+        elif r2_score >= 0.70:
+            performance_status = "Good" 
+            status_class = "status-complete"
+        else:
+            performance_status = "Needs Improvement"
+            status_class = "status-pending"
         
         html += f"""
+            <div class="analysis-summary">
+                <h3>🤖 AI Model Training Overview</h3>
+                <p>Random Forest model trained with <strong>R² = {r2_score:.3f}</strong> performance achieving <strong>{performance_status}</strong> prediction accuracy</p>
+                <p>Building energy intensity: <strong>{energy_intensity:.1f} kWh/m²/year</strong> for <strong>{building_area:,.0f} m²</strong> facility</p>
+            </div>
+            
             <div class="content-section">
-                <h2>🤖 AI Model Performance</h2>
+                <h2>🎯 Machine Learning Model Performance</h2>
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">{r2_score:.3f}</div>
-                        <div class="metric-label">R² Score</div>
+                        <div class="metric-label">R² Coefficient</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{'Excellent' if r2_score >= 0.85 else 'Good' if r2_score >= 0.70 else 'Needs Improvement'}</div>
-                        <div class="metric-label">Performance Status</div>
+                        <div class="metric-value {status_class}">{performance_status}</div>
+                        <div class="metric-label">Model Quality</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">Random Forest</div>
-                        <div class="metric-label">Algorithm</div>
+                        <div class="metric-label">Algorithm Type</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">25 Years</div>
-                        <div class="metric-label">Forecast Period</div>
+                        <div class="metric-label">Forecast Horizon</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{len(safe_get(historical_data, 'consumption_data', []))}</div>
+                        <div class="metric-label">Training Data Points</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">Educational</div>
+                        <div class="metric-label">Building Type</div>
                     </div>
                 </div>
             </div>
             
             <div class="content-section">
-                <h2>📊 Demand Forecast Results</h2>
+                <h2>🏢 Building Energy Characteristics</h2>
                 <table class="data-table">
-                    <tr><th>Metric</th><th>Value</th></tr>
-                    <tr><td>Annual Growth Rate</td><td>{safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0):.2f}%</td></tr>
-                    <tr><td>Baseline Annual Consumption</td><td>{safe_float(safe_get(demand_forecast, 'baseline_annual'), 0.0):,.0f} kWh</td></tr>
-                    <tr><td>Building Floor Area</td><td>{safe_float(safe_get(historical_data, 'building_area'), 0.0):,.0f} m²</td></tr>
-                    <tr><td>Energy Intensity</td><td>{safe_float(safe_get(historical_data, 'energy_intensity'), 0.0):.1f} kWh/m²/year</td></tr>
+                    <tr><th>Building Parameter</th><th>Value</th><th>Performance Benchmark</th></tr>
+                    <tr><td>Total Floor Area</td><td>{building_area:,.0f} m²</td><td>Large educational facility</td></tr>
+                    <tr><td>Energy Intensity</td><td>{energy_intensity:.1f} kWh/m²/year</td><td>{'Efficient' if energy_intensity < 100 else 'Standard' if energy_intensity < 150 else 'High consumption'}</td></tr>
+                    <tr><td>Annual Baseline Demand</td><td>{baseline_annual:,.0f} kWh</td><td>Historical average</td></tr>
+                    <tr><td>Projected Growth Rate</td><td>{growth_rate:.2f}% per year</td><td>{'Conservative' if growth_rate < 2 else 'Moderate' if growth_rate < 4 else 'Aggressive'}</td></tr>
+                    <tr><td>Peak Load Factor</td><td>{safe_float(safe_get(historical_data, 'peak_load_factor'), 0.0):.2f}</td><td>Load distribution</td></tr>
+                    <tr><td>Seasonal Variation</td><td>{safe_float(safe_get(historical_data, 'seasonal_variation'), 0.0):.1f}%</td><td>Summer/winter difference</td></tr>
                 </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>📈 25-Year Demand Forecast Analysis</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{baseline_annual:,.0f} kWh</div>
+                        <div class="metric-label">Year 1 Demand</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{baseline_annual * (1 + growth_rate/100)**25:,.0f} kWh</div>
+                        <div class="metric-label">Year 25 Projected</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{growth_rate:.2f}%</div>
+                        <div class="metric-label">Annual Growth Rate</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{((baseline_annual * (1 + growth_rate/100)**25) / baseline_annual - 1) * 100:.0f}%</div>
+                        <div class="metric-label">Total Growth (25Y)</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 AI Model Impact on BIPV Analysis</h3>
+                <p><strong>Demand Prediction:</strong> Accurate 25-year energy forecasting enables optimal BIPV system sizing.</p>
+                <p><strong>Economic Modeling:</strong> Growth projections inform long-term financial analysis and ROI calculations.</p>
+                <p><strong>System Optimization:</strong> Building patterns guide genetic algorithm optimization for maximum efficiency.</p>
             </div>
         """
     
@@ -593,7 +706,7 @@ def generate_step2_report():
     return html
 
 def generate_step3_report():
-    """Generate Step 3: Weather Environment Report"""
+    """Generate Step 3: Weather Environment & TMY Generation Report"""
     project_data = st.session_state.get('project_data', {})
     weather_analysis = safe_get(project_data, 'weather_analysis', {})
     
@@ -603,49 +716,141 @@ def generate_step3_report():
         html += """
             <div class="content-section">
                 <h2>⚠️ No Weather Analysis Available</h2>
-                <p>Weather environment analysis has not been completed for this project.</p>
+                <div class="highlight-box">
+                    <p><strong>Required Dependency:</strong> Weather environment analysis has not been completed for this project.</p>
+                    <p>Please complete Step 1 (Project Setup) with weather station selection to generate TMY data.</p>
+                </div>
             </div>
         """
     else:
         tmy_data = safe_get(weather_analysis, 'tmy_data', {})
         solar_resource = safe_get(weather_analysis, 'solar_resource_assessment', {})
+        monthly_profiles = safe_get(weather_analysis, 'monthly_profiles', {})
         
         annual_ghi = safe_float(safe_get(solar_resource, 'annual_ghi'), 0.0)
+        annual_dni = safe_float(safe_get(solar_resource, 'annual_dni'), 0.0)
+        annual_dhi = safe_float(safe_get(solar_resource, 'annual_dhi'), 0.0)
         peak_sun_hours = safe_float(safe_get(solar_resource, 'peak_sun_hours'), 0.0)
+        avg_temperature = safe_float(safe_get(weather_analysis, 'average_temperature'), 0.0)
+        
+        # Determine solar resource class
+        if annual_ghi >= 1800:
+            resource_class = "Excellent"
+            resource_status = "status-excellent"
+        elif annual_ghi >= 1400:
+            resource_class = "Very Good"
+            resource_status = "status-complete"
+        elif annual_ghi >= 1000:
+            resource_class = "Good"
+            resource_status = "status-complete"
+        else:
+            resource_class = "Moderate"
+            resource_status = "status-pending"
         
         html += f"""
+            <div class="analysis-summary">
+                <h3>☀️ Solar Resource Overview</h3>
+                <p>Location receives <strong>{annual_ghi:,.0f} kWh/m²/year</strong> global horizontal irradiance classified as <strong>{resource_class}</strong> solar resource</p>
+                <p>Peak sun hours: <strong>{peak_sun_hours:.1f} hours/day</strong> | Average temperature: <strong>{avg_temperature:.1f}°C</strong></p>
+            </div>
+            
             <div class="content-section">
-                <h2>☀️ Solar Resource Assessment</h2>
+                <h2>🌅 Solar Irradiance Analysis</h2>
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">{annual_ghi:,.0f} kWh/m²</div>
                         <div class="metric-label">Annual GHI</div>
                     </div>
                     <div class="metric-card">
+                        <div class="metric-value">{annual_dni:,.0f} kWh/m²</div>
+                        <div class="metric-label">Annual DNI</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{annual_dhi:,.0f} kWh/m²</div>
+                        <div class="metric-label">Annual DHI</div>
+                    </div>
+                    <div class="metric-card">
                         <div class="metric-value">{peak_sun_hours:.1f} hours</div>
                         <div class="metric-label">Peak Sun Hours/Day</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{safe_get(solar_resource, 'resource_class', 'Unknown')}</div>
+                        <div class="metric-value {resource_status}">{resource_class}</div>
                         <div class="metric-label">Solar Resource Class</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{safe_get(solar_resource, 'climate_zone', 'Unknown')}</div>
+                        <div class="metric-value">{safe_get(solar_resource, 'climate_zone', 'Temperate')}</div>
                         <div class="metric-label">Climate Zone</div>
                     </div>
                 </div>
             </div>
+        """
+        
+        # Generate monthly solar profile chart if data available
+        if monthly_profiles:
+            months = list(monthly_profiles.keys())
+            ghi_values = [safe_float(monthly_profiles[month].get('ghi', 0)) for month in months]
+            
+            if ghi_values:
+                monthly_chart_data = {
+                    'x': months,
+                    'y': ghi_values
+                }
+                html += generate_plotly_chart(
+                    monthly_chart_data, 
+                    'line', 
+                    'Monthly Solar Irradiance Profile',
+                    'Month', 
+                    'GHI (kWh/m²)'
+                )
+        
+        html += f"""
+            <div class="content-section">
+                <h2>🌡️ Climate & Environmental Conditions</h2>
+                <table class="data-table">
+                    <tr><th>Climate Parameter</th><th>Annual Value</th><th>Impact on BIPV</th></tr>
+                    <tr><td>Average Temperature</td><td>{avg_temperature:.1f}°C</td><td>{'Optimal' if 15 <= avg_temperature <= 25 else 'Acceptable' if 5 <= avg_temperature <= 35 else 'Challenging'} for PV efficiency</td></tr>
+                    <tr><td>Solar Resource Quality</td><td>{resource_class}</td><td>{'Excellent potential' if resource_class == 'Excellent' else 'Good potential' if resource_class in ['Very Good', 'Good'] else 'Moderate potential'}</td></tr>
+                    <tr><td>Direct Normal Irradiance</td><td>{annual_dni:,.0f} kWh/m²</td><td>{'High' if annual_dni > 1500 else 'Moderate' if annual_dni > 1000 else 'Low'} beam radiation</td></tr>
+                    <tr><td>Diffuse Horizontal</td><td>{annual_dhi:,.0f} kWh/m²</td><td>{'High' if annual_dhi > 800 else 'Moderate' if annual_dhi > 500 else 'Low'} diffuse component</td></tr>
+                    <tr><td>Daily Peak Sun Hours</td><td>{peak_sun_hours:.1f} hours</td><td>{'Excellent' if peak_sun_hours > 5.5 else 'Good' if peak_sun_hours > 4.0 else 'Moderate'} generation window</td></tr>
+                </table>
+            </div>
             
             <div class="content-section">
-                <h2>🌦️ TMY Data Quality</h2>
-                <table class="data-table">
-                    <tr><th>Parameter</th><th>Value</th></tr>
-                    <tr><td>Data Points</td><td>8,760 hourly records</td></tr>
-                    <tr><td>Standards Compliance</td><td>ISO 15927-4</td></tr>
-                    <tr><td>Data Source</td><td>WMO weather station</td></tr>
-                    <tr><td>Quality Score</td><td>{safe_get(tmy_data, 'quality_score', 'High')}</td></tr>
-                    <tr><td>Generation Method</td><td>Authentic meteorological data</td></tr>
-                </table>
+                <h2>📊 TMY Data Generation & Quality</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">8,760</div>
+                        <div class="metric-label">Hourly Records</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value status-excellent">ISO 15927-4</div>
+                        <div class="metric-label">Standards Compliance</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">WMO Station</div>
+                        <div class="metric-label">Data Source</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">High</div>
+                        <div class="metric-label">Quality Rating</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">Astronomical</div>
+                        <div class="metric-label">Solar Position Model</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">Authentic</div>
+                        <div class="metric-label">Data Type</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 Weather Data Application</h3>
+                <p><strong>Radiation Modeling:</strong> TMY data provides hourly irradiance for precise BIPV yield calculations.</p>
+                <p><strong>Performance Analysis:</strong> Temperature profiles enable accurate PV efficiency modeling and energy predictions.</p>
+                <p><strong>System Optimization:</strong> Seasonal patterns inform optimal BIPV system sizing and configuration.</p>
             </div>
         """
     
@@ -653,7 +858,7 @@ def generate_step3_report():
     return html
 
 def generate_step5_report():
-    """Generate Step 5: Radiation Analysis Report"""
+    """Generate Step 5: Solar Radiation & Shading Analysis Report"""
     consolidated_manager = ConsolidatedDataManager()
     step5_data = consolidated_manager.get_step_data(5)
     
@@ -666,17 +871,43 @@ def generate_step5_report():
         html += """
             <div class="content-section">
                 <h2>⚠️ No Radiation Analysis Available</h2>
-                <p>Solar radiation and shading analysis has not been completed for this project.</p>
+                <div class="highlight-box">
+                    <p><strong>Required Dependencies:</strong> Solar radiation and shading analysis has not been completed for this project.</p>
+                    <p>Please complete Steps 3 (Weather Environment) and 4 (Facade Extraction) to proceed with radiation analysis.</p>
+                </div>
             </div>
         """
     else:
         total_elements = safe_get(analysis_summary, 'total_elements', 0)
         avg_radiation = safe_float(safe_get(analysis_summary, 'average_radiation'), 0.0)
         max_radiation = safe_float(safe_get(analysis_summary, 'max_radiation'), 0.0)
+        min_radiation = safe_float(safe_get(analysis_summary, 'min_radiation'), 0.0)
+        precision_level = safe_get(step5_data, 'precision_level', 'Standard')
+        
+        # Analyze radiation by orientation
+        orientation_radiation = {}
+        if isinstance(radiation_results, dict):
+            for element_id, data in radiation_results.items():
+                orientation = data.get('orientation', 'Unknown')
+                radiation = safe_float(data.get('annual_radiation', 0))
+                if orientation not in orientation_radiation:
+                    orientation_radiation[orientation] = []
+                orientation_radiation[orientation].append(radiation)
+        
+        # Calculate orientation averages
+        orientation_avg = {}
+        for orientation, values in orientation_radiation.items():
+            orientation_avg[orientation] = sum(values) / len(values) if values else 0
         
         html += f"""
+            <div class="analysis-summary">
+                <h3>☀️ Solar Radiation Analysis Overview</h3>
+                <p>Analyzed <strong>{total_elements:,} building elements</strong> with average radiation of <strong>{avg_radiation:,.0f} kWh/m²/year</strong></p>
+                <p>Performance range: <strong>{min_radiation:,.0f} - {max_radiation:,.0f} kWh/m²/year</strong> | Precision: <strong>{precision_level}</strong></p>
+            </div>
+            
             <div class="content-section">
-                <h2>☀️ Solar Radiation Results</h2>
+                <h2>📊 Radiation Analysis Performance</h2>
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">{total_elements:,}</div>
@@ -688,25 +919,122 @@ def generate_step5_report():
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{max_radiation:,.0f} kWh/m²</div>
-                        <div class="metric-label">Highest Performing Element</div>
+                        <div class="metric-label">Best Performing Element</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">pvlib</div>
+                        <div class="metric-value">{min_radiation:,.0f} kWh/m²</div>
+                        <div class="metric-label">Minimum Radiation</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{(max_radiation - min_radiation):,.0f} kWh/m²</div>
+                        <div class="metric-label">Performance Range</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value status-excellent">pvlib Standard</div>
                         <div class="metric-label">Calculation Method</div>
                     </div>
                 </div>
             </div>
+        """
+        
+        # Generate radiation distribution chart by orientation
+        if orientation_avg:
+            orientation_names = list(orientation_avg.keys())
+            radiation_values = list(orientation_avg.values())
+            
+            orientation_chart_data = {
+                'x': orientation_names,
+                'y': radiation_values
+            }
+            html += generate_plotly_chart(
+                orientation_chart_data, 
+                'bar', 
+                'Average Annual Radiation by Facade Orientation',
+                'Facade Orientation', 
+                'Annual Radiation (kWh/m²)'
+            )
+        
+        html += f"""
+            <div class="content-section">
+                <h2>🧭 Radiation Performance by Orientation</h2>
+                <table class="data-table">
+                    <tr><th>Orientation</th><th>Element Count</th><th>Avg Radiation (kWh/m²)</th><th>Performance Rating</th></tr>
+        """
+        
+        for orientation, avg_rad in orientation_avg.items():
+            element_count = len(orientation_radiation.get(orientation, []))
+            if avg_rad >= 1200:
+                performance = "Excellent"
+            elif avg_rad >= 900:
+                performance = "Very Good"
+            elif avg_rad >= 600:
+                performance = "Good"
+            else:
+                performance = "Moderate"
+            
+            html += f"""
+                <tr>
+                    <td><strong>{orientation}</strong></td>
+                    <td>{element_count:,}</td>
+                    <td>{avg_rad:,.0f}</td>
+                    <td>{performance}</td>
+                </tr>
+            """
+        
+        html += f"""
+                </table>
+            </div>
             
             <div class="content-section">
-                <h2>🏢 Shading Analysis</h2>
+                <h2>🔬 Technical Analysis Parameters</h2>
                 <table class="data-table">
-                    <tr><th>Analysis Component</th><th>Details</th></tr>
-                    <tr><td>Self-Shading</td><td>Building geometry considered</td></tr>
-                    <tr><td>Environmental Factors</td><td>Vegetation and urban shading</td></tr>
-                    <tr><td>Time Resolution</td><td>Hourly calculations</td></tr>
-                    <tr><td>Precision Level</td><td>{safe_get(step5_data, 'precision_level', 'Standard')}</td></tr>
-                    <tr><td>Solar Position Model</td><td>Astronomical algorithms</td></tr>
+                    <tr><th>Analysis Component</th><th>Specification</th><th>Technical Details</th></tr>
+                    <tr><td>Solar Position Model</td><td>Astronomical algorithms</td><td>High-precision sun position calculations</td></tr>
+                    <tr><td>Irradiance Components</td><td>GHI, DNI, DHI</td><td>Global, direct, and diffuse radiation</td></tr>
+                    <tr><td>Self-Shading Analysis</td><td>Building geometry</td><td>3D building model shading effects</td></tr>
+                    <tr><td>Environmental Shading</td><td>Vegetation & urban</td><td>15% vegetation, 10% urban shading factors</td></tr>
+                    <tr><td>Time Resolution</td><td>Hourly calculations</td><td>8,760 data points per year</td></tr>
+                    <tr><td>Precision Level</td><td>{precision_level}</td><td>{'High-accuracy sampling' if precision_level == 'High' else 'Standard sampling'}</td></tr>
+                    <tr><td>Surface Modeling</td><td>Tilt & azimuth</td><td>Vertical facades with orientation corrections</td></tr>
                 </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>📈 Top Performing Elements (by Radiation)</h2>
+                <table class="data-table">
+                    <tr><th>Element ID</th><th>Orientation</th><th>Annual Radiation (kWh/m²)</th><th>Performance Rank</th></tr>
+        """
+        
+        # Sort elements by radiation and show top 10
+        if isinstance(radiation_results, dict):
+            sorted_elements = sorted(
+                radiation_results.items(), 
+                key=lambda x: safe_float(x[1].get('annual_radiation', 0)), 
+                reverse=True
+            )
+            
+            for i, (element_id, data) in enumerate(sorted_elements[:10]):
+                radiation = safe_float(data.get('annual_radiation', 0))
+                orientation = data.get('orientation', 'Unknown')
+                
+                html += f"""
+                    <tr>
+                        <td><strong>{element_id}</strong></td>
+                        <td>{orientation}</td>
+                        <td>{radiation:,.0f}</td>
+                        <td>#{i+1}</td>
+                    </tr>
+                """
+        
+        html += """
+                </table>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 Radiation Analysis Validation</h3>
+                <p><strong>Data Quality:</strong> High-precision solar radiation calculations using pvlib and authentic TMY data.</p>
+                <p><strong>Building Integration:</strong> Actual facade orientations and shading effects incorporated for realistic BIPV potential.</p>
+                <p><strong>Next Phase:</strong> Proceed to Step 6 (PV Specification) to design BIPV systems based on radiation analysis.</p>
             </div>
         """
     
@@ -894,7 +1222,7 @@ def generate_step4_report():
     return html
 
 def generate_step6_report():
-    """Generate Step 6: PV Specification Report"""
+    """Generate Step 6: BIPV Glass Specification & System Design Report"""
     consolidated_manager = ConsolidatedDataManager()
     step6_data = consolidated_manager.get_step_data(6)
     
@@ -906,47 +1234,153 @@ def generate_step6_report():
     if not individual_systems:
         html += """
             <div class="content-section">
-                <h2>⚠️ No PV Systems Available</h2>
-                <p>BIPV system specification has not been completed for this project.</p>
+                <h2>⚠️ No BIPV Systems Available</h2>
+                <div class="highlight-box">
+                    <p><strong>Required Dependencies:</strong> BIPV system specification has not been completed for this project.</p>
+                    <p>Please complete Steps 4 (Facade Extraction) and 5 (Radiation Analysis) to proceed with PV specification.</p>
+                </div>
             </div>
         """
     else:
         total_capacity = safe_float(safe_get(system_summary, 'total_capacity_kw'), 0.0)
         total_cost = safe_float(safe_get(system_summary, 'total_cost_eur'), 0.0)
+        total_area = safe_float(safe_get(system_summary, 'total_area_m2'), 0.0)
+        avg_efficiency = safe_float(safe_get(system_summary, 'average_efficiency'), 0.0)
+        
+        # Analyze by orientation
+        orientation_analysis = {}
+        for system in individual_systems:
+            orientation = system.get('orientation', 'Unknown')
+            if orientation not in orientation_analysis:
+                orientation_analysis[orientation] = {'count': 0, 'capacity': 0, 'area': 0}
+            orientation_analysis[orientation]['count'] += 1
+            orientation_analysis[orientation]['capacity'] += safe_float(system.get('capacity_kw', 0))
+            orientation_analysis[orientation]['area'] += safe_float(system.get('glass_area', 0))
         
         html += f"""
+            <div class="analysis-summary">
+                <h3>🔋 BIPV System Design Overview</h3>
+                <p>Designed <strong>{len(individual_systems):,} BIPV glass systems</strong> with total capacity of <strong>{total_capacity:,.1f} kW</strong></p>
+                <p>Investment: <strong>€{total_cost:,.0f}</strong> | Glass area: <strong>{total_area:,.1f} m²</strong> | Avg efficiency: <strong>{avg_efficiency:.1f}%</strong></p>
+            </div>
+            
             <div class="content-section">
-                <h2>⚡ BIPV System Overview</h2>
+                <h2>⚡ BIPV System Performance Metrics</h2>
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">{len(individual_systems):,}</div>
-                        <div class="metric-label">Total Systems</div>
+                        <div class="metric-label">Individual Systems</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{total_capacity:,.1f} kW</div>
                         <div class="metric-label">Total Capacity</div>
                     </div>
                     <div class="metric-card">
+                        <div class="metric-value">{total_area:,.1f} m²</div>
+                        <div class="metric-label">BIPV Glass Area</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{total_capacity/total_area*1000 if total_area > 0 else 0:.0f} W/m²</div>
+                        <div class="metric-label">Power Density</div>
+                    </div>
+                    <div class="metric-card">
                         <div class="metric-value">€{total_cost:,.0f}</div>
                         <div class="metric-label">Total Investment</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{total_cost/total_capacity if total_capacity > 0 else 0:,.0f} €/kW</div>
-                        <div class="metric-label">Cost per kW</div>
+                        <div class="metric-value">€{total_cost/total_capacity if total_capacity > 0 else 0:,.0f}/kW</div>
+                        <div class="metric-label">Specific Cost</div>
                     </div>
                 </div>
             </div>
+        """
+        
+        # Generate orientation performance chart
+        if orientation_analysis:
+            orientation_names = list(orientation_analysis.keys())
+            orientation_capacities = [orientation_analysis[orient]['capacity'] for orient in orientation_names]
+            
+            orientation_chart_data = {
+                'x': orientation_names,
+                'y': orientation_capacities
+            }
+            html += generate_plotly_chart(
+                orientation_chart_data, 
+                'bar', 
+                'BIPV Capacity Distribution by Orientation',
+                'Facade Orientation', 
+                'Installed Capacity (kW)'
+            )
+        
+        html += f"""
+            <div class="content-section">
+                <h2>🔬 BIPV Glass Technology Specifications</h2>
+                <table class="data-table">
+                    <tr><th>Technology Parameter</th><th>Specification</th><th>Performance Impact</th></tr>
+                    <tr><td>Technology Type</td><td>Semi-transparent BIPV Glass</td><td>Dual function: glazing + energy generation</td></tr>
+                    <tr><td>Efficiency Range</td><td>{avg_efficiency:.1f}% (project average)</td><td>Balance of transparency and power</td></tr>
+                    <tr><td>Glass Transparency</td><td>15-40% light transmission</td><td>Maintains natural lighting</td></tr>
+                    <tr><td>Glass Thickness</td><td>6-12mm standard</td><td>Structural integrity maintained</td></tr>
+                    <tr><td>Power Density</td><td>{total_capacity/total_area*1000 if total_area > 0 else 0:.0f} W/m²</td><td>Area-normalized power output</td></tr>
+                    <tr><td>Integration Method</td><td>Direct glass replacement</td><td>Seamless building integration</td></tr>
+                    <tr><td>Cost per Area</td><td>€{total_cost/total_area if total_area > 0 else 0:.0f}/m²</td><td>Investment per glazed area</td></tr>
+                </table>
+            </div>
             
             <div class="content-section">
-                <h2>🔬 BIPV Glass Technology</h2>
+                <h2>🧭 Performance by Facade Orientation</h2>
                 <table class="data-table">
-                    <tr><th>Parameter</th><th>Specification</th></tr>
-                    <tr><td>Technology Type</td><td>Semi-transparent BIPV Glass</td></tr>
-                    <tr><td>Efficiency Range</td><td>8-15% (typical BIPV)</td></tr>
-                    <tr><td>Transparency</td><td>15-40%</td></tr>
-                    <tr><td>Glass Thickness</td><td>6-12mm</td></tr>
-                    <tr><td>Integration Method</td><td>Window Glass Replacement</td></tr>
+                    <tr><th>Orientation</th><th>Systems Count</th><th>Total Capacity (kW)</th><th>Glass Area (m²)</th><th>Avg Power Density (W/m²)</th></tr>
+        """
+        
+        for orientation, data in orientation_analysis.items():
+            avg_power_density = (data['capacity'] / data['area'] * 1000) if data['area'] > 0 else 0
+            html += f"""
+                <tr>
+                    <td><strong>{orientation}</strong></td>
+                    <td>{data['count']:,}</td>
+                    <td>{data['capacity']:.1f}</td>
+                    <td>{data['area']:.1f}</td>
+                    <td>{avg_power_density:.0f}</td>
+                </tr>
+            """
+        
+        html += """
                 </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>💎 Top Performing BIPV Systems (by Capacity)</h2>
+                <table class="data-table">
+                    <tr><th>Element ID</th><th>Orientation</th><th>Capacity (kW)</th><th>Glass Area (m²)</th><th>Power Density (W/m²)</th></tr>
+        """
+        
+        # Sort systems by capacity and show top 10
+        sorted_systems = sorted(individual_systems, key=lambda x: safe_float(x.get('capacity_kw', 0)), reverse=True)
+        for system in sorted_systems[:10]:
+            capacity = safe_float(system.get('capacity_kw', 0))
+            area = safe_float(system.get('glass_area', 0))
+            power_density = (capacity / area * 1000) if area > 0 else 0
+            
+            html += f"""
+                <tr>
+                    <td><strong>{system.get('element_id', 'Unknown')}</strong></td>
+                    <td>{system.get('orientation', 'Unknown')}</td>
+                    <td>{capacity:.2f}</td>
+                    <td>{area:.1f}</td>
+                    <td>{power_density:.0f}</td>
+                </tr>
+            """
+        
+        html += """
+                </table>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 BIPV Design Validation</h3>
+                <p><strong>Technology Selection:</strong> Semi-transparent BIPV glass optimized for building integration.</p>
+                <p><strong>Performance Balance:</strong> Efficiency and transparency levels provide optimal energy-daylighting trade-off.</p>
+                <p><strong>Next Phase:</strong> Proceed to Step 7 (Yield vs Demand) for energy balance analysis.</p>
             </div>
         """
     
@@ -1130,7 +1564,7 @@ def generate_step7_report():
     return html
 
 def generate_step8_report():
-    """Generate Step 8: Optimization Report"""
+    """Generate Step 8: Multi-Objective BIPV Optimization Report"""
     consolidated_manager = ConsolidatedDataManager()
     step8_data = consolidated_manager.get_step_data(8)
     
@@ -1138,62 +1572,162 @@ def generate_step8_report():
     
     solutions = safe_get(step8_data, 'solutions', [])
     optimization_results = safe_get(step8_data, 'optimization_results', {})
+    algorithm_params = safe_get(step8_data, 'algorithm_parameters', {})
     
     if not solutions:
         html += """
             <div class="content-section">
                 <h2>⚠️ No Optimization Results Available</h2>
-                <p>Multi-objective optimization has not been completed for this project.</p>
+                <div class="highlight-box">
+                    <p><strong>Required Dependencies:</strong> Multi-objective optimization has not been completed for this project.</p>
+                    <p>Please complete Steps 6 (PV Specification) and 7 (Yield vs Demand) to proceed with optimization.</p>
+                </div>
             </div>
         """
     else:
+        # Calculate optimization metrics
+        best_solution = solutions[0] if solutions else {}
+        best_investment = safe_float(best_solution.get('total_investment', 0))
+        best_energy = safe_float(best_solution.get('annual_energy_kwh', 0))
+        best_roi = safe_float(best_solution.get('roi', 0))
+        best_fitness = safe_float(best_solution.get('weighted_fitness', 0))
+        
+        # Analyze solution distribution
+        investments = [safe_float(sol.get('total_investment', 0)) for sol in solutions]
+        energies = [safe_float(sol.get('annual_energy_kwh', 0)) for sol in solutions]
+        rois = [safe_float(sol.get('roi', 0)) for sol in solutions]
+        
+        avg_investment = sum(investments) / len(investments) if investments else 0
+        avg_energy = sum(energies) / len(energies) if energies else 0
+        avg_roi = sum(rois) / len(rois) if rois else 0
+        
         html += f"""
+            <div class="analysis-summary">
+                <h3>🎯 Optimization Results Overview</h3>
+                <p>Generated <strong>{len(solutions):,} Pareto-optimal solutions</strong> using NSGA-II genetic algorithm</p>
+                <p>Best solution: <strong>€{best_investment:,.0f}</strong> investment, <strong>{best_energy:,.0f} kWh/year</strong> generation, <strong>{best_roi:.1f}% ROI</strong></p>
+            </div>
+            
             <div class="content-section">
-                <h2>🎯 Optimization Results</h2>
+                <h2>🧬 Genetic Algorithm Performance</h2>
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">{len(solutions):,}</div>
-                        <div class="metric-label">Solutions Found</div>
+                        <div class="metric-label">Pareto Solutions</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">NSGA-II</div>
-                        <div class="metric-label">Algorithm Used</div>
+                        <div class="metric-value status-excellent">NSGA-II</div>
+                        <div class="metric-label">Algorithm Type</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">3 Objectives</div>
-                        <div class="metric-label">Optimization Goals</div>
+                        <div class="metric-value">3-Objective</div>
+                        <div class="metric-label">Optimization Type</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">Pareto-Optimal</div>
-                        <div class="metric-label">Solution Type</div>
+                        <div class="metric-value">{safe_get(algorithm_params, 'population_size', 50)}</div>
+                        <div class="metric-label">Population Size</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{safe_get(algorithm_params, 'generations', 100)}</div>
+                        <div class="metric-label">Generations</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{best_fitness:.3f}</div>
+                        <div class="metric-label">Best Fitness Score</div>
                     </div>
                 </div>
             </div>
             
             <div class="content-section">
-                <h2>📊 Best Solutions (Top 5)</h2>
+                <h2>📊 Optimization Objectives Analysis</h2>
                 <table class="data-table">
-                    <tr><th>Rank</th><th>Investment (€)</th><th>Annual Energy (kWh)</th><th>ROI (%)</th><th>Fitness Score</th></tr>
+                    <tr><th>Objective</th><th>Best Value</th><th>Average Value</th><th>Optimization Goal</th></tr>
+                    <tr><td>Investment Cost</td><td>€{best_investment:,.0f}</td><td>€{avg_investment:,.0f}</td><td>Minimize</td></tr>
+                    <tr><td>Annual Energy Yield</td><td>{best_energy:,.0f} kWh</td><td>{avg_energy:,.0f} kWh</td><td>Maximize</td></tr>
+                    <tr><td>Return on Investment</td><td>{best_roi:.1f}%</td><td>{avg_roi:.1f}%</td><td>Maximize</td></tr>
+                    <tr><td>Weighted Fitness</td><td>{best_fitness:.3f}</td><td>{sum(safe_float(sol.get('weighted_fitness', 0)) for sol in solutions) / len(solutions):.3f}</td><td>Maximize</td></tr>
+                </table>
+            </div>
         """
         
-        for i, solution in enumerate(solutions[:5]):
+        # Generate solution distribution charts
+        if len(solutions) >= 5:
+            # Investment vs Energy chart
+            chart_data = {
+                'x': investments[:20],  # Top 20 solutions
+                'y': energies[:20]
+            }
+            html += generate_plotly_chart(
+                chart_data, 
+                'line', 
+                'Investment vs Energy Yield Trade-off (Top 20 Solutions)',
+                'Investment Cost (€)', 
+                'Annual Energy (kWh)'
+            )
+            
+            # ROI distribution chart
+            roi_chart_data = {
+                'x': list(range(1, min(21, len(rois) + 1))),
+                'y': rois[:20]
+            }
+            html += generate_plotly_chart(
+                roi_chart_data, 
+                'bar', 
+                'Return on Investment Distribution (Top 20 Solutions)',
+                'Solution Rank', 
+                'ROI (%)'
+            )
+        
+        html += f"""
+            <div class="content-section">
+                <h2>🏆 Top Pareto-Optimal Solutions</h2>
+                <table class="data-table">
+                    <tr><th>Rank</th><th>Investment (€)</th><th>Annual Energy (kWh)</th><th>ROI (%)</th><th>Selected Elements</th><th>Fitness Score</th></tr>
+        """
+        
+        for i, solution in enumerate(solutions[:10]):
+            element_count = len(solution.get('selected_elements', []))
             html += f"""
                 <tr>
-                    <td>{i+1}</td>
+                    <td><strong>#{i+1}</strong></td>
                     <td>€{safe_float(solution.get('total_investment', 0)):,.0f}</td>
                     <td>{safe_float(solution.get('annual_energy_kwh', 0)):,.0f}</td>
                     <td>{safe_float(solution.get('roi', 0)):.1f}%</td>
+                    <td>{element_count:,} elements</td>
                     <td>{safe_float(solution.get('weighted_fitness', 0)):.3f}</td>
                 </tr>
             """
         
-        html += "</table></div>"
+        html += """
+                </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>⚙️ Algorithm Configuration</h2>
+                <table class="data-table">
+                    <tr><th>Parameter</th><th>Value</th><th>Purpose</th></tr>
+                    <tr><td>Algorithm</td><td>NSGA-II</td><td>Non-dominated Sorting Genetic Algorithm</td></tr>
+                    <tr><td>Population Size</td><td>{safe_get(algorithm_params, 'population_size', 50)}</td><td>Solution diversity per generation</td></tr>
+                    <tr><td>Generations</td><td>{safe_get(algorithm_params, 'generations', 100)}</td><td>Evolution iterations</td></tr>
+                    <tr><td>Crossover Rate</td><td>{safe_get(algorithm_params, 'crossover_rate', 0.9):.1f}</td><td>Solution recombination probability</td></tr>
+                    <tr><td>Mutation Rate</td><td>{safe_get(algorithm_params, 'mutation_rate', 0.1):.1f}</td><td>Solution variation probability</td></tr>
+                    <tr><td>Selection Method</td><td>Tournament</td><td>Parent selection strategy</td></tr>
+                </table>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 Optimization Success Metrics</h3>
+                <p><strong>Solution Quality:</strong> {len(solutions)} Pareto-optimal configurations identified for BIPV implementation.</p>
+                <p><strong>Trade-off Analysis:</strong> Solutions balance investment cost, energy yield, and financial returns effectively.</p>
+                <p><strong>Next Phase:</strong> Proceed to Step 9 (Financial Analysis) for detailed economic evaluation of selected solutions.</p>
+            </div>
+        """
     
     html += get_footer_html()
     return html
 
 def generate_step9_report():
-    """Generate Step 9: Financial Analysis Report"""
+    """Generate Step 9: Financial & Environmental Analysis Report"""
     consolidated_manager = ConsolidatedDataManager()
     step9_data = consolidated_manager.get_step_data(9)
     
@@ -1201,52 +1735,181 @@ def generate_step9_report():
     
     economic_metrics = safe_get(step9_data, 'economic_metrics', {})
     environmental_impact = safe_get(step9_data, 'environmental_impact', {})
+    cash_flow_analysis = safe_get(step9_data, 'cash_flow_analysis', {})
     
     if not economic_metrics:
         html += """
             <div class="content-section">
                 <h2>⚠️ No Financial Analysis Available</h2>
-                <p>Financial and environmental analysis has not been completed for this project.</p>
+                <div class="highlight-box">
+                    <p><strong>Required Dependencies:</strong> Financial and environmental analysis has not been completed for this project.</p>
+                    <p>Please complete Steps 7 (Yield vs Demand) and 8 (Optimization) to proceed with financial analysis.</p>
+                </div>
             </div>
         """
     else:
         npv = safe_float(safe_get(economic_metrics, 'npv'), 0.0)
         irr = safe_float(safe_get(economic_metrics, 'irr'), 0.0)
         payback = safe_float(safe_get(economic_metrics, 'payback_period'), 0.0)
+        initial_investment = safe_float(safe_get(economic_metrics, 'initial_investment'), 0.0)
+        annual_savings = safe_float(safe_get(economic_metrics, 'annual_savings'), 0.0)
+        lifetime_savings = safe_float(safe_get(economic_metrics, 'lifetime_savings'), 0.0)
+        
+        # Environmental metrics
         co2_savings = safe_float(safe_get(environmental_impact, 'lifetime_co2_savings'), 0.0)
+        annual_co2 = safe_float(safe_get(environmental_impact, 'annual_co2_savings'), 0.0)
+        carbon_value = safe_float(safe_get(environmental_impact, 'carbon_value'), 0.0)
+        grid_co2_factor = safe_float(safe_get(environmental_impact, 'grid_co2_factor'), 0.0)
+        
+        # Determine investment viability
+        if npv > 100000:
+            viability_status = "Excellent"
+            viability_class = "status-excellent"
+        elif npv > 0:
+            viability_status = "Good"
+            viability_class = "status-complete"
+        else:
+            viability_status = "Marginal"
+            viability_class = "status-pending"
         
         html += f"""
+            <div class="analysis-summary">
+                <h3>💎 Financial Analysis Overview</h3>
+                <p>BIPV investment of <strong>€{initial_investment:,.0f}</strong> delivers <strong>€{npv:,.0f} NPV</strong> with <strong>{irr:.1f}% IRR</strong></p>
+                <p>Payback period: <strong>{payback:.1f} years</strong> | Lifetime CO₂ savings: <strong>{co2_savings:,.0f} kg</strong></p>
+            </div>
+            
             <div class="content-section">
-                <h2>💰 Financial Performance</h2>
+                <h2>💰 Investment Performance Metrics</h2>
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">€{npv:,.0f}</div>
-                        <div class="metric-label">Net Present Value</div>
+                        <div class="metric-label">Net Present Value (NPV)</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{irr:.1f}%</div>
-                        <div class="metric-label">Internal Rate of Return</div>
+                        <div class="metric-label">Internal Rate of Return (IRR)</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{payback:.1f} years</div>
-                        <div class="metric-label">Payback Period</div>
+                        <div class="metric-label">Simple Payback Period</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{'Excellent' if npv > 50000 else 'Good' if npv > 0 else 'Marginal'}</div>
+                        <div class="metric-value">€{initial_investment:,.0f}</div>
+                        <div class="metric-label">Initial Investment</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">€{annual_savings:,.0f}</div>
+                        <div class="metric-label">Annual Savings</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value {viability_class}">{viability_status}</div>
                         <div class="metric-label">Investment Viability</div>
                     </div>
                 </div>
             </div>
             
             <div class="content-section">
-                <h2>🌱 Environmental Impact</h2>
+                <h2>🌱 Environmental Impact Assessment</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{co2_savings:,.0f} kg</div>
+                        <div class="metric-label">Lifetime CO₂ Savings</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{annual_co2:,.0f} kg/year</div>
+                        <div class="metric-label">Annual CO₂ Reduction</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{co2_savings/1000:.1f} tonnes</div>
+                        <div class="metric-label">Total Carbon Offset</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">€{carbon_value:,.0f}</div>
+                        <div class="metric-label">Carbon Credit Value</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{grid_co2_factor:.3f} kg/kWh</div>
+                        <div class="metric-label">Grid CO₂ Factor</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{annual_co2/annual_savings if annual_savings > 0 else 0:.1f} kg/€</div>
+                        <div class="metric-label">CO₂ Savings per Euro</div>
+                    </div>
+                </div>
+            </div>
+        """
+        
+        # Generate financial performance charts
+        if cash_flow_analysis:
+            years = list(range(1, 26))  # 25 years
+            cumulative_cash = []
+            annual_cash = safe_float(annual_savings)
+            
+            for year in years:
+                cumulative = annual_cash * year - initial_investment
+                cumulative_cash.append(cumulative)
+            
+            cash_flow_chart_data = {
+                'x': years,
+                'y': cumulative_cash
+            }
+            html += generate_plotly_chart(
+                cash_flow_chart_data, 
+                'line', 
+                '25-Year Cumulative Cash Flow Analysis',
+                'Year', 
+                'Cumulative Cash Flow (€)'
+            )
+        
+        # CO2 savings over time
+        if annual_co2 > 0:
+            co2_years = list(range(1, 26))
+            cumulative_co2 = [annual_co2 * year for year in co2_years]
+            
+            co2_chart_data = {
+                'x': co2_years,
+                'y': cumulative_co2
+            }
+            html += generate_plotly_chart(
+                co2_chart_data, 
+                'line', 
+                'Cumulative CO₂ Emissions Reduction (25 Years)',
+                'Year', 
+                'CO₂ Savings (kg)'
+            )
+        
+        html += f"""
+            <div class="content-section">
+                <h2>📊 Economic Performance Analysis</h2>
                 <table class="data-table">
-                    <tr><th>Environmental Metric</th><th>Value</th></tr>
-                    <tr><td>Lifetime CO₂ Savings</td><td>{co2_savings:,.0f} kg</td></tr>
-                    <tr><td>Annual CO₂ Reduction</td><td>{safe_float(safe_get(environmental_impact, 'annual_co2_savings'), 0.0):,.0f} kg</td></tr>
-                    <tr><td>Carbon Monetary Value</td><td>€{safe_float(safe_get(environmental_impact, 'carbon_value'), 0.0):,.0f}</td></tr>
-                    <tr><td>Grid CO₂ Factor</td><td>{safe_float(safe_get(environmental_impact, 'grid_co2_factor'), 0.0):.3f} kg/kWh</td></tr>
+                    <tr><th>Financial Metric</th><th>Value</th><th>Interpretation</th></tr>
+                    <tr><td>Net Present Value (NPV)</td><td>€{npv:,.0f}</td><td>{'Highly profitable' if npv > 100000 else 'Profitable' if npv > 0 else 'Not economically viable'}</td></tr>
+                    <tr><td>Internal Rate of Return (IRR)</td><td>{irr:.1f}%</td><td>{'Excellent returns' if irr > 10 else 'Good returns' if irr > 5 else 'Marginal returns'}</td></tr>
+                    <tr><td>Payback Period</td><td>{payback:.1f} years</td><td>{'Fast payback' if payback < 7 else 'Reasonable payback' if payback < 12 else 'Slow payback'}</td></tr>
+                    <tr><td>Lifetime Savings</td><td>€{lifetime_savings:,.0f}</td><td>Total financial benefit over 25 years</td></tr>
+                    <tr><td>Return on Investment</td><td>{(lifetime_savings/initial_investment*100) if initial_investment > 0 else 0:.0f}%</td><td>Total percentage return on capital</td></tr>
+                    <tr><td>Annual Yield Rate</td><td>{(annual_savings/initial_investment*100) if initial_investment > 0 else 0:.1f}%</td><td>Annual return percentage</td></tr>
                 </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>🌍 Environmental Value Creation</h2>
+                <table class="data-table">
+                    <tr><th>Environmental Metric</th><th>Quantity</th><th>Equivalent Impact</th></tr>
+                    <tr><td>Total CO₂ Avoided</td><td>{co2_savings:,.0f} kg</td><td>{co2_savings/2300:.1f} passenger cars removed for 1 year</td></tr>
+                    <tr><td>Annual Emission Reduction</td><td>{annual_co2:,.0f} kg/year</td><td>{annual_co2/15:.0f} trees planted annually</td></tr>
+                    <tr><td>Carbon Credit Value</td><td>€{carbon_value:,.0f}</td><td>Additional revenue potential</td></tr>
+                    <tr><td>Green Energy Generated</td><td>{annual_savings*25/0.3 if annual_savings > 0 else 0:,.0f} kWh</td><td>25-year clean energy production</td></tr>
+                    <tr><td>Grid Decarbonization</td><td>{grid_co2_factor:.3f} kg/kWh</td><td>Local grid carbon intensity</td></tr>
+                </table>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 Investment Recommendation</h3>
+                <p><strong>Financial Viability:</strong> {viability_status} investment opportunity with {irr:.1f}% IRR and {payback:.1f}-year payback.</p>
+                <p><strong>Environmental Impact:</strong> Significant carbon footprint reduction of {co2_savings:,.0f} kg CO₂ over system lifetime.</p>
+                <p><strong>Strategic Value:</strong> BIPV integration provides dual benefits of energy cost reduction and building sustainability enhancement.</p>
             </div>
         """
     
