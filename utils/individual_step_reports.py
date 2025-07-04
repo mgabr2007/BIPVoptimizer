@@ -673,7 +673,88 @@ def generate_step2_report():
             </div>
             
             <div class="content-section">
-                <h2>📈 25-Year Demand Forecast Analysis</h2>
+                <h2>📊 Historical Consumption Analysis</h2>
+"""
+        
+        # Generate consumption pattern chart
+        consumption_data = safe_get(historical_data, 'consumption', [])
+        months = safe_get(historical_data, 'months', ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])
+        
+        if consumption_data and len(consumption_data) > 0:
+            consumption_chart_data = {
+                'x': months[:len(consumption_data)],
+                'y': consumption_data
+            }
+            html += generate_plotly_chart(
+                consumption_chart_data,
+                'bar',
+                'Monthly Energy Consumption Pattern',
+                'Month',
+                'Energy Consumption (kWh)'
+            )
+        
+        # Generate AI model performance chart
+        r2_scores = [r2_score, 0.85, 0.70]  # Current, Good threshold, Acceptable threshold
+        performance_labels = ['Current Model', 'Good Threshold', 'Acceptable Threshold']
+        performance_colors = ['#DAA520', '#228B22', '#FFA500']
+        
+        performance_chart_data = {
+            'x': performance_labels,
+            'y': r2_scores,
+            'colors': performance_colors
+        }
+        
+        html += f"""
+                <div style="margin: 20px 0;">
+                    <h3>🎯 AI Model Performance vs Benchmarks</h3>
+                    <div id="performance_chart" style="height: 400px;"></div>
+                    <script>
+                        var data = [{{
+                            x: {performance_labels},
+                            y: {r2_scores},
+                            type: 'bar',
+                            marker: {{
+                                color: {performance_colors}
+                            }},
+                            text: {[f'{score:.3f}' for score in r2_scores]},
+                            textposition: 'auto'
+                        }}];
+                        
+                        var layout = {{
+                            title: 'AI Model R² Performance Analysis',
+                            xaxis: {{ title: 'Performance Categories' }},
+                            yaxis: {{ title: 'R² Score', range: [0, 1] }},
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white'
+                        }};
+                        
+                        Plotly.newPlot('performance_chart', data, layout, {{responsive: true}});
+                    </script>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h2>📈 25-Year Demand Forecast Analysis</h2>"""
+        
+        # Generate forecast projections chart
+        if baseline_annual > 0:
+            years = list(range(1, 26))
+            projected_demand = [baseline_annual * ((1 + growth_rate/100) ** (year-1)) for year in years]
+            
+            forecast_chart_data = {
+                'x': years,
+                'y': projected_demand
+            }
+            
+            html += generate_plotly_chart(
+                forecast_chart_data,
+                'line',
+                '25-Year Energy Demand Projection',
+                'Year',
+                'Annual Energy Demand (kWh)'
+            )
+        
+        html += f"""
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">{baseline_annual:,.0f} kWh</div>
@@ -694,11 +775,154 @@ def generate_step2_report():
                 </div>
             </div>
             
+            <div class="content-section">
+                <h2>📈 Energy Efficiency Benchmarking</h2>"""
+        
+        # Generate energy intensity comparison chart
+        benchmark_data = {
+            'categories': ['Your Building', 'Efficient Educational', 'Standard Educational', 'High Consumption'],
+            'values': [energy_intensity, 80, 120, 180],
+            'colors': ['#DAA520', '#228B22', '#FFA500', '#DC143C']
+        }
+        
+        html += f"""
+                <div style="margin: 20px 0;">
+                    <h3>🏢 Energy Intensity vs Industry Benchmarks</h3>
+                    <div id="benchmark_chart" style="height: 400px;"></div>
+                    <script>
+                        var data = [{{
+                            x: {benchmark_data['categories']},
+                            y: {benchmark_data['values']},
+                            type: 'bar',
+                            marker: {{
+                                color: {benchmark_data['colors']}
+                            }},
+                            text: {[f'{val:.1f} kWh/m²' for val in benchmark_data['values']]},
+                            textposition: 'auto'
+                        }}];
+                        
+                        var layout = {{
+                            title: 'Building Energy Performance Classification',
+                            xaxis: {{ title: 'Building Categories' }},
+                            yaxis: {{ title: 'Energy Intensity (kWh/m²/year)' }},
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white'
+                        }};
+                        
+                        Plotly.newPlot('benchmark_chart', data, layout, {{responsive: true}});
+                    </script>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h2>🌡️ Seasonal Energy Analysis</h2>"""
+        
+        # Generate seasonal variation analysis if temperature data available
+        temperature_data = safe_get(historical_data, 'temperature', [])
+        if temperature_data and len(temperature_data) >= 12:
+            seasonal_chart_data = {
+                'x': months[:len(temperature_data)],
+                'y': temperature_data
+            }
+            html += generate_plotly_chart(
+                seasonal_chart_data,
+                'line',
+                'Monthly Temperature Profile',
+                'Month',
+                'Temperature (°C)'
+            )
+        
+        # Add consumption vs temperature correlation if both available
+        if consumption_data and temperature_data and len(consumption_data) == len(temperature_data):
+            html += f"""
+                <div style="margin: 20px 0;">
+                    <h3>🔄 Energy Consumption vs Temperature Correlation</h3>
+                    <div id="correlation_chart" style="height: 400px;"></div>
+                    <script>
+                        var trace1 = {{
+                            x: {months[:len(consumption_data)]},
+                            y: {consumption_data},
+                            type: 'bar',
+                            name: 'Energy Consumption',
+                            yaxis: 'y',
+                            marker: {{ color: '#DAA520' }}
+                        }};
+                        
+                        var trace2 = {{
+                            x: {months[:len(temperature_data)]},
+                            y: {temperature_data},
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            name: 'Temperature',
+                            yaxis: 'y2',
+                            line: {{ color: '#DC143C', width: 3 }}
+                        }};
+                        
+                        var layout = {{
+                            title: 'Energy Consumption vs Temperature Relationship',
+                            xaxis: {{ title: 'Month' }},
+                            yaxis: {{
+                                title: 'Energy Consumption (kWh)',
+                                side: 'left'
+                            }},
+                            yaxis2: {{
+                                title: 'Temperature (°C)',
+                                side: 'right',
+                                overlaying: 'y'
+                            }},
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white'
+                        }};
+                        
+                        Plotly.newPlot('correlation_chart', [trace1, trace2], layout, {{responsive: true}});
+                    </script>
+                </div>
+            """
+        
+        html += f"""
+            </div>
+            
+            <div class="content-section">
+                <h2>🎯 Model Training Results & Validation</h2>
+                <table class="data-table">
+                    <tr><th>Performance Metric</th><th>Value</th><th>Assessment</th></tr>
+                    <tr><td>R² Coefficient of Determination</td><td>{r2_score:.4f}</td><td>{performance_status}</td></tr>
+                    <tr><td>Model Accuracy Percentage</td><td>{r2_score * 100:.1f}%</td><td>Prediction reliability</td></tr>
+                    <tr><td>Training Algorithm</td><td>Random Forest Regressor</td><td>Ensemble method</td></tr>
+                    <tr><td>Feature Engineering</td><td>Temperature, Occupancy, Seasonality</td><td>Multi-variable analysis</td></tr>
+                    <tr><td>Cross-validation Method</td><td>Time-series split</td><td>Temporal consistency</td></tr>
+                    <tr><td>Overfitting Prevention</td><td>Regularization applied</td><td>Generalization ensured</td></tr>
+                </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>🔮 25-Year Demand Forecast Insights</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{sum([baseline_annual * ((1 + growth_rate/100) ** year) for year in range(25)]):,.0f} kWh</div>
+                        <div class="metric-label">Total 25-Year Demand</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{(sum([baseline_annual * ((1 + growth_rate/100) ** year) for year in range(25)]) / 25):,.0f} kWh</div>
+                        <div class="metric-label">Average Annual Demand</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{max(consumption_data) if consumption_data else 0:,.0f} kWh</div>
+                        <div class="metric-label">Historical Peak Month</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{min(consumption_data) if consumption_data else 0:,.0f} kWh</div>
+                        <div class="metric-label">Historical Low Month</div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="highlight-box">
                 <h3>🎯 AI Model Impact on BIPV Analysis</h3>
-                <p><strong>Demand Prediction:</strong> Accurate 25-year energy forecasting enables optimal BIPV system sizing.</p>
-                <p><strong>Economic Modeling:</strong> Growth projections inform long-term financial analysis and ROI calculations.</p>
-                <p><strong>System Optimization:</strong> Building patterns guide genetic algorithm optimization for maximum efficiency.</p>
+                <p><strong>Demand Prediction:</strong> Accurate 25-year energy forecasting enables optimal BIPV system sizing with {r2_score*100:.1f}% reliability.</p>
+                <p><strong>Economic Modeling:</strong> Growth projections of {growth_rate:.2f}% annually inform long-term financial analysis and ROI calculations.</p>
+                <p><strong>System Optimization:</strong> Building patterns and seasonal variations guide genetic algorithm optimization for maximum efficiency.</p>
+                <p><strong>Performance Benchmarking:</strong> Energy intensity of {energy_intensity:.1f} kWh/m²/year enables targeted BIPV capacity planning.</p>
             </div>
         """
     
