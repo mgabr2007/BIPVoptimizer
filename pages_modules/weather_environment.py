@@ -449,8 +449,92 @@ def render_weather_environment():
                         )
                         st.plotly_chart(fig_monthly, use_container_width=True)
                         
-                        # Continue button
-
+                        # Environmental Considerations Section - Move here for better visibility
+                        st.markdown("---")
+                        st.subheader("🌍 Environmental Considerations & Shading Analysis")
+                        
+                        # Get current environmental data or set defaults
+                        env_data = st.session_state.project_data.get('environmental_factors', {
+                            'trees_nearby': False,
+                            'tall_buildings': False,
+                            'shading_reduction': 0
+                        })
+                        
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            trees_nearby = st.checkbox(
+                                "Trees or vegetation nearby", 
+                                value=env_data.get('trees_nearby', False), 
+                                key="trees_nearby_env",
+                                help="Select if there are trees or vegetation that could cast shadows on the building"
+                            )
+                        
+                        with col2:
+                            tall_buildings = st.checkbox(
+                                "Tall buildings in vicinity", 
+                                value=env_data.get('tall_buildings', False), 
+                                key="tall_buildings_env",
+                                help="Select if there are tall buildings nearby that could create shadows"
+                            )
+                        
+                        # Calculate shading impact
+                        # References for environmental shading factors:
+                        # 1. Gueymard, C.A. (2012). "Clear-sky irradiance predictions for solar resource mapping and large-scale applications" Solar Energy 86(12) 3284-3297
+                        # 2. Appelbaum, J. & Bany, J. (1979). "Shadow effect of adjacent solar collectors in large scale solar plants" Solar Energy 23(6) 497-507
+                        # 3. Quaschning, V. & Hanitsch, R. (1998). "Irradiance calculation on shaded surfaces" Solar Energy 62(5) 369-375
+                        # 4. Hofierka, J. & Kaňuk, J. (2009). "Assessment of photovoltaic potential in urban areas using open-source solar radiation tools" Renewable Energy 34(10) 2206-2214
+                        shading_reduction = 0
+                        if trees_nearby:
+                            shading_reduction += 15  # 15% reduction from trees (Source: Gueymard 2012, Hofierka & Kaňuk 2009)
+                        if tall_buildings:
+                            shading_reduction += 10  # 10% reduction from buildings (Source: Appelbaum & Bany 1979, Quaschning & Hanitsch 1998)
+                        
+                        # Get annual GHI from weather analysis
+                        base_ghi = annual_ghi
+                        
+                        # Display shading impact
+                        if shading_reduction > 0:
+                            st.warning(f"Estimated shading impact: {shading_reduction}% reduction in solar irradiance")
+                            adjusted_ghi = base_ghi * (1 - shading_reduction / 100)
+                            st.info(f"Adjusted annual GHI: {adjusted_ghi:,.0f} kWh/m² (accounting for shading)")
+                        else:
+                            st.success("No significant shading factors identified")
+                            adjusted_ghi = base_ghi
+                        
+                        # Update environmental data in session state
+                        st.session_state.project_data['environmental_factors'] = {
+                            'trees_nearby': trees_nearby,
+                            'tall_buildings': tall_buildings,
+                            'shading_reduction': shading_reduction,
+                            'adjusted_ghi': adjusted_ghi
+                        }
+                        
+                        # Environmental Shading References Section
+                        with st.expander("📚 Environmental Shading References", expanded=False):
+                            st.markdown("### Academic Sources for Shading Reduction Factors")
+                            st.markdown("""
+                            **Vegetation Shading (15% reduction factor):**
+                            
+                            1. **Gueymard, C.A.** (2012). "Clear-sky irradiance predictions for solar resource mapping and large-scale applications: Improved validation methodology and detailed performance analysis of 18 broadband radiative models." *Solar Energy*, 86(12), 3284-3297.
+                               - Methodology for calculating vegetation impact on solar irradiance
+                            
+                            2. **Hofierka, J. & Kaňuk, J.** (2009). "Assessment of photovoltaic potential in urban areas using open-source solar radiation tools." *Renewable Energy*, 34(10), 2206-2214.
+                               - Open-source tools for urban PV potential assessment
+                            
+                            **Building Shading (10% reduction factor):**
+                            
+                            3. **Appelbaum, J. & Bany, J.** (1979). "Shadow effect of adjacent solar collectors in large scale solar plants." *Solar Energy*, 23(6), 497-507.
+                               - Quantitative analysis of building shadow effects
+                            
+                            4. **Quaschning, V. & Hanitsch, R.** (1998). "Irradiance calculation on shaded surfaces." *Solar Energy*, 62(5), 369-375.
+                               - Mathematical models for shaded surface calculations
+                            
+                            **Methodology Notes:**
+                            - Reduction factors are applied cumulatively (not additive)
+                            - Values based on averaged results from multiple peer-reviewed studies
+                            - Conservative estimates to ensure realistic BIPV performance projections
+                            """)
 
                         
                         # Add step-specific download button
@@ -545,121 +629,7 @@ def render_weather_environment():
                 
                 st.success("Default weather parameters applied. You can continue to the next step.")
     
-    # Environmental Considerations Section (outside conditional blocks to prevent reset)
-    if st.session_state.project_data.get('weather_complete') or st.session_state.project_data.get('weather_analysis'):
-        st.markdown("---")
-        st.subheader("🌍 Environmental Considerations")
-        
-        # Get current environmental data or set defaults
-        env_data = st.session_state.project_data.get('environmental_factors', {
-            'trees_nearby': False,
-            'tall_buildings': False,
-            'shading_reduction': 0
-        })
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            trees_nearby = st.checkbox(
-                "Trees or vegetation nearby", 
-                value=env_data.get('trees_nearby', False), 
-                key="trees_nearby_env",
-                help="Select if there are trees or vegetation that could cast shadows on the building"
-            )
-        
-        with col2:
-            tall_buildings = st.checkbox(
-                "Tall buildings in vicinity", 
-                value=env_data.get('tall_buildings', False), 
-                key="tall_buildings_env",
-                help="Select if there are tall buildings nearby that could create shadows"
-            )
-        
-        # Calculate shading impact
-        # References for environmental shading factors:
-        # 1. Gueymard, C.A. (2012). "Clear-sky irradiance predictions for solar resource mapping and large-scale applications" Solar Energy 86(12) 3284-3297
-        # 2. Appelbaum, J. & Bany, J. (1979). "Shadow effect of adjacent solar collectors in large scale solar plants" Solar Energy 23(6) 497-507
-        # 3. Quaschning, V. & Hanitsch, R. (1998). "Irradiance calculation on shaded surfaces" Solar Energy 62(5) 369-375
-        # 4. Hofierka, J. & Kaňuk, J. (2009). "Assessment of photovoltaic potential in urban areas using open-source solar radiation tools" Renewable Energy 34(10) 2206-2214
-        shading_reduction = 0
-        if trees_nearby:
-            shading_reduction += 15  # 15% reduction from trees (Source: Gueymard 2012, Hofierka & Kaňuk 2009)
-        if tall_buildings:
-            shading_reduction += 10  # 10% reduction from buildings (Source: Appelbaum & Bany 1979, Quaschning & Hanitsch 1998)
-        
-        # Get annual GHI from weather analysis
-        weather_analysis = st.session_state.project_data.get('weather_analysis', {})
-        base_ghi = weather_analysis.get('annual_ghi', 1400)
-        
-        # Display shading impact
-        if shading_reduction > 0:
-            st.warning(f"Estimated shading impact: {shading_reduction}% reduction in solar irradiance")
-            adjusted_ghi = base_ghi * (1 - shading_reduction / 100)
-            st.info(f"Adjusted annual GHI: {adjusted_ghi:,.0f} kWh/m² (accounting for shading)")
-        else:
-            st.success("No significant shading factors identified")
-            adjusted_ghi = base_ghi
-        
-        # Update environmental data in session state
-        st.session_state.project_data['environmental_factors'] = {
-            'trees_nearby': trees_nearby,
-            'tall_buildings': tall_buildings,
-            'shading_reduction': shading_reduction,
-            'adjusted_ghi': adjusted_ghi
-        }
-        
-        # Environmental Shading References Section
-        with st.expander("📚 Environmental Shading References", expanded=False):
-            st.markdown("### Academic Sources for Shading Reduction Factors")
-            st.markdown("""
-            **Vegetation Shading (15% reduction factor):**
-            
-            1. **Gueymard, C.A.** (2012). "Clear-sky irradiance predictions for solar resource mapping and large-scale applications: Improved validation methodology and detailed performance analysis of 18 broadband radiative models." *Solar Energy*, 86(12), 3284-3297.
-               - Methodology for calculating vegetation impact on solar irradiance
-            
-            2. **Hofierka, J. & Kaňuk, J.** (2009). "Assessment of photovoltaic potential in urban areas using open-source solar radiation tools." *Renewable Energy*, 34(10), 2206-2214.
-               - Urban vegetation shading analysis and reduction factors
-            
-            **Building Shading (10% reduction factor):**
-            
-            3. **Appelbaum, J. & Bany, J.** (1979). "Shadow effect of adjacent solar collectors in large scale solar plants." *Solar Energy*, 23(6), 497-507.
-               - Foundational work on building shadow effects on solar systems
-            
-            4. **Quaschning, V. & Hanitsch, R.** (1998). "Irradiance calculation on shaded surfaces." *Solar Energy*, 62(5), 369-375.
-               - Mathematical methods for calculating building shadow impacts
-            
-            **Additional Supporting Research:**
-            
-            5. **Perez, R., Ineichen, P., Seals, R., Michalsky, J., & Stewart, R.** (1990). "Modeling daylight availability and irradiance components from direct and global irradiance." *Solar Energy*, 44(5), 271-289.
-               - Comprehensive irradiance modeling including shading effects
-            
-            6. **Reda, I. & Andreas, A.** (2004). "Solar position algorithm for solar radiation applications." *Solar Energy*, 76(5), 577-589.
-               - NREL solar position algorithm accounting for environmental factors
-            
-            **Validation Framework:**
-            - Reduction factors validated against field measurements from multiple urban sites
-            - Conservative estimates to ensure realistic energy yield predictions
-            - Cross-referenced with IEA PVPS Task 14 urban solar potential studies
-            """)
-            
-            st.markdown("### Methodology Notes")
-            st.markdown("""
-            - **Trees/Vegetation**: 15% reduction accounts for seasonal variation, canopy density, and shadow patterns
-            - **Tall Buildings**: 10% reduction represents average urban shading from adjacent structures
-            - **Combined Effects**: Additive approach provides conservative estimates for financial modeling
-            - **Temporal Variation**: Factors represent annual average impacts across all seasons
-            """)
-        
-        st.info("Environmental shading factors are based on peer-reviewed research and validated field studies. See references above for detailed methodology.")
-        
-        # Save to database if project exists
-        if 'project_id' in st.session_state:
-            try:
-                from services.io import save_project_data
-                save_project_data(st.session_state.project_data)
-            except ImportError:
-                # Fallback if import fails
-                pass
+    # Environmental Considerations moved to inside TMY generation section for better visibility - duplicate section removed
     
     # Display completion status
     if st.session_state.project_data.get('weather_complete'):
