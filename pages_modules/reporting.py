@@ -6,7 +6,7 @@ from datetime import datetime
 from services.io import get_project_report_data
 from core.solar_math import get_currency_symbol, safe_divide
 from pages_modules.detailed_report_generator import generate_comprehensive_detailed_report
-from utils.comprehensive_report_generator import generate_comprehensive_report
+from utils.comprehensive_report_clean import generate_comprehensive_report
 
 
 def generate_window_elements_csv():

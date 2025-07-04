@@ -155,6 +155,13 @@ def generate_comprehensive_report():
         </div>
     """
     
+    # Import step generators
+    from utils.report_step_generators import (
+        generate_step1_section, generate_step2_section, generate_step3_section,
+        generate_step4_section, generate_step5_section, generate_step6_section,
+        generate_step7_section, generate_step8_section, generate_step9_section
+    )
+    
     # Step 1: Project Setup & Location Analysis
     html_content += generate_step1_section(step1_data)
     
