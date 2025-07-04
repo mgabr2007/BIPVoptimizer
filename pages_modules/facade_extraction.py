@@ -360,6 +360,16 @@ def render_facade_extraction():
 
 
             
+            # Add step-specific download button
+            st.markdown("---")
+            st.markdown("### 📄 Step 4 Analysis Report")
+            st.markdown("Download detailed BIM facade and window extraction analysis report:")
+            
+            from utils.individual_step_reports import create_step_download_button
+            create_step_download_button(4, "Facade Extraction", "Download BIM Analysis Report")
+            
+            st.markdown("---")
+            
             if st.button("Continue to Step 5: Radiation Analysis", key="continue_radiation"):
                 st.session_state.current_step = 'radiation_grid'
                 st.session_state.scroll_to_top = True

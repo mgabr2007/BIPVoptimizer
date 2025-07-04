@@ -293,5 +293,13 @@ def render_pv_specification():
             else:
                 st.error("Could not calculate BIPV specifications. Please check your data.")
     
+    # Add step-specific download button
+    st.markdown("---")
+    st.markdown("### 📄 Step 6 Analysis Report")
+    st.markdown("Download detailed PV specification and system design report:")
+    
+    from utils.individual_step_reports import create_step_download_button
+    create_step_download_button(6, "PV Specification", "Download PV Specification Report")
+    
     st.markdown("---")
     st.markdown("**Next Step:** Proceed to Step 7 (Yield vs Demand Analysis) to compare energy generation with building consumption.")

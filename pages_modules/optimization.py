@@ -857,6 +857,14 @@ def render_optimization():
             
             with col2:
                 st.info("Optimization complete - ready for financial analysis")
+            
+            # Add step-specific download button
+            st.markdown("---")
+            st.markdown("### 📄 Step 8 Analysis Report")
+            st.markdown("Download detailed multi-objective optimization analysis report:")
+            
+            from utils.individual_step_reports import create_step_download_button
+            create_step_download_button(8, "Optimization", "Download Optimization Analysis Report")
         
         else:
             st.warning("No optimization results available. Please run the optimization.")

@@ -591,54 +591,19 @@ def render_bottom_navigation(workflow_steps, current_step):
             }
             
             if current_step in step_names:
-                step_name, step_num = step_names[current_step]
-                # Create download button with unique key for bottom navigation
-                from utils.individual_step_reports import generate_individual_step_report
-                from datetime import datetime
-                
-                try:
-                    html_content = generate_individual_step_report(step_num)
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = f"BIPV_Step_{step_num}_{step_name.replace(' ', '_')}_{timestamp}.html"
-                    
-                    # Column for Download Report and Continue buttons
-                    col_download, col_continue = st.columns(2)
-                    
-                    with col_download:
-                        st.download_button(
-                            label=f"📄 Download Report",
-                            data=html_content.encode('utf-8'),
-                            file_name=filename,
-                            mime="text/html",
-                            key=f"bottom_download_step_{step_num}",
-                            use_container_width=True
-                        )
-                    
-                    with col_continue:
-                        # Find next step
-                        current_index = next((i for i, (key, _, _) in enumerate(workflow_steps) if key == current_step), 0)
-                        if current_index < len(workflow_steps) - 1:
-                            next_step = workflow_steps[current_index + 1]
-                            if st.button(f"Continue →", key=f"bottom_continue_{step_num}", use_container_width=True):
-                                st.session_state.current_step = next_step[0]
-                                st.session_state.scroll_to_top = True
-                                st.rerun()
-                        else:
-                            if st.button("🎯 Complete Analysis", key=f"bottom_complete_{step_num}", use_container_width=True):
-                                st.session_state.current_step = 'reporting'
-                                st.session_state.scroll_to_top = True
-                                st.rerun()
-                
-                except Exception as e:
-                    st.error(f"Error generating Step {step_num} report: {str(e)}")
-                    # Fallback: just show continue button
-                    current_index = next((i for i, (key, _, _) in enumerate(workflow_steps) if key == current_step), 0)
-                    if current_index < len(workflow_steps) - 1:
-                        next_step = workflow_steps[current_index + 1]
-                        if st.button(f"Continue →", key=f"bottom_continue_fallback_{step_num}", use_container_width=True):
-                            st.session_state.current_step = next_step[0]
-                            st.session_state.scroll_to_top = True
-                            st.rerun()
+                # Find next step for navigation
+                current_index = next((i for i, (key, _, _) in enumerate(workflow_steps) if key == current_step), 0)
+                if current_index < len(workflow_steps) - 1:
+                    next_step = workflow_steps[current_index + 1]
+                    if st.button(f"Continue →", key=f"bottom_continue_nav", use_container_width=True):
+                        st.session_state.current_step = next_step[0]
+                        st.session_state.scroll_to_top = True
+                        st.rerun()
+                else:
+                    if st.button("🎯 Complete Analysis", key=f"bottom_complete_nav", use_container_width=True):
+                        st.session_state.current_step = 'reporting'
+                        st.session_state.scroll_to_top = True
+                        st.rerun()
         elif current_step == 'ai_consultation':
             # Show finish button on the final step
             if st.button("🎯 Finish & New Calculation", key="finish_restart_bottom", use_container_width=True):

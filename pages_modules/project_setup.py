@@ -653,4 +653,7 @@ def render_project_setup():
         # Add step-specific download button
         st.markdown("---")
         st.markdown("### 📄 Step 1 Analysis Report")
-        st.markdown("Download a detailed report of your project setup and configuration using the download button in the footer navigation below.")
+        st.markdown("Download a detailed report of your project setup and configuration:")
+        
+        from utils.individual_step_reports import create_step_download_button
+        create_step_download_button(1, "Project Setup", "Download Project Setup Report")

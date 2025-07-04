@@ -1181,6 +1181,16 @@ def render_historical_data():
 
 
         
+        # Add step-specific download button
+        st.markdown("---")
+        st.markdown("### 📄 Step 2 Analysis Report")
+        st.markdown("Download detailed AI model training and historical data analysis report:")
+        
+        from utils.individual_step_reports import create_step_download_button
+        create_step_download_button(2, "Historical Data", "Download Historical Data Analysis Report")
+        
+        st.markdown("---")
+        
         if st.button("Continue to Step 3: Weather Integration", key="continue_weather"):
             st.session_state.current_step = 'weather_environment'
             st.session_state.scroll_to_top = True

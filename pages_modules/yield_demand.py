@@ -714,5 +714,14 @@ def render_yield_demand():
             # Summary information
             total_feed_in = analysis_data.get('total_feed_in_revenue', 0)
             st.info(f"💡 Annual feed-in revenue: €{total_feed_in:,.0f} | Monthly values now show realistic seasonal variation based on solar irradiation patterns")
+            
+            # Add step-specific download button
+            st.markdown("---")
+            st.markdown("### 📄 Step 7 Analysis Report")
+            st.markdown("Download detailed yield vs demand analysis report:")
+            
+            from utils.individual_step_reports import create_step_download_button
+            create_step_download_button(7, "Yield vs Demand", "Download Yield Analysis Report")
+            
         else:
             st.info("No energy balance analysis available. Please run the yield vs demand analysis first.")

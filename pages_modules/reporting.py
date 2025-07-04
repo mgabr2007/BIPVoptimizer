@@ -408,7 +408,16 @@ def render_reporting():
         
         st.success("CSV file generated successfully!")
     
+    # Add step-specific download button
+    st.markdown("---")
+    st.markdown("### 📄 Step 10 Analysis Report")
+    st.markdown("Download detailed comprehensive final analysis report:")
+    
+    from utils.individual_step_reports import create_step_download_button
+    create_step_download_button(10, "Final Reporting", "Download Final Analysis Report")
+    
     # Workflow completion
+    st.markdown("---")
     st.subheader("Analysis Complete")
     
     st.success("BIPV optimization analysis workflow completed successfully!")

@@ -423,6 +423,16 @@ def render_weather_environment():
 
 
                         
+                        # Add step-specific download button
+                        st.markdown("---")
+                        st.markdown("### 📄 Step 3 Analysis Report")
+                        st.markdown("Download detailed weather environment and TMY generation report:")
+                        
+                        from utils.individual_step_reports import create_step_download_button
+                        create_step_download_button(3, "Weather Environment", "Download Weather Analysis Report")
+                        
+                        st.markdown("---")
+                        
                         if st.button("Continue to Step 4: BIM Extraction", key="continue_bim"):
                             st.session_state.current_step = 'facade_extraction'
                             st.session_state.scroll_to_top = True

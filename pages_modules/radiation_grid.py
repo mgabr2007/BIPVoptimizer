@@ -933,6 +933,14 @@ def render_radiation_grid():
             
             with col2:
                 st.info("Radiation analysis ready for next step (PV Specification)")
+            
+            # Add step-specific download button
+            st.markdown("---")
+            st.markdown("### 📄 Step 5 Analysis Report")
+            st.markdown("Download detailed radiation and shading analysis report:")
+            
+            from utils.individual_step_reports import create_step_download_button
+            create_step_download_button(5, "Radiation Grid", "Download Radiation Analysis Report")
         
         else:
             st.warning("No radiation data available. Please run the analysis.")
