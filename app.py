@@ -540,6 +540,8 @@ def main():
 
 def render_bottom_navigation(workflow_steps, current_step):
     """Render navigation buttons at the bottom of each page"""
+    from utils.individual_step_reports import create_step_download_button
+    
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col1:
@@ -561,12 +563,36 @@ def render_bottom_navigation(workflow_steps, current_step):
             st.markdown(f"<h4 style='text-align: center;'>Step {step_number} of 11</h4>", unsafe_allow_html=True)
     
     with col3:
-        if current_index < len(workflow_steps) - 1:
-            next_step = workflow_steps[current_index + 1]
-            if st.button(f"{next_step[1]} →", key="bottom_next_step", use_container_width=True):
-                st.session_state.current_step = next_step[0]
+        # Show download button for completed analysis steps or navigation for others
+        if current_step == 'welcome':
+            # Welcome page - show start button
+            if st.button("Start Analysis →", key="bottom_start", use_container_width=True):
+                st.session_state.current_step = 'project_setup'
                 st.session_state.scroll_to_top = True
                 st.rerun()
+        elif current_step == 'reporting':
+            # Last step - show new calculation button
+            if st.button("🔄 New Analysis", key="bottom_new_calc", use_container_width=True):
+                st.session_state.current_step = 'welcome'
+                st.session_state.scroll_to_top = True
+                st.rerun()
+        elif current_step in ['project_setup', 'historical_data', 'weather_environment', 'facade_extraction', 'radiation_grid', 'pv_specification', 'yield_demand', 'optimization', 'financial_analysis']:
+            # Analysis steps - show download report button
+            step_names = {
+                'project_setup': ('Project Setup', 1),
+                'historical_data': ('Historical Data', 2),
+                'weather_environment': ('Weather Environment', 3),
+                'facade_extraction': ('Facade Extraction', 4),
+                'radiation_grid': ('Radiation Analysis', 5),
+                'pv_specification': ('PV Specification', 6),
+                'yield_demand': ('Yield vs Demand', 7),
+                'optimization': ('Optimization', 8),
+                'financial_analysis': ('Financial Analysis', 9)
+            }
+            
+            if current_step in step_names:
+                step_name, step_num = step_names[current_step]
+                create_step_download_button(step_num, step_name, f"📄 Download Step {step_num} Report")
         elif current_step == 'ai_consultation':
             # Show finish button on the final step
             if st.button("🎯 Finish & New Calculation", key="finish_restart_bottom", use_container_width=True):
@@ -576,6 +602,14 @@ def render_bottom_navigation(workflow_steps, current_step):
                         del st.session_state[key]
                 st.session_state.current_step = 'welcome'
                 st.rerun()
+        else:
+            # Other steps - show next navigation
+            if current_index < len(workflow_steps) - 1:
+                next_step = workflow_steps[current_index + 1]
+                if st.button(f"{next_step[1]} →", key="bottom_next_step", use_container_width=True):
+                    st.session_state.current_step = next_step[0]
+                    st.session_state.scroll_to_top = True
+                    st.rerun()
 
 
 if __name__ == "__main__":

@@ -716,6 +716,14 @@ def render_financial_analysis():
             
             with col2:
                 st.info("Financial analysis complete - ready for final reporting")
+                
+                # Add step-specific download button
+                st.markdown("---")
+                st.markdown("### 📄 Step 9 Analysis Report")
+                st.markdown("Download detailed financial analysis report:")
+                
+                from utils.individual_step_reports import create_step_download_button
+                create_step_download_button(9, "Financial Analysis", "Download Financial Analysis Report")
         
         else:
             st.warning("No financial analysis results available. Please run the analysis.")
