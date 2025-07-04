@@ -537,8 +537,11 @@ def generate_step3_section_fixed(data):
 
 def generate_step4_section_fixed(data):
     """Generate Step 4 section with robust data extraction"""
-    # Building elements data
-    building_elements = safe_get(data, 'building_elements', [])
+    # Building elements data - check multiple possible locations
+    building_elements = (safe_get(data, 'building_elements', []) or 
+                        safe_get(data, 'building_elements_data', []) or 
+                        safe_get(data, 'elements', []) or
+                        [])
     
     # Handle DataFrame case
     if hasattr(building_elements, 'to_dict') and callable(getattr(building_elements, 'to_dict', None)):
@@ -547,8 +550,13 @@ def generate_step4_section_fixed(data):
         except:
             building_elements = []
     
+    # Debug info
+    print(f"DEBUG Step 4: Found {len(building_elements)} building elements")
+    if building_elements:
+        print(f"DEBUG Step 4: First element keys: {list(building_elements[0].keys())}")
+    
     total_elements = len(building_elements) if building_elements else safe_float(safe_get(data, 'total_elements'), 0)
-    total_glass_area = safe_float(safe_get(data, 'total_glass_area'), 0)
+    total_glass_area = sum(safe_float(elem.get('glass_area', elem.get('Glass_Area', 0)), 0) for elem in building_elements) if building_elements else 0
     avg_element_area = (total_glass_area / total_elements) if total_elements > 0 else 0
     
     # Orientation analysis
@@ -558,21 +566,30 @@ def generate_step4_section_fixed(data):
     if building_elements and isinstance(building_elements, list):
         for element in building_elements:
             if isinstance(element, dict):
-                # Orientation analysis
-                azimuth = safe_float(safe_get(element, 'azimuth'), 0)
-                if 315 <= azimuth or azimuth < 45:
-                    orientation = "North (315-45°)"
-                elif 45 <= azimuth < 135:
-                    orientation = "East (45-135°)"  
-                elif 135 <= azimuth < 225:
-                    orientation = "South (135-225°)"
-                else:
-                    orientation = "West (225-315°)"
+                # Orientation analysis - handle both column name variations
+                orientation = (element.get('orientation') or 
+                              element.get('Orientation') or 
+                              'Unknown')
+                azimuth = safe_float(element.get('azimuth', element.get('Azimuth', 0)), 0)
+                
+                # Map azimuth to orientation if not already provided
+                if orientation == 'Unknown' and azimuth != 0:
+                    if 315 <= azimuth or azimuth < 45:
+                        orientation = "North (315-45°)"
+                    elif 45 <= azimuth < 135:
+                        orientation = "East (45-135°)"  
+                    elif 135 <= azimuth < 225:
+                        orientation = "South (135-225°)"
+                    else:
+                        orientation = "West (225-315°)"
                     
                 orientation_counts[orientation] = orientation_counts.get(orientation, 0) + 1
                 
-                # Level analysis
-                level = safe_get(element, 'level', 'Unknown')
+                # Level analysis - handle both column name variations
+                level = (element.get('building_level') or 
+                        element.get('Level') or 
+                        element.get('level') or 
+                        'Unknown')
                 level_counts[level] = level_counts.get(level, 0) + 1
     
     # Generate orientation table
@@ -687,9 +704,16 @@ def generate_step5_section_fixed(data):
 
 def generate_step6_section_fixed(data):
     """Generate Step 6 section with robust data extraction"""
-    # PV specifications data
-    pv_specs = safe_get(data, 'pv_specifications', {})
-    individual_systems = safe_get(pv_specs, 'individual_systems', [])
+    # PV specifications data - check multiple locations
+    pv_specs = (safe_get(data, 'pv_specifications', {}) or 
+               safe_get(data, 'pv_specs', {}) or 
+               safe_get(data, 'specifications', {}) or
+               {})
+    
+    individual_systems = (safe_get(pv_specs, 'individual_systems', []) or
+                         safe_get(pv_specs, 'systems', []) or
+                         safe_get(data, 'individual_systems', []) or
+                         [])
     
     # Handle DataFrame case
     if hasattr(individual_systems, 'to_dict') and callable(getattr(individual_systems, 'to_dict', None)):
@@ -698,9 +722,14 @@ def generate_step6_section_fixed(data):
         except:
             individual_systems = []
     
+    # Debug info
+    print(f"DEBUG Step 6: Found {len(individual_systems)} individual systems")
+    if individual_systems:
+        print(f"DEBUG Step 6: First system keys: {list(individual_systems[0].keys())}")
+    
     # BIPV technology specifications
     bipv_specs = safe_get(pv_specs, 'bipv_specifications', {})
-    efficiency = safe_float(safe_get(bipv_specs, 'efficiency'), 12) * 100  # Convert to percentage
+    efficiency = safe_float(safe_get(bipv_specs, 'efficiency'), 0.12) * 100  # Convert to percentage
     transparency = safe_float(safe_get(bipv_specs, 'transparency'), 25)
     cost_per_m2 = safe_float(safe_get(bipv_specs, 'cost_per_m2'), 300)
     
