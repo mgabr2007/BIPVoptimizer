@@ -7,6 +7,7 @@ from services.io import get_project_report_data
 from core.solar_math import get_currency_symbol, safe_divide
 from pages_modules.detailed_report_generator import generate_comprehensive_detailed_report
 from utils.comprehensive_report_fixed import generate_comprehensive_report_fixed
+from utils.step_by_step_report_generator import render_step_by_step_reporting
 
 
 def generate_window_elements_csv():
@@ -366,8 +367,33 @@ def render_reporting():
             except Exception as e:
                 st.error(f"Error preparing report download: {str(e)}")
     
+    # Separator
+    st.divider()
+    
+    # Step-by-Step Report Generation
+    st.subheader("📊 Step-by-Step Analysis Report")
+    
+    st.info("""
+    **Individual Step Analysis Report**
+    
+    This report breaks down the analysis results by individual workflow steps, showing:
+    - Step-by-step progress and completion status
+    - Key metrics and results from each analysis phase
+    - Data flow between workflow steps
+    - Individual step performance indicators
+    - Clean, organized presentation of analysis outcomes
+    
+    Perfect for detailed technical review and methodology documentation.
+    """)
+    
+    # Render the step-by-step reporting interface
+    render_step_by_step_reporting()
+    
+    # Separator
+    st.divider()
+    
     # CSV data export
-    st.subheader("Data Export")
+    st.subheader("📄 Data Export")
     
     if st.button("Generate Window Elements CSV", key="generate_csv"):
         csv_content = generate_window_elements_csv()
