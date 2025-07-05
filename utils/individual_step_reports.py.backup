@@ -2689,41 +2689,17 @@ def generate_step8_report():
             </div>
         """
     else:
-        # Calculate optimization metrics with enhanced fitness calculation
+        # Calculate optimization metrics
         best_solution = solutions[0] if solutions else {}
         best_investment = safe_float(best_solution.get('total_investment', 0))
         best_energy = safe_float(best_solution.get('annual_energy_kwh', 0))
         best_roi = safe_float(best_solution.get('roi', 0))
         best_fitness = safe_float(best_solution.get('weighted_fitness', 0))
         
-        # Analyze solution distribution with calculated fitness scores
+        # Analyze solution distribution
         investments = [safe_float(sol.get('total_investment', 0)) for sol in solutions]
         energies = [safe_float(sol.get('annual_energy_kwh', 0)) for sol in solutions]
         rois = [safe_float(sol.get('roi', 0)) for sol in solutions]
-        
-        # Calculate weighted fitness scores if they're zero (common issue)
-        if best_fitness == 0.0 and investments:
-            max_investment = max(investments) if investments else 1
-            max_energy = max(energies) if energies else 1
-            max_roi = max(rois) if rois else 1
-            
-            # Recalculate fitness for all solutions using normalized weighted approach
-            for i, sol in enumerate(solutions):
-                inv = investments[i]
-                eng = energies[i]
-                roi = rois[i]
-                
-                # Normalize objectives (0-1 scale)
-                norm_cost = 1 - (inv / max_investment) if max_investment > 0 else 0  # Lower cost is better
-                norm_energy = eng / max_energy if max_energy > 0 else 0  # Higher energy is better
-                norm_roi = roi / max_roi if max_roi > 0 else 0  # Higher ROI is better
-                
-                # Weighted fitness (equal weights: 33.33% each)
-                weighted_fitness = (norm_cost + norm_energy + norm_roi) / 3
-                sol['calculated_fitness'] = weighted_fitness
-                
-                if i == 0:  # Update best fitness
-                    best_fitness = weighted_fitness
         
         avg_investment = sum(investments) / len(investments) if investments else 0
         avg_energy = sum(energies) / len(energies) if energies else 0
@@ -2805,21 +2781,6 @@ def generate_step8_report():
                 'Solution Rank', 
                 'ROI (%)'
             )
-            
-            # Add fitness score distribution chart if calculated fitness is available
-            fitness_scores = [sol.get('calculated_fitness', safe_float(sol.get('weighted_fitness', 0))) for sol in solutions[:20]]
-            if any(score > 0 for score in fitness_scores):
-                fitness_chart_data = {
-                    'x': list(range(1, len(fitness_scores) + 1)),
-                    'y': fitness_scores
-                }
-                html += generate_plotly_chart(
-                    fitness_chart_data, 
-                    'line', 
-                    'Weighted Fitness Score Distribution (Top 20 Solutions)',
-                    'Solution Rank', 
-                    'Fitness Score (0-1)'
-                )
         
         html += f"""
             <div class="content-section">
@@ -2830,8 +2791,6 @@ def generate_step8_report():
         
         for i, solution in enumerate(solutions[:10]):
             element_count = len(solution.get('selected_elements', []))
-            # Use calculated fitness if available, otherwise original
-            fitness_score = solution.get('calculated_fitness', safe_float(solution.get('weighted_fitness', 0)))
             html += f"""
                 <tr>
                     <td><strong>#{i+1}</strong></td>
@@ -2839,7 +2798,7 @@ def generate_step8_report():
                     <td>{safe_float(solution.get('annual_energy_kwh', 0)):,.0f}</td>
                     <td>{safe_float(solution.get('roi', 0)):.1f}%</td>
                     <td>{element_count:,} elements</td>
-                    <td>{fitness_score:.3f}</td>
+                    <td>{safe_float(solution.get('weighted_fitness', 0)):.3f}</td>
                 </tr>
             """
         
