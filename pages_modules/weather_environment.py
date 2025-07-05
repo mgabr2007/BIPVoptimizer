@@ -477,33 +477,11 @@ def render_weather_environment():
                             - Conservative estimates to ensure realistic BIPV performance projections
                             """)
 
-                        
-                        # Add step-specific download button
-                        st.markdown("---")
-                        st.markdown("### 📄 Step 3 Analysis Report")
-                        st.markdown("Download detailed weather environment and TMY generation report:")
-                        
-                        from utils.individual_step_reports import create_step_download_button
-                        create_step_download_button(3, "Weather Environment", "Download Weather Analysis Report")
-                        
-                        st.markdown("---")
-                        
-                        if st.button("Continue to Step 4: BIM Extraction", key="continue_bim"):
-                            st.session_state.current_step = 'facade_extraction'
-                            st.session_state.scroll_to_top = True
-                            st.rerun()
-                
                 else:
                     st.error("Failed to fetch weather data. Please check your internet connection and API key.")
     
     else:
         st.warning("OpenWeatherMap API key not found. Please add your API key to environment variables.")
-        st.info("""
-        To get weather data integration:
-        1. Sign up for free at openweathermap.org
-        2. Get your API key
-        3. Add it to your environment variables as OPENWEATHER_API_KEY
-        """)
         
         # Allow manual input for testing
         if st.checkbox("Use default weather parameters (for testing)", key="use_defaults"):
@@ -530,7 +508,7 @@ def render_weather_environment():
                 peak_sun_hours = annual_ghi / 365
                 avg_temperature = SimpleMath.mean([hour['temperature'] for hour in tmy_data]) if tmy_data else 15.0
     
-    # Environmental Considerations Section - Independent of weather fetch
+    # Environmental Considerations Section - COMPLETELY INDEPENDENT
     st.markdown("---")
     st.subheader("🌍 Environmental Considerations & Shading Analysis")
     
@@ -547,7 +525,7 @@ def render_weather_environment():
         trees_nearby = st.checkbox(
             "Trees or vegetation nearby", 
             value=env_data.get('trees_nearby', False), 
-            key="trees_nearby_env",
+            key="trees_nearby_env_independent",
             help="Select if there are trees or vegetation that could cast shadows on the building"
         )
     
@@ -555,21 +533,16 @@ def render_weather_environment():
         tall_buildings = st.checkbox(
             "Tall buildings in vicinity", 
             value=env_data.get('tall_buildings', False), 
-            key="tall_buildings_env",
+            key="tall_buildings_env_independent",
             help="Select if there are tall buildings nearby that could create shadows"
         )
     
     # Calculate shading impact
-    # References for environmental shading factors:
-    # 1. Gueymard, C.A. (2012). "Clear-sky irradiance predictions for solar resource mapping and large-scale applications" Solar Energy 86(12) 3284-3297
-    # 2. Appelbaum, J. & Bany, J. (1979). "Shadow effect of adjacent solar collectors in large scale solar plants" Solar Energy 23(6) 497-507
-    # 3. Quaschning, V. & Hanitsch, R. (1998). "Irradiance calculation on shaded surfaces" Solar Energy 62(5) 369-375
-    # 4. Hofierka, J. & Kaňük, J. (2009). "Assessment of photovoltaic potential in urban areas using open-source solar radiation tools" Renewable Energy 34(10) 2206-2214
     shading_reduction = 0
     if trees_nearby:
-        shading_reduction += 15  # 15% reduction from trees (Source: Gueymard 2012, Hofierka & Kaňuk 2009)
+        shading_reduction += 15  # 15% reduction from trees
     if tall_buildings:
-        shading_reduction += 10  # 10% reduction from buildings (Source: Appelbaum & Bany 1979, Quaschning & Hanitsch 1998)
+        shading_reduction += 10  # 10% reduction from buildings
     
     # Get annual GHI from weather analysis (if available)
     weather_analysis = st.session_state.project_data.get('weather_analysis', {})
@@ -644,6 +617,18 @@ def render_weather_environment():
     except Exception as e:
         pass  # Silent fail for database operations
     
-    # Display completion status
-    if st.session_state.project_data.get('weather_complete'):
-        st.success("✅ Weather integration complete! You can proceed to Step 4: BIM Extraction.")
+    # ALWAYS show download button and navigation - independent of TMY status
+    st.markdown("---")
+    st.markdown("### 📄 Step 3 Analysis Report")
+    st.markdown("Download detailed weather environment and TMY generation report:")
+    
+    from utils.individual_step_reports import create_step_download_button
+    create_step_download_button(3, "Weather Environment", "Download Weather Analysis Report")
+    
+    st.markdown("---")
+    
+    if st.button("Continue to Step 4: BIM Extraction", key="continue_bim_final"):
+        st.session_state.current_step = 'facade_extraction'
+        st.session_state.scroll_to_top = True
+        st.rerun()
+
