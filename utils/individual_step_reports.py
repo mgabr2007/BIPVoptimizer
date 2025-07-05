@@ -2081,7 +2081,23 @@ def generate_step4_report():
             </div>
             
             <div class="content-section">
-                <h2>🏢 Building Level Distribution</h2>
+                <h2>🏢 Building Level Distribution</h2>"""
+        
+        # Generate Building Level Distribution Chart
+        if levels:
+            level_chart_data = {
+                'x': [f"Level {level}" for level in sorted(levels.keys())],
+                'y': [levels[level] for level in sorted(levels.keys())]
+            }
+            html += generate_plotly_chart(
+                level_chart_data, 
+                'bar', 
+                'Element Distribution by Building Level',
+                'Building Level', 
+                'Number of Elements'
+            )
+        
+        html += """
                 <table class="data-table">
                     <tr><th>Level</th><th>Element Count</th><th>Percentage</th></tr>
         """
@@ -2093,6 +2109,100 @@ def generate_step4_report():
         html += """
                 </table>
             </div>
+            
+            <div class="content-section">
+                <h2>📐 Glass Area Size Distribution</h2>"""
+        
+        # Generate Glass Area Size Distribution Histogram
+        glass_areas = [safe_float(elem.get('glass_area', 0)) for elem in building_elements if safe_float(elem.get('glass_area', 0)) > 0]
+        if glass_areas:
+            # Create histogram bins
+            min_area = min(glass_areas)
+            max_area = max(glass_areas)
+            bin_count = min(20, max(5, int(len(glass_areas) / 20)))  # Adaptive bin count
+            
+            html += f"""
+                <div class="chart-container">
+                    <div class="chart-title">Window Size Distribution</div>
+                    <div id="glass_area_histogram" style="height: 400px;"></div>
+                    <script>
+                        var data = [{{
+                            x: {glass_areas},
+                            type: 'histogram',
+                            nbinsx: {bin_count},
+                            marker: {{
+                                color: '#DAA520',
+                                line: {{
+                                    color: '#B8860B',
+                                    width: 1
+                                }}
+                            }}
+                        }}];
+                        
+                        var layout = {{
+                            title: {{
+                                text: 'Distribution of Window Sizes',
+                                font: {{
+                                    size: 18,
+                                    color: '#B8860B',
+                                    family: 'Segoe UI, Arial, sans-serif'
+                                }}
+                            }},
+                            xaxis: {{
+                                title: 'Glass Area (m²)',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }}
+                            }},
+                            yaxis: {{
+                                title: 'Number of Elements',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }}
+                            }},
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white',
+                            margin: {{
+                                l: 60,
+                                r: 40,
+                                t: 60,
+                                b: 60
+                            }}
+                        }};
+                        
+                        Plotly.newPlot('glass_area_histogram', data, layout, {{responsive: true}});
+                    </script>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">{min_area:.1f} m²</div>
+                        <div class="metric-label">Smallest Window</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{max_area:.1f} m²</div>
+                        <div class="metric-label">Largest Window</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{sum(glass_areas)/len(glass_areas):.1f} m²</div>
+                        <div class="metric-label">Average Size</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{len([area for area in glass_areas if area >= 20])}</div>
+                        <div class="metric-label">Large Windows (≥20m²)</div>
+                    </div>
+                </div>
+            </div>"""
+        
+        html += """
             
             <div class="content-section">
                 <h2>📋 Detailed Element Sample (Top 15 by Glass Area)</h2>

@@ -1,0 +1,753 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>BIPV Optimizer - Weather Environment & TMY Generation</title>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+                line-height: 1.6;
+                color: #2c2c2c;
+                background: linear-gradient(135deg, #f5f3f0 0%, #faf8f3 50%, #f7f4ef 100%);
+                min-height: 100vh;
+                margin: 0;
+                padding: 20px;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background: linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1), 0 4px 15px rgba(0,0,0,0.05);
+                overflow: hidden;
+                border: 1px solid rgba(218, 165, 32, 0.2);
+            }
+            
+            .header {
+                background: linear-gradient(135deg, #DAA520 0%, #B8860B 50%, #CD853F 100%);
+                color: white;
+                text-align: center;
+                padding: 40px 30px;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .header::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+                opacity: 0.3;
+            }
+            
+            .step-badge {
+                background: linear-gradient(135deg, #FFD700, #FFA500);
+                color: #8B4513;
+                padding: 12px 24px;
+                border-radius: 25px;
+                font-weight: bold;
+                font-size: 1.1em;
+                display: inline-block;
+                margin-bottom: 15px;
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+                position: relative;
+                z-index: 1;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            
+            .header h1 {
+                font-size: 2.8em;
+                margin: 10px 0;
+                font-weight: 700;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                position: relative;
+                z-index: 1;
+            }
+            
+            .header p {
+                font-size: 1.1em;
+                opacity: 0.9;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .main-content {
+                padding: 40px;
+            }
+            
+            .content-section {
+                margin-bottom: 40px;
+                padding: 30px;
+                border: 2px solid transparent;
+                border-radius: 12px;
+                background: linear-gradient(white, white) padding-box,
+                           linear-gradient(135deg, #DAA520, #CD853F) border-box;
+                box-shadow: 0 5px 20px rgba(218, 165, 32, 0.1);
+                transition: all 0.3s ease;
+            }
+            
+            .content-section:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(218, 165, 32, 0.15);
+            }
+            
+            .content-section h2 {
+                color: #B8860B;
+                font-size: 1.8em;
+                margin-bottom: 20px;
+                padding-bottom: 12px;
+                border-bottom: 3px solid #DAA520;
+                font-weight: 600;
+                position: relative;
+            }
+            
+            .content-section h2::after {
+                content: '';
+                position: absolute;
+                bottom: -3px;
+                left: 0;
+                width: 60px;
+                height: 3px;
+                background: linear-gradient(90deg, #FFD700, #FFA500);
+                border-radius: 2px;
+            }
+            
+            .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin: 25px 0;
+            }
+            
+            .metric-card {
+                background: linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
+                border: 2px solid transparent;
+                border-radius: 10px;
+                padding: 20px;
+                text-align: center;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .metric-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #DAA520, #CD853F);
+            }
+            
+            .metric-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(218, 165, 32, 0.15);
+                border-color: rgba(218, 165, 32, 0.3);
+            }
+            
+            .metric-value {
+                font-size: 2.2em;
+                font-weight: bold;
+                color: #B8860B;
+                margin-bottom: 8px;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            }
+            
+            .metric-label {
+                color: #666;
+                font-size: 1em;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            }
+            
+            .data-table th {
+                background: linear-gradient(135deg, #DAA520, #B8860B);
+                color: white;
+                padding: 15px 12px;
+                text-align: left;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-size: 0.9em;
+            }
+            
+            .data-table td {
+                padding: 12px;
+                border-bottom: 1px solid #f0f0f0;
+                transition: background-color 0.2s ease;
+            }
+            
+            .data-table tr:nth-child(even) {
+                background-color: #fafafa;
+            }
+            
+            .data-table tr:hover {
+                background-color: #f5f3f0;
+            }
+            
+            .chart-container {
+                margin: 30px 0;
+                padding: 20px;
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+                border: 1px solid rgba(218, 165, 32, 0.1);
+            }
+            
+            .chart-title {
+                font-size: 1.3em;
+                color: #B8860B;
+                margin-bottom: 15px;
+                font-weight: 600;
+                text-align: center;
+            }
+            
+            .footer {
+                background: linear-gradient(135deg, #2c2c2c 0%, #3a3a3a 100%);
+                color: white;
+                text-align: center;
+                padding: 30px;
+                margin-top: 0;
+            }
+            
+            .footer h3 {
+                color: #DAA520;
+                margin-bottom: 15px;
+                font-size: 1.4em;
+            }
+            
+            .footer a {
+                color: #DAA520;
+                text-decoration: none;
+                font-weight: 500;
+                transition: color 0.3s ease;
+            }
+            
+            .footer a:hover {
+                color: #FFD700;
+            }
+            
+            .status-indicator {
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 0.9em;
+                font-weight: bold;
+                display: inline-block;
+                margin: 5px 0;
+            }
+            
+            .status-complete {
+                background: linear-gradient(135deg, #d4edda, #c3e6cb);
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+            
+            .status-pending {
+                background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+                color: #856404;
+                border: 1px solid #ffeaa7;
+            }
+            
+            .status-excellent {
+                background: linear-gradient(135deg, #DAA520, #FFD700);
+                color: white;
+                border: 1px solid #DAA520;
+            }
+            
+            .highlight-box {
+                background: linear-gradient(135deg, #fff8dc 0%, #fffacd 100%);
+                border-left: 5px solid #DAA520;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 0 8px 8px 0;
+                box-shadow: 0 3px 10px rgba(218, 165, 32, 0.1);
+            }
+            
+            .analysis-summary {
+                background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+                border: 2px solid #DAA520;
+                border-radius: 12px;
+                padding: 25px;
+                margin: 25px 0;
+                text-align: center;
+            }
+            
+            .analysis-summary h3 {
+                color: #B8860B;
+                margin-bottom: 15px;
+                font-size: 1.5em;
+            }
+            
+            @media (max-width: 768px) {
+                .metrics-grid {
+                    grid-template-columns: 1fr;
+                }
+                .container {
+                    margin: 10px;
+                    border-radius: 10px;
+                }
+                .main-content {
+                    padding: 20px;
+                }
+                .header {
+                    padding: 30px 20px;
+                }
+                .header h1 {
+                    font-size: 2.2em;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="step-badge">Step 3</div>
+                <h1>Weather Environment & TMY Generation</h1>
+                <p>Analysis Report Generated: July 05, 2025 at 12:38:51</p>
+            </div>
+            <div class="main-content">
+    
+            <div class="analysis-summary">
+                <h3>☀️ Solar Resource Overview</h3>
+                <p>Location receives <strong>1,326 kWh/m²/year</strong> global horizontal irradiance classified as <strong>Good</strong> solar resource</p>
+                <p>Peak sun hours: <strong>3.6 hours/day</strong> | Average temperature: <strong>15.0°C</strong></p>
+            </div>
+            
+            <div class="content-section">
+                <h2>🌅 Solar Irradiance Analysis</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">1,326 kWh/m²</div>
+                        <div class="metric-label">Annual GHI</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1,064 kWh/m²</div>
+                        <div class="metric-label">Annual DNI</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">716 kWh/m²</div>
+                        <div class="metric-label">Annual DHI</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">3.6 hours</div>
+                        <div class="metric-label">Peak Sun Hours/Day</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value status-complete">Good</div>
+                        <div class="metric-label">Solar Resource Class</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">Temperate</div>
+                        <div class="metric-label">Climate Zone</div>
+                    </div>
+                </div>
+            </div>
+        
+            <div class="content-section">
+                <h2>📊 Solar Irradiance Component Analysis</h2>
+                <div style="margin: 20px 0;">
+                    <h3>☀️ Annual Solar Irradiance Components</h3>
+                    <div id="irradiance_components_chart" style="height: 400px;"></div>
+                    <script>
+                        var data = [{
+                            x: ['Global Horizontal (GHI)', 'Direct Normal (DNI)', 'Diffuse Horizontal (DHI)'],
+                            y: [1326.3879550952308, 1063.550713522583, 716.2895379035103],
+                            type: 'bar',
+                            marker: {
+                                color: ['#DAA520', '#FF8C00', '#32CD32']
+                            },
+                            text: ['1,326 kWh/m²', '1,064 kWh/m²', '716 kWh/m²'],
+                            textposition: 'auto'
+                        }];
+                        
+                        var layout = {
+                            title: 'Solar Resource Distribution Analysis',
+                            xaxis: { title: 'Irradiance Components' },
+                            yaxis: { title: 'Annual Irradiance (kWh/m²)' },
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white'
+                        };
+                        
+                        Plotly.newPlot('irradiance_components_chart', data, layout, {responsive: true});
+                    </script>
+                </div>
+        
+    <div class="chart-container">
+        <div class="chart-title">Monthly Solar Irradiance Profile</div>
+        <div id="chart_4048" style="height: 400px;"></div>
+        <script>
+            
+        var data = [{
+            x: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+            y: [24.68785281136613, 49.65013217695753, 92.66189641910405, 153.2111275913095, 196.95799717485087, 219.96149602103324, 207.84562605288895, 163.02601765517255, 110.6379087182684, 58.293113330236835, 30.016310783913195, 19.438476360129687],
+            type: 'bar',
+            marker: {
+                color: '#DAA520',
+                line: {
+                    color: '#B8860B',
+                    width: 1
+                }
+            }
+        }];
+        
+            
+    var layout = {
+        title: {
+            text: 'Monthly Solar Irradiance Profile',
+            font: {
+                size: 18,
+                color: '#B8860B',
+                family: 'Segoe UI, Arial, sans-serif'
+            }
+        },
+        xaxis: {
+            title: 'Month',
+            titlefont: {
+                color: '#666',
+                size: 14
+            },
+            tickfont: {
+                color: '#666'
+            }
+        },
+        yaxis: {
+            title: 'GHI (kWh/m²)',
+            titlefont: {
+                color: '#666',
+                size: 14
+            },
+            tickfont: {
+                color: '#666'
+            }
+        },
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white',
+        margin: {
+            l: 60,
+            r: 40,
+            t: 60,
+            b: 60
+        }
+    };
+    
+            Plotly.newPlot('chart_4048', data, layout, {responsive: true});
+        </script>
+    </div>
+    
+            <div style="margin: 20px 0;">
+                <h3>🌡️ Solar Irradiance vs Temperature Correlation</h3>
+                <div id="weather_correlation_chart" style="height: 400px;"></div>
+                <script>
+                    var trace1 = {
+                        x: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        y: [66.31939775476154, 72.24280744506378, 88.42586367301539, 110.53232959126923, 132.6387955095231, 148.82185173747467, 154.7452614277769, 148.82185173747467, 132.6387955095231, 110.53232959126923, 88.42586367301539, 72.24280744506378],
+                        type: 'bar',
+                        name: 'Solar Irradiance',
+                        yaxis: 'y',
+                        marker: { color: '#DAA520' }
+                    };
+                    
+                    var trace2 = {
+                        x: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                        y: [-0.0005022831050229826, 2.009116660128397, 7.499497716894981, 14.999497716894979, 22.49949771689498, 27.98987877366156, 29.99949771689498, 27.98987877366156, 22.49949771689498, 14.999497716894979, 7.499497716894981, 2.009116660128397],
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: 'Temperature',
+                        yaxis: 'y2',
+                        line: { color: '#DC143C', width: 3 },
+                        marker: { size: 8, color: '#DC143C' }
+                    };
+                    
+                    var layout = {
+                        title: 'Monthly Solar Resource vs Climate Conditions',
+                        xaxis: { 
+                            title: 'Month',
+                            categoryorder: 'array',
+                            categoryarray: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        },
+                        yaxis: {
+                            title: 'Solar Irradiance (kWh/m²)',
+                            side: 'left',
+                            showgrid: true,
+                            gridcolor: 'rgba(218, 165, 32, 0.2)'
+                        },
+                        yaxis2: {
+                            title: 'Temperature (°C)',
+                            side: 'right',
+                            overlaying: 'y',
+                            showgrid: false
+                        },
+                        plot_bgcolor: 'white',
+                        paper_bgcolor: 'white',
+                        showlegend: true,
+                        legend: {
+                            x: 0.02,
+                            y: 0.98,
+                            bgcolor: 'rgba(255,255,255,0.8)'
+                        }
+                    };
+                    
+                    Plotly.newPlot('weather_correlation_chart', [trace1, trace2], layout, {responsive: true});
+                </script>
+            </div>
+            
+                <div style="margin: 20px 0;">
+                    <h3>🌍 Solar Resource Global Comparison</h3>
+                    <div id="benchmark_solar_chart" style="height: 400px;"></div>
+                    <script>
+                        var data = [{
+                            x: ['Your Location', 'Desert Climate', 'Mediterranean', 'Temperate', 'Northern Europe'],
+                            y: [1326.3879550952308, 2200, 1800, 1400, 1000],
+                            type: 'bar',
+                            marker: {
+                                color: ['#DAA520', '#FF4500', '#FF8C00', '#32CD32', '#4169E1']
+                            },
+                            text: ['1,326 kWh/m²', '2,200 kWh/m²', '1,800 kWh/m²', '1,400 kWh/m²', '1,000 kWh/m²'],
+                            textposition: 'auto'
+                        }];
+                        
+                        var layout = {
+                            title: 'Solar Resource Quality vs Global Benchmarks',
+                            xaxis: { title: 'Climate Regions' },
+                            yaxis: { title: 'Annual GHI (kWh/m²)' },
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white'
+                        };
+                        
+                        Plotly.newPlot('benchmark_solar_chart', data, layout, {responsive: true});
+                    </script>
+                </div>
+            </div>
+            <div class="content-section">
+                <h2>🌡️ Climate & Environmental Conditions</h2>
+                <table class="data-table">
+                    <tr><th>Climate Parameter</th><th>Annual Value</th><th>Impact on BIPV</th></tr>
+                    <tr><td>Average Temperature</td><td>15.0°C</td><td>Acceptable for PV efficiency</td></tr>
+                    <tr><td>Solar Resource Quality</td><td>Good</td><td>Good potential</td></tr>
+                    <tr><td>Direct Normal Irradiance</td><td>1,064 kWh/m²</td><td>Moderate beam radiation</td></tr>
+                    <tr><td>Diffuse Horizontal</td><td>716 kWh/m²</td><td>Moderate diffuse component</td></tr>
+                    <tr><td>Daily Peak Sun Hours</td><td>3.6 hours</td><td>Moderate generation window</td></tr>
+                </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>📊 TMY Data Generation & Quality Assessment</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">8,760</div>
+                        <div class="metric-label">Hourly Records</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value status-excellent">ISO 15927-4</div>
+                        <div class="metric-label">Standards Compliance</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">WMO Station</div>
+                        <div class="metric-label">Data Source</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">High</div>
+                        <div class="metric-label">Quality Rating</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">Astronomical</div>
+                        <div class="metric-label">Solar Position Model</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">Authentic</div>
+                        <div class="metric-label">Data Type</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h2>🔬 Weather Station Data Quality & Validation</h2>
+                <table class="data-table">
+                    <tr><th>Quality Parameter</th><th>Assessment</th><th>Impact on Analysis</th></tr>
+                    <tr><td>Data Source</td><td>Official WMO meteorological station</td><td>High reliability and accuracy</td></tr>
+                    <tr><td>Temporal Coverage</td><td>Complete annual cycle (8,760 hours)</td><td>Captures all seasonal variations</td></tr>
+                    <tr><td>Data Interpolation</td><td>Minimal interpolation required</td><td>Preserves authentic weather patterns</td></tr>
+                    <tr><td>Quality Control</td><td>WMO standards applied</td><td>Ensures data consistency</td></tr>
+                    <tr><td>Solar Calculations</td><td>Astronomical algorithms (ISO 15927-4)</td><td>Precise solar position modeling</td></tr>
+                    <tr><td>Climate Representativeness</td><td>Long-term averages</td><td>Typical meteorological year</td></tr>
+                </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>⚡ BIPV Performance Potential Assessment</h2>
+                <div style="margin: 20px 0;">
+                    <h3>🎯 BIPV Suitability Factor Analysis</h3>
+                    <div id="bipv_potential_chart" style="height: 400px;"></div>
+                    <script>
+                        var data = [{
+                            x: ['Solar Resource', 'Temperature Impact', 'Seasonal Consistency', 'Weather Stability'],
+                            y: [73.68821972751283, 89.99899543378996, 85, 90],
+                            type: 'bar',
+                            marker: {
+                                color: ['#DAA520', '#FF8C00', '#32CD32', '#4169E1']
+                            },
+                            text: ['74%', '90%', '85%', '90%'],
+                            textposition: 'auto'
+                        }];
+                        
+                        var layout = {
+                            title: 'Location Suitability for BIPV Systems',
+                            xaxis: { title: 'Performance Factors' },
+                            yaxis: { title: 'Suitability Score (%)', range: [0, 100] },
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white'
+                        };
+                        
+                        Plotly.newPlot('bipv_potential_chart', data, layout, {responsive: true});
+                    </script>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">85%</div>
+                        <div class="metric-label">Overall BIPV Potential</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">74%</div>
+                        <div class="metric-label">Solar Resource Score</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">90%</div>
+                        <div class="metric-label">Temperature Efficiency</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">0.2 €/m²</div>
+                        <div class="metric-label">Est. Annual Value</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h2>📈 Expected BIPV Performance Indicators</h2>
+                <table class="data-table">
+                    <tr><th>Performance Indicator</th><th>Calculated Value</th><th>Performance Assessment</th></tr>
+                    <tr><td>Expected Capacity Factor</td><td>15.1%</td><td>Good annual utilization</td></tr>
+                    <tr><td>Peak Power Generation</td><td>3.1 kWh/kWp/day</td><td>Daily energy yield per kW installed</td></tr>
+                    <tr><td>Annual Yield Potential</td><td>199 kWh/kWp</td><td>System-specific annual generation</td></tr>
+                    <tr><td>Economic Viability</td><td>Medium</td><td>Investment attractiveness</td></tr>
+                    <tr><td>Environmental Benefit</td><td>80 kg CO₂/kWp saved</td><td>Annual carbon footprint reduction</td></tr>
+                </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>🌍 Environmental Considerations & Shading Analysis</h2>
+                <table class="data-table">
+                    <tr><th>Environmental Factor</th><th>Present</th><th>Impact on Solar Resource</th><th>Academic Reference</th></tr>
+                    <tr><td>Trees/Vegetation Nearby</td><td>Yes</td><td>15% reduction</td><td>Gueymard 2012, Hofierka & Kaňuk 2009</td></tr>
+                    <tr><td>Tall Buildings in Vicinity</td><td>No</td><td>No impact</td><td>Appelbaum & Bany 1979, Quaschning & Hanitsch 1998</td></tr>
+                    <tr><td>Total Shading Reduction</td><td>15%</td><td>Combined environmental impact</td><td>Multiple validated sources</td></tr>
+                    <tr><td>Base Annual GHI</td><td>1,326 kWh/m²</td><td>Unobstructed solar resource</td><td>WMO meteorological data</td></tr>
+                    <tr><td>Adjusted Annual GHI</td><td>1,127 kWh/m²</td><td>Accounting for environmental shading</td><td>Applied reduction factors</td></tr>
+                </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>📚 Shading Reduction Methodology & References</h2>
+                <table class="data-table">
+                    <tr><th>Factor</th><th>Reduction</th><th>Primary Source</th><th>Methodology</th></tr>
+                    <tr><td>Vegetation Shading</td><td>15%</td><td>Gueymard, C.A. (2012) Solar Energy 86(12)</td><td>Clear-sky irradiance predictions for vegetation impact</td></tr>
+                    <tr><td>Building Shadows</td><td>10%</td><td>Appelbaum, J. & Bany, J. (1979) Solar Energy 23(6)</td><td>Shadow effect analysis in large-scale installations</td></tr>
+                    <tr><td>Urban Assessment</td><td>Variable</td><td>Hofierka, J. & Kaňuk, J. (2009) Renewable Energy 34(10)</td><td>PV potential assessment using open-source tools</td></tr>
+                    <tr><td>Shaded Surfaces</td><td>Model-based</td><td>Quaschning, V. & Hanitsch, R. (1998) Solar Energy 62(5)</td><td>Irradiance calculation on shaded surfaces</td></tr>
+                </table>
+            </div>
+            <div style="margin: 20px 0;">
+                <h3>🌳 Environmental Shading Impact Analysis</h3>
+                <div id="environmental_impact_chart" style="height: 400px;"></div>
+                <script>
+                    var data = [{
+                        x: ['Base Solar Resource', 'Trees Impact', 'Buildings Impact', 'Final Adjusted'],
+                        y: [1326.3879550952308, 1127.4297618309463, 1127.4297618309463, 1127.4297618309463],
+                        type: 'bar',
+                        marker: {
+                            color: ['#32CD32', '#FFD700', '#FFA500', '#DAA520']
+                        },
+                        text: ['1,326 kWh/m²', '1,127 kWh/m²', '1,127 kWh/m²', '1,127 kWh/m²'],
+                        textposition: 'auto'
+                    }];
+                    
+                    var layout = {
+                        title: 'Solar Resource Reduction Due to Environmental Factors',
+                        xaxis: { title: 'Assessment Stages' },
+                        yaxis: { title: 'Annual GHI (kWh/m²)' },
+                        plot_bgcolor: 'white',
+                        paper_bgcolor: 'white'
+                    };
+                    
+                    Plotly.newPlot('environmental_impact_chart', data, layout, {responsive: true});
+                </script>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">199 kWh/m²</div>
+                    <div class="metric-label">Annual Resource Loss</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">15.0%</div>
+                    <div class="metric-label">Total Impact</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">12 kg CO₂</div>
+                    <div class="metric-label">Lost Carbon Savings</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">85.0%</div>
+                    <div class="metric-label">Remaining Potential</div>
+                </div>
+            </div>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 Weather Data Application in BIPV Analysis</h3>
+                <p><strong>Radiation Modeling:</strong> TMY data with 1,127 kWh/m²/year (adjusted for environment) provides hourly irradiance for precise BIPV yield calculations.</p>
+                <p><strong>Performance Analysis:</strong> Temperature profiles averaging 15.0°C enable accurate PV efficiency modeling and energy predictions.</p>
+                <p><strong>System Optimization:</strong> 3.6 peak sun hours daily with 15% environmental reduction inform optimal BIPV system sizing.</p>
+                <p><strong>Economic Assessment:</strong> Good solar resource classification with environmental adjustments supports realistic financial projections.</p>
+            </div>
+        
+            </div>
+        </div>
+        <div class="footer">
+            <h3>BIPV Optimizer Platform</h3>
+            <p>Developed by <strong>Mostafa Gabr</strong>, PhD Candidate<br>
+            Technische Universität Berlin, Faculty VI - Planning Building Environment</p>
+            <p><a href="https://www.researchgate.net/profile/Mostafa-Gabr-4" target="_blank">ResearchGate Profile</a> | 
+            <a href="https://www.tu.berlin/en/planen-bauen-umwelt/" target="_blank">TU Berlin Faculty VI</a></p>
+            <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                Professional BIPV Analysis • Advanced Solar Modeling • Building Integration Solutions
+            </p>
+        </div>
+    </body>
+    </html>
+    
