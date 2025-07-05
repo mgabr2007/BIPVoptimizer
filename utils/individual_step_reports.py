@@ -1518,13 +1518,59 @@ def generate_step3_report():
 
 def generate_step5_report():
     """Generate Step 5: Solar Radiation & Shading Analysis Report"""
+    # Check multiple data sources for radiation analysis
+    project_data = st.session_state.get('project_data', {})
     consolidated_manager = ConsolidatedDataManager()
     step5_data = consolidated_manager.get_step_data(5)
     
     html = get_base_html_template("Solar Radiation & Shading Analysis", 5)
     
-    radiation_results = safe_get(step5_data, 'radiation_results', {})
+    # Try to get radiation data from multiple sources
+    radiation_data = None
+    radiation_results = {}
+    
+    # First check session state
+    if 'radiation_data' in project_data:
+        radiation_data = project_data['radiation_data']
+        if hasattr(radiation_data, 'to_dict'):
+            radiation_results = radiation_data.to_dict('records')
+        elif isinstance(radiation_data, list):
+            radiation_results = radiation_data
+        elif isinstance(radiation_data, dict):
+            radiation_results = [radiation_data]
+    
+    # Then check consolidated manager
+    if not radiation_results:
+        radiation_results = safe_get(step5_data, 'radiation_data', [])
+        if not radiation_results:
+            radiation_results = safe_get(step5_data, 'element_radiation', [])
+    
+    # Check database if available
+    if not radiation_results and project_data.get('project_id'):
+        try:
+            from database_manager import BIPVDatabaseManager
+            db_manager = BIPVDatabaseManager()
+            db_data = db_manager.get_project_report_data(project_data['project_name'])
+            if db_data and 'radiation_analysis' in db_data:
+                radiation_grid = safe_get(db_data['radiation_analysis'], 'radiation_grid', [])
+                if radiation_grid:
+                    radiation_results = radiation_grid
+        except Exception:
+            pass
+    
+    # Get or calculate analysis summary
     analysis_summary = safe_get(step5_data, 'analysis_summary', {})
+    if not analysis_summary and radiation_results:
+        # Calculate summary from radiation_results if not available
+        if isinstance(radiation_results, list) and radiation_results:
+            radiations = [safe_float(r.get('annual_irradiation', 0)) for r in radiation_results if safe_float(r.get('annual_irradiation', 0)) > 0]
+            if radiations:
+                analysis_summary = {
+                    'total_elements': len(radiation_results),
+                    'average_radiation': sum(radiations) / len(radiations),
+                    'max_radiation': max(radiations),
+                    'min_radiation': min(radiations)
+                }
     
     if not radiation_results:
         html += """

@@ -391,6 +391,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 5, 2025: Implemented UI metrics storage system to save exact Step 2 calculation results (growth rates, peak demand, total demand, annual averages) to session state during UI display, and updated report generator to use these stored UI values instead of performing new calculations, ensuring complete data consistency between interface and reports
 - July 5, 2025: Fixed Step 3 Environmental Considerations & Shading Analysis reset issue by moving environmental factors section outside conditional weather fetch block, ensuring persistent state management for environmental checkboxes and preventing form resets when users interact with the section
 - July 5, 2025: Fixed Step 3 report environmental considerations data consistency by enhancing data flow between interface and report generation, ensuring environmental factors (trees/buildings) and shading calculations are properly saved to database and accurately displayed in downloaded reports with correct Yes/No values and adjusted GHI calculations
+- July 5, 2025: Fixed Step 3 Environmental Considerations reset issue by completely restructuring the section to be independent of TMY generation, moving all environmental factors outside conditional blocks, and ensuring download button and navigation always appear regardless of TMY status
+- July 5, 2025: Fixed Step 5 radiation analysis report generation by implementing comprehensive data source checking across session state, consolidated data manager, and database storage, ensuring radiation analysis results display properly in downloadable reports instead of showing "No Radiation Analysis Available" error
 
 ## User Preferences
 
