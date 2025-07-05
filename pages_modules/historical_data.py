@@ -63,7 +63,16 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
         sum_x2 = sum(x[i] ** 2 for i in range(n))
         
         slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2) if (n * sum_x2 - sum_x ** 2) != 0 else 0
-        growth_rate = max(-0.01, min(0.03, slope / base_consumption * 12))  # Annual growth rate, capped at 3%
+        
+        # Calculate more conservative growth rate
+        if base_consumption > 0:
+            monthly_growth_rate = slope / base_consumption
+            annual_growth_rate = monthly_growth_rate * 12
+            
+            # Apply more conservative caps for educational buildings (typically 0.5-2% annual growth)
+            growth_rate = max(-0.005, min(0.02, annual_growth_rate))  # Cap between -0.5% and 2%
+        else:
+            growth_rate = 0.01  # Default 1% if no base consumption
     else:
         growth_rate = 0.015  # Default 1.5% annual growth
     
@@ -134,7 +143,13 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
     np.random.seed(42)
     
     for year in range(25):
+        # Fixed: Proper annual growth calculation
         annual_consumption = base_consumption * (1 + growth_rate) ** year
+        
+        # Ensure reasonable bounds - cap at 5x original consumption to prevent astronomical values
+        if annual_consumption > base_consumption * 5:
+            annual_consumption = base_consumption * 5
+        
         year_monthly = []
         
         for month_index in range(12):
