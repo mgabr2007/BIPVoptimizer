@@ -635,27 +635,13 @@ def generate_step2_report():
         # Debug information (will be included in final report as comment)
         # <!-- DEBUG: annual_predictions length: {len(annual_predictions) if annual_predictions else 0} -->
         
-        if len(annual_predictions) >= 2:
-            first_year = annual_predictions[0]
-            last_year = annual_predictions[-1]
-            years = len(annual_predictions) - 1
-            if first_year > 0 and years > 0:
-                growth_rate = ((last_year / first_year) ** (1/years) - 1) * 100
-                # Debug: calculated growth rate from predictions
-            else:
-                growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
-                growth_rate = growth_rate_decimal * 100
-                # Debug: using stored growth rate (first_year=0 or years=0)
-        else:
-            # Fallback to stored growth rate
-            growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
-            growth_rate = growth_rate_decimal * 100
-            # Debug: using stored growth rate (no predictions)
-            
-            # If no forecast data, try demand_forecast as fallback
-            if growth_rate == 0.0:
-                growth_rate = safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0)
-                # Debug: using demand_forecast fallback
+        # Use the stored growth rate from Step 2 calculations (no recalculation)
+        growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
+        growth_rate = growth_rate_decimal * 100  # Convert to percentage for display
+        
+        # If no forecast data, try demand_forecast as fallback
+        if growth_rate == 0.0:
+            growth_rate = safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0)
         
         # Determine performance status and color
         if r2_score >= 0.85:
@@ -819,14 +805,14 @@ def generate_step2_report():
                 'Annual Energy Demand (kWh)'
             )
         
-        # Calculate Year 25 projection and total growth using actual forecast data
+        # Use actual forecast data calculated in Step 2 (no fallback calculations)
         if annual_predictions and len(annual_predictions) >= 25:
             year_25_demand = annual_predictions[24]  # 25th year (0-indexed)
             total_growth = ((year_25_demand / baseline_annual) - 1) * 100 if baseline_annual > 0 else 0
         else:
-            # Fallback calculation if no forecast data
-            year_25_demand = baseline_annual * (1 + growth_rate/100)**25
-            total_growth = ((year_25_demand / baseline_annual) - 1) * 100 if baseline_annual > 0 else 0
+            # Use stored values from Step 2 if available
+            year_25_demand = safe_float(safe_get(forecast_data, 'year_25_demand'), baseline_annual)
+            total_growth = safe_float(safe_get(forecast_data, 'total_growth'), 0.0)
         
         html += f"""
                 <div class="metrics-grid">

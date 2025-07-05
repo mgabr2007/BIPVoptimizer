@@ -387,6 +387,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 4, 2025: Fixed Step 2 forecast summary calculation and display issues including corrected growth rate calculation using actual annual progression instead of zero values, proper 25-year average computation from forecast predictions, accurate peak year demand identification, and enhanced metrics formatting for realistic forecast display with proper percentage and numerical formatting
 - July 5, 2025: Fixed data consistency issue between Step 2 UI display and downloadable report by updating report generation to use actual forecast data instead of hardcoded growth rates, ensuring identical values shown in both forecast summary metrics and detailed PDF reports for accurate documentation
 - July 5, 2025: Fixed critical forecast calculation bug causing astronomical growth rates (200%+ and trillion kWh projections) by implementing conservative growth rate caps (max 2% annually), proper bounds checking to prevent unrealistic values, and enhanced growth rate calculation methodology for educational buildings with realistic -0.5% to +2% annual growth constraints
+- July 5, 2025: Fixed Step 2 report recalculation issue by removing all fallback calculations and making reports display actual Step 2 computed values instead of recalculating growth rates, ensuring identical values between UI display and downloadable reports
 
 ## User Preferences
 
