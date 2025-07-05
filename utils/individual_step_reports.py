@@ -2091,16 +2091,57 @@ def generate_step6_report():
         avg_efficiency = safe_float(safe_get(system_summary, 'average_efficiency'), 0.0)
         
         # If summary values are zero, calculate from individual systems
-        if total_capacity == 0.0 and individual_systems:
+        if (total_capacity == 0.0 or total_area == 0.0) and individual_systems:
+            total_capacity = 0.0
+            total_cost = 0.0
+            total_area = 0.0
+            
             for system in individual_systems:
-                total_capacity += safe_float(system.get('capacity_kw', 0))
-                total_cost += safe_float(system.get('total_cost_eur', 0))
-                total_area += safe_float(system.get('glass_area', 0))
+                # Try multiple possible field names for capacity
+                capacity = (
+                    safe_float(system.get('capacity_kw', 0)) or
+                    safe_float(system.get('system_power_kw', 0)) or
+                    safe_float(system.get('power_kw', 0)) or
+                    0
+                )
+                total_capacity += capacity
+                
+                # Try multiple possible field names for cost
+                cost = (
+                    safe_float(system.get('total_cost_eur', 0)) or
+                    safe_float(system.get('cost_eur', 0)) or
+                    safe_float(system.get('investment_eur', 0)) or
+                    0
+                )
+                total_cost += cost
+                
+                # Try multiple possible field names for area
+                area = (
+                    safe_float(system.get('glass_area', 0)) or
+                    safe_float(system.get('area_m2', 0)) or
+                    safe_float(system.get('window_area', 0)) or
+                    safe_float(system.get('element_area', 0)) or
+                    1.5  # Default window area if not found
+                )
+                total_area += area
             
             # Calculate average efficiency if available
-            efficiencies = [safe_float(s.get('efficiency', 0)) for s in individual_systems if safe_float(s.get('efficiency', 0)) > 0]
+            efficiencies = []
+            for s in individual_systems:
+                eff = (
+                    safe_float(s.get('efficiency', 0)) or
+                    safe_float(s.get('panel_efficiency', 0)) or
+                    safe_float(s.get('glass_efficiency', 0)) or
+                    0
+                )
+                if eff > 0:
+                    efficiencies.append(eff)
+            
             if efficiencies:
                 avg_efficiency = sum(efficiencies) / len(efficiencies)
+            else:
+                # Default BIPV glass efficiency if not found
+                avg_efficiency = 8.0  # Typical BIPV glass efficiency
         
         # Analyze by orientation
         orientation_analysis = {}
@@ -2109,8 +2150,24 @@ def generate_step6_report():
             if orientation not in orientation_analysis:
                 orientation_analysis[orientation] = {'count': 0, 'capacity': 0, 'area': 0}
             orientation_analysis[orientation]['count'] += 1
-            orientation_analysis[orientation]['capacity'] += safe_float(system.get('capacity_kw', 0))
-            orientation_analysis[orientation]['area'] += safe_float(system.get('glass_area', 0))
+            
+            # Use the same field name logic as above
+            capacity = (
+                safe_float(system.get('capacity_kw', 0)) or
+                safe_float(system.get('system_power_kw', 0)) or
+                safe_float(system.get('power_kw', 0)) or
+                0
+            )
+            orientation_analysis[orientation]['capacity'] += capacity
+            
+            area = (
+                safe_float(system.get('glass_area', 0)) or
+                safe_float(system.get('area_m2', 0)) or
+                safe_float(system.get('window_area', 0)) or
+                safe_float(system.get('element_area', 0)) or
+                1.5
+            )
+            orientation_analysis[orientation]['area'] += area
         
         html += f"""
             <div class="analysis-summary">
@@ -2211,10 +2268,24 @@ def generate_step6_report():
         """
         
         # Sort systems by capacity and show top 10
-        sorted_systems = sorted(individual_systems, key=lambda x: safe_float(x.get('capacity_kw', 0)), reverse=True)
+        def get_system_capacity(system):
+            return (
+                safe_float(system.get('capacity_kw', 0)) or
+                safe_float(system.get('system_power_kw', 0)) or
+                safe_float(system.get('power_kw', 0)) or
+                0
+            )
+        
+        sorted_systems = sorted(individual_systems, key=get_system_capacity, reverse=True)
         for system in sorted_systems[:10]:
-            capacity = safe_float(system.get('capacity_kw', 0))
-            area = safe_float(system.get('glass_area', 0))
+            capacity = get_system_capacity(system)
+            area = (
+                safe_float(system.get('glass_area', 0)) or
+                safe_float(system.get('area_m2', 0)) or
+                safe_float(system.get('window_area', 0)) or
+                safe_float(system.get('element_area', 0)) or
+                1.5
+            )
             power_density = (capacity / area * 1000) if area > 0 else 0
             
             html += f"""
