@@ -2434,8 +2434,23 @@ def generate_step7_report():
         feed_in_revenue = safe_float(safe_get(annual_metrics, 'total_feed_in_revenue'), 0.0)
         net_import = annual_demand - total_yield
         
-        # Calculate performance metrics
-        specific_yield = total_yield / safe_float(safe_get(annual_metrics, 'total_capacity_kw'), 1.0) if safe_get(annual_metrics, 'total_capacity_kw') else 0
+        # Calculate performance metrics with enhanced capacity extraction
+        total_capacity_kw = safe_float(safe_get(annual_metrics, 'total_capacity_kw'), 0.0)
+        
+        # If capacity is missing, try to get from PV specifications
+        if total_capacity_kw == 0.0:
+            pv_specs = project_data.get('pv_specifications', {})
+            if pv_specs:
+                system_summary = pv_specs.get('system_summary', {})
+                total_capacity_kw = safe_float(system_summary.get('total_capacity_kw', 0))
+                if total_capacity_kw == 0.0:
+                    # Try alternative field names
+                    total_capacity_kw = safe_float(system_summary.get('total_power_kw', 0))
+                    if total_capacity_kw == 0.0:
+                        total_capacity_kw = safe_float(system_summary.get('capacity_kw', 0))
+        
+        # Calculate specific yield
+        specific_yield = total_yield / total_capacity_kw if total_capacity_kw > 0 else 0
         cost_savings_rate = (annual_savings / annual_demand) * 1000 if annual_demand > 0 else 0  # €/MWh
         
         html += f"""
@@ -2545,31 +2560,155 @@ def generate_step7_report():
             
             energy_balance = months  # Flag to generate chart
             
-            # Monthly comparison chart
-            monthly_chart_data = {
-                'x': months,
-                'y': pv_generation
-            }
-            html += generate_plotly_chart(
-                monthly_chart_data, 
-                'bar', 
-                'Monthly PV Generation vs Demand',
-                'Month', 
-                'Energy (kWh)'
-            )
+            # Enhanced combined generation vs demand chart
+            html += f"""
+                <div class="chart-container">
+                    <div class="chart-title">Monthly Energy Balance: Generation vs Demand</div>
+                    <div id="energy_balance_chart_{hash(str(pv_generation))}" style="height: 400px;"></div>
+                    <script>
+                        var data = [
+                            {{
+                                x: {months},
+                                y: {pv_generation},
+                                type: 'bar',
+                                name: 'PV Generation',
+                                marker: {{
+                                    color: '#DAA520'
+                                }}
+                            }},
+                            {{
+                                x: {months},
+                                y: {demand_values},
+                                type: 'scatter',
+                                mode: 'lines+markers',
+                                name: 'Building Demand',
+                                line: {{
+                                    color: '#FF6B6B',
+                                    width: 3
+                                }},
+                                marker: {{
+                                    color: '#FF6B6B',
+                                    size: 8
+                                }}
+                            }}
+                        ];
+                        
+                        var layout = {{
+                            title: {{
+                                text: 'Monthly Energy Balance: Generation vs Demand',
+                                font: {{
+                                    size: 18,
+                                    color: '#B8860B',
+                                    family: 'Segoe UI, Arial, sans-serif'
+                                }}
+                            }},
+                            xaxis: {{
+                                title: 'Month',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }}
+                            }},
+                            yaxis: {{
+                                title: 'Energy (kWh)',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }}
+                            }},
+                            legend: {{
+                                x: 0.7,
+                                y: 1
+                            }},
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white',
+                            margin: {{
+                                l: 60,
+                                r: 40,
+                                t: 60,
+                                b: 60
+                            }}
+                        }};
+                        
+                        Plotly.newPlot('energy_balance_chart_{hash(str(pv_generation))}', data, layout, {{responsive: true}});
+                    </script>
+                </div>
+            """
             
-            # Add demand line to the chart (this will be in the next chart)
-            demand_chart_data = {
-                'x': months,
-                'y': demand_values
-            }
-            html += generate_plotly_chart(
-                demand_chart_data, 
-                'line', 
-                'Monthly Building Energy Demand',
-                'Month', 
-                'Energy (kWh)'
-            )
+            # Add coverage ratio chart
+            monthly_coverage = [(pv_generation[i] / demand_values[i] * 100) if demand_values[i] > 0 else 0 for i in range(12)]
+            
+            html += f"""
+                <div class="chart-container">
+                    <div class="chart-title">Monthly Energy Coverage Ratio</div>
+                    <div id="coverage_chart_{hash(str(monthly_coverage))}" style="height: 400px;"></div>
+                    <script>
+                        var data = [{{
+                            x: {months},
+                            y: {monthly_coverage},
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            line: {{
+                                color: '#4ECDC4',
+                                width: 3
+                            }},
+                            marker: {{
+                                color: '#4ECDC4',
+                                size: 10
+                            }},
+                            fill: 'tozeroy',
+                            fillcolor: 'rgba(78, 205, 196, 0.2)'
+                        }}];
+                        
+                        var layout = {{
+                            title: {{
+                                text: 'Monthly Energy Coverage Ratio',
+                                font: {{
+                                    size: 18,
+                                    color: '#B8860B',
+                                    family: 'Segoe UI, Arial, sans-serif'
+                                }}
+                            }},
+                            xaxis: {{
+                                title: 'Month',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }}
+                            }},
+                            yaxis: {{
+                                title: 'Coverage Ratio (%)',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }}
+                            }},
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white',
+                            margin: {{
+                                l: 60,
+                                r: 40,
+                                t: 60,
+                                b: 60
+                            }}
+                        }};
+                        
+                        Plotly.newPlot('coverage_chart_{hash(str(monthly_coverage))}', data, layout, {{responsive: true}});
+                    </script>
+                </div>
+            """
         
         html += f"""
             <div class="content-section">
