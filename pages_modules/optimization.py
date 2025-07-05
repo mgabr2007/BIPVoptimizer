@@ -54,8 +54,17 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
         electricity_price = financial_params.get('electricity_price', 0.25)
         annual_savings = net_import_reduction * electricity_price
         
-        if annual_savings > 0 and total_cost > 0:
-            roi = (annual_savings / total_cost) * 100  # ROI as percentage
+        # Include maintenance costs if enabled
+        include_maintenance = financial_params.get('include_maintenance', True)
+        if include_maintenance:
+            # Apply typical BIPV maintenance cost (1-2% of investment annually)
+            annual_maintenance = total_cost * 0.015  # 1.5% annual maintenance
+            net_annual_savings = annual_savings - annual_maintenance
+        else:
+            net_annual_savings = annual_savings
+        
+        if net_annual_savings > 0 and total_cost > 0:
+            roi = (net_annual_savings / total_cost) * 100  # ROI as percentage
         else:
             roi = 0
         
@@ -85,12 +94,47 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
         # For ROI: higher is better (already normalized as percentage)
         roi_fitness = min(roi / 50.0, 1.0)  # Cap at 50% ROI for normalization
         
+        # Apply advanced optimization preferences
+        bonus_factor = 1.0
+        
+        # Orientation preference bonus
+        orientation_preference = financial_params.get('orientation_preference', 'None')
+        if orientation_preference != 'None' and 'orientation' in selected_specs.columns:
+            preferred_count = (selected_specs['orientation'] == orientation_preference).sum()
+            total_selected = len(selected_specs)
+            if total_selected > 0:
+                orientation_bonus = (preferred_count / total_selected) * 0.1  # 10% max bonus
+                bonus_factor += orientation_bonus
+        
+        # System size preference bonus
+        system_size_preference = financial_params.get('system_size_preference', 'Balanced')
+        if 'capacity_kw' in selected_specs.columns:
+            avg_capacity = selected_specs['capacity_kw'].mean()
+            if system_size_preference == 'Favor Large' and avg_capacity > 2.0:  # Above 2kW average
+                bonus_factor += 0.05  # 5% bonus for large systems
+            elif system_size_preference == 'Favor Small' and avg_capacity < 1.0:  # Below 1kW average
+                bonus_factor += 0.05  # 5% bonus for small systems
+        
+        # ROI prioritization adjustment
+        prioritize_roi = financial_params.get('prioritize_roi', True)
+        if prioritize_roi:
+            # Increase ROI weight relative to others
+            roi_fitness *= 1.2  # 20% boost to ROI fitness
+        
         # Calculate weighted fitness (single objective)
         weighted_fitness = (
             weight_cost * cost_fitness +
             weight_yield * yield_fitness + 
             weight_roi * roi_fitness
-        )
+        ) * bonus_factor
+        
+        # Apply minimum coverage constraint as hard constraint
+        min_coverage = financial_params.get('min_coverage', 0.30)
+        if energy_balance is not None and len(energy_balance) > 0:
+            total_demand = energy_balance['predicted_demand'].sum()
+            coverage_ratio = net_import_reduction / total_demand if total_demand > 0 else 0
+            if coverage_ratio < min_coverage:
+                weighted_fitness *= 0.1  # Heavy penalty for not meeting minimum coverage
         
         return (weighted_fitness,)
     
@@ -421,6 +465,29 @@ def render_optimization():
         
         # Always show balanced total
         st.success(f"✅ Auto-balanced objectives: Cost {weight_cost}%, Yield {weight_yield}%, ROI {weight_roi}% = 100%")
+        
+        # Show optimization parameters summary
+        with st.expander("📋 Current Optimization Configuration Summary", expanded=False):
+            st.write("**Objective Weights:**")
+            st.write(f"• Minimize Cost: {weight_cost}%")
+            st.write(f"• Maximize Yield: {weight_yield}%") 
+            st.write(f"• Maximize ROI: {weight_roi}%")
+            st.write("")
+            st.write("**Algorithm Parameters:**")
+            st.write(f"• Population Size: {population_size}")
+            st.write(f"• Generations: {generations}")
+            st.write(f"• Mutation Rate: {mutation_rate}%")
+            st.write("")
+            st.write("**Financial Constraints:**")
+            st.write(f"• Maximum Investment: €{max_investment:,}")
+            st.write(f"• Minimum Coverage: {min_coverage}%")
+            st.write(f"• Electricity Price: €{electricity_price:.3f}/kWh")
+            st.write("")
+            st.write("**Advanced Settings (All Active in Algorithm):**")
+            st.write(f"• Prioritize ROI: {'✅ Yes (+20% ROI boost)' if prioritize_roi else '❌ No'}")
+            st.write(f"• Include Maintenance: {'✅ Yes (1.5% annual cost)' if include_maintenance else '❌ No'}")
+            st.write(f"• Orientation Preference: {orientation_preference} {'(+10% bonus)' if orientation_preference != 'None' else ''}")
+            st.write(f"• System Size Preference: {system_size_preference} {'(+5% bonus)' if system_size_preference != 'Balanced' else ''}")
     
     # Financial parameters section
     st.write("**Financial Parameters**")
@@ -455,20 +522,22 @@ def render_optimization():
     
     # Advanced optimization settings
     with st.expander("⚙️ Advanced Optimization Settings", expanded=False):
+        st.info("🔧 **All settings below directly affect the genetic algorithm optimization**")
+        
         adv_col1, adv_col2 = st.columns(2)
         
         with adv_col1:
             prioritize_roi = st.checkbox(
                 "Prioritize ROI over Coverage",
                 value=True,
-                help="Focus on return on investment rather than maximum coverage",
+                help="✅ ACTIVE: Applies 20% boost to ROI fitness scores during optimization. Focuses algorithm on return on investment rather than maximum energy coverage.",
                 key="prioritize_roi_opt"
             )
             
             include_maintenance = st.checkbox(
                 "Include Maintenance Costs",
                 value=True,
-                help="Consider annual maintenance in ROI calculation",
+                help="✅ ACTIVE: Deducts 1.5% annual maintenance costs from ROI calculations. More realistic financial modeling but reduces apparent ROI.",
                 key="include_maintenance_opt"
             )
         
@@ -477,7 +546,7 @@ def render_optimization():
                 "Orientation Preference",
                 ["None", "South", "Southwest", "Southeast"],
                 index=0,
-                help="Prefer specific orientations in optimization",
+                help="✅ ACTIVE: Applies up to 10% fitness bonus for solutions with preferred orientation. Algorithm favors systems facing the selected direction.",
                 key="orientation_pref_opt"
             )
             
@@ -485,7 +554,7 @@ def render_optimization():
                 "System Size Preference",
                 ["Balanced", "Favor Large", "Favor Small"],
                 index=0,
-                help="Preference for system sizes",
+                help="✅ ACTIVE: Applies 5% fitness bonus based on average system capacity. Large: >2kW average, Small: <1kW average.",
                 key="size_pref_opt"
             )
     
@@ -506,7 +575,11 @@ def render_optimization():
                     'min_coverage': min_coverage / 100,
                     'weight_cost': weight_cost,
                     'weight_yield': weight_yield,
-                    'weight_roi': weight_roi
+                    'weight_roi': weight_roi,
+                    'prioritize_roi': prioritize_roi,
+                    'include_maintenance': include_maintenance,
+                    'orientation_preference': orientation_preference,
+                    'system_size_preference': system_size_preference
                 }
                 
                 # Filter systems by budget constraint
