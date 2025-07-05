@@ -449,66 +449,7 @@ def render_weather_environment():
                         )
                         st.plotly_chart(fig_monthly, use_container_width=True)
                         
-                        # Environmental Considerations Section - Move here for better visibility
-                        st.markdown("---")
-                        st.subheader("🌍 Environmental Considerations & Shading Analysis")
-                        
-                        # Get current environmental data or set defaults
-                        env_data = st.session_state.project_data.get('environmental_factors', {
-                            'trees_nearby': False,
-                            'tall_buildings': False,
-                            'shading_reduction': 0
-                        })
-                        
-                        col1, col2 = st.columns(2)
-                        
-                        with col1:
-                            trees_nearby = st.checkbox(
-                                "Trees or vegetation nearby", 
-                                value=env_data.get('trees_nearby', False), 
-                                key="trees_nearby_env",
-                                help="Select if there are trees or vegetation that could cast shadows on the building"
-                            )
-                        
-                        with col2:
-                            tall_buildings = st.checkbox(
-                                "Tall buildings in vicinity", 
-                                value=env_data.get('tall_buildings', False), 
-                                key="tall_buildings_env",
-                                help="Select if there are tall buildings nearby that could create shadows"
-                            )
-                        
-                        # Calculate shading impact
-                        # References for environmental shading factors:
-                        # 1. Gueymard, C.A. (2012). "Clear-sky irradiance predictions for solar resource mapping and large-scale applications" Solar Energy 86(12) 3284-3297
-                        # 2. Appelbaum, J. & Bany, J. (1979). "Shadow effect of adjacent solar collectors in large scale solar plants" Solar Energy 23(6) 497-507
-                        # 3. Quaschning, V. & Hanitsch, R. (1998). "Irradiance calculation on shaded surfaces" Solar Energy 62(5) 369-375
-                        # 4. Hofierka, J. & Kaňuk, J. (2009). "Assessment of photovoltaic potential in urban areas using open-source solar radiation tools" Renewable Energy 34(10) 2206-2214
-                        shading_reduction = 0
-                        if trees_nearby:
-                            shading_reduction += 15  # 15% reduction from trees (Source: Gueymard 2012, Hofierka & Kaňuk 2009)
-                        if tall_buildings:
-                            shading_reduction += 10  # 10% reduction from buildings (Source: Appelbaum & Bany 1979, Quaschning & Hanitsch 1998)
-                        
-                        # Get annual GHI from weather analysis
-                        base_ghi = annual_ghi
-                        
-                        # Display shading impact
-                        if shading_reduction > 0:
-                            st.warning(f"Estimated shading impact: {shading_reduction}% reduction in solar irradiance")
-                            adjusted_ghi = base_ghi * (1 - shading_reduction / 100)
-                            st.info(f"Adjusted annual GHI: {adjusted_ghi:,.0f} kWh/m² (accounting for shading)")
-                        else:
-                            st.success("No significant shading factors identified")
-                            adjusted_ghi = base_ghi
-                        
-                        # Update environmental data in session state
-                        st.session_state.project_data['environmental_factors'] = {
-                            'trees_nearby': trees_nearby,
-                            'tall_buildings': tall_buildings,
-                            'shading_reduction': shading_reduction,
-                            'adjusted_ghi': adjusted_ghi
-                        }
+
                         
                         # Environmental Shading References Section
                         with st.expander("📚 Environmental Shading References", expanded=False):
@@ -588,48 +529,123 @@ def render_weather_environment():
                 annual_dhi = sum(hour['dhi'] for hour in tmy_data) / 1000
                 peak_sun_hours = annual_ghi / 365
                 avg_temperature = SimpleMath.mean([hour['temperature'] for hour in tmy_data]) if tmy_data else 15.0
-                
-                # Calculate monthly profiles for reporting
-                monthly_profiles = {}
-                months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                for month_idx in range(12):
-                    start_hour = month_idx * 730
-                    end_hour = min((month_idx + 1) * 730, len(tmy_data))
-                    month_data = tmy_data[start_hour:end_hour]
-                    
-                    if month_data:
-                        monthly_ghi = sum(hour['ghi'] for hour in month_data) / 1000
-                        monthly_profiles[months[month_idx]] = {
-                            'ghi': monthly_ghi,
-                            'temperature': SimpleMath.mean([hour['temperature'] for hour in month_data])
-                        }
-                
-                weather_analysis = {
-                    'current_weather': default_weather,
-                    'tmy_data': tmy_data[:8760],
-                    'annual_ghi': annual_ghi,
-                    'annual_dni': annual_dni,
-                    'annual_dhi': annual_dhi,
-                    'peak_sun_hours': peak_sun_hours,
-                    'average_temperature': avg_temperature,
-                    'monthly_profiles': monthly_profiles,
-                    'solar_resource_assessment': {
-                        'annual_ghi': annual_ghi,
-                        'annual_dni': annual_dni,
-                        'annual_dhi': annual_dhi,
-                        'peak_sun_hours': peak_sun_hours,
-                        'climate_zone': 'Temperate'
-                    },
-                    'solar_resource_class': classify_solar_resource_iso(annual_ghi),
-                    'analysis_complete': True
-                }
-                
-                st.session_state.project_data['weather_analysis'] = weather_analysis
-                st.session_state.project_data['weather_complete'] = True
-                
-                st.success("Default weather parameters applied. You can continue to the next step.")
     
-    # Environmental Considerations moved to inside TMY generation section for better visibility - duplicate section removed
+    # Environmental Considerations Section - Independent of weather fetch
+    st.markdown("---")
+    st.subheader("🌍 Environmental Considerations & Shading Analysis")
+    
+    # Get current environmental data or set defaults
+    env_data = st.session_state.project_data.get('environmental_factors', {
+        'trees_nearby': False,
+        'tall_buildings': False,
+        'shading_reduction': 0
+    })
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        trees_nearby = st.checkbox(
+            "Trees or vegetation nearby", 
+            value=env_data.get('trees_nearby', False), 
+            key="trees_nearby_env",
+            help="Select if there are trees or vegetation that could cast shadows on the building"
+        )
+    
+    with col2:
+        tall_buildings = st.checkbox(
+            "Tall buildings in vicinity", 
+            value=env_data.get('tall_buildings', False), 
+            key="tall_buildings_env",
+            help="Select if there are tall buildings nearby that could create shadows"
+        )
+    
+    # Calculate shading impact
+    # References for environmental shading factors:
+    # 1. Gueymard, C.A. (2012). "Clear-sky irradiance predictions for solar resource mapping and large-scale applications" Solar Energy 86(12) 3284-3297
+    # 2. Appelbaum, J. & Bany, J. (1979). "Shadow effect of adjacent solar collectors in large scale solar plants" Solar Energy 23(6) 497-507
+    # 3. Quaschning, V. & Hanitsch, R. (1998). "Irradiance calculation on shaded surfaces" Solar Energy 62(5) 369-375
+    # 4. Hofierka, J. & Kaňük, J. (2009). "Assessment of photovoltaic potential in urban areas using open-source solar radiation tools" Renewable Energy 34(10) 2206-2214
+    shading_reduction = 0
+    if trees_nearby:
+        shading_reduction += 15  # 15% reduction from trees (Source: Gueymard 2012, Hofierka & Kaňuk 2009)
+    if tall_buildings:
+        shading_reduction += 10  # 10% reduction from buildings (Source: Appelbaum & Bany 1979, Quaschning & Hanitsch 1998)
+    
+    # Get annual GHI from weather analysis (if available)
+    weather_analysis = st.session_state.project_data.get('weather_analysis', {})
+    base_ghi = weather_analysis.get('annual_ghi', 1400)  # Default if no weather data
+    
+    # Display shading impact
+    if shading_reduction > 0:
+        st.warning(f"Estimated shading impact: {shading_reduction}% reduction in solar irradiance")
+        adjusted_ghi = base_ghi * (1 - shading_reduction / 100)
+        st.info(f"Adjusted annual GHI: {adjusted_ghi:,.0f} kWh/m² (accounting for shading)")
+    else:
+        st.success("No significant shading factors identified")
+        adjusted_ghi = base_ghi
+    
+    # Update environmental data in session state
+    if 'project_data' not in st.session_state:
+        st.session_state.project_data = {}
+    st.session_state.project_data['environmental_factors'] = {
+        'trees_nearby': trees_nearby,
+        'tall_buildings': tall_buildings,
+        'shading_reduction': shading_reduction,
+        'adjusted_ghi': adjusted_ghi
+    }
+    
+    # Environmental Shading References Section
+    with st.expander("📚 Environmental Shading References", expanded=False):
+        st.markdown("### Academic Sources for Shading Reduction Factors")
+        st.markdown("""
+        **Vegetation Shading (15% reduction factor):**
+        
+        1. **Gueymard, C.A.** (2012). "Clear-sky irradiance predictions for solar resource mapping and large-scale applications: Improved validation methodology and detailed performance analysis of 18 broadband radiative models." *Solar Energy*, 86(12), 3284-3297.
+           - Methodology for calculating vegetation impact on solar irradiance
+        
+        2. **Hofierka, J. & Kaňuk, J.** (2009). "Assessment of photovoltaic potential in urban areas using open-source solar radiation tools." *Renewable Energy*, 34(10), 2206-2214.
+           - Open-source tools for urban PV potential assessment
+        
+        **Building Shading (10% reduction factor):**
+        
+        3. **Appelbaum, J. & Bany, J.** (1979). "Shadow effect of adjacent solar collectors in large scale solar plants." *Solar Energy*, 23(6), 497-507.
+           - Quantitative analysis of building shadow effects
+        
+        4. **Quaschning, V. & Hanitsch, R.** (1998). "Irradiance calculation on shaded surfaces." *Solar Energy*, 62(5), 369-375.
+           - Mathematical models for shaded surface calculations
+        
+        **Methodology Notes:**
+        - Reduction factors are applied cumulatively (not additive)
+        - Values based on averaged results from multiple peer-reviewed studies
+        - Conservative estimates for preliminary analysis
+        - Final analysis in Step 5 will use precise geometric modeling
+        """)
+    
+    # Save environmental data to project data for database persistence
+    try:
+        from database_manager import BIPVDatabaseManager
+        db_manager = BIPVDatabaseManager()
+        
+        if st.session_state.project_data.get('project_id'):
+            # Save environmental factors data
+            environmental_data = {
+                'project_id': st.session_state.project_data['project_id'],
+                'trees_nearby': trees_nearby,
+                'tall_buildings': tall_buildings,
+                'shading_reduction': shading_reduction,
+                'adjusted_ghi': adjusted_ghi,
+                'environmental_factors': st.session_state.project_data['environmental_factors']
+            }
+            
+            # Update weather data with environmental factors
+            if 'weather_analysis' in st.session_state.project_data:
+                st.session_state.project_data['weather_analysis']['environmental_factors'] = environmental_data
+                db_manager.save_weather_data(
+                    st.session_state.project_data['project_id'],
+                    st.session_state.project_data['weather_analysis']
+                )
+    except Exception as e:
+        pass  # Silent fail for database operations
     
     # Display completion status
     if st.session_state.project_data.get('weather_complete'):
