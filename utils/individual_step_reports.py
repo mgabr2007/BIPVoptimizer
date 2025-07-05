@@ -2261,6 +2261,30 @@ def generate_step7_report():
         if isinstance(yield_data, dict):
             annual_metrics = yield_data.get('annual_metrics', {})
             energy_balance = yield_data.get('energy_balance', [])
+            # Also check for nested structure
+            if not annual_metrics and 'demand_profile' in yield_data:
+                # Extract from demand profile structure
+                demand_profile = yield_data.get('demand_profile', {})
+                yield_profiles = yield_data.get('yield_profiles', [])
+                
+                # Calculate metrics from profiles if available
+                if yield_profiles:
+                    total_yield = sum([p.get('annual_yield', 0) for p in yield_profiles])
+                    annual_demand = demand_profile.get('annual_demand', 0)
+                    
+                    if total_yield > 0 and annual_demand > 0:
+                        coverage_ratio = (total_yield / annual_demand) * 100
+                        electricity_rate = project_data.get('electricity_rates', {}).get('import_rate', 0.25)
+                        annual_savings = total_yield * electricity_rate
+                        
+                        annual_metrics = {
+                            'total_annual_yield': total_yield,
+                            'annual_demand': annual_demand,
+                            'coverage_ratio': coverage_ratio,
+                            'total_annual_savings': annual_savings,
+                            'total_feed_in_revenue': 0,
+                            'total_capacity_kw': sum([p.get('system_power_kw', 0) for p in yield_profiles])
+                        }
     
     # Check database if available
     if not annual_metrics and project_data.get('project_id'):
@@ -2274,6 +2298,52 @@ def generate_step7_report():
                 energy_balance = safe_get(yield_db_data, 'energy_balance', [])
         except Exception:
             pass
+    
+    # If still no data, try to construct from PV specs and historical data
+    if not annual_metrics:
+        pv_specs = project_data.get('pv_specifications', {})
+        historical_data = project_data.get('historical_data', {})
+        
+        if pv_specs and historical_data:
+            # Get system summary from PV specs
+            system_summary = pv_specs.get('system_summary', {})
+            individual_systems = pv_specs.get('individual_systems', [])
+            
+            # Get demand from historical data
+            consumption_data = historical_data.get('consumption', [])
+            
+            if individual_systems and consumption_data:
+                # Calculate total annual yield from individual systems
+                total_yield = 0
+                total_capacity = 0
+                
+                if hasattr(individual_systems, 'iterrows'):
+                    # DataFrame format
+                    for _, system in individual_systems.iterrows():
+                        total_yield += safe_float(system.get('annual_energy_kwh', 0))
+                        total_capacity += safe_float(system.get('capacity_kw', 0))
+                elif isinstance(individual_systems, list):
+                    # List format
+                    for system in individual_systems:
+                        total_yield += safe_float(system.get('annual_energy_kwh', 0))
+                        total_capacity += safe_float(system.get('capacity_kw', 0))
+                
+                # Calculate annual demand
+                annual_demand = sum(consumption_data) if consumption_data else 30000
+                
+                if total_yield > 0 and annual_demand > 0:
+                    coverage_ratio = (total_yield / annual_demand) * 100
+                    electricity_rate = project_data.get('electricity_rates', {}).get('import_rate', 0.25)
+                    annual_savings = total_yield * electricity_rate
+                    
+                    annual_metrics = {
+                        'total_annual_yield': total_yield,
+                        'annual_demand': annual_demand,
+                        'coverage_ratio': coverage_ratio,
+                        'total_annual_savings': annual_savings,
+                        'total_feed_in_revenue': 0,
+                        'total_capacity_kw': total_capacity
+                    }
     
     if not annual_metrics:
         html += """
@@ -2335,18 +2405,74 @@ def generate_step7_report():
             </div>
         """
         
+        # Initialize variables for monthly data
+        months = []
+        pv_generation = []
+        demand_values = []
+        net_values = []
+        
         # Generate monthly energy balance chart
-        if energy_balance:
-            months = []
+        if energy_balance and isinstance(energy_balance, list):
+            for month_data in energy_balance:
+                months.append(month_data.get('month', 'Unknown'))
+                # Try different possible field names for monthly data
+                pv_yield = (
+                    safe_float(month_data.get('pv_yield', 0)) or
+                    safe_float(month_data.get('total_yield_kwh', 0)) or
+                    safe_float(month_data.get('yield', 0)) or
+                    safe_float(month_data.get('generation', 0))
+                )
+                demand = (
+                    safe_float(month_data.get('demand', 0)) or
+                    safe_float(month_data.get('predicted_demand', 0)) or
+                    safe_float(month_data.get('monthly_demand', 0)) or
+                    safe_float(month_data.get('consumption', 0))
+                )
+                net_import = (
+                    safe_float(month_data.get('net_import', 0)) or
+                    demand - pv_yield
+                )
+                
+                pv_generation.append(pv_yield)
+                demand_values.append(demand)
+                net_values.append(net_import)
+        
+        # If no energy balance data, create from available data
+        if annual_metrics and (not energy_balance or not months):
+            # Generate monthly distribution from annual data
+            months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            
+            # Get historical monthly data if available
+            historical_data = project_data.get('historical_data', {})
+            monthly_demand = historical_data.get('consumption', [])
+            
+            # Use realistic monthly solar distribution for Central Europe
+            monthly_solar_factors = [0.03, 0.05, 0.08, 0.11, 0.14, 0.15, 
+                                   0.14, 0.12, 0.09, 0.06, 0.03, 0.02]
+            
             pv_generation = []
             demand_values = []
             net_values = []
             
-            for month_data in energy_balance:
-                months.append(month_data.get('month', 'Unknown'))
-                pv_generation.append(safe_float(month_data.get('pv_yield', 0)))
-                demand_values.append(safe_float(month_data.get('demand', 0)))
-                net_values.append(safe_float(month_data.get('net_import', 0)))
+            total_annual_yield = safe_float(safe_get(annual_metrics, 'total_annual_yield'), 0)
+            total_annual_demand = safe_float(safe_get(annual_metrics, 'annual_demand'), 0)
+            
+            for i in range(12):
+                # Monthly PV generation using seasonal factors
+                monthly_yield = total_annual_yield * monthly_solar_factors[i]
+                pv_generation.append(monthly_yield)
+                
+                # Monthly demand from historical data or distribute annually
+                if monthly_demand and i < len(monthly_demand):
+                    monthly_demand_val = monthly_demand[i]
+                else:
+                    monthly_demand_val = total_annual_demand / 12
+                
+                demand_values.append(monthly_demand_val)
+                net_values.append(monthly_demand_val - monthly_yield)
+            
+            energy_balance = months  # Flag to generate chart
             
             # Monthly comparison chart
             monthly_chart_data = {
@@ -2399,7 +2525,8 @@ def generate_step7_report():
             </div>
         """
         
-        if energy_balance:
+        # Generate monthly energy balance table if we have data
+        if months and pv_generation:
             html += f"""
             <div class="content-section">
                 <h2>📅 Monthly Energy Balance Summary</h2>
@@ -2407,12 +2534,15 @@ def generate_step7_report():
                     <tr><th>Month</th><th>PV Generation (kWh)</th><th>Demand (kWh)</th><th>Net Import (kWh)</th><th>Savings (€)</th></tr>
             """
             
-            for month_data in energy_balance[:12]:  # Show all 12 months
-                month = month_data.get('month', 'Unknown')
-                generation = safe_float(month_data.get('pv_yield', 0))
-                demand = safe_float(month_data.get('demand', 0))
-                net_import = safe_float(month_data.get('net_import', 0))
-                savings = safe_float(month_data.get('monthly_savings', 0))
+            electricity_rate = project_data.get('electricity_rates', {}).get('import_rate', 0.25)
+            
+            # Use our calculated monthly data
+            for i in range(min(12, len(months))):
+                month = months[i] if i < len(months) else f'Month {i+1}'
+                generation = pv_generation[i] if i < len(pv_generation) else 0
+                demand = demand_values[i] if i < len(demand_values) else 0
+                net_import = net_values[i] if i < len(net_values) else 0
+                savings = generation * electricity_rate
                 
                 html += f"""
                     <tr>
