@@ -1928,13 +1928,40 @@ def generate_step4_report():
 
 def generate_step6_report():
     """Generate Step 6: BIPV Glass Specification & System Design Report"""
+    # Check multiple data sources for PV specification data
+    project_data = st.session_state.get('project_data', {})
     consolidated_manager = ConsolidatedDataManager()
     step6_data = consolidated_manager.get_step_data(6)
     
     html = get_base_html_template("BIPV Glass Specification & System Design", 6)
     
+    # Try to get PV specification data from multiple sources
+    individual_systems = []
+    system_summary = {}
+    
+    # First check consolidated manager
     individual_systems = safe_get(step6_data, 'individual_systems', [])
     system_summary = safe_get(step6_data, 'system_summary', {})
+    
+    # Check session state if consolidated data not available
+    if not individual_systems and 'pv_specifications' in project_data:
+        pv_specs = project_data['pv_specifications']
+        if isinstance(pv_specs, dict):
+            individual_systems = pv_specs.get('individual_systems', [])
+            system_summary = pv_specs.get('system_summary', {})
+    
+    # Check database if available
+    if not individual_systems and project_data.get('project_id'):
+        try:
+            from database_manager import BIPVDatabaseManager
+            db_manager = BIPVDatabaseManager()
+            db_data = db_manager.get_project_report_data(project_data['project_name'])
+            if db_data and 'pv_specifications' in db_data:
+                pv_db_data = db_data['pv_specifications']
+                individual_systems = safe_get(pv_db_data, 'individual_systems', [])
+                system_summary = safe_get(pv_db_data, 'system_summary', {})
+        except Exception:
+            pass
     
     if not individual_systems:
         html += """
@@ -1947,10 +1974,23 @@ def generate_step6_report():
             </div>
         """
     else:
+        # Get values from summary or calculate from individual systems
         total_capacity = safe_float(safe_get(system_summary, 'total_capacity_kw'), 0.0)
         total_cost = safe_float(safe_get(system_summary, 'total_cost_eur'), 0.0)
         total_area = safe_float(safe_get(system_summary, 'total_area_m2'), 0.0)
         avg_efficiency = safe_float(safe_get(system_summary, 'average_efficiency'), 0.0)
+        
+        # If summary values are zero, calculate from individual systems
+        if total_capacity == 0.0 and individual_systems:
+            for system in individual_systems:
+                total_capacity += safe_float(system.get('capacity_kw', 0))
+                total_cost += safe_float(system.get('total_cost_eur', 0))
+                total_area += safe_float(system.get('glass_area', 0))
+            
+            # Calculate average efficiency if available
+            efficiencies = [safe_float(s.get('efficiency', 0)) for s in individual_systems if safe_float(s.get('efficiency', 0)) > 0]
+            if efficiencies:
+                avg_efficiency = sum(efficiencies) / len(efficiencies)
         
         # Analyze by orientation
         orientation_analysis = {}
@@ -2094,13 +2134,36 @@ def generate_step6_report():
 
 def generate_step7_report():
     """Generate Step 7: Yield vs Demand Report with enhanced analysis and charts"""
+    # Check multiple data sources for yield vs demand analysis
+    project_data = st.session_state.get('project_data', {})
     consolidated_manager = ConsolidatedDataManager()
     step7_data = consolidated_manager.get_step_data(7)
     
     html = get_base_html_template("Energy Yield vs Demand Analysis", 7)
     
+    # Try to get yield analysis data from multiple sources
     annual_metrics = safe_get(step7_data, 'annual_metrics', {})
     energy_balance = safe_get(step7_data, 'energy_balance', [])
+    
+    # Check session state if consolidated data not available
+    if not annual_metrics and 'yield_demand_analysis' in project_data:
+        yield_data = project_data['yield_demand_analysis']
+        if isinstance(yield_data, dict):
+            annual_metrics = yield_data.get('annual_metrics', {})
+            energy_balance = yield_data.get('energy_balance', [])
+    
+    # Check database if available
+    if not annual_metrics and project_data.get('project_id'):
+        try:
+            from database_manager import BIPVDatabaseManager
+            db_manager = BIPVDatabaseManager()
+            db_data = db_manager.get_project_report_data(project_data['project_name'])
+            if db_data and 'yield_demand_analysis' in db_data:
+                yield_db_data = db_data['yield_demand_analysis']
+                annual_metrics = safe_get(yield_db_data, 'annual_metrics', {})
+                energy_balance = safe_get(yield_db_data, 'energy_balance', [])
+        except Exception:
+            pass
     
     if not annual_metrics:
         html += """
@@ -2270,14 +2333,39 @@ def generate_step7_report():
 
 def generate_step8_report():
     """Generate Step 8: Multi-Objective BIPV Optimization Report"""
+    # Check multiple data sources for optimization results
+    project_data = st.session_state.get('project_data', {})
     consolidated_manager = ConsolidatedDataManager()
     step8_data = consolidated_manager.get_step_data(8)
     
     html = get_base_html_template("Multi-Objective BIPV Optimization", 8)
     
+    # Try to get optimization data from multiple sources
     solutions = safe_get(step8_data, 'solutions', [])
     optimization_results = safe_get(step8_data, 'optimization_results', {})
     algorithm_params = safe_get(step8_data, 'algorithm_parameters', {})
+    
+    # Check session state if consolidated data not available
+    if not solutions and 'optimization_results' in project_data:
+        opt_data = project_data['optimization_results']
+        if isinstance(opt_data, dict):
+            solutions = opt_data.get('solutions', [])
+            optimization_results = opt_data.get('optimization_results', {})
+            algorithm_params = opt_data.get('algorithm_parameters', {})
+    
+    # Check database if available
+    if not solutions and project_data.get('project_id'):
+        try:
+            from database_manager import BIPVDatabaseManager
+            db_manager = BIPVDatabaseManager()
+            db_data = db_manager.get_project_report_data(project_data['project_name'])
+            if db_data and 'optimization_results' in db_data:
+                opt_db_data = db_data['optimization_results']
+                solutions = safe_get(opt_db_data, 'solutions', [])
+                optimization_results = safe_get(opt_db_data, 'optimization_results', {})
+                algorithm_params = safe_get(opt_db_data, 'algorithm_parameters', {})
+        except Exception:
+            pass
     
     if not solutions:
         html += """
@@ -2433,14 +2521,39 @@ def generate_step8_report():
 
 def generate_step9_report():
     """Generate Step 9: Financial & Environmental Analysis Report"""
+    # Check multiple data sources for financial analysis data
+    project_data = st.session_state.get('project_data', {})
     consolidated_manager = ConsolidatedDataManager()
     step9_data = consolidated_manager.get_step_data(9)
     
     html = get_base_html_template("Financial & Environmental Analysis", 9)
     
+    # Try to get financial analysis data from multiple sources
     economic_metrics = safe_get(step9_data, 'economic_metrics', {})
     environmental_impact = safe_get(step9_data, 'environmental_impact', {})
     cash_flow_analysis = safe_get(step9_data, 'cash_flow_analysis', {})
+    
+    # Check session state if consolidated data not available
+    if not economic_metrics and 'financial_analysis' in project_data:
+        fin_data = project_data['financial_analysis']
+        if isinstance(fin_data, dict):
+            economic_metrics = fin_data.get('economic_metrics', {})
+            environmental_impact = fin_data.get('environmental_impact', {})
+            cash_flow_analysis = fin_data.get('cash_flow_analysis', {})
+    
+    # Check database if available
+    if not economic_metrics and project_data.get('project_id'):
+        try:
+            from database_manager import BIPVDatabaseManager
+            db_manager = BIPVDatabaseManager()
+            db_data = db_manager.get_project_report_data(project_data['project_name'])
+            if db_data and 'financial_analysis' in db_data:
+                fin_db_data = db_data['financial_analysis']
+                economic_metrics = safe_get(fin_db_data, 'economic_metrics', {})
+                environmental_impact = safe_get(fin_db_data, 'environmental_impact', {})
+                cash_flow_analysis = safe_get(fin_db_data, 'cash_flow_analysis', {})
+        except Exception:
+            pass
     
     if not economic_metrics:
         html += """
@@ -2453,6 +2566,7 @@ def generate_step9_report():
             </div>
         """
     else:
+        # Get financial metrics
         npv = safe_float(safe_get(economic_metrics, 'npv'), 0.0)
         irr = safe_float(safe_get(economic_metrics, 'irr'), 0.0)
         payback = safe_float(safe_get(economic_metrics, 'payback_period'), 0.0)
@@ -2460,11 +2574,47 @@ def generate_step9_report():
         annual_savings = safe_float(safe_get(economic_metrics, 'annual_savings'), 0.0)
         lifetime_savings = safe_float(safe_get(economic_metrics, 'lifetime_savings'), 0.0)
         
+        # If financial metrics are zero, try to calculate from other data sources
+        if npv == 0.0 and initial_investment == 0.0:
+            # Try to get investment from PV specifications
+            pv_specs = project_data.get('pv_specifications', {})
+            if pv_specs:
+                pv_summary = pv_specs.get('system_summary', {})
+                initial_investment = safe_float(pv_summary.get('total_cost_eur', 0))
+                
+                # Get annual yield from yield analysis
+                yield_data = project_data.get('yield_demand_analysis', {})
+                if yield_data:
+                    annual_metrics_yield = yield_data.get('annual_metrics', {})
+                    annual_savings = safe_float(annual_metrics_yield.get('total_annual_savings', 0))
+                    
+                    # Calculate basic financial metrics if we have the data
+                    if initial_investment > 0 and annual_savings > 0:
+                        payback = initial_investment / annual_savings if annual_savings > 0 else 0
+                        lifetime_savings = annual_savings * 25  # 25-year system lifetime
+                        npv = lifetime_savings - initial_investment  # Simplified NPV
+                        irr = (annual_savings / initial_investment) * 100 if initial_investment > 0 else 0
+        
         # Environmental metrics
         co2_savings = safe_float(safe_get(environmental_impact, 'lifetime_co2_savings'), 0.0)
         annual_co2 = safe_float(safe_get(environmental_impact, 'annual_co2_savings'), 0.0)
         carbon_value = safe_float(safe_get(environmental_impact, 'carbon_value'), 0.0)
         grid_co2_factor = safe_float(safe_get(environmental_impact, 'grid_co2_factor'), 0.0)
+        
+        # Calculate environmental metrics if missing
+        if co2_savings == 0.0 and annual_co2 == 0.0:
+            # Try to get total yield from yield analysis
+            yield_data = project_data.get('yield_demand_analysis', {})
+            if yield_data:
+                annual_metrics_yield = yield_data.get('annual_metrics', {})
+                total_yield = safe_float(annual_metrics_yield.get('total_annual_yield', 0))
+                if total_yield > 0:
+                    # Use standard grid carbon factor if not available
+                    if grid_co2_factor == 0.0:
+                        grid_co2_factor = 0.4  # kg CO2/kWh - EU average
+                    annual_co2 = total_yield * grid_co2_factor / 1000  # Convert to tonnes
+                    co2_savings = annual_co2 * 25  # 25-year lifetime
+                    carbon_value = co2_savings * 85  # €85/tonne CO2 - EU ETS average
         
         # Determine investment viability
         if npv > 100000:
