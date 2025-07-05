@@ -37,18 +37,37 @@ def calculate_bipv_glass_coverage(element_area, coverage_factor=0.90):
     bipv_glass_area = element_area * coverage_factor
     return bipv_glass_area
 
-def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverage_data):
+def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverage_data, radiation_data=None):
     """Calculate complete BIPV system specifications for each element."""
     bipv_specifications = []
     
+    # Try to get radiation data for more accurate calculations
+    radiation_lookup = {}
+    if radiation_data is not None:
+        if isinstance(radiation_data, pd.DataFrame) and 'element_id' in radiation_data.columns:
+            for _, rad_row in radiation_data.iterrows():
+                element_id = rad_row.get('element_id', '')
+                annual_radiation = rad_row.get('annual_radiation', 1500)  # kWh/m²/year
+                radiation_lookup[element_id] = annual_radiation
+        elif isinstance(radiation_data, dict) and 'element_radiation' in radiation_data:
+            radiation_lookup = radiation_data['element_radiation']
+    
     for idx, element in suitable_elements.iterrows():
-        element_id = element.get('Element ID', f"element_{idx}")
-        glass_area = float(element.get('Glass Area (m²)', 1.5))
+        # Use actual Element ID from building elements
+        element_id = element.get('Element ID', element.get('element_id', f"element_{idx}"))
+        glass_area = float(element.get('Glass Area (m²)', element.get('glass_area', 1.5)))
+        
+        # Get radiation data for this specific element
+        annual_radiation = radiation_lookup.get(element_id, 1500)  # Default fallback
         
         # Calculate BIPV specifications
         bipv_area = calculate_bipv_glass_coverage(glass_area)
         capacity_kw = bipv_area * panel_specs['power_density'] / 1000
-        annual_energy_kwh = capacity_kw * 1000 * panel_specs['performance_ratio']  # Simplified
+        
+        # More accurate energy calculation using radiation data
+        specific_yield = annual_radiation * panel_specs['efficiency'] * panel_specs['performance_ratio']
+        annual_energy_kwh = bipv_area * specific_yield
+        
         total_cost_eur = bipv_area * panel_specs['cost_per_m2']
         
         bipv_spec = {
@@ -57,6 +76,8 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
             'bipv_area_m2': bipv_area,
             'capacity_kw': capacity_kw,
             'annual_energy_kwh': annual_energy_kwh,
+            'annual_radiation_kwh_m2': annual_radiation,
+            'specific_yield_kwh_kw': safe_divide(annual_energy_kwh, capacity_kw, 0) if capacity_kw > 0 else 0,
             'total_cost_eur': total_cost_eur,
             'efficiency': panel_specs['efficiency'],
             'transparency': panel_specs['transparency']
@@ -133,7 +154,27 @@ def render_pv_specification():
     else:
         suitable_elements = building_elements
     
+    # Debug information
     st.success(f"Designing BIPV systems for {len(suitable_elements)} building elements")
+    
+    # Show sample Element IDs for verification
+    if len(suitable_elements) > 0:
+        sample_ids = suitable_elements['Element ID'].head(3).tolist() if 'Element ID' in suitable_elements.columns else ["No Element ID column"]
+        st.info(f"Sample Element IDs from building data: {sample_ids}")
+        
+        # Show available columns for debugging
+        st.debug(f"Available columns in building elements: {list(suitable_elements.columns)}")
+        
+        # Check radiation data availability
+        if radiation_data is not None:
+            if isinstance(radiation_data, pd.DataFrame):
+                st.info(f"Radiation data available for {len(radiation_data)} elements")
+                if 'element_id' in radiation_data.columns:
+                    sample_rad_ids = radiation_data['element_id'].head(3).tolist()
+                    st.info(f"Sample Element IDs from radiation data: {sample_rad_ids}")
+            elif isinstance(radiation_data, dict):
+                element_count = len(radiation_data.get('element_radiation', {}))
+                st.info(f"Radiation data available for {element_count} elements")
     
     # Panel selection section
     st.subheader("🔧 BIPV Panel Selection & Customization")
@@ -227,12 +268,13 @@ def render_pv_specification():
     if st.button("⚡ Calculate BIPV Systems", type="primary", key="calculate_bipv_systems"):
         
         with st.spinner("Calculating BIPV system specifications for all building elements..."):
-            # Calculate BIPV specifications using the simplified panel data
+            # Calculate BIPV specifications using the simplified panel data and radiation data
             coverage_data = {}  # Simplified coverage calculation
             bipv_specifications = calculate_bipv_system_specifications(
                 suitable_elements, 
                 final_panel_specs, 
-                coverage_data
+                coverage_data,
+                radiation_data  # Pass radiation data for accurate calculations
             )
             
             if bipv_specifications is not None and len(bipv_specifications) > 0:
@@ -286,9 +328,15 @@ def render_pv_specification():
                 
                 # Display detailed specifications table
                 st.subheader("Individual Element Specifications")
-                display_df = bipv_specifications[['element_id', 'glass_area_m2', 'capacity_kw', 'annual_energy_kwh', 'total_cost_eur']].copy()
-                display_df.columns = ['Element ID', 'Area (m²)', 'Capacity (kW)', 'Annual Energy (kWh)', 'Cost (EUR)']
+                display_df = bipv_specifications[['element_id', 'glass_area_m2', 'capacity_kw', 'annual_energy_kwh', 'annual_radiation_kwh_m2', 'total_cost_eur']].copy()
+                display_df.columns = ['Element ID', 'Area (m²)', 'Capacity (kW)', 'Annual Energy (kWh)', 'Radiation (kWh/m²)', 'Cost (EUR)']
                 st.dataframe(display_df, use_container_width=True)
+                
+                # Show top performing systems for verification
+                st.subheader("🔋 Top Performing BIPV Systems (by Capacity)")
+                top_systems = bipv_specifications.nlargest(10, 'capacity_kw')[['element_id', 'glass_area_m2', 'capacity_kw', 'annual_energy_kwh', 'annual_radiation_kwh_m2']]
+                top_systems.columns = ['Element ID', 'Glass Area (m²)', 'Capacity (kW)', 'Annual Energy (kWh)', 'Solar Radiation (kWh/m²)']
+                st.dataframe(top_systems, use_container_width=True)
                 
             else:
                 st.error("Could not calculate BIPV specifications. Please check your data.")
