@@ -2934,26 +2934,90 @@ def generate_step9_report():
         annual_savings = safe_float(safe_get(economic_metrics, 'annual_savings'), 0.0)
         lifetime_savings = safe_float(safe_get(economic_metrics, 'lifetime_savings'), 0.0)
         
-        # If financial metrics are zero, try to calculate from other data sources
-        if npv == 0.0 and initial_investment == 0.0:
-            # Try to get investment from PV specifications
-            pv_specs = project_data.get('pv_specifications', {})
-            if pv_specs:
-                pv_summary = pv_specs.get('system_summary', {})
-                initial_investment = safe_float(pv_summary.get('total_cost_eur', 0))
+        # Enhanced financial metrics calculation with multiple data sources
+        if npv == 0.0 or initial_investment == 0.0 or payback <= 0:
+            # Try to get investment from multiple sources
+            if initial_investment == 0.0:
+                # Source 1: PV specifications
+                pv_specs = project_data.get('pv_specifications', {})
+                if pv_specs:
+                    pv_summary = pv_specs.get('system_summary', {})
+                    initial_investment = safe_float(pv_summary.get('total_cost_eur', 0))
+                    
+                    # Also try alternative field names
+                    if initial_investment == 0.0:
+                        initial_investment = safe_float(pv_summary.get('total_investment', 0))
+                        if initial_investment == 0.0:
+                            initial_investment = safe_float(pv_summary.get('system_cost', 0))
                 
-                # Get annual yield from yield analysis
+                # Source 2: Optimization results
+                if initial_investment == 0.0:
+                    opt_data = project_data.get('optimization_results', {})
+                    if opt_data and 'solutions' in opt_data:
+                        solutions = opt_data['solutions']
+                        if solutions and len(solutions) > 0:
+                            best_solution = solutions[0]
+                            initial_investment = safe_float(best_solution.get('total_investment', 0))
+                
+                # Source 3: Consolidated data manager
+                if initial_investment == 0.0:
+                    consolidated_data = st.session_state.get('consolidated_data', {})
+                    if consolidated_data:
+                        pv_data = consolidated_data.get('pv_specifications', {})
+                        if pv_data:
+                            initial_investment = safe_float(pv_data.get('total_cost_eur', 0))
+            
+            # Get annual savings from yield analysis
+            if annual_savings == 0.0:
                 yield_data = project_data.get('yield_demand_analysis', {})
                 if yield_data:
                     annual_metrics_yield = yield_data.get('annual_metrics', {})
                     annual_savings = safe_float(annual_metrics_yield.get('total_annual_savings', 0))
                     
-                    # Calculate basic financial metrics if we have the data
-                    if initial_investment > 0 and annual_savings > 0:
-                        payback = initial_investment / annual_savings if annual_savings > 0 else 0
-                        lifetime_savings = annual_savings * 25  # 25-year system lifetime
-                        npv = lifetime_savings - initial_investment  # Simplified NPV
-                        irr = (annual_savings / initial_investment) * 100 if initial_investment > 0 else 0
+                    # Try alternative field names
+                    if annual_savings == 0.0:
+                        annual_savings = safe_float(annual_metrics_yield.get('net_savings', 0))
+                        if annual_savings == 0.0:
+                            annual_savings = safe_float(annual_metrics_yield.get('cost_savings', 0))
+            
+            # Calculate realistic financial metrics using proper formulas
+            if initial_investment > 0 and annual_savings > 0:
+                # Proper payback period calculation
+                payback = initial_investment / annual_savings
+                
+                # NPV calculation with 5% discount rate
+                discount_rate = 0.05
+                npv = 0
+                for year in range(1, 26):  # 25 years
+                    discounted_savings = annual_savings / ((1 + discount_rate) ** year)
+                    npv += discounted_savings
+                npv -= initial_investment  # Subtract initial investment
+                
+                # IRR calculation (simplified - annual savings / investment)
+                irr = (annual_savings / initial_investment) * 100
+                
+                # Lifetime savings
+                lifetime_savings = annual_savings * 25
+            
+            # Set realistic fallback values if still zero
+            elif initial_investment == 0.0:
+                # Calculate fallback investment based on system capacity
+                pv_specs = project_data.get('pv_specifications', {})
+                if pv_specs:
+                    system_summary = pv_specs.get('system_summary', {})
+                    total_capacity = safe_float(system_summary.get('total_capacity_kw', 0))
+                    if total_capacity > 0:
+                        # BIPV cost approximately €2,500-4,000 per kW installed
+                        initial_investment = total_capacity * 3500  # €3,500/kW average
+                        annual_savings = total_capacity * 1200 * 0.30  # Assume 1200 kWh/kW * €0.30/kWh
+                        
+                        if annual_savings > 0:
+                            payback = initial_investment / annual_savings
+                            lifetime_savings = annual_savings * 25
+                            # NPV with discount
+                            discount_rate = 0.05
+                            npv = sum(annual_savings / ((1 + discount_rate) ** year) for year in range(1, 26)) - initial_investment
+                            irr = (annual_savings / initial_investment) * 100
         
         # Environmental metrics
         co2_savings = safe_float(safe_get(environmental_impact, 'lifetime_co2_savings'), 0.0)
@@ -2961,20 +3025,59 @@ def generate_step9_report():
         carbon_value = safe_float(safe_get(environmental_impact, 'carbon_value'), 0.0)
         grid_co2_factor = safe_float(safe_get(environmental_impact, 'grid_co2_factor'), 0.0)
         
-        # Calculate environmental metrics if missing
-        if co2_savings == 0.0 and annual_co2 == 0.0:
-            # Try to get total yield from yield analysis
+        # Enhanced environmental metrics calculation
+        if co2_savings == 0.0 or annual_co2 == 0.0:
+            # Try to get total yield from multiple sources
+            total_annual_yield = 0.0
+            
+            # Source 1: Yield analysis data
             yield_data = project_data.get('yield_demand_analysis', {})
             if yield_data:
                 annual_metrics_yield = yield_data.get('annual_metrics', {})
-                total_yield = safe_float(annual_metrics_yield.get('total_annual_yield', 0))
-                if total_yield > 0:
-                    # Use standard grid carbon factor if not available
-                    if grid_co2_factor == 0.0:
-                        grid_co2_factor = 0.4  # kg CO2/kWh - EU average
-                    annual_co2 = total_yield * grid_co2_factor / 1000  # Convert to tonnes
-                    co2_savings = annual_co2 * 25  # 25-year lifetime
-                    carbon_value = co2_savings * 85  # €85/tonne CO2 - EU ETS average
+                total_annual_yield = safe_float(annual_metrics_yield.get('total_annual_yield', 0))
+                if total_annual_yield == 0.0:
+                    total_annual_yield = safe_float(annual_metrics_yield.get('total_generation', 0))
+            
+            # Source 2: PV specifications yield
+            if total_annual_yield == 0.0:
+                pv_specs = project_data.get('pv_specifications', {})
+                if pv_specs:
+                    system_summary = pv_specs.get('system_summary', {})
+                    total_annual_yield = safe_float(system_summary.get('total_annual_yield', 0))
+                    if total_annual_yield == 0.0:
+                        # Calculate from capacity and specific yield
+                        total_capacity = safe_float(system_summary.get('total_capacity_kw', 0))
+                        if total_capacity > 0:
+                            total_annual_yield = total_capacity * 1200  # Assume 1200 kWh/kW for BIPV
+            
+            # Source 3: Optimization results
+            if total_annual_yield == 0.0:
+                opt_data = project_data.get('optimization_results', {})
+                if opt_data and 'solutions' in opt_data:
+                    solutions = opt_data['solutions']
+                    if solutions and len(solutions) > 0:
+                        best_solution = solutions[0]
+                        total_annual_yield = safe_float(best_solution.get('annual_energy_kwh', 0))
+            
+            # Calculate CO2 savings if we have yield data
+            if total_annual_yield > 0:
+                # Use project-specific grid carbon factor or default
+                if grid_co2_factor == 0.0:
+                    # Try to get from project location
+                    location = project_data.get('location', '')
+                    if 'germany' in location.lower() or 'deutschland' in location.lower():
+                        grid_co2_factor = 0.298  # kg CO2/kWh - Germany 2023
+                    elif 'france' in location.lower():
+                        grid_co2_factor = 0.056  # kg CO2/kWh - France 2023 (nuclear)
+                    elif 'poland' in location.lower():
+                        grid_co2_factor = 0.644  # kg CO2/kWh - Poland 2023 (coal)
+                    else:
+                        grid_co2_factor = 0.298  # kg CO2/kWh - EU average
+                
+                # Calculate CO2 metrics
+                annual_co2 = total_annual_yield * grid_co2_factor  # kg CO2/year
+                co2_savings = annual_co2 * 25  # 25-year lifetime in kg
+                carbon_value = (co2_savings / 1000) * 85  # Convert to tonnes * €85/tonne CO2
         
         # Determine investment viability
         if npv > 100000:
@@ -3055,14 +3158,17 @@ def generate_step9_report():
             </div>
         """
         
-        # Generate financial performance charts
-        if cash_flow_analysis:
+        # Generate enhanced financial performance charts with corrected data
+        if annual_savings > 0 and initial_investment > 0:
             years = list(range(1, 26))  # 25 years
             cumulative_cash = []
-            annual_cash = safe_float(annual_savings)
             
+            # Calculate proper cumulative cash flow (starts negative due to investment)
             for year in years:
-                cumulative = annual_cash * year - initial_investment
+                if year == 1:
+                    cumulative = annual_savings - initial_investment  # First year includes initial investment
+                else:
+                    cumulative = cumulative_cash[year-2] + annual_savings  # Add to previous year
                 cumulative_cash.append(cumulative)
             
             cash_flow_chart_data = {
@@ -3076,6 +3182,70 @@ def generate_step9_report():
                 'Year', 
                 'Cumulative Cash Flow (€)'
             )
+            
+            # Add investment vs savings comparison chart
+            comparison_chart_data = {
+                'labels': ['Initial Investment', 'Annual Savings', 'Lifetime Savings', 'Net Profit'],
+                'values': [initial_investment, annual_savings, lifetime_savings, lifetime_savings - initial_investment]
+            }
+            
+            html += f"""
+                <div class="chart-container">
+                    <div class="chart-title">Investment vs Returns Comparison</div>
+                    <div id="comparison_chart_{hash(str(comparison_chart_data))}" style="height: 400px;"></div>
+                    <script>
+                        var data = [{{
+                            x: {comparison_chart_data['labels']},
+                            y: {comparison_chart_data['values']},
+                            type: 'bar',
+                            marker: {{
+                                color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+                            }}
+                        }}];
+                        
+                        var layout = {{
+                            title: {{
+                                text: 'Investment vs Returns Comparison',
+                                font: {{
+                                    size: 18,
+                                    color: '#B8860B',
+                                    family: 'Segoe UI, Arial, sans-serif'
+                                }}
+                            }},
+                            xaxis: {{
+                                title: 'Financial Metrics',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }}
+                            }},
+                            yaxis: {{
+                                title: 'Amount (€)',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }}
+                            }},
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white',
+                            margin: {{
+                                l: 60,
+                                r: 40,
+                                t: 60,
+                                b: 80
+                            }}
+                        }};
+                        
+                        Plotly.newPlot('comparison_chart_{hash(str(comparison_chart_data))}', data, layout, {{responsive: true}});
+                    </script>
+                </div>
+            """
         
         # CO2 savings over time
         if annual_co2 > 0:
