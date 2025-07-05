@@ -1068,53 +1068,126 @@ def generate_comprehensive_detailed_report():
         """
 
 def render_detailed_reporting():
-    """Render the detailed reporting interface"""
+    """Render the comprehensive report upload and integration interface"""
     
     # Add OptiSunny character header image
     st.image("attached_assets/step10_1751436847832.png", width=400)
     
-    st.header("📊 Step 10: Comprehensive Detailed Report Generation")
+    st.header("📊 Step 10: Comprehensive Analysis Report Assembly")
     
-    st.info("Generate a comprehensive scientific report with complete methodology, equations, and analysis details.")
+    st.info("Upload individual step reports to create a comprehensive analysis for AI consultation in Step 11.")
     
-    if st.button("🚀 Generate Comprehensive Detailed Report", key="generate_detailed_report"):
-        with st.spinner("Generating comprehensive detailed report with all equations and methodology..."):
-            try:
-                # Generate comprehensive report
-                report_html = generate_comprehensive_detailed_report()
-                
-                # Create download filename with timestamp
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = f"BIPV_Comprehensive_Report_{timestamp}.html"
-                
-                # Offer download
-                st.download_button(
-                    label="📥 Download Comprehensive Report (HTML)",
-                    data=report_html.encode('utf-8'),
-                    file_name=filename,
-                    mime="text/html",
-                    key="download_comprehensive_report"
-                )
-                
-                st.success("✅ Comprehensive detailed report generated successfully!")
-                st.info(f"📋 Report includes: Complete methodology, mathematical equations, validation framework, uncertainty analysis, and scientific documentation following international standards.")
-                
-            except Exception as e:
-                st.error(f"Error generating comprehensive report: {str(e)}")
-                # Provide fallback report
-                st.warning("Generating simplified report due to data constraints...")
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                simple_report = "<h1>BIPV Analysis Report</h1><p>Basic analysis completed. Please ensure all workflow steps are completed for comprehensive reporting.</p>"
-                st.download_button(
-                    label="📥 Download Basic Report",
-                    data=simple_report.encode('utf-8'),
-                    file_name=f"BIPV_Basic_Report_{timestamp}.html",
-                    mime="text/html"
-                )
+    # Initialize session state for uploaded reports
+    if 'uploaded_reports' not in st.session_state:
+        st.session_state.uploaded_reports = {}
     
-    # Show existing project data summary
+    if 'master_report_data' not in st.session_state:
+        st.session_state.master_report_data = {}
+    
+    # Define the 9 analysis steps
+    analysis_steps = {
+        'step1': 'Step 1: Project Setup & Location Configuration',
+        'step2': 'Step 2: Historical Data Analysis & AI Model',
+        'step3': 'Step 3: Weather Environment & TMY Generation',
+        'step4': 'Step 4: Facade & Window Element Extraction',
+        'step5': 'Step 5: Radiation & Shading Grid Analysis',
+        'step6': 'Step 6: PV Panel Specification & Layout',
+        'step7': 'Step 7: Yield vs Demand Analysis',
+        'step8': 'Step 8: Multi-Objective Optimization',
+        'step9': 'Step 9: Financial & Environmental Analysis'
+    }
+    
+    st.subheader("📄 Individual Step Report Upload")
+    st.markdown("Upload each step's analysis report to build a comprehensive dataset for AI consultation.")
+    
+    # Create upload interface for each step
+    uploaded_count = 0
+    for step_key, step_name in analysis_steps.items():
+        with st.expander(f"📋 {step_name}", expanded=False):
+            uploaded_file = st.file_uploader(
+                f"Upload {step_name} Report",
+                type=['html'],
+                key=f"upload_{step_key}",
+                help=f"Upload the HTML report generated from {step_name}"
+            )
+            
+            if uploaded_file is not None:
+                # Process uploaded HTML report
+                try:
+                    # Read HTML content
+                    html_content = uploaded_file.read().decode('utf-8')
+                    
+                    # Parse and extract key data from HTML
+                    report_data = parse_html_report(html_content, step_key)
+                    
+                    # Store in session state
+                    st.session_state.uploaded_reports[step_key] = {
+                        'filename': uploaded_file.name,
+                        'content': html_content,
+                        'data': report_data,
+                        'upload_time': datetime.now().isoformat()
+                    }
+                    
+                    st.success(f"✅ {step_name} report uploaded successfully!")
+                    
+                    # Display key metrics from the report
+                    display_report_summary(report_data, step_key)
+                    
+                    uploaded_count += 1
+                    
+                except Exception as e:
+                    st.error(f"Error processing {step_name} report: {str(e)}")
+            
+            elif step_key in st.session_state.uploaded_reports:
+                st.info(f"✅ {step_name} already uploaded: {st.session_state.uploaded_reports[step_key]['filename']}")
+                uploaded_count += 1
+    
+    # Show overall upload progress
+    st.subheader("📈 Upload Progress")
+    progress = uploaded_count / len(analysis_steps)
+    st.progress(progress)
+    st.write(f"**{uploaded_count}/{len(analysis_steps)} reports uploaded** ({progress*100:.1f}% complete)")
+    
+    # Generate master report when sufficient data is available
+    if uploaded_count >= 3:  # Minimum 3 reports for meaningful analysis
+        st.subheader("🎯 Master Report Generation")
+        
+        if st.button("🚀 Generate Master Analysis Report", key="generate_master_report"):
+            with st.spinner("Integrating all uploaded reports into comprehensive master analysis..."):
+                try:
+                    # Generate master report from all uploaded data
+                    master_report = generate_master_report_from_uploads()
+                    
+                    # Store master report data for Step 11
+                    st.session_state.master_report_data = master_report
+                    
+                    # Create download file
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"BIPV_Master_Analysis_{timestamp}.html"
+                    
+                    st.download_button(
+                        label="📥 Download Master Analysis Report",
+                        data=master_report['html_content'].encode('utf-8'),
+                        file_name=filename,
+                        mime="text/html",
+                        key="download_master_report"
+                    )
+                    
+                    st.success("✅ Master analysis report generated successfully!")
+                    st.info(f"📋 Master report integrates data from {uploaded_count} individual step reports and is ready for AI consultation in Step 11.")
+                    
+                    # Display master report summary
+                    display_master_report_summary(master_report)
+                    
+                except Exception as e:
+                    st.error(f"Error generating master report: {str(e)}")
+    
+    else:
+        st.warning(f"⚠️ Upload at least 3 step reports to generate a master analysis. Currently uploaded: {uploaded_count}")
+    
+    # Show current project status
     if st.session_state.get('project_data'):
-        st.subheader("📋 Current Project Status")
+        st.subheader("📋 Current Project Context")
         project_data = st.session_state.project_data
         
         col1, col2, col3 = st.columns(3)
@@ -1123,5 +1196,214 @@ def render_detailed_reporting():
         with col2:
             st.metric("Location", project_data.get('location', 'Not Set'))
         with col3:
-            completion_steps = sum(1 for key in ['historical_data', 'weather_analysis', 'facade_data', 'radiation_data', 'pv_specifications', 'yield_demand_analysis', 'optimization_results', 'financial_analysis'] if project_data.get(key))
-            st.metric("Completion", f"{completion_steps}/8 Steps")
+            st.metric("Reports Uploaded", f"{uploaded_count}/{len(analysis_steps)}")
+
+
+def parse_html_report(html_content, step_key):
+    """Parse HTML report and extract key data points"""
+    from bs4 import BeautifulSoup
+    
+    try:
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # Extract common data patterns
+        data = {
+            'step': step_key,
+            'title': '',
+            'metrics': {},
+            'tables': [],
+            'charts': [],
+            'key_findings': []
+        }
+        
+        # Extract title
+        title_elem = soup.find('h1')
+        if title_elem:
+            data['title'] = title_elem.get_text().strip()
+        
+        # Extract metrics from metric cards
+        metric_cards = soup.find_all(class_='metric-card')
+        for card in metric_cards:
+            value_elem = card.find(class_='metric-value')
+            label_elem = card.find(class_='metric-label')
+            if value_elem and label_elem:
+                data['metrics'][label_elem.get_text().strip()] = value_elem.get_text().strip()
+        
+        # Extract table data
+        tables = soup.find_all('table')
+        for table in tables:
+            rows = []
+            for row in table.find_all('tr'):
+                cells = [cell.get_text().strip() for cell in row.find_all(['td', 'th'])]
+                if cells:
+                    rows.append(cells)
+            if rows:
+                data['tables'].append(rows)
+        
+        # Extract key findings from analysis summary
+        summary_elem = soup.find(class_='analysis-summary')
+        if summary_elem:
+            data['key_findings'] = [p.get_text().strip() for p in summary_elem.find_all('p')]
+        
+        return data
+        
+    except Exception as e:
+        st.error(f"Error parsing HTML report: {str(e)}")
+        return {'step': step_key, 'error': str(e)}
+
+
+def display_report_summary(report_data, step_key):
+    """Display summary of uploaded report data"""
+    if 'error' in report_data:
+        st.error(f"Error in report data: {report_data['error']}")
+        return
+    
+    if report_data.get('title'):
+        st.write(f"**Report Title:** {report_data['title']}")
+    
+    if report_data.get('metrics'):
+        st.write("**Key Metrics:**")
+        metrics_text = []
+        for key, value in list(report_data['metrics'].items())[:5]:  # Show first 5 metrics
+            metrics_text.append(f"• {key}: {value}")
+        st.markdown("  \n".join(metrics_text))
+    
+    if report_data.get('key_findings'):
+        st.write("**Key Findings:**")
+        for finding in report_data['key_findings'][:2]:  # Show first 2 findings
+            st.markdown(f"• {finding}")
+
+
+def generate_master_report_from_uploads():
+    """Generate comprehensive master report from all uploaded step reports"""
+    uploaded_reports = st.session_state.get('uploaded_reports', {})
+    
+    if not uploaded_reports:
+        raise ValueError("No reports uploaded for master analysis")
+    
+    # Aggregate all data from uploaded reports
+    master_data = {
+        'project_overview': {},
+        'technical_analysis': {},
+        'financial_analysis': {},
+        'environmental_analysis': {},
+        'recommendations': [],
+        'data_sources': [],
+        'generation_timestamp': datetime.now().isoformat()
+    }
+    
+    # Process each uploaded report
+    for step_key, report_info in uploaded_reports.items():
+        report_data = report_info.get('data', {})
+        
+        # Extract and categorize data based on step type
+        if step_key == 'step1':
+            master_data['project_overview'].update(report_data.get('metrics', {}))
+        elif step_key in ['step2', 'step3', 'step4', 'step5']:
+            master_data['technical_analysis'][step_key] = report_data
+        elif step_key in ['step6', 'step7', 'step8']:
+            master_data['technical_analysis'][step_key] = report_data
+        elif step_key == 'step9':
+            master_data['financial_analysis'].update(report_data.get('metrics', {}))
+        
+        # Add data source
+        master_data['data_sources'].append({
+            'step': step_key,
+            'filename': report_info.get('filename'),
+            'upload_time': report_info.get('upload_time')
+        })
+    
+    # Generate comprehensive HTML report
+    html_content = generate_master_html_report(master_data)
+    
+    return {
+        'data': master_data,
+        'html_content': html_content,
+        'reports_count': len(uploaded_reports),
+        'generation_time': datetime.now().isoformat()
+    }
+
+
+def generate_master_html_report(master_data):
+    """Generate HTML content for master analysis report"""
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>BIPV Master Analysis Report</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            .header {{ background: linear-gradient(135deg, #DAA520 0%, #B8860B 100%); 
+                      color: white; padding: 20px; text-align: center; }}
+            .section {{ margin: 20px 0; padding: 15px; border-left: 4px solid #DAA520; }}
+            .metric {{ margin: 10px 0; }}
+            .data-source {{ background: #f9f9f9; padding: 10px; margin: 5px 0; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>BIPV Master Analysis Report</h1>
+            <p>Comprehensive Building-Integrated Photovoltaics Analysis</p>
+            <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        </div>
+        
+        <div class="section">
+            <h2>📊 Project Overview</h2>
+    """
+    
+    # Add project overview data
+    for key, value in master_data.get('project_overview', {}).items():
+        html += f'<div class="metric"><strong>{key}:</strong> {value}</div>'
+    
+    html += '</div><div class="section"><h2>🔬 Technical Analysis Summary</h2>'
+    
+    # Add technical analysis summary
+    tech_analysis = master_data.get('technical_analysis', {})
+    for step_key, step_data in tech_analysis.items():
+        if isinstance(step_data, dict) and step_data.get('title'):
+            html += f'<h3>{step_data["title"]}</h3>'
+            for key, value in step_data.get('metrics', {}).items():
+                html += f'<div class="metric">• {key}: {value}</div>'
+    
+    html += '</div><div class="section"><h2>💰 Financial Analysis Summary</h2>'
+    
+    # Add financial analysis
+    for key, value in master_data.get('financial_analysis', {}).items():
+        html += f'<div class="metric"><strong>{key}:</strong> {value}</div>'
+    
+    html += '</div><div class="section"><h2>📋 Data Sources</h2>'
+    
+    # Add data sources
+    for source in master_data.get('data_sources', []):
+        html += f"""
+        <div class="data-source">
+            <strong>{source['step']}</strong>: {source['filename']} 
+            (uploaded: {source['upload_time']})
+        </div>
+        """
+    
+    html += '</div></body></html>'
+    
+    return html
+
+
+def display_master_report_summary(master_report):
+    """Display summary of generated master report"""
+    st.subheader("📋 Master Report Summary")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Reports Integrated", master_report.get('reports_count', 0))
+    with col2:
+        st.metric("Data Sources", len(master_report.get('data', {}).get('data_sources', [])))
+    with col3:
+        st.metric("Generation Time", datetime.now().strftime('%H:%M:%S'))
+    
+    # Show key findings
+    if master_report.get('data', {}).get('project_overview'):
+        st.write("**Key Project Metrics:**")
+        overview = master_report['data']['project_overview']
+        for key, value in list(overview.items())[:5]:
+            st.write(f"• {key}: {value}")
+    
+    st.info("🤖 Master report data is now ready for AI consultation in Step 11!")

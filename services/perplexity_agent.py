@@ -270,14 +270,90 @@ class PerplexityBIPVAgent:
             return f"Unexpected error: {str(e)}"
 
 
+def prepare_master_report_for_ai(master_report_data, uploaded_reports):
+    """Prepare master report data for AI analysis"""
+    master_data = master_report_data.get('data', {})
+    
+    # Extract comprehensive project data from all uploaded reports
+    comprehensive_data = {
+        'project_overview': master_data.get('project_overview', {}),
+        'technical_analysis': master_data.get('technical_analysis', {}),
+        'financial_analysis': master_data.get('financial_analysis', {}),
+        'building_elements': [],
+        'reports_summary': []
+    }
+    
+    # Process each uploaded report to extract specific data
+    for step_key, report_info in uploaded_reports.items():
+        report_data = report_info.get('data', {})
+        
+        # Extract building elements if available
+        if step_key == 'step4' and report_data.get('tables'):
+            # Extract building elements from Step 4 facade extraction
+            for table in report_data.get('tables', []):
+                if len(table) > 1:  # Has header and data rows
+                    headers = table[0]
+                    for row in table[1:]:
+                        if len(row) >= len(headers):
+                            element = {}
+                            for i, header in enumerate(headers):
+                                if i < len(row):
+                                    element[header.lower().replace(' ', '_')] = row[i]
+                            comprehensive_data['building_elements'].append(element)
+        
+        # Add report summary
+        comprehensive_data['reports_summary'].append({
+            'step': step_key,
+            'title': report_data.get('title', ''),
+            'key_metrics': report_data.get('metrics', {}),
+            'key_findings': report_data.get('key_findings', [])
+        })
+    
+    return comprehensive_data
+
+
 def render_perplexity_consultation():
-    """Render Perplexity AI consultation interface"""
+    """Render Perplexity AI consultation interface with master report integration"""
     
     # Add OptiSunny character header image
     st.image("attached_assets/step11_1751436847832.png", width=400)
     
     st.header("🤖 AI Research Consultation")
-    st.write("Get expert analysis and optimization recommendations from Perplexity AI")
+    st.write("Get expert analysis and optimization recommendations from Perplexity AI based on your comprehensive analysis")
+    
+    # Check for master report data from Step 10
+    master_report_data = st.session_state.get('master_report_data', {})
+    uploaded_reports = st.session_state.get('uploaded_reports', {})
+    
+    # Display master report integration status
+    if master_report_data and uploaded_reports:
+        st.success(f"✅ Master analysis data available from Step 10 ({len(uploaded_reports)} individual reports integrated)")
+        
+        # Show master report summary
+        with st.expander("📋 Master Report Summary", expanded=False):
+            master_data = master_report_data.get('data', {})
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Reports Integrated", master_report_data.get('reports_count', 0))
+            with col2:
+                st.metric("Data Sources", len(master_data.get('data_sources', [])))
+            with col3:
+                st.metric("Generation Time", master_report_data.get('generation_time', 'Unknown'))
+            
+            # Show key project metrics from master report
+            project_overview = master_data.get('project_overview', {})
+            if project_overview:
+                st.markdown("**Key Project Metrics from Master Report:**")
+                for key, value in list(project_overview.items())[:5]:
+                    st.write(f"• {key}: {value}")
+    
+    elif st.session_state.get('project_data'):
+        st.warning("⚠️ No master report data available. For comprehensive AI analysis, please upload individual step reports in Step 10 first.")
+        st.info("💡 Using available session data for basic consultation.")
+    else:
+        st.error("❌ No project data available for AI consultation. Please complete the workflow steps first.")
+        return
     
     # Data Usage Information
     with st.expander("📊 How This Data Will Be Used", expanded=False):
@@ -305,27 +381,40 @@ def render_perplexity_consultation():
     api_key = os.getenv("PERPLEXITY_API_KEY", "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")
     agent = PerplexityBIPVAgent(api_key)
     
-    # Get project data
-    project_data = st.session_state.get('project_data', {})
-    project_name = project_data.get('project_name', 'Current Project')
+    # Determine data source for AI analysis
+    if master_report_data and uploaded_reports:
+        # Use comprehensive master report data
+        comprehensive_project_data = prepare_master_report_for_ai(master_report_data, uploaded_reports)
+        building_elements = comprehensive_project_data.get('building_elements', [])
+        financial_analysis = comprehensive_project_data.get('financial_analysis', {})
+        data_source = "Master Report (Comprehensive)"
+        st.info("🎯 Using comprehensive master report data for AI analysis")
+    else:
+        # Fall back to session/database data
+        project_data = st.session_state.get('project_data', {})
+        project_name = project_data.get('project_name', 'Current Project')
+        
+        # Load comprehensive data from database
+        db_data = get_project_report_data(project_name)
+        if not db_data:
+            st.warning("No project data found. Please complete the workflow analysis first or upload step reports in Step 10.")
+            return
+        
+        # Use database data as primary source, fallback to session state
+        building_elements = db_data.get('building_elements', [])
+        financial_analysis = db_data.get('financial_analysis', project_data.get('financial_analysis', {}))
+        
+        # Merge all available data for comprehensive analysis
+        comprehensive_project_data = {
+            **project_data,
+            **db_data,
+            'building_elements': building_elements,
+            'financial_analysis': financial_analysis
+        }
+        data_source = "Session/Database Data"
     
-    # Load comprehensive data from database
-    db_data = get_project_report_data(project_name)
-    if not db_data:
-        st.warning("No project data found. Please complete the workflow analysis first.")
-        return
-    
-    # Use database data as primary source, fallback to session state
-    building_elements = db_data.get('building_elements', [])
-    financial_analysis = db_data.get('financial_analysis', project_data.get('financial_analysis', {}))
-    
-    # Merge all available data for comprehensive analysis
-    comprehensive_project_data = {
-        **project_data,
-        **db_data,
-        'building_elements': building_elements,
-        'financial_analysis': financial_analysis
-    }
+    # Display data source being used
+    st.info(f"📊 **Data Source for AI Analysis:** {data_source}")
     
     col1, col2 = st.columns(2)
     
