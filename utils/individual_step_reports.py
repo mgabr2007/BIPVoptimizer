@@ -610,8 +610,17 @@ def generate_step2_report():
         building_area = safe_float(safe_get(historical_data, 'building_area'), 0.0)
         energy_intensity = safe_float(safe_get(historical_data, 'energy_intensity'), 0.0)
         
-        # Get forecast data first
+        # Get forecast data from multiple possible locations
         forecast_data = safe_get(historical_data, 'forecast_data', {})
+        
+        # If not found in historical_data, check demand_forecast location
+        if not forecast_data:
+            forecast_data = safe_get(historical_data, 'demand_forecast', {})
+        
+        # If still not found, check project_data directly for recent session data
+        if not forecast_data:
+            project_data = st.session_state.get('project_data', {})
+            forecast_data = safe_get(project_data, 'demand_forecast', {})
         
         # Get baseline annual from actual forecast data
         baseline_annual = safe_float(safe_get(forecast_data, 'base_consumption'), 0.0)
@@ -622,23 +631,31 @@ def generate_step2_report():
         
         # Calculate actual growth rate from forecast predictions (same as UI)
         annual_predictions = safe_get(forecast_data, 'annual_predictions', [])
+        
+        # Debug information (will be included in final report as comment)
+        # <!-- DEBUG: annual_predictions length: {len(annual_predictions) if annual_predictions else 0} -->
+        
         if len(annual_predictions) >= 2:
             first_year = annual_predictions[0]
             last_year = annual_predictions[-1]
             years = len(annual_predictions) - 1
             if first_year > 0 and years > 0:
                 growth_rate = ((last_year / first_year) ** (1/years) - 1) * 100
+                # Debug: calculated growth rate from predictions
             else:
                 growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
                 growth_rate = growth_rate_decimal * 100
+                # Debug: using stored growth rate (first_year=0 or years=0)
         else:
             # Fallback to stored growth rate
             growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
             growth_rate = growth_rate_decimal * 100
+            # Debug: using stored growth rate (no predictions)
             
             # If no forecast data, try demand_forecast as fallback
             if growth_rate == 0.0:
                 growth_rate = safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0)
+                # Debug: using demand_forecast fallback
         
         # Determine performance status and color
         if r2_score >= 0.85:
