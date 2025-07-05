@@ -390,6 +390,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 5, 2025: Fixed Step 2 report recalculation issue by removing all fallback calculations and making reports display actual Step 2 computed values instead of recalculating growth rates, ensuring identical values between UI display and downloadable reports
 - July 5, 2025: Implemented UI metrics storage system to save exact Step 2 calculation results (growth rates, peak demand, total demand, annual averages) to session state during UI display, and updated report generator to use these stored UI values instead of performing new calculations, ensuring complete data consistency between interface and reports
 - July 5, 2025: Fixed Step 3 Environmental Considerations & Shading Analysis reset issue by moving environmental factors section outside conditional weather fetch block, ensuring persistent state management for environmental checkboxes and preventing form resets when users interact with the section
+- July 5, 2025: Fixed Step 3 report environmental considerations data consistency by enhancing data flow between interface and report generation, ensuring environmental factors (trees/buildings) and shading calculations are properly saved to database and accurately displayed in downloaded reports with correct Yes/No values and adjusted GHI calculations
 
 ## User Preferences
 

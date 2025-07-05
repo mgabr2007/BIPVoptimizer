@@ -1403,12 +1403,22 @@ def generate_step3_report():
             <div class="content-section">
                 <h2>🌍 Environmental Considerations & Shading Analysis</h2>"""
         
-        # Get environmental factors from project data
+        # Get environmental factors from project data (check both locations)
         environmental_factors = safe_get(project_data, 'environmental_factors', {})
-        trees_nearby = environmental_factors.get('trees_nearby', False)
-        tall_buildings = environmental_factors.get('tall_buildings', False)
-        shading_reduction = safe_float(environmental_factors.get('shading_reduction', 0))
-        adjusted_ghi = safe_float(environmental_factors.get('adjusted_ghi', annual_ghi))
+        # Also check within weather_analysis data
+        weather_env_factors = safe_get(weather_analysis, 'environmental_factors', {})
+        
+        # Use weather_analysis data if available (more recent), otherwise use project_data
+        if weather_env_factors:
+            trees_nearby = weather_env_factors.get('trees_nearby', False)
+            tall_buildings = weather_env_factors.get('tall_buildings', False)
+            shading_reduction = safe_float(weather_env_factors.get('shading_reduction', 0))
+            adjusted_ghi = safe_float(weather_env_factors.get('adjusted_ghi', annual_ghi))
+        else:
+            trees_nearby = environmental_factors.get('trees_nearby', False)
+            tall_buildings = environmental_factors.get('tall_buildings', False)
+            shading_reduction = safe_float(environmental_factors.get('shading_reduction', 0))
+            adjusted_ghi = safe_float(environmental_factors.get('adjusted_ghi', annual_ghi))
         
         html += f"""
                 <table class="data-table">

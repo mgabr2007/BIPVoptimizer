@@ -627,19 +627,16 @@ def render_weather_environment():
         db_manager = BIPVDatabaseManager()
         
         if st.session_state.project_data.get('project_id'):
-            # Save environmental factors data
-            environmental_data = {
-                'project_id': st.session_state.project_data['project_id'],
-                'trees_nearby': trees_nearby,
-                'tall_buildings': tall_buildings,
-                'shading_reduction': shading_reduction,
-                'adjusted_ghi': adjusted_ghi,
-                'environmental_factors': st.session_state.project_data['environmental_factors']
-            }
-            
-            # Update weather data with environmental factors
+            # Update weather data with environmental factors directly
             if 'weather_analysis' in st.session_state.project_data:
-                st.session_state.project_data['weather_analysis']['environmental_factors'] = environmental_data
+                st.session_state.project_data['weather_analysis']['environmental_factors'] = {
+                    'trees_nearby': trees_nearby,
+                    'tall_buildings': tall_buildings,
+                    'shading_reduction': shading_reduction,
+                    'adjusted_ghi': adjusted_ghi
+                }
+                
+                # Save updated weather data with environmental factors
                 db_manager.save_weather_data(
                     st.session_state.project_data['project_id'],
                     st.session_state.project_data['weather_analysis']
