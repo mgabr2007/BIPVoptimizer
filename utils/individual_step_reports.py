@@ -554,7 +554,22 @@ def generate_step1_report():
             </div>
             
             <div class="content-section">
-                <h2>💰 Economic Parameters</h2>
+                <h2>💰 Economic Parameters</h2>"""
+    
+    # Generate Electricity Rates Comparison Chart
+    rates_data = {
+        'x': ['Import Rate', 'Feed-in Tariff', 'Rate Difference'],
+        'y': [import_rate, export_rate, import_rate - export_rate]
+    }
+    html += generate_plotly_chart(
+        rates_data, 
+        'bar', 
+        'Electricity Rate Analysis',
+        'Rate Type', 
+        'Rate (€/kWh)'
+    )
+    
+    html += f"""
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">€{import_rate:.3f}</div>
@@ -572,6 +587,121 @@ def generate_step1_report():
                         <div class="metric-value">25 Years</div>
                         <div class="metric-label">Analysis Period</div>
                     </div>
+                </div>
+            </div>
+            
+            <div class="content-section">
+                <h2>🌍 Location Context & Analysis Scope</h2>"""
+    
+    # Generate Project Configuration Overview Chart
+    config_data = {
+        'x': ['Geographic Data', 'Weather Integration', 'Economic Setup', 'Analysis Framework'],
+        'y': [100, 100, 100, 100]  # All parameters configured
+    }
+    html += f"""
+                <div class="chart-container">
+                    <div class="chart-title">Project Configuration Completeness</div>
+                    <div id="configuration_chart" style="height: 400px;"></div>
+                    <script>
+                        var data = [{{
+                            x: {config_data['x']},
+                            y: {config_data['y']},
+                            type: 'bar',
+                            marker: {{
+                                color: ['#32CD32', '#DAA520', '#FFD700', '#FFA500'],
+                                line: {{
+                                    color: '#B8860B',
+                                    width: 1
+                                }}
+                            }},
+                            text: ['✓ Complete', '✓ Complete', '✓ Complete', '✓ Complete'],
+                            textposition: 'auto'
+                        }}];
+                        
+                        var layout = {{
+                            title: {{
+                                text: 'Project Setup Status Overview',
+                                font: {{
+                                    size: 18,
+                                    color: '#B8860B',
+                                    family: 'Segoe UI, Arial, sans-serif'
+                                }}
+                            }},
+                            xaxis: {{
+                                title: 'Configuration Categories',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }}
+                            }},
+                            yaxis: {{
+                                title: 'Completion (%)',
+                                titlefont: {{
+                                    color: '#666',
+                                    size: 14
+                                }},
+                                tickfont: {{
+                                    color: '#666'
+                                }},
+                                range: [0, 120]
+                            }},
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white',
+                            margin: {{
+                                l: 60,
+                                r: 40,
+                                t: 60,
+                                b: 60
+                            }}
+                        }};
+                        
+                        Plotly.newPlot('configuration_chart', data, layout, {{responsive: true}});
+                    </script>
+                </div>
+                
+                <div style="margin: 20px 0;">
+                    <h3>🎯 Project Location Analysis</h3>
+                    <div id="location_context_chart" style="height: 400px;"></div>
+                    <script>
+                        var trace1 = {{
+                            x: ['Latitude', 'Longitude', 'Station Distance'],
+                            y: [{lat:.4f}, {lon:.4f}, {safe_float(safe_get(weather_station, 'distance_km'), 0.0):.1f}],
+                            type: 'bar',
+                            name: 'Geographic Metrics',
+                            marker: {{ color: '#DAA520' }}
+                        }};
+                        
+                        var trace2 = {{
+                            x: ['Import Rate', 'Export Rate', 'Rate Ratio'],
+                            y: [{import_rate:.3f}, {export_rate:.3f}, {(import_rate/export_rate) if export_rate > 0 else 0:.1f}],
+                            type: 'bar',
+                            name: 'Economic Metrics',
+                            yaxis: 'y2',
+                            marker: {{ color: '#32CD32' }}
+                        }};
+                        
+                        var layout = {{
+                            title: 'Geographic vs Economic Parameter Analysis',
+                            xaxis: {{ title: 'Parameters' }},
+                            yaxis: {{
+                                title: 'Geographic Values',
+                                side: 'left'
+                            }},
+                            yaxis2: {{
+                                title: 'Economic Values (€)',
+                                side: 'right',
+                                overlaying: 'y'
+                            }},
+                            plot_bgcolor: 'white',
+                            paper_bgcolor: 'white',
+                            showlegend: true
+                        }};
+                        
+                        Plotly.newPlot('location_context_chart', [trace1, trace2], layout, {{responsive: true}});
+                    </script>
                 </div>
             </div>
             
