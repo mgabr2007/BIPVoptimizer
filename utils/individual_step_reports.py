@@ -620,13 +620,25 @@ def generate_step2_report():
         if baseline_annual == 0.0:
             baseline_annual = safe_float(safe_get(demand_forecast, 'baseline_annual'), 0.0)
         
-        # Get growth rate from actual forecast data instead of hardcoded values
-        growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
-        growth_rate = growth_rate_decimal * 100  # Convert to percentage
-        
-        # If no forecast data, try demand_forecast as fallback
-        if growth_rate == 0.0:
-            growth_rate = safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0)
+        # Calculate actual growth rate from forecast predictions (same as UI)
+        annual_predictions = safe_get(forecast_data, 'annual_predictions', [])
+        if len(annual_predictions) >= 2:
+            first_year = annual_predictions[0]
+            last_year = annual_predictions[-1]
+            years = len(annual_predictions) - 1
+            if first_year > 0 and years > 0:
+                growth_rate = ((last_year / first_year) ** (1/years) - 1) * 100
+            else:
+                growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
+                growth_rate = growth_rate_decimal * 100
+        else:
+            # Fallback to stored growth rate
+            growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
+            growth_rate = growth_rate_decimal * 100
+            
+            # If no forecast data, try demand_forecast as fallback
+            if growth_rate == 0.0:
+                growth_rate = safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0)
         
         # Determine performance status and color
         if r2_score >= 0.85:
