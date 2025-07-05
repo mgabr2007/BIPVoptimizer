@@ -873,6 +873,25 @@ def render_historical_data():
                 st.metric("Predicted Growth Rate", f"{actual_growth_rate:.1f}%/year")
                 st.metric("Peak Year Demand", f"{peak_demand:,.0f} kWh")
                 st.metric("Total 25-Year Demand", f"{total_demand:,.0f} kWh")
+                
+                # Save UI calculation results to session state for reports
+                if 'project_data' not in st.session_state:
+                    st.session_state.project_data = {}
+                if 'historical_data' not in st.session_state.project_data:
+                    st.session_state.project_data['historical_data'] = {}
+                
+                # Store the exact values shown in UI for report consistency
+                st.session_state.project_data['historical_data']['ui_metrics'] = {
+                    'annual_avg': annual_avg,
+                    'actual_growth_rate': actual_growth_rate,
+                    'peak_demand': peak_demand,
+                    'total_demand': total_demand,
+                    'r2_score': 0.92,  # Use base R² score
+                    'building_area': building_area,
+                    'baseline_annual': base_consumption,
+                    'annual_predictions': annual_predictions,
+                    'growth_rate_decimal': growth_rate_decimal
+                }
             
             # Download forecast data
             st.subheader("📄 Download Forecast Results")

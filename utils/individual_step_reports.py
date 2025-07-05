@@ -635,13 +635,29 @@ def generate_step2_report():
         # Debug information (will be included in final report as comment)
         # <!-- DEBUG: annual_predictions length: {len(annual_predictions) if annual_predictions else 0} -->
         
-        # Use the stored growth rate from Step 2 calculations (no recalculation)
-        growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
-        growth_rate = growth_rate_decimal * 100  # Convert to percentage for display
-        
-        # If no forecast data, try demand_forecast as fallback
-        if growth_rate == 0.0:
-            growth_rate = safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0)
+        # Use the exact UI metrics stored from Step 2 (no recalculation)
+        ui_metrics = safe_get(historical_data, 'ui_metrics', {})
+        if ui_metrics:
+            # Use the exact values shown in the UI
+            growth_rate = safe_float(ui_metrics.get('actual_growth_rate'), 0.0)
+            baseline_annual = safe_float(ui_metrics.get('baseline_annual'), 0.0)
+            annual_predictions = ui_metrics.get('annual_predictions', [])
+            annual_avg = safe_float(ui_metrics.get('annual_avg'), baseline_annual)
+            peak_demand = safe_float(ui_metrics.get('peak_demand'), baseline_annual)
+            total_demand = safe_float(ui_metrics.get('total_demand'), baseline_annual * 25)
+        else:
+            # Fallback to stored values if ui_metrics not available
+            growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
+            growth_rate = growth_rate_decimal * 100
+            annual_predictions = safe_get(forecast_data, 'annual_predictions', [])
+            if annual_predictions:
+                annual_avg = sum(annual_predictions) / len(annual_predictions)
+                peak_demand = max(annual_predictions)
+                total_demand = sum(annual_predictions)
+            else:
+                annual_avg = baseline_annual
+                peak_demand = baseline_annual  
+                total_demand = baseline_annual * 25
         
         # Determine performance status and color
         if r2_score >= 0.85:
@@ -805,14 +821,18 @@ def generate_step2_report():
                 'Annual Energy Demand (kWh)'
             )
         
-        # Use actual forecast data calculated in Step 2 (no fallback calculations)
-        if annual_predictions and len(annual_predictions) >= 25:
+        # Use UI metrics values or calculate from available data
+        if ui_metrics:
+            # Use pre-calculated UI values
+            year_25_demand = safe_float(ui_metrics.get('peak_demand'), baseline_annual)
+            total_growth = ((year_25_demand / baseline_annual) - 1) * 100 if baseline_annual > 0 else 0
+        elif annual_predictions and len(annual_predictions) >= 25:
             year_25_demand = annual_predictions[24]  # 25th year (0-indexed)
             total_growth = ((year_25_demand / baseline_annual) - 1) * 100 if baseline_annual > 0 else 0
         else:
-            # Use stored values from Step 2 if available
-            year_25_demand = safe_float(safe_get(forecast_data, 'year_25_demand'), baseline_annual)
-            total_growth = safe_float(safe_get(forecast_data, 'total_growth'), 0.0)
+            # Use baseline values if no forecast data
+            year_25_demand = baseline_annual
+            total_growth = 0.0
         
         html += f"""
                 <div class="metrics-grid">
