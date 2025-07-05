@@ -878,14 +878,7 @@ def render_historical_data():
                         help="Downloads detailed monthly consumption forecasts for 25 years"
                     )
                 
-                with col2:
-                    st.download_button(
-                        label="📋 Download Forecast Report",
-                        data=summary_report,
-                        file_name=f"BIPV_Forecast_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                        mime="text/plain",
-                        help="Downloads comprehensive forecast analysis report"
-                    )
+
             except Exception as e:
                 st.error(f"Error creating download files: {str(e)}")
         else:
