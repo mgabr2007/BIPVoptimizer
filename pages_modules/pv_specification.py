@@ -163,7 +163,7 @@ def render_pv_specification():
         st.info(f"Sample Element IDs from building data: {sample_ids}")
         
         # Show available columns for debugging
-        st.debug(f"Available columns in building elements: {list(suitable_elements.columns)}")
+        st.write(f"Debug - Available columns in building elements: {list(suitable_elements.columns)}")
         
         # Check radiation data availability
         if radiation_data is not None:

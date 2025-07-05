@@ -76,11 +76,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     const buttonText = button.innerText || button.textContent || '';
                     if (buttonText.includes('Continue to Step') || 
                         buttonText.includes('Next Step') ||
+                        buttonText.includes('Previous Step') ||
                         buttonText.includes('→') ||
                         buttonText.includes('←') ||
                         buttonText.includes('Finish') ||
                         buttonText.includes('Start') ||
-                        buttonText.includes('Begin')) {
+                        buttonText.includes('Begin') ||
+                        buttonText.includes('Step') ||
+                        buttonText.includes('Calculate') ||
+                        buttonText.includes('Generate') ||
+                        buttonText.includes('Upload') ||
+                        buttonText.includes('Download') ||
+                        buttonText.includes('Analyze')) {
                         
                         // Remove existing listeners to prevent duplicates
                         button.removeEventListener('click', handleNavClick);
@@ -114,20 +121,40 @@ document.addEventListener('DOMContentLoaded', function() {
 window.addEventListener('load', scrollToTop);
 window.addEventListener('beforeunload', scrollToTop);
 
-// Handle Streamlit reruns
+// Handle Streamlit reruns and auto-scroll for any major content changes
 setInterval(function() {
     const buttons = document.querySelectorAll('button');
     let hasNavButton = false;
     buttons.forEach(button => {
         const text = button.innerText || button.textContent || '';
-        if (text.includes('→') || text.includes('←') || text.includes('Continue') || text.includes('Step')) {
+        if (text.includes('→') || text.includes('←') || text.includes('Continue') || 
+            text.includes('Step') || text.includes('Calculate') || text.includes('Generate') ||
+            text.includes('Upload') || text.includes('Download') || text.includes('Analyze')) {
             hasNavButton = true;
+            // Ensure click handler is attached
+            button.removeEventListener('click', handleGlobalNavClick);
+            button.addEventListener('click', handleGlobalNavClick);
         }
     });
+    
+    // Auto-scroll if user seems to be navigating (scroll position > 100px and nav buttons exist)
     if (hasNavButton && window.scrollY > 100) {
-        scrollToTop();
+        // Check if content has changed recently (indicates page transition)
+        const currentContent = document.querySelector('.main').innerHTML.length;
+        if (window.lastContentLength && currentContent !== window.lastContentLength) {
+            scrollToTop();
+        }
+        window.lastContentLength = currentContent;
     }
-}, 1000);
+}, 500);
+
+// Global navigation click handler
+function handleGlobalNavClick() {
+    scrollToTop();
+    setTimeout(scrollToTop, 100);
+    setTimeout(scrollToTop, 300);
+    setTimeout(scrollToTop, 500);
+}
 </script>
 
 <style>
