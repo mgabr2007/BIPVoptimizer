@@ -1731,6 +1731,98 @@ def generate_step5_report():
                 'Facade Orientation', 
                 'Annual Radiation (kWh/m²)'
             )
+            
+            # Add radiation distribution histogram
+            if radiation_results:
+                # Extract all radiation values for histogram
+                all_radiations = []
+                if isinstance(radiation_results, dict):
+                    for element_id, data in radiation_results.items():
+                        if isinstance(data, dict):
+                            radiation_val = (
+                                safe_float(data.get('annual_radiation', 0)) or
+                                safe_float(data.get('annual_irradiation', 0)) or
+                                safe_float(data.get('total_radiation', 0)) or
+                                safe_float(data.get('radiation', 0))
+                            )
+                            if radiation_val > 0:
+                                all_radiations.append(radiation_val)
+                elif isinstance(radiation_results, list):
+                    for r in radiation_results:
+                        if isinstance(r, dict):
+                            radiation_val = (
+                                safe_float(r.get('annual_radiation', 0)) or
+                                safe_float(r.get('annual_irradiation', 0)) or
+                                safe_float(r.get('total_radiation', 0)) or
+                                safe_float(r.get('radiation', 0))
+                            )
+                            if radiation_val > 0:
+                                all_radiations.append(radiation_val)
+                
+                if all_radiations and len(all_radiations) > 0:
+                    # Create radiation distribution histogram
+                    html += f"""
+                        <div class="chart-container">
+                            <div class="chart-title">Radiation Distribution Across Building Elements</div>
+                            <div id="radiation_histogram_{hash(str(all_radiations))}" style="height: 400px;"></div>
+                            <script>
+                                var data = [{{
+                                    x: {all_radiations},
+                                    type: 'histogram',
+                                    nbinsx: 20,
+                                    marker: {{
+                                        color: '#4ECDC4',
+                                        line: {{
+                                            color: '#2E8B8B',
+                                            width: 1
+                                        }}
+                                    }},
+                                    opacity: 0.8
+                                }}];
+                                
+                                var layout = {{
+                                    title: {{
+                                        text: 'Radiation Distribution Across Building Elements',
+                                        font: {{
+                                            size: 18,
+                                            color: '#B8860B',
+                                            family: 'Segoe UI, Arial, sans-serif'
+                                        }}
+                                    }},
+                                    xaxis: {{
+                                        title: 'Annual Radiation (kWh/m²)',
+                                        titlefont: {{
+                                            color: '#666',
+                                            size: 14
+                                        }},
+                                        tickfont: {{
+                                            color: '#666'
+                                        }}
+                                    }},
+                                    yaxis: {{
+                                        title: 'Number of Elements',
+                                        titlefont: {{
+                                            color: '#666',
+                                            size: 14
+                                        }},
+                                        tickfont: {{
+                                            color: '#666'
+                                        }}
+                                    }},
+                                    plot_bgcolor: 'white',
+                                    paper_bgcolor: 'white',
+                                    margin: {{
+                                        l: 60,
+                                        r: 40,
+                                        t: 60,
+                                        b: 60
+                                    }}
+                                }};
+                                
+                                Plotly.newPlot('radiation_histogram_{hash(str(all_radiations))}', data, layout, {{responsive: true}});
+                            </script>
+                        </div>
+                    """
         
         html += f"""
             <div class="content-section">
