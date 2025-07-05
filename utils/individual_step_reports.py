@@ -1529,7 +1529,7 @@ def generate_step5_report():
     radiation_data = None
     radiation_results = {}
     
-    # First check session state
+    # First check session state for various possible data structures
     if 'radiation_data' in project_data:
         radiation_data = project_data['radiation_data']
         if hasattr(radiation_data, 'to_dict'):
@@ -1537,13 +1537,30 @@ def generate_step5_report():
         elif isinstance(radiation_data, list):
             radiation_results = radiation_data
         elif isinstance(radiation_data, dict):
-            radiation_results = [radiation_data]
+            # Check if it's a dict with element keys
+            if all(isinstance(k, str) and isinstance(v, dict) for k, v in radiation_data.items()):
+                radiation_results = [{'element_id': k, **v} for k, v in radiation_data.items()]
+            else:
+                radiation_results = [radiation_data]
+    
+    # Check for radiation_analysis in project_data
+    if not radiation_results and 'radiation_analysis' in project_data:
+        rad_analysis = project_data['radiation_analysis']
+        if isinstance(rad_analysis, dict):
+            # Try different possible keys
+            for key in ['radiation_grid', 'element_radiation', 'radiation_results', 'results']:
+                data = rad_analysis.get(key, [])
+                if data:
+                    radiation_results = data
+                    break
     
     # Then check consolidated manager
     if not radiation_results:
         radiation_results = safe_get(step5_data, 'radiation_data', [])
         if not radiation_results:
             radiation_results = safe_get(step5_data, 'element_radiation', [])
+            if not radiation_results:
+                radiation_results = safe_get(step5_data, 'radiation_grid', [])
     
     # Check database if available
     if not radiation_results and project_data.get('project_id'):
@@ -1563,7 +1580,40 @@ def generate_step5_report():
     if not analysis_summary and radiation_results:
         # Calculate summary from radiation_results if not available
         if isinstance(radiation_results, list) and radiation_results:
-            radiations = [safe_float(r.get('annual_irradiation', 0)) for r in radiation_results if safe_float(r.get('annual_irradiation', 0)) > 0]
+            # Try different possible field names for radiation values
+            radiations = []
+            for r in radiation_results:
+                if isinstance(r, dict):
+                    radiation_val = (
+                        safe_float(r.get('annual_irradiation', 0)) or
+                        safe_float(r.get('annual_radiation', 0)) or
+                        safe_float(r.get('total_radiation', 0)) or
+                        safe_float(r.get('radiation', 0))
+                    )
+                    if radiation_val > 0:
+                        radiations.append(radiation_val)
+            
+            if radiations:
+                analysis_summary = {
+                    'total_elements': len(radiation_results),
+                    'average_radiation': sum(radiations) / len(radiations),
+                    'max_radiation': max(radiations),
+                    'min_radiation': min(radiations)
+                }
+        elif isinstance(radiation_results, dict):
+            # Handle dict format
+            radiations = []
+            for element_id, data in radiation_results.items():
+                if isinstance(data, dict):
+                    radiation_val = (
+                        safe_float(data.get('annual_irradiation', 0)) or
+                        safe_float(data.get('annual_radiation', 0)) or
+                        safe_float(data.get('total_radiation', 0)) or
+                        safe_float(data.get('radiation', 0))
+                    )
+                    if radiation_val > 0:
+                        radiations.append(radiation_val)
+            
             if radiations:
                 analysis_summary = {
                     'total_elements': len(radiation_results),
@@ -1591,13 +1641,36 @@ def generate_step5_report():
         
         # Analyze radiation by orientation
         orientation_radiation = {}
+        
         if isinstance(radiation_results, dict):
             for element_id, data in radiation_results.items():
-                orientation = data.get('orientation', 'Unknown')
-                radiation = safe_float(data.get('annual_radiation', 0))
-                if orientation not in orientation_radiation:
-                    orientation_radiation[orientation] = []
-                orientation_radiation[orientation].append(radiation)
+                if isinstance(data, dict):
+                    orientation = data.get('orientation', 'Unknown')
+                    radiation = (
+                        safe_float(data.get('annual_radiation', 0)) or 
+                        safe_float(data.get('annual_irradiation', 0)) or 
+                        safe_float(data.get('radiation', 0)) or 
+                        0
+                    )
+                    if orientation not in orientation_radiation:
+                        orientation_radiation[orientation] = []
+                    if radiation > 0:
+                        orientation_radiation[orientation].append(radiation)
+                        
+        elif isinstance(radiation_results, list):
+            for data in radiation_results:
+                if isinstance(data, dict):
+                    orientation = data.get('orientation', 'Unknown')
+                    radiation = (
+                        safe_float(data.get('annual_radiation', 0)) or 
+                        safe_float(data.get('annual_irradiation', 0)) or 
+                        safe_float(data.get('radiation', 0)) or 
+                        0
+                    )
+                    if orientation not in orientation_radiation:
+                        orientation_radiation[orientation] = []
+                    if radiation > 0:
+                        orientation_radiation[orientation].append(radiation)
         
         # Calculate orientation averages
         orientation_avg = {}
@@ -1714,12 +1787,17 @@ def generate_step5_report():
         if isinstance(radiation_results, dict):
             sorted_elements = sorted(
                 radiation_results.items(), 
-                key=lambda x: safe_float(x[1].get('annual_radiation', 0)), 
+                key=lambda x: safe_float(x[1].get('annual_radiation', 0)) or safe_float(x[1].get('annual_irradiation', 0)) or safe_float(x[1].get('radiation', 0)) or 0, 
                 reverse=True
             )
             
             for i, (element_id, data) in enumerate(sorted_elements[:10]):
-                radiation = safe_float(data.get('annual_radiation', 0))
+                radiation = (
+                    safe_float(data.get('annual_radiation', 0)) or 
+                    safe_float(data.get('annual_irradiation', 0)) or 
+                    safe_float(data.get('radiation', 0)) or 
+                    0
+                )
                 orientation = data.get('orientation', 'Unknown')
                 
                 html += f"""
@@ -1730,6 +1808,38 @@ def generate_step5_report():
                         <td>#{i+1}</td>
                     </tr>
                 """
+        elif isinstance(radiation_results, list):
+            # Handle list format
+            sorted_elements = sorted(
+                radiation_results,
+                key=lambda x: (
+                    safe_float(x.get('annual_radiation', 0)) or 
+                    safe_float(x.get('annual_irradiation', 0)) or 
+                    safe_float(x.get('radiation', 0)) or 
+                    0
+                ) if isinstance(x, dict) else 0,
+                reverse=True
+            )
+            
+            for i, data in enumerate(sorted_elements[:10]):
+                if isinstance(data, dict):
+                    element_id = data.get('element_id', f'Element_{i+1}')
+                    radiation = (
+                        safe_float(data.get('annual_radiation', 0)) or 
+                        safe_float(data.get('annual_irradiation', 0)) or 
+                        safe_float(data.get('radiation', 0)) or 
+                        0
+                    )
+                    orientation = data.get('orientation', 'Unknown')
+                    
+                    html += f"""
+                        <tr>
+                            <td><strong>{element_id}</strong></td>
+                            <td>{orientation}</td>
+                            <td>{radiation:,.0f}</td>
+                            <td>#{i+1}</td>
+                        </tr>
+                    """
         
         html += """
                 </table>
