@@ -438,6 +438,25 @@ def render_yield_demand():
                 key="seasonal_adjustment_yield"
             )
     
+    # Initialize variables to avoid scope issues
+    energy_balance = []
+    total_annual_savings = 0
+    total_feed_in_revenue = 0
+    coverage_ratio = 0
+    annual_demand = 0
+    total_annual_yield = 0
+    
+    # Load existing data if available
+    existing_analysis = project_data.get('yield_demand_analysis', {})
+    if existing_analysis:
+        energy_balance = existing_analysis.get('energy_balance', [])
+        annual_metrics = existing_analysis.get('annual_metrics', {})
+        total_annual_savings = annual_metrics.get('total_annual_savings', 0)
+        total_feed_in_revenue = annual_metrics.get('total_feed_in_revenue', 0)
+        coverage_ratio = annual_metrics.get('coverage_ratio', 0)
+        annual_demand = annual_metrics.get('annual_demand', 0)
+        total_annual_yield = annual_metrics.get('total_annual_yield', 0)
+    
     # Run analysis
     st.markdown("---")
     st.markdown("**Ready to see how much energy your BIPV systems will generate?**")
