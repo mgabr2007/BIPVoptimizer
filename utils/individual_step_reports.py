@@ -609,8 +609,24 @@ def generate_step2_report():
         demand_forecast = safe_get(historical_data, 'demand_forecast', {})
         building_area = safe_float(safe_get(historical_data, 'building_area'), 0.0)
         energy_intensity = safe_float(safe_get(historical_data, 'energy_intensity'), 0.0)
-        baseline_annual = safe_float(safe_get(demand_forecast, 'baseline_annual'), 0.0)
-        growth_rate = safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0)
+        
+        # Get forecast data first
+        forecast_data = safe_get(historical_data, 'forecast_data', {})
+        
+        # Get baseline annual from actual forecast data
+        baseline_annual = safe_float(safe_get(forecast_data, 'base_consumption'), 0.0)
+        
+        # If no forecast data, try demand_forecast as fallback
+        if baseline_annual == 0.0:
+            baseline_annual = safe_float(safe_get(demand_forecast, 'baseline_annual'), 0.0)
+        
+        # Get growth rate from actual forecast data instead of hardcoded values
+        growth_rate_decimal = safe_float(safe_get(forecast_data, 'growth_rate'), 0.0)
+        growth_rate = growth_rate_decimal * 100  # Convert to percentage
+        
+        # If no forecast data, try demand_forecast as fallback
+        if growth_rate == 0.0:
+            growth_rate = safe_float(safe_get(demand_forecast, 'growth_rate'), 0.0)
         
         # Determine performance status and color
         if r2_score >= 0.85:
@@ -737,8 +753,27 @@ def generate_step2_report():
             <div class="content-section">
                 <h2>📈 25-Year Demand Forecast Analysis</h2>"""
         
-        # Generate forecast projections chart
-        if baseline_annual > 0:
+        # Generate forecast projections chart using actual forecast data
+        annual_predictions = safe_get(forecast_data, 'annual_predictions', [])
+        
+        if annual_predictions and len(annual_predictions) > 0:
+            years = list(range(1, len(annual_predictions) + 1))
+            projected_demand = annual_predictions
+            
+            forecast_chart_data = {
+                'x': years,
+                'y': projected_demand
+            }
+            
+            html += generate_plotly_chart(
+                forecast_chart_data,
+                'line',
+                '25-Year Energy Demand Projection (AI Forecast)',
+                'Year',
+                'Annual Energy Demand (kWh)'
+            )
+        elif baseline_annual > 0:
+            # Fallback to simple calculation if no forecast data
             years = list(range(1, 26))
             projected_demand = [baseline_annual * ((1 + growth_rate/100) ** (year-1)) for year in years]
             
@@ -750,10 +785,19 @@ def generate_step2_report():
             html += generate_plotly_chart(
                 forecast_chart_data,
                 'line',
-                '25-Year Energy Demand Projection',
+                '25-Year Energy Demand Projection (Simplified)',
                 'Year',
                 'Annual Energy Demand (kWh)'
             )
+        
+        # Calculate Year 25 projection and total growth using actual forecast data
+        if annual_predictions and len(annual_predictions) >= 25:
+            year_25_demand = annual_predictions[24]  # 25th year (0-indexed)
+            total_growth = ((year_25_demand / baseline_annual) - 1) * 100 if baseline_annual > 0 else 0
+        else:
+            # Fallback calculation if no forecast data
+            year_25_demand = baseline_annual * (1 + growth_rate/100)**25
+            total_growth = ((year_25_demand / baseline_annual) - 1) * 100 if baseline_annual > 0 else 0
         
         html += f"""
                 <div class="metrics-grid">
@@ -762,7 +806,7 @@ def generate_step2_report():
                         <div class="metric-label">Year 1 Demand</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{baseline_annual * (1 + growth_rate/100)**25:,.0f} kWh</div>
+                        <div class="metric-value">{year_25_demand:,.0f} kWh</div>
                         <div class="metric-label">Year 25 Projected</div>
                     </div>
                     <div class="metric-card">
@@ -770,7 +814,7 @@ def generate_step2_report():
                         <div class="metric-label">Annual Growth Rate</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{((baseline_annual * (1 + growth_rate/100)**25) / baseline_annual - 1) * 100 if baseline_annual > 0 else 0:.0f}%</div>
+                        <div class="metric-value">{total_growth:.0f}%</div>
                         <div class="metric-label">Total Growth (25Y)</div>
                     </div>
                 </div>

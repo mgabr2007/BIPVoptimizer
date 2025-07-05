@@ -385,6 +385,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 4, 2025: Fixed WMO station distance calculation error in Step 1 report generation by correcting field name from 'distance' to 'distance_km', ensuring accurate distance values appear in reports instead of zero values
 - July 4, 2025: Enhanced Step 3 report with comprehensive Environmental Considerations section including detailed shading analysis calculations (15% trees, 10% buildings), academic references table with methodology sources (Gueymard 2012, Appelbaum & Bany 1979, etc.), environmental impact visualization chart showing progressive solar resource reduction, and comprehensive metrics including annual resource loss and carbon savings impact
 - July 4, 2025: Fixed Step 2 forecast summary calculation and display issues including corrected growth rate calculation using actual annual progression instead of zero values, proper 25-year average computation from forecast predictions, accurate peak year demand identification, and enhanced metrics formatting for realistic forecast display with proper percentage and numerical formatting
+- July 5, 2025: Fixed data consistency issue between Step 2 UI display and downloadable report by updating report generation to use actual forecast data instead of hardcoded growth rates, ensuring identical values shown in both forecast summary metrics and detailed PDF reports for accurate documentation
 
 ## User Preferences
 
