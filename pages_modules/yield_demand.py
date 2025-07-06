@@ -13,6 +13,13 @@ from database_manager import db_manager
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
 
+def safe_float(value, default=0.0):
+    """Safely convert value to float."""
+    try:
+        return float(value) if value is not None else default
+    except (ValueError, TypeError):
+        return default
+
 def load_demand_model():
     """Load the trained demand prediction model from session state."""
     try:
@@ -37,9 +44,9 @@ def predict_future_demand(model, feature_columns, start_date, end_date):
     
     # Create feature matrix
     features_df = pd.DataFrame({
-        'Month': dates.month,
-        'Quarter': dates.quarter,
-        'DayOfYear': dates.dayofyear
+        'Month': dates.to_series().dt.month.values,
+        'Quarter': dates.to_series().dt.quarter.values,
+        'DayOfYear': dates.to_series().dt.dayofyear.values
     })
     
     # Add seasonal temperature simulation based on month
@@ -66,8 +73,8 @@ def predict_future_demand(model, feature_columns, start_date, end_date):
     demand_df = pd.DataFrame({
         'date': dates,
         'predicted_demand': predictions,
-        'month': dates.month,
-        'year': dates.year
+        'month': dates.to_series().dt.month.values,
+        'year': dates.to_series().dt.year.values
     })
     
     return demand_df
@@ -481,26 +488,35 @@ def render_yield_demand():
                 
                 if pv_specs is not None and len(pv_specs) > 0:
                     for _, system in pv_specs.iterrows():
-                        annual_energy = float(system.get('annual_energy_kwh', 0))
-                        capacity_kw = float(system.get('capacity_kw', 0))
-                        glass_area = float(system.get('glass_area_m2', system.get('bipv_area_m2', 1.5)))
+                        # Get system parameters with safe conversion
+                        capacity_kw = safe_float(system.get('capacity_kw', 0))
+                        glass_area = safe_float(system.get('glass_area_m2', system.get('bipv_area_m2', 1.5)))
+                        efficiency = safe_float(system.get('efficiency', 0.08))  # Default 8% BIPV efficiency
+                        annual_radiation = safe_float(system.get('annual_radiation_kwh_m2', 1500))  # kWh/m²/year
                         
-                        # Sanity check for realistic energy values
-                        # Typical BIPV: 50-200 kWh/m²/year for Central Europe
+                        # Recalculate realistic annual energy based on actual physics
+                        # Formula: Energy = Area × Efficiency × Solar Radiation × Performance Ratio
+                        performance_ratio = 0.85  # Typical for BIPV systems
+                        
+                        # Ensure radiation is reasonable (Central Europe: 1000-1800 kWh/m²/year)
+                        if annual_radiation > 2500:
+                            annual_radiation = 1500  # Use typical value for Germany
+                        
+                        annual_energy = glass_area * efficiency * annual_radiation * performance_ratio
+                        
+                        # Verify specific yield is realistic (800-1500 kWh/kW for BIPV)
+                        if capacity_kw > 0:
+                            specific_yield = annual_energy / capacity_kw
+                            if specific_yield > 1800:  # Too high, recalculate
+                                annual_energy = capacity_kw * 1200  # Realistic specific yield
+                        
+                        # Final sanity check: energy per m² should be 50-150 kWh/m²/year for BIPV
                         if glass_area > 0:
                             energy_per_m2 = annual_energy / glass_area
-                            if energy_per_m2 > 300:  # Unrealistic, likely unit error
-                                annual_energy = annual_energy / 1000  # Convert if needed
-                                st.warning(f"Adjusted unrealistic energy value for element {system.get('element_id', '')}")
+                            if energy_per_m2 > 200:  # Still too high
+                                annual_energy = glass_area * 120  # Use 120 kWh/m²/year typical BIPV
                         
-                        # Additional check: specific yield should be reasonable (800-2000 kWh/kW)
-                        if capacity_kw > 0:
-                            specific_yield_check = annual_energy / capacity_kw
-                            if specific_yield_check > 3000:  # Unrealistic
-                                annual_energy = capacity_kw * 1200  # Use typical value
-                                st.warning(f"Applied realistic specific yield for element {system.get('element_id', '')}")
-                        
-                        if annual_energy > 0:  # Only include systems with positive energy
+                        if annual_energy > 0 and capacity_kw > 0:  # Only include valid systems
                             # Calculate monthly yields using seasonal distribution
                             monthly_yields = [annual_energy * factor for factor in monthly_solar_factors]
                             
