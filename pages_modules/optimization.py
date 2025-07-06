@@ -465,28 +465,7 @@ def render_optimization():
         # Always show balanced total
         st.success(f"✅ Auto-balanced objectives: Cost {weight_cost}%, Yield {weight_yield}%, ROI {weight_roi}% = 100%")
         
-        # Show optimization parameters summary
-        with st.expander("📋 Current Optimization Configuration Summary", expanded=False):
-            st.write("**Objective Weights:**")
-            st.write(f"• Minimize Cost: {weight_cost}%")
-            st.write(f"• Maximize Yield: {weight_yield}%") 
-            st.write(f"• Maximize ROI: {weight_roi}%")
-            st.write("")
-            st.write("**Algorithm Parameters:**")
-            st.write(f"• Population Size: {population_size}")
-            st.write(f"• Generations: {generations}")
-            st.write(f"• Mutation Rate: {mutation_rate}%")
-            st.write("")
-            st.write("**Financial Constraints:**")
-            st.write(f"• Maximum Investment: €{max_investment:,}")
-            st.write(f"• Minimum Coverage: {min_coverage}%")
-            st.write(f"• Electricity Price: €{electricity_price:.3f}/kWh")
-            st.write("")
-            st.write("**Advanced Settings (All Active in Algorithm):**")
-            st.write(f"• Prioritize ROI: {'✅ Yes (+20% ROI boost)' if prioritize_roi else '❌ No'}")
-            st.write(f"• Include Maintenance: {'✅ Yes (1.5% annual cost)' if include_maintenance else '❌ No'}")
-            st.write(f"• Orientation Preference: {orientation_preference} {'(+10% bonus)' if orientation_preference != 'None' else ''}")
-            st.write(f"• System Size Preference: {system_size_preference} {'(+5% bonus)' if system_size_preference != 'Balanced' else ''}")
+        # Configuration summary will be shown after parameter definitions
     
     # Financial parameters section
     st.write("**Financial Parameters**")
@@ -557,6 +536,29 @@ def render_optimization():
                 key="size_pref_opt"
             )
     
+    # Show optimization parameters summary
+    with st.expander("📋 Current Optimization Configuration Summary", expanded=False):
+        st.write("**Objective Weights:**")
+        st.write(f"• Minimize Cost: {weight_cost}%")
+        st.write(f"• Maximize Yield: {weight_yield}%") 
+        st.write(f"• Maximize ROI: {weight_roi}%")
+        st.write("")
+        st.write("**Algorithm Parameters:**")
+        st.write(f"• Population Size: {population_size}")
+        st.write(f"• Generations: {generations}")
+        st.write(f"• Mutation Rate: {mutation_rate}%")
+        st.write("")
+        st.write("**Financial Constraints:**")
+        st.write(f"• Maximum Investment: €{max_investment:,}")
+        st.write(f"• Minimum Coverage: {min_coverage}%")
+        st.write(f"• Electricity Price: €{electricity_price:.3f}/kWh")
+        st.write("")
+        st.write("**Advanced Settings (All Active in Algorithm):**")
+        st.write(f"• Prioritize ROI: {'✅ Yes (+20% ROI boost)' if prioritize_roi else '❌ No'}")
+        st.write(f"• Include Maintenance: {'✅ Yes (1.5% annual cost)' if include_maintenance else '❌ No'}")
+        st.write(f"• Orientation Preference: {orientation_preference} {'(+10% bonus)' if orientation_preference != 'None' else ''}")
+        st.write(f"• System Size Preference: {system_size_preference} {'(+5% bonus)' if system_size_preference != 'Balanced' else ''}")
+
     # Store variables in session state to ensure proper scope access
     if 'opt_max_investment' not in st.session_state:
         st.session_state.opt_max_investment = max_investment
