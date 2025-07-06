@@ -1661,9 +1661,18 @@ def generate_step5_report():
     coordinates = project_data.get('coordinates', {})
     selected_weather_station = project_data.get('selected_weather_station', {})
     
-    # Extract location details
-    latitude = coordinates.get('lat', 'Not specified')
-    longitude = coordinates.get('lng', 'Not specified')
+    # Extract location details with safe numeric conversion
+    latitude = coordinates.get('lat', 0.0)
+    longitude = coordinates.get('lng', 0.0)
+    
+    # Convert to float if they're strings
+    try:
+        latitude = float(latitude) if latitude != 'Not specified' else 0.0
+        longitude = float(longitude) if longitude != 'Not specified' else 0.0
+    except (ValueError, TypeError):
+        latitude = 0.0
+        longitude = 0.0
+    
     station_name = selected_weather_station.get('name', 'Standard meteorological station')
     station_distance = selected_weather_station.get('distance_km', 'N/A')
     wmo_id = selected_weather_station.get('wmo_id', 'N/A')
@@ -2436,9 +2445,17 @@ def generate_step6_report():
     location_name = project_data.get('location_name', 'Project Location')
     coordinates = project_data.get('coordinates', {})
     
-    # Extract location details
-    latitude = coordinates.get('lat', 'Not specified')
-    longitude = coordinates.get('lng', 'Not specified')
+    # Extract location details with safe numeric conversion
+    latitude = coordinates.get('lat', 0.0)
+    longitude = coordinates.get('lng', 0.0)
+    
+    # Convert to float if they're strings
+    try:
+        latitude = float(latitude) if latitude != 'Not specified' else 0.0
+        longitude = float(longitude) if longitude != 'Not specified' else 0.0
+    except (ValueError, TypeError):
+        latitude = 0.0
+        longitude = 0.0
     
     html += f"""
         <div class="content-section">
