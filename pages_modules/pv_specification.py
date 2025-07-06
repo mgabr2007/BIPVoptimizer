@@ -72,7 +72,27 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
     for idx, element in suitable_elements.iterrows():
         # Use actual Element ID from building elements
         element_id = element.get('Element ID', element.get('element_id', f"element_{idx}"))
-        glass_area = float(element.get('Glass Area (m²)', element.get('glass_area', 1.5)))
+        
+        # Extract glass area from multiple possible column names
+        glass_area_raw = (
+            element.get('Glass Area (m²)') or
+            element.get('glass_area') or
+            element.get('Glass Area') or
+            element.get('Area (m²)') or
+            element.get('area') or
+            element.get('Window Area') or
+            element.get('window_area') or
+            element.get('glass_area_m2') or
+            1.5  # Only use default as last resort
+        )
+        
+        # Convert to float and ensure it's a reasonable value
+        try:
+            glass_area = float(glass_area_raw)
+            if glass_area <= 0:
+                glass_area = 1.5  # Fallback for zero or negative values
+        except (ValueError, TypeError):
+            glass_area = 1.5  # Fallback for non-numeric values
         
         # Get orientation information from building elements
         azimuth = element.get('Azimuth', element.get('azimuth', 0))
@@ -98,6 +118,9 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
         
         total_cost_eur = bipv_area * panel_specs['cost_per_m2']
         
+        # Calculate actual power density (W/m²) for this system
+        actual_power_density = panel_specs['power_density']  # W/m² from panel specs
+        
         bipv_spec = {
             'element_id': element_id,
             'orientation': orientation,
@@ -108,6 +131,7 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
             'annual_energy_kwh': annual_energy_kwh,
             'annual_radiation_kwh_m2': annual_radiation,
             'specific_yield_kwh_kw': safe_divide(annual_energy_kwh, capacity_kw, 0) if capacity_kw > 0 else 0,
+            'power_density_w_m2': actual_power_density,
             'total_cost_eur': total_cost_eur,
             'efficiency': panel_specs['efficiency'],
             'transparency': panel_specs['transparency']

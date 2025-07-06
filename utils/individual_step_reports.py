@@ -2795,14 +2795,22 @@ def generate_step6_report():
         sorted_systems = sorted(individual_systems, key=get_system_capacity, reverse=True)
         for system in sorted_systems[:10]:
             capacity = get_system_capacity(system)
+            # Use actual glass area from multiple possible field names
             area = (
+                safe_float(system.get('glass_area_m2', 0)) or
                 safe_float(system.get('glass_area', 0)) or
                 safe_float(system.get('area_m2', 0)) or
                 safe_float(system.get('window_area', 0)) or
                 safe_float(system.get('element_area', 0)) or
+                safe_float(system.get('bipv_area_m2', 0)) or
                 1.5
             )
-            power_density = (capacity / area * 1000) if area > 0 else 0
+            # Use actual power density from specifications, not recalculated
+            power_density = (
+                safe_float(system.get('power_density_w_m2', 0)) or
+                safe_float(system.get('power_density', 0)) or
+                150.0  # Typical BIPV power density W/m²
+            )
             
             # Get orientation with improved mapping
             orientation = system.get('orientation', 'Unknown')
