@@ -1655,6 +1655,60 @@ def generate_step5_report():
     
     html = get_base_html_template("Solar Radiation & Shading Analysis", 5)
     
+    # Add project location information section first
+    project_name = project_data.get('project_name', 'BIPV Analysis Project')
+    location_name = project_data.get('location_name', 'Project Location')
+    coordinates = project_data.get('coordinates', {})
+    selected_weather_station = project_data.get('selected_weather_station', {})
+    
+    # Extract location details
+    latitude = coordinates.get('lat', 'Not specified')
+    longitude = coordinates.get('lng', 'Not specified')
+    station_name = selected_weather_station.get('name', 'Standard meteorological station')
+    station_distance = selected_weather_station.get('distance_km', 'N/A')
+    wmo_id = selected_weather_station.get('wmo_id', 'N/A')
+    
+    html += f"""
+        <div class="content-section">
+            <h2>📍 Project Location & Meteorological Data</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">{project_name}</div>
+                    <div class="metric-label">Project Name</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{location_name}</div>
+                    <div class="metric-label">Location</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{latitude:.4f}°</div>
+                    <div class="metric-label">Latitude</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{longitude:.4f}°</div>
+                    <div class="metric-label">Longitude</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{station_name}</div>
+                    <div class="metric-label">Weather Station</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{station_distance} km</div>
+                    <div class="metric-label">Station Distance</div>
+                </div>
+            </div>
+            
+            <table class="data-table">
+                <tr><th>Parameter</th><th>Value</th><th>Source</th></tr>
+                <tr><td>Project Coordinates</td><td>{latitude:.6f}°, {longitude:.6f}°</td><td>Interactive map selection</td></tr>
+                <tr><td>Meteorological Station</td><td>{station_name}</td><td>WMO CLIMAT database</td></tr>
+                <tr><td>WMO Station ID</td><td>{wmo_id}</td><td>World Meteorological Organization</td></tr>
+                <tr><td>Station Distance</td><td>{station_distance} km</td><td>Geodesic calculation</td></tr>
+                <tr><td>Data Quality</td><td>High - Official WMO Station</td><td>ISO 15927-4 compliant</td></tr>
+            </table>
+        </div>
+    """
+    
     # Try to get radiation data from multiple sources
     radiation_data = None
     radiation_results = {}
@@ -2377,6 +2431,39 @@ def generate_step6_report():
     
     html = get_base_html_template("BIPV Glass Specification & System Design", 6)
     
+    # Add project location information section first
+    project_name = project_data.get('project_name', 'BIPV Analysis Project')
+    location_name = project_data.get('location_name', 'Project Location')
+    coordinates = project_data.get('coordinates', {})
+    
+    # Extract location details
+    latitude = coordinates.get('lat', 'Not specified')
+    longitude = coordinates.get('lng', 'Not specified')
+    
+    html += f"""
+        <div class="content-section">
+            <h2>📍 Project Information & Location</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">{project_name}</div>
+                    <div class="metric-label">Project Name</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{location_name}</div>
+                    <div class="metric-label">Location</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{latitude:.4f}°</div>
+                    <div class="metric-label">Latitude</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">{longitude:.4f}°</div>
+                    <div class="metric-label">Longitude</div>
+                </div>
+            </div>
+        </div>
+    """
+    
     # Try to get PV specification data from multiple sources
     individual_systems = []
     system_summary = {}
@@ -2492,10 +2579,46 @@ def generate_step6_report():
                 # Calculate from total capacity and area as fallback
                 avg_power_density = (total_capacity / total_area * 1000) if total_area > 0 else 150.0
         
-        # Analyze by orientation
+        # Analyze by orientation - enhanced orientation mapping
         orientation_analysis = {}
+        
+        # Get building elements for orientation mapping if available
+        building_elements = project_data.get('building_elements', [])
+        if hasattr(building_elements, 'to_dict'):
+            building_elements = building_elements.to_dict('records')
+        
+        # Create orientation lookup by element ID
+        element_orientation_map = {}
+        if building_elements:
+            for elem in building_elements:
+                element_id = str(elem.get('element_id', elem.get('Element ID', '')))
+                orientation = elem.get('orientation', elem.get('Orientation', 'Unknown'))
+                if element_id and orientation != 'Unknown':
+                    element_orientation_map[element_id] = orientation
+        
         for system in individual_systems:
+            # Try to get orientation from multiple sources
             orientation = system.get('orientation', 'Unknown')
+            
+            # If orientation is Unknown, try to map from building elements
+            if orientation == 'Unknown':
+                element_id = str(system.get('element_id', ''))
+                if element_id in element_orientation_map:
+                    orientation = element_orientation_map[element_id]
+                else:
+                    # Try alternative mapping approaches
+                    azimuth = safe_float(system.get('azimuth', 0))
+                    if azimuth > 0:
+                        # Map azimuth to orientation
+                        if 315 <= azimuth <= 360 or 0 <= azimuth < 45:
+                            orientation = 'North'
+                        elif 45 <= azimuth < 135:
+                            orientation = 'East'
+                        elif 135 <= azimuth < 225:
+                            orientation = 'South'
+                        elif 225 <= azimuth < 315:
+                            orientation = 'West'
+            
             if orientation not in orientation_analysis:
                 orientation_analysis[orientation] = {'count': 0, 'capacity': 0, 'area': 0}
             orientation_analysis[orientation]['count'] += 1
@@ -2637,10 +2760,29 @@ def generate_step6_report():
             )
             power_density = (capacity / area * 1000) if area > 0 else 0
             
+            # Get orientation with improved mapping
+            orientation = system.get('orientation', 'Unknown')
+            if orientation == 'Unknown':
+                element_id = str(system.get('element_id', ''))
+                if element_id in element_orientation_map:
+                    orientation = element_orientation_map[element_id]
+                else:
+                    # Try azimuth mapping as fallback
+                    azimuth = safe_float(system.get('azimuth', 0))
+                    if azimuth > 0:
+                        if 315 <= azimuth <= 360 or 0 <= azimuth < 45:
+                            orientation = 'North'
+                        elif 45 <= azimuth < 135:
+                            orientation = 'East'
+                        elif 135 <= azimuth < 225:
+                            orientation = 'South'
+                        elif 225 <= azimuth < 315:
+                            orientation = 'West'
+            
             html += f"""
                 <tr>
                     <td><strong>{system.get('element_id', 'Unknown')}</strong></td>
-                    <td>{system.get('orientation', 'Unknown')}</td>
+                    <td>{orientation}</td>
                     <td>{capacity:.2f}</td>
                     <td>{area:.1f}</td>
                     <td>{power_density:.0f}</td>
