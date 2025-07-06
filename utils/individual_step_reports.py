@@ -3637,7 +3637,7 @@ def generate_step9_report():
                     opt_data = project_data.get('optimization_results', {})
                     if opt_data and 'solutions' in opt_data:
                         solutions = opt_data['solutions']
-                        if solutions and len(solutions) > 0:
+                        if solutions is not None and len(solutions) > 0:
                             best_solution = solutions[0]
                             initial_investment = safe_float(best_solution.get('total_investment', 0))
                 
@@ -3652,8 +3652,12 @@ def generate_step9_report():
             # Get annual savings from yield analysis
             if annual_savings == 0.0:
                 yield_data = project_data.get('yield_demand_analysis', {})
-                if yield_data:
-                    annual_metrics_yield = yield_data.get('annual_metrics', {})
+                if yield_data is not None and (isinstance(yield_data, dict) or hasattr(yield_data, 'empty')):
+                    if isinstance(yield_data, dict):
+                        annual_metrics_yield = yield_data.get('annual_metrics', {})
+                    else:
+                        # Handle DataFrame case
+                        annual_metrics_yield = {}
                     annual_savings = safe_float(annual_metrics_yield.get('total_annual_savings', 0))
                     
                     # Try alternative field names
