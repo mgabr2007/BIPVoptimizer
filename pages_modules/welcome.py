@@ -244,36 +244,7 @@ def render_welcome():
     **New Feature:** Step 11 includes AI consultation powered by Perplexity research agent for expert analysis and optimization recommendations.
     """)
     
-    # Mathematical Foundations
-    st.markdown("""
-    ---
-    
-    ### Mathematical Foundations & Recent Enhancements
-    
-    The platform implements comprehensive mathematical models with recent improvements:
-    """)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-        **Core Calculations:**
-        - Solar position algorithms (ISO 15927-4)
-        - Irradiance modeling with orientation corrections
-        - BIPV glass technology specifications (2-12% efficiency)
-        - Financial analysis (NPV, IRR, payback period)
-        - Environmental impact (CO₂ savings quantification)
-        """)
-    
-    with col2:
-        st.markdown("""
-        **Recent Improvements:**
-        - Enhanced R² score tracking and performance indicators
-        - Interactive visualization with authentic workflow data
-        - Decimal-to-float conversion for database operations
-        - AI-powered research consultation integration
-        - Corrected navigation for 11-step workflow
-        """)
+    # Section removed per user request
     
 
     

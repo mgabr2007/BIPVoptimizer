@@ -266,6 +266,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - June 25, 2025: Enhanced welcome page with comprehensive standards implementation guide explaining where ISO 15927-4, ISO 9060, EN 410, and ASHRAE 90.1 standards are used throughout the analysis workflow
 - June 25, 2025: Added detailed mathematical foundation section with complete optimization and analysis equations including solar calculations, PV yield formulas, NSGA-II optimization parameters, financial analysis equations, and environmental impact calculations
 - June 25, 2025: Revised welcome page to focus on standards implementation mapping and equations overview while avoiding duplication with existing technical documentation, providing clear workflow-specific context for users
+- July 6, 2025: Removed "Mathematical Foundations & Recent Enhancements" section from welcome page to streamline interface and eliminate visual clutter per user request
 - June 25, 2025: Fixed UTF-8 decoding error in Step 3 Weather Environment by implementing robust encoding fallback mechanism (utf-8, latin-1, iso-8859-1, cp1252) for WMO stations file reading and enhanced error handling with user-friendly messages
 - June 25, 2025: Fixed Step 5 building elements data recognition issue by correcting session state variable checks and ensuring proper data flow from Step 4 facade extraction to Step 5 radiation analysis
 - June 25, 2025: Fixed Step 5 weather data dependency check by updating radiation grid module to properly locate TMY data within weather_analysis object structure from Step 3
