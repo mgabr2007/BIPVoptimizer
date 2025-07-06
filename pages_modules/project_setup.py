@@ -256,7 +256,10 @@ def render_project_setup():
         location=[st.session_state.map_coordinates['lat'], st.session_state.map_coordinates['lng']],
         zoom_start=current_zoom,
         tiles="OpenStreetMap",
-        prefer_canvas=True
+        prefer_canvas=True,
+        zoom_control=True,
+        dragging=True,
+        scrollWheelZoom=True
     )
     
     # Add marker for current location with neighborhood-specific name
@@ -302,59 +305,76 @@ def render_project_setup():
     </style>
     """, unsafe_allow_html=True)
     
-    # Display stable map with optimized state management
+    # Display stable map with minimal refresh during panning
     map_data = None
     if location_method == "Interactive Map":
-        # Use stable map rendering with minimal updates
-        map_data = st_folium(
-            m, 
-            key="location_map", 
-            height=450, 
-            width=700,
-            returned_objects=["last_clicked", "zoom"],  # Only track essential data
-            feature_group_to_add=None,  # Reduce complexity
-            debug=False  # Disable debug mode for stability
-        )
+        # Initialize last click tracker to prevent map refreshing
+        if 'last_map_click_lat' not in st.session_state:
+            st.session_state.last_map_click_lat = None
+        if 'last_map_click_lng' not in st.session_state:
+            st.session_state.last_map_click_lng = None
+            
+        # Use stable map rendering with reduced sensitivity
+        with st.container():
+            map_data = st_folium(
+                m, 
+                key="location_map", 
+                height=450, 
+                width=700,
+                returned_objects=["last_clicked"],  # Only track clicks, not zoom/pan
+                feature_group_to_add=None,
+                debug=False
+            )
         
-        # Update zoom level only when significantly changed
-        if map_data and map_data.get('zoom') and abs(map_data['zoom'] - st.session_state.get('map_zoom', 13)) > 0.5:
-            st.session_state.map_zoom = map_data['zoom']
-        
-        # Process map clicks with improved stability
+        # Only process actual clicks, not pan/zoom interactions
         if (map_data and 
-            map_data.get('last_clicked') is not None and 
-            not st.session_state.get('processing_click', False)):
+            map_data.get('last_clicked') is not None):
             
             new_coords = map_data['last_clicked']
-            current_lat = st.session_state.map_coordinates['lat']
-            current_lon = st.session_state.map_coordinates['lng']
             
-            # Only process significant coordinate changes
-            lat_diff = abs(new_coords['lat'] - current_lat)
-            lon_diff = abs(new_coords['lng'] - current_lon)
-            
-            if lat_diff > 0.001 or lon_diff > 0.001:  # Increased threshold for stability
-                # Prevent multiple simultaneous updates
-                st.session_state.processing_click = True
+            # Check if this is a new actual click (not just pan/zoom)
+            if (st.session_state.last_map_click_lat != new_coords['lat'] or 
+                st.session_state.last_map_click_lng != new_coords['lng']):
                 
-                # Update coordinates
-                st.session_state.map_coordinates = new_coords
-                st.session_state.location_name = get_location_from_coordinates(
-                    new_coords['lat'], new_coords['lng']
-                )
+                current_lat = st.session_state.map_coordinates['lat']
+                current_lon = st.session_state.map_coordinates['lng']
                 
-                # Reset processing flag
-                st.session_state.processing_click = False
+                # Only process if coordinates changed significantly (actual click, not drift)
+                lat_diff = abs(new_coords['lat'] - current_lat)
+                lon_diff = abs(new_coords['lng'] - current_lon)
+                
+                if lat_diff > 0.01 or lon_diff > 0.01:  # Even higher threshold to prevent pan interference
+                    # Add a small delay to debounce rapid clicks
+                    import time
+                    current_time = time.time()
+                    last_update_time = st.session_state.get('last_map_update_time', 0)
+                    
+                    # Only update if enough time has passed (debounce)
+                    if current_time - last_update_time > 1.0:  # 1 second debounce
+                        # Update coordinates and location name
+                        st.session_state.map_coordinates = new_coords
+                        st.session_state.location_name = get_location_from_coordinates(
+                            new_coords['lat'], new_coords['lng']
+                        )
+                        
+                        # Remember this click to avoid reprocessing
+                        st.session_state.last_map_click_lat = new_coords['lat']
+                        st.session_state.last_map_click_lng = new_coords['lng']
+                        st.session_state.last_map_update_time = current_time
+                        
+                        # Trigger rerun only for significant location changes
+                        st.rerun()
     else:
         # Static map display for manual coordinates
-        st_folium(
-            m, 
-            key="location_map_display", 
-            height=450, 
-            width=700,
-            returned_objects=[],  # No interaction needed
-            debug=False
-        )
+        with st.container():
+            st_folium(
+                m, 
+                key="location_map_display", 
+                height=450, 
+                width=700,
+                returned_objects=[],  # No interaction needed
+                debug=False
+            )
     
     # STEP 1.3: Weather Station Selection
     st.subheader("3️⃣ Weather Station Selection")
