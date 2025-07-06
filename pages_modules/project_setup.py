@@ -308,62 +308,67 @@ def render_project_setup():
     # Display stable map with minimal refresh during panning
     map_data = None
     if location_method == "Interactive Map":
-        # Initialize last click tracker to prevent map refreshing
-        if 'last_map_click_lat' not in st.session_state:
-            st.session_state.last_map_click_lat = None
-        if 'last_map_click_lng' not in st.session_state:
-            st.session_state.last_map_click_lng = None
+        # Initialize map processing flag
+        if 'map_processing' not in st.session_state:
+            st.session_state.map_processing = False
             
-        # Use stable map rendering with reduced sensitivity
+        # Use stable map rendering with maximum stability for panning
         with st.container():
+            # Create a unique key to prevent unnecessary re-renders
+            map_key = f"location_map_{st.session_state.get('location_method', 'interactive')}"
+            
             map_data = st_folium(
                 m, 
-                key="location_map", 
+                key=map_key, 
                 height=450, 
                 width=700,
-                returned_objects=["last_clicked"],  # Only track clicks, not zoom/pan
+                returned_objects=["last_clicked"],  # Only track clicks
                 feature_group_to_add=None,
-                debug=False
+                debug=False,
+                use_container_width=False  # Fixed width to prevent resizing issues
             )
         
         # Only process actual clicks, not pan/zoom interactions
         if (map_data and 
-            map_data.get('last_clicked') is not None):
+            map_data.get('last_clicked') is not None and
+            not st.session_state.get('map_processing', False)):
             
             new_coords = map_data['last_clicked']
             
-            # Check if this is a new actual click (not just pan/zoom)
-            if (st.session_state.last_map_click_lat != new_coords['lat'] or 
-                st.session_state.last_map_click_lng != new_coords['lng']):
+            # Get current coordinates for comparison
+            current_lat = st.session_state.map_coordinates['lat']
+            current_lon = st.session_state.map_coordinates['lng']
+            
+            # Calculate coordinate differences
+            lat_diff = abs(new_coords['lat'] - current_lat)
+            lon_diff = abs(new_coords['lng'] - current_lon)
+            
+            # Only process significant coordinate changes that represent intentional clicks
+            if lat_diff > 0.02 or lon_diff > 0.02:  # Very high threshold to prevent pan interference
+                # Set processing flag to prevent concurrent updates
+                st.session_state.map_processing = True
                 
-                current_lat = st.session_state.map_coordinates['lat']
-                current_lon = st.session_state.map_coordinates['lng']
-                
-                # Only process if coordinates changed significantly (actual click, not drift)
-                lat_diff = abs(new_coords['lat'] - current_lat)
-                lon_diff = abs(new_coords['lng'] - current_lon)
-                
-                if lat_diff > 0.01 or lon_diff > 0.01:  # Even higher threshold to prevent pan interference
-                    # Add a small delay to debounce rapid clicks
-                    import time
-                    current_time = time.time()
-                    last_update_time = st.session_state.get('last_map_update_time', 0)
+                try:
+                    # Update coordinates and location name
+                    st.session_state.map_coordinates = new_coords
                     
-                    # Only update if enough time has passed (debounce)
-                    if current_time - last_update_time > 1.0:  # 1 second debounce
-                        # Update coordinates and location name
-                        st.session_state.map_coordinates = new_coords
-                        st.session_state.location_name = get_location_from_coordinates(
-                            new_coords['lat'], new_coords['lng']
-                        )
-                        
-                        # Remember this click to avoid reprocessing
-                        st.session_state.last_map_click_lat = new_coords['lat']
-                        st.session_state.last_map_click_lng = new_coords['lng']
-                        st.session_state.last_map_update_time = current_time
-                        
-                        # Trigger rerun only for significant location changes
-                        st.rerun()
+                    # Get location name with error handling
+                    try:
+                        new_location = get_location_from_coordinates(new_coords['lat'], new_coords['lng'])
+                        if new_location and new_location != "Unknown Location":
+                            st.session_state.location_name = new_location
+                    except Exception as e:
+                        st.warning(f"Could not update location name: {str(e)}")
+                    
+                    # Clear processing flag
+                    st.session_state.map_processing = False
+                    
+                    # Force a single rerun for the location change
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.session_state.map_processing = False
+                    st.error(f"Error processing map click: {str(e)}")
     else:
         # Static map display for manual coordinates
         with st.container():
