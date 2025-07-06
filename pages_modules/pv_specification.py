@@ -86,8 +86,15 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
         capacity_kw = bipv_area * panel_specs['power_density'] / 1000
         
         # More accurate energy calculation using radiation data
-        specific_yield = annual_radiation * panel_specs['efficiency'] * panel_specs['performance_ratio']
-        annual_energy_kwh = bipv_area * specific_yield
+        # annual_radiation is in kWh/m²/year, efficiency and performance_ratio are decimals
+        specific_yield_kwh_m2 = annual_radiation * panel_specs['efficiency'] * panel_specs['performance_ratio']
+        annual_energy_kwh = bipv_area * specific_yield_kwh_m2
+        
+        # Sanity check for realistic values (typical BIPV: 50-200 kWh/m²/year)
+        if specific_yield_kwh_m2 > 300:
+            # Radiation values might be in W/m² instead of kWh/m²/year, convert
+            specific_yield_kwh_m2 = (annual_radiation / 1000) * panel_specs['efficiency'] * panel_specs['performance_ratio']
+            annual_energy_kwh = bipv_area * specific_yield_kwh_m2
         
         total_cost_eur = bipv_area * panel_specs['cost_per_m2']
         

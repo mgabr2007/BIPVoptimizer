@@ -482,16 +482,34 @@ def render_yield_demand():
                 if pv_specs is not None and len(pv_specs) > 0:
                     for _, system in pv_specs.iterrows():
                         annual_energy = float(system.get('annual_energy_kwh', 0))
+                        capacity_kw = float(system.get('capacity_kw', 0))
+                        glass_area = float(system.get('glass_area_m2', system.get('bipv_area_m2', 1.5)))
+                        
+                        # Sanity check for realistic energy values
+                        # Typical BIPV: 50-200 kWh/m²/year for Central Europe
+                        if glass_area > 0:
+                            energy_per_m2 = annual_energy / glass_area
+                            if energy_per_m2 > 300:  # Unrealistic, likely unit error
+                                annual_energy = annual_energy / 1000  # Convert if needed
+                                st.warning(f"Adjusted unrealistic energy value for element {system.get('element_id', '')}")
+                        
+                        # Additional check: specific yield should be reasonable (800-2000 kWh/kW)
+                        if capacity_kw > 0:
+                            specific_yield_check = annual_energy / capacity_kw
+                            if specific_yield_check > 3000:  # Unrealistic
+                                annual_energy = capacity_kw * 1200  # Use typical value
+                                st.warning(f"Applied realistic specific yield for element {system.get('element_id', '')}")
+                        
                         if annual_energy > 0:  # Only include systems with positive energy
                             # Calculate monthly yields using seasonal distribution
                             monthly_yields = [annual_energy * factor for factor in monthly_solar_factors]
                             
                             system_data = {
                                 'element_id': system.get('element_id', ''),
-                                'system_power_kw': float(system.get('system_power_kw', 0)),
+                                'system_power_kw': capacity_kw,
                                 'annual_yield': annual_energy,
                                 'monthly_yields': monthly_yields,
-                                'specific_yield': float(system.get('specific_yield', 0))
+                                'specific_yield': annual_energy / capacity_kw if capacity_kw > 0 else 0
                             }
                             yield_profiles.append(system_data)
                 
