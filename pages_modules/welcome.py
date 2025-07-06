@@ -275,15 +275,7 @@ def render_welcome():
         - Corrected navigation for 11-step workflow
         """)
     
-    # Key Features Update
-    st.info("""
-    **Latest Platform Updates:**
-    - ✅ Perplexity AI consultation agent for expert analysis
-    - ✅ Enhanced detailed reports with interactive charts
-    - ✅ Fixed navigation counting (11 analysis steps)
-    - ✅ Comprehensive visualization using authentic project data
-    - ✅ Database persistence with PostgreSQL integration
-    """)
+
     
     # Research Attribution
     st.markdown("""
