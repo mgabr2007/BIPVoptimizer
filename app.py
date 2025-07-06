@@ -51,16 +51,86 @@ st.markdown("""
 </style>
 
 <script>
-// Enhanced auto-scroll to top functionality for all navigation
+// Enhanced auto-scroll to banner functionality for all navigation
 function scrollToTop() {
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-    // Also scroll the main content container to top
+    // First try to find the page banner/header (step title with icon)
+    const bannerSelectors = [
+        'h1[style*="text-align: center"]',  // Main step titles
+        'h1[style*="text-align:center"]',   // Main step titles (no space)
+        '.step-header',                     // Custom step headers
+        '[class*="step-title"]',           // Step title classes
+        'div[style*="text-align: center"] h1', // Centered div with h1
+        'div[style*="text-align:center"] h1',  // Centered div with h1 (no space)
+        '[data-testid*="stMarkdown"] h1',   // Streamlit markdown h1
+        '.main div:first-child h1',         // First h1 in main content
+        'h1:first-of-type',                // First h1 on page
+        '.main h1',                        // H1 in main content
+        '.stMarkdown h1:first-child'       // First h1 in markdown
+    ];
+    
+    let bannerElement = null;
+    for (const selector of bannerSelectors) {
+        bannerElement = document.querySelector(selector);
+        if (bannerElement) break;
+    }
+    
+    if (bannerElement) {
+        // Scroll to banner with some offset to show it clearly
+        const bannerRect = bannerElement.getBoundingClientRect();
+        const scrollTop = window.pageYOffset + bannerRect.top - 30; // 30px offset above banner
+        
+        window.scrollTo({
+            top: Math.max(0, scrollTop),
+            behavior: 'smooth'
+        });
+        
+        // Debug: Log which banner was found (can be removed in production)
+        console.log('Scrolling to banner:', bannerElement.textContent, 'using selector:', bannerElement.tagName);
+    } else {
+        // Try to find any element with step numbers (like "2 HISTORICAL DATA")
+        const stepElements = document.querySelectorAll('*');
+        let stepBanner = null;
+        
+        for (const element of stepElements) {
+            const text = element.textContent || '';
+            if (text.match(/^\d+\s+[A-Z\s]+$/) && element.tagName === 'H1') {
+                stepBanner = element;
+                break;
+            }
+        }
+        
+        if (stepBanner) {
+            const stepRect = stepBanner.getBoundingClientRect();
+            const scrollTop = window.pageYOffset + stepRect.top - 30;
+            window.scrollTo({
+                top: Math.max(0, scrollTop),
+                behavior: 'smooth'
+            });
+            console.log('Scrolling to step banner:', stepBanner.textContent);
+        } else {
+            // Final fallback to top if no banner found
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+            console.log('No banner found, scrolling to top');
+        }
+    }
+    
+    // Also scroll the main content container if needed
     const mainContainer = document.querySelector('.main');
     if (mainContainer) {
-        mainContainer.scrollTop = 0;
+        // For Streamlit, usually just scrolling the window is sufficient
+        // but we'll add a small delay to ensure it works
+        setTimeout(() => {
+            if (bannerElement) {
+                bannerElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start',
+                    inline: 'nearest'
+                });
+            }
+        }, 100);
     }
 }
 
