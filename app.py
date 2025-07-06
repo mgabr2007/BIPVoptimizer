@@ -274,8 +274,7 @@ document.addEventListener('click', function(event) {
     }
     
     .stApp > header {
-        background-color: #FFD700;
-        border-bottom: 3px solid #FFA500;
+        display: none;
     }
     
     /* Sidebar styling */

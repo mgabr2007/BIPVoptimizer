@@ -60,6 +60,50 @@ def render_welcome():
         Seamless architectural design
         """)
     
+    # Workflow Overview  
+    st.markdown("""
+    ---
+    
+    ### 11-Step Analysis Workflow
+    
+    Our comprehensive workflow guides you through the complete BIPV analysis process:
+    """)
+    
+    # Create workflow visualization
+    workflow_steps = [
+        ("1️⃣", "Project Setup", "Location, timezone, and project configuration"),
+        ("2️⃣", "Historical Data", "Energy consumption analysis and AI model training"), 
+        ("3️⃣", "Weather Integration", "TMY data generation and climate analysis"),
+        ("4️⃣", "BIM Extraction", "Building geometry and window element analysis"),
+        ("5️⃣", "Radiation Analysis", "Solar irradiance and shading calculations"),
+        ("6️⃣", "PV Specification", "BIPV technology selection and system design"),
+        ("7️⃣", "Yield vs Demand", "Energy balance and grid interaction analysis"),
+        ("8️⃣", "Optimization", "Multi-objective genetic algorithm optimization"),
+        ("9️⃣", "Financial Analysis", "Economic viability and investment analysis"),
+        ("🔟", "Reporting", "Comprehensive analysis reports and data export"),
+        ("🤖", "AI Consultation", "Expert analysis and optimization recommendations")
+    ]
+    
+    # Display workflow in columns
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        for i in range(0, len(workflow_steps), 2):
+            step_emoji, step_name, step_desc = workflow_steps[i]
+            st.markdown(f"""
+            **{step_emoji} {step_name}**  
+            {step_desc}
+            """)
+    
+    with col2:
+        for i in range(1, len(workflow_steps), 2):
+            if i < len(workflow_steps):
+                step_emoji, step_name, step_desc = workflow_steps[i]
+                st.markdown(f"""
+                **{step_emoji} {step_name}**  
+                {step_desc}
+                """)
+
     # Scientific Methodology
     st.markdown("""
     ---
@@ -111,41 +155,7 @@ def render_welcome():
     - **Environmental impact** assessment and CO₂ savings quantification
     """)
     
-    # Workflow Overview
-    st.markdown("""
-    ---
-    
-    ### 11-Step Analysis Workflow
-    
-    Our comprehensive workflow guides you through the complete BIPV analysis process:
-    """)
-    
-    # Create workflow visualization
-    workflow_steps = [
-        ("1️⃣", "Project Setup", "Location, timezone, and project configuration"),
-        ("2️⃣", "Historical Data", "Energy consumption analysis and AI model training"), 
-        ("3️⃣", "Weather Integration", "TMY data generation and climate analysis"),
-        ("4️⃣", "BIM Extraction", "Building geometry and window element analysis"),
-        ("5️⃣", "Radiation Analysis", "Solar irradiance and shading calculations"),
-        ("6️⃣", "PV Specification", "BIPV technology selection and system design"),
-        ("7️⃣", "Yield vs Demand", "Energy balance and grid interaction analysis"),
-        ("8️⃣", "Optimization", "Multi-objective genetic algorithm optimization"),
-        ("9️⃣", "Financial Analysis", "Economic viability and investment analysis"),
-        ("🔟", "Reporting", "Comprehensive analysis reports and data export"),
-        ("🤖", "AI Consultation", "Expert analysis and optimization recommendations")
-    ]
-    
-    # Display workflow in columns
-    col1, col2 = st.columns(2)
-    
-    for i, (icon, title, description) in enumerate(workflow_steps):
-        col = col1 if i % 2 == 0 else col2
-        
-        with col:
-            st.markdown(f"""
-            **{icon} {title}**  
-            {description}
-            """)
+
     
     # Platform Features
     st.markdown("""
