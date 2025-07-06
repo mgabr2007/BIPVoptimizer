@@ -228,8 +228,10 @@ def render_pv_specification():
             help="BIPV glass cost per square meter (flexible range for various technologies)"
         )
     
-    # Calculate derived specifications
-    power_density = panel_efficiency * 1000  # W/m²
+    # Calculate derived specifications - BIPV glass power density
+    # Standard solar irradiance is 1000 W/m², so power density = efficiency * 1000
+    # But for BIPV glass, this is the peak power output under standard test conditions
+    power_density = panel_efficiency * 1000  # W/m² peak power (STC)
     temperature_coefficient = -0.004  # Standard value
     
     # Create final panel specifications

@@ -2457,8 +2457,9 @@ def generate_step6_report():
                 )
                 total_area += area
             
-            # Calculate average efficiency if available
+            # Calculate average efficiency and power density if available
             efficiencies = []
+            power_densities = []
             for s in individual_systems:
                 eff = (
                     safe_float(s.get('efficiency', 0)) or
@@ -2468,12 +2469,28 @@ def generate_step6_report():
                 )
                 if eff > 0:
                     efficiencies.append(eff)
+                
+                # Get power density from specifications
+                power_density = (
+                    safe_float(s.get('power_density_w_m2', 0)) or
+                    safe_float(s.get('power_density', 0)) or
+                    0
+                )
+                if power_density > 0:
+                    power_densities.append(power_density)
             
             if efficiencies:
                 avg_efficiency = sum(efficiencies) / len(efficiencies)
             else:
-                # Default BIPV glass efficiency if not found
-                avg_efficiency = 8.0  # Typical BIPV glass efficiency
+                # Default BIPV glass efficiency if not found (in decimal format)
+                avg_efficiency = 0.08  # Typical BIPV glass efficiency (8%)
+            
+            # Calculate average power density
+            if power_densities:
+                avg_power_density = sum(power_densities) / len(power_densities)
+            else:
+                # Calculate from total capacity and area as fallback
+                avg_power_density = (total_capacity / total_area * 1000) if total_area > 0 else 150.0
         
         # Analyze by orientation
         orientation_analysis = {}
@@ -2505,7 +2522,7 @@ def generate_step6_report():
             <div class="analysis-summary">
                 <h3>🔋 BIPV System Design Overview</h3>
                 <p>Designed <strong>{len(individual_systems):,} BIPV glass systems</strong> with total capacity of <strong>{total_capacity:,.1f} kW</strong></p>
-                <p>Investment: <strong>€{total_cost:,.0f}</strong> | Glass area: <strong>{total_area:,.1f} m²</strong> | Avg efficiency: <strong>{avg_efficiency:.1f}%</strong></p>
+                <p>Investment: <strong>€{total_cost:,.0f}</strong> | Glass area: <strong>{total_area:,.1f} m²</strong> | Avg efficiency: <strong>{avg_efficiency*100:.1f}%</strong></p>
             </div>
             
             <div class="content-section">
@@ -2524,7 +2541,7 @@ def generate_step6_report():
                         <div class="metric-label">BIPV Glass Area</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{total_capacity/total_area*1000 if total_area > 0 else 0:.0f} W/m²</div>
+                        <div class="metric-value">{avg_power_density:.0f} W/m²</div>
                         <div class="metric-label">Power Density</div>
                     </div>
                     <div class="metric-card">
@@ -2562,10 +2579,10 @@ def generate_step6_report():
                 <table class="data-table">
                     <tr><th>Technology Parameter</th><th>Specification</th><th>Performance Impact</th></tr>
                     <tr><td>Technology Type</td><td>Semi-transparent BIPV Glass</td><td>Dual function: glazing + energy generation</td></tr>
-                    <tr><td>Efficiency Range</td><td>{avg_efficiency:.1f}% (project average)</td><td>Balance of transparency and power</td></tr>
+                    <tr><td>Efficiency Range</td><td>{avg_efficiency*100:.1f}% (project average)</td><td>Balance of transparency and power</td></tr>
                     <tr><td>Glass Transparency</td><td>15-40% light transmission</td><td>Maintains natural lighting</td></tr>
                     <tr><td>Glass Thickness</td><td>6-12mm standard</td><td>Structural integrity maintained</td></tr>
-                    <tr><td>Power Density</td><td>{total_capacity/total_area*1000 if total_area > 0 else 0:.0f} W/m²</td><td>Area-normalized power output</td></tr>
+                    <tr><td>Power Density</td><td>{avg_power_density:.0f} W/m²</td><td>Area-normalized power output</td></tr>
                     <tr><td>Integration Method</td><td>Direct glass replacement</td><td>Seamless building integration</td></tr>
                     <tr><td>Cost per Area</td><td>€{total_cost/total_area if total_area > 0 else 0:.0f}/m²</td><td>Investment per glazed area</td></tr>
                 </table>
