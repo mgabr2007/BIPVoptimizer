@@ -558,6 +558,12 @@ def render_optimization():
                 key="size_pref_opt"
             )
     
+    # Store variables in session state to ensure proper scope access
+    if 'opt_max_investment' not in st.session_state:
+        st.session_state.opt_max_investment = max_investment
+    else:
+        st.session_state.opt_max_investment = max_investment
+    
     # Run optimization
     if st.button("🚀 Run Multi-Objective Optimization", key="run_optimization"):
         with st.spinner("Running genetic algorithm optimization..."):
@@ -716,7 +722,8 @@ def render_optimization():
                 objectives_data = []
                 for _, sol in top_solutions.iterrows():
                     # Normalize scores (0-1 scale for visualization)
-                    cost_score = 1 / (1 + sol['total_investment'] / max_investment) if max_investment > 0 else 0
+                    max_inv = st.session_state.get('opt_max_investment', 100000)
+                    cost_score = 1 / (1 + sol['total_investment'] / max_inv) if max_inv > 0 else 0
                     yield_score = sol['annual_energy_kwh'] / solutions['annual_energy_kwh'].max() if solutions['annual_energy_kwh'].max() > 0 else 0
                     roi_score = min(sol['roi'] / 0.5, 1.0) if sol['roi'] > 0 else 0  # Cap at 50% ROI
                     
