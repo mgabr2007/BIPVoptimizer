@@ -47,11 +47,7 @@ def get_location_from_coordinates(lat, lon):
         if response.status_code == 200:
             data = response.json()
             if data:
-                # Debug output if enabled
-                if st.session_state.get('debug_geocoding_checkbox', False):
-                    st.write(f"Debug: Found {len(data)} location results")
-                    for i, loc in enumerate(data[:3]):
-                        st.json(loc)
+
                 
                 # Extract comprehensive location hierarchy from API results
                 location_components = {
@@ -158,8 +154,7 @@ def get_location_from_coordinates(lat, lon):
         return f"Location at {lat:.4f}°, {lon:.4f}°"
     
     except Exception as e:
-        if st.session_state.get('debug_geocoding', False):
-            st.error(f"Geocoding error: {e}")
+
         return f"Location at {lat:.4f}°, {lon:.4f}°"
 
 
@@ -218,12 +213,6 @@ def render_project_setup():
         index=3,
         help="Maximum distance to search for meteorological stations",
         key="search_radius"
-    )
-    
-    debug_geocoding = st.checkbox(
-        "Show Debug Info",
-        help="Display detailed location detection information",
-        key="debug_geocoding_checkbox"
     )
     
     # Location input based on selected method
@@ -380,16 +369,6 @@ def render_project_setup():
     
     # Show current coordinates for reference
     st.info(f"Selected coordinates: {selected_lat:.4f}°, {selected_lon:.4f}° ({current_location})")
-    
-    # Debug information (only when enabled)
-    if debug_geocoding and current_location != 'Loading location...':
-        with st.expander("Debug Information", expanded=False):
-            st.write(f"**Geocoding Result:** {current_location}")
-            st.write(f"**Coordinate Source:** {location_method}")
-            st.write(f"**Station Search:** {search_radius} km radius")
-            if stations_summary['total_stations'] > 0:
-                countries_list = ", ".join(stations_summary['countries'])
-                st.write(f"**Available Countries:** {countries_list}")
     
     # Streamlined weather station selection
     if not nearby_stations.empty:
