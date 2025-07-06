@@ -158,8 +158,7 @@ def render_financial_analysis():
         
         st.info(f"{icon} Financial analysis uses AI demand predictions (R² score: **{r2_score:.3f}** - {status} performance)")
         
-        if r2_score < 0.70:
-            st.warning("Low AI model performance may affect financial projections. Payback calculations may be less accurate.")
+        # Removed persistent warning message
     
     # Check dependencies
     if not st.session_state.get('optimization_completed', False):

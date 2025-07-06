@@ -264,8 +264,7 @@ def render_yield_demand():
         
         st.info(f"{icon} Using AI model predictions with R² score: **{r2_score:.3f}** ({status} performance)")
         
-        if r2_score < 0.70:
-            st.warning("Low model performance may affect yield vs demand accuracy. Consider improving data quality in Step 2.")
+        # Removed persistent warning message
     
     # Check dependencies - look for actual data instead of flags
     

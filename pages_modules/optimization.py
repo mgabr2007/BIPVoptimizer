@@ -317,8 +317,7 @@ def render_optimization():
         
         st.info(f"{icon} Optimization uses AI demand predictions (R² score: **{r2_score:.3f}** - {status} performance)")
         
-        if r2_score < 0.70:
-            st.warning("Low AI model performance may impact optimization accuracy. Results may be less reliable.")
+        # Removed persistent warning message
     
     # Check for actual data instead of completion flags
     project_data = st.session_state.get('project_data', {})
