@@ -197,6 +197,7 @@ def render_workflow_navigation_enhanced(workflow_steps, current_step):
                 disabled=is_current
             ):
                 st.session_state.current_step = step_key
+                st.session_state.scroll_to_top = True
                 st.rerun()
             
             # Step description

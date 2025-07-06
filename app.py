@@ -87,7 +87,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         buttonText.includes('Generate') ||
                         buttonText.includes('Upload') ||
                         buttonText.includes('Download') ||
-                        buttonText.includes('Analyze')) {
+                        buttonText.includes('Analyze') ||
+                        buttonText.includes('Continue') ||
+                        buttonText.includes('Process') ||
+                        buttonText.includes('Save') ||
+                        buttonText.includes('Load') ||
+                        buttonText.includes('New') ||
+                        buttonText.includes('Reset') ||
+                        buttonText.includes('Complete') ||
+                        buttonText.includes('Fetch') ||
+                        buttonText.includes('Run') ||
+                        buttonText.includes('Execute') ||
+                        buttonText.includes('Optimize') ||
+                        buttonText.includes('Submit') ||
+                        button.closest('.stButton') ||
+                        button.closest('[data-testid="stButton"]')) {
                         
                         // Remove existing listeners to prevent duplicates
                         button.removeEventListener('click', handleNavClick);
@@ -129,7 +143,12 @@ setInterval(function() {
         const text = button.innerText || button.textContent || '';
         if (text.includes('→') || text.includes('←') || text.includes('Continue') || 
             text.includes('Step') || text.includes('Calculate') || text.includes('Generate') ||
-            text.includes('Upload') || text.includes('Download') || text.includes('Analyze')) {
+            text.includes('Upload') || text.includes('Download') || text.includes('Analyze') ||
+            text.includes('Process') || text.includes('Save') || text.includes('Load') ||
+            text.includes('New') || text.includes('Reset') || text.includes('Complete') ||
+            text.includes('Fetch') || text.includes('Run') || text.includes('Execute') ||
+            text.includes('Optimize') || text.includes('Submit') || text.includes('Start') ||
+            text.includes('Finish') || text.includes('Begin')) {
             hasNavButton = true;
             // Ensure click handler is attached
             button.removeEventListener('click', handleGlobalNavClick);
@@ -155,6 +174,26 @@ function handleGlobalNavClick() {
     setTimeout(scrollToTop, 300);
     setTimeout(scrollToTop, 500);
 }
+
+// Universal button click handler - make ALL buttons scroll to top
+document.addEventListener('click', function(event) {
+    // Check if clicked element is a button or inside a button
+    const button = event.target.closest('button') || 
+                   event.target.closest('.stButton button') ||
+                   event.target.closest('[data-testid="stButton"] button');
+    
+    if (button) {
+        // Small delay to allow Streamlit to process the click first
+        setTimeout(function() {
+            scrollToTop();
+        }, 10);
+        
+        // Additional scrolls to handle page transitions
+        setTimeout(scrollToTop, 100);
+        setTimeout(scrollToTop, 300);
+        setTimeout(scrollToTop, 600);
+    }
+}, true); // Use capture phase to catch all button clicks
 </script>
 
 <style>
@@ -452,6 +491,7 @@ def main():
         else:
             if st.sidebar.button(step_name, key=f"nav_{step_key}_{i}", use_container_width=True):
                 st.session_state.current_step = step_key
+                st.session_state.scroll_to_top = True
                 st.rerun()
             st.sidebar.caption(description)
         
