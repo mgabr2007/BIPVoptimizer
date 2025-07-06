@@ -13,6 +13,23 @@ from datetime import datetime
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
 
+def get_orientation_from_azimuth(azimuth):
+    """Convert azimuth angle to cardinal orientation."""
+    try:
+        azimuth = float(azimuth)
+        if 315 <= azimuth <= 360 or 0 <= azimuth < 45:
+            return "North"
+        elif 45 <= azimuth < 135:
+            return "East"
+        elif 135 <= azimuth < 225:
+            return "South"
+        elif 225 <= azimuth < 315:
+            return "West"
+        else:
+            return "Unknown"
+    except (ValueError, TypeError):
+        return "Unknown"
+
 # Simplified BIPV Glass Types
 BIPV_GLASS_TYPES = {
     "Standard": {
@@ -57,6 +74,10 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
         element_id = element.get('Element ID', element.get('element_id', f"element_{idx}"))
         glass_area = float(element.get('Glass Area (m²)', element.get('glass_area', 1.5)))
         
+        # Get orientation information from building elements
+        azimuth = element.get('Azimuth', element.get('azimuth', 0))
+        orientation = element.get('Orientation', element.get('orientation', get_orientation_from_azimuth(azimuth)))
+        
         # Get radiation data for this specific element
         annual_radiation = radiation_lookup.get(element_id, 1500)  # Default fallback
         
@@ -72,6 +93,8 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
         
         bipv_spec = {
             'element_id': element_id,
+            'orientation': orientation,
+            'azimuth': azimuth,
             'glass_area_m2': glass_area,
             'bipv_area_m2': bipv_area,
             'capacity_kw': capacity_kw,

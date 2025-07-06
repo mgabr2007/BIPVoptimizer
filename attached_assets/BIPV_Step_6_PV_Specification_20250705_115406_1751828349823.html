@@ -1,0 +1,595 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>BIPV Optimizer - BIPV Glass Specification & System Design</title>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+                line-height: 1.6;
+                color: #2c2c2c;
+                background: linear-gradient(135deg, #f5f3f0 0%, #faf8f3 50%, #f7f4ef 100%);
+                min-height: 100vh;
+                margin: 0;
+                padding: 20px;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background: linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1), 0 4px 15px rgba(0,0,0,0.05);
+                overflow: hidden;
+                border: 1px solid rgba(218, 165, 32, 0.2);
+            }
+            
+            .header {
+                background: linear-gradient(135deg, #DAA520 0%, #B8860B 50%, #CD853F 100%);
+                color: white;
+                text-align: center;
+                padding: 40px 30px;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .header::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+                opacity: 0.3;
+            }
+            
+            .step-badge {
+                background: linear-gradient(135deg, #FFD700, #FFA500);
+                color: #8B4513;
+                padding: 12px 24px;
+                border-radius: 25px;
+                font-weight: bold;
+                font-size: 1.1em;
+                display: inline-block;
+                margin-bottom: 15px;
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+                position: relative;
+                z-index: 1;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            
+            .header h1 {
+                font-size: 2.8em;
+                margin: 10px 0;
+                font-weight: 700;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                position: relative;
+                z-index: 1;
+            }
+            
+            .header p {
+                font-size: 1.1em;
+                opacity: 0.9;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .main-content {
+                padding: 40px;
+            }
+            
+            .content-section {
+                margin-bottom: 40px;
+                padding: 30px;
+                border: 2px solid transparent;
+                border-radius: 12px;
+                background: linear-gradient(white, white) padding-box,
+                           linear-gradient(135deg, #DAA520, #CD853F) border-box;
+                box-shadow: 0 5px 20px rgba(218, 165, 32, 0.1);
+                transition: all 0.3s ease;
+            }
+            
+            .content-section:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(218, 165, 32, 0.15);
+            }
+            
+            .content-section h2 {
+                color: #B8860B;
+                font-size: 1.8em;
+                margin-bottom: 20px;
+                padding-bottom: 12px;
+                border-bottom: 3px solid #DAA520;
+                font-weight: 600;
+                position: relative;
+            }
+            
+            .content-section h2::after {
+                content: '';
+                position: absolute;
+                bottom: -3px;
+                left: 0;
+                width: 60px;
+                height: 3px;
+                background: linear-gradient(90deg, #FFD700, #FFA500);
+                border-radius: 2px;
+            }
+            
+            .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin: 25px 0;
+            }
+            
+            .metric-card {
+                background: linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
+                border: 2px solid transparent;
+                border-radius: 10px;
+                padding: 20px;
+                text-align: center;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .metric-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #DAA520, #CD853F);
+            }
+            
+            .metric-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(218, 165, 32, 0.15);
+                border-color: rgba(218, 165, 32, 0.3);
+            }
+            
+            .metric-value {
+                font-size: 2.2em;
+                font-weight: bold;
+                color: #B8860B;
+                margin-bottom: 8px;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            }
+            
+            .metric-label {
+                color: #666;
+                font-size: 1em;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            }
+            
+            .data-table th {
+                background: linear-gradient(135deg, #DAA520, #B8860B);
+                color: white;
+                padding: 15px 12px;
+                text-align: left;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-size: 0.9em;
+            }
+            
+            .data-table td {
+                padding: 12px;
+                border-bottom: 1px solid #f0f0f0;
+                transition: background-color 0.2s ease;
+            }
+            
+            .data-table tr:nth-child(even) {
+                background-color: #fafafa;
+            }
+            
+            .data-table tr:hover {
+                background-color: #f5f3f0;
+            }
+            
+            .chart-container {
+                margin: 30px 0;
+                padding: 20px;
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+                border: 1px solid rgba(218, 165, 32, 0.1);
+            }
+            
+            .chart-title {
+                font-size: 1.3em;
+                color: #B8860B;
+                margin-bottom: 15px;
+                font-weight: 600;
+                text-align: center;
+            }
+            
+            .footer {
+                background: linear-gradient(135deg, #2c2c2c 0%, #3a3a3a 100%);
+                color: white;
+                text-align: center;
+                padding: 30px;
+                margin-top: 0;
+            }
+            
+            .footer h3 {
+                color: #DAA520;
+                margin-bottom: 15px;
+                font-size: 1.4em;
+            }
+            
+            .footer a {
+                color: #DAA520;
+                text-decoration: none;
+                font-weight: 500;
+                transition: color 0.3s ease;
+            }
+            
+            .footer a:hover {
+                color: #FFD700;
+            }
+            
+            .status-indicator {
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 0.9em;
+                font-weight: bold;
+                display: inline-block;
+                margin: 5px 0;
+            }
+            
+            .status-complete {
+                background: linear-gradient(135deg, #d4edda, #c3e6cb);
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+            
+            .status-pending {
+                background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+                color: #856404;
+                border: 1px solid #ffeaa7;
+            }
+            
+            .status-excellent {
+                background: linear-gradient(135deg, #DAA520, #FFD700);
+                color: white;
+                border: 1px solid #DAA520;
+            }
+            
+            .highlight-box {
+                background: linear-gradient(135deg, #fff8dc 0%, #fffacd 100%);
+                border-left: 5px solid #DAA520;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 0 8px 8px 0;
+                box-shadow: 0 3px 10px rgba(218, 165, 32, 0.1);
+            }
+            
+            .analysis-summary {
+                background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+                border: 2px solid #DAA520;
+                border-radius: 12px;
+                padding: 25px;
+                margin: 25px 0;
+                text-align: center;
+            }
+            
+            .analysis-summary h3 {
+                color: #B8860B;
+                margin-bottom: 15px;
+                font-size: 1.5em;
+            }
+            
+            @media (max-width: 768px) {
+                .metrics-grid {
+                    grid-template-columns: 1fr;
+                }
+                .container {
+                    margin: 10px;
+                    border-radius: 10px;
+                }
+                .main-content {
+                    padding: 20px;
+                }
+                .header {
+                    padding: 30px 20px;
+                }
+                .header h1 {
+                    font-size: 2.2em;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="step-badge">Step 6</div>
+                <h1>BIPV Glass Specification & System Design</h1>
+                <p>Analysis Report Generated: July 06, 2025 at 18:56:50</p>
+            </div>
+            <div class="main-content">
+    
+        <div class="content-section">
+            <h2>📍 Project Information & Location</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">Tu Berlin H Building</div>
+                    <div class="metric-label">Project Name</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">Project Location</div>
+                    <div class="metric-label">Location</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">52.5119°</div>
+                    <div class="metric-label">Latitude</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">0.0000°</div>
+                    <div class="metric-label">Longitude</div>
+                </div>
+            </div>
+        </div>
+    
+            <div class="analysis-summary">
+                <h3>🔋 BIPV System Design Overview</h3>
+                <p>Designed <strong>950 BIPV glass systems</strong> with total capacity of <strong>3,551.3 kW</strong></p>
+                <p>Investment: <strong>€1,614,232</strong> | Glass area: <strong>1,425.0 m²</strong> | Avg efficiency: <strong>22.0%</strong></p>
+            </div>
+            
+            <div class="content-section">
+                <h2>⚡ BIPV System Performance Metrics</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">950</div>
+                        <div class="metric-label">Individual Systems</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">3,551.3 kW</div>
+                        <div class="metric-label">Total Capacity</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1,425.0 m²</div>
+                        <div class="metric-label">BIPV Glass Area</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">2492 W/m²</div>
+                        <div class="metric-label">Power Density</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">€1,614,232</div>
+                        <div class="metric-label">Total Investment</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">€455/kW</div>
+                        <div class="metric-label">Specific Cost</div>
+                    </div>
+                </div>
+            </div>
+        
+    <div class="chart-container">
+        <div class="chart-title">BIPV Capacity Distribution by Orientation</div>
+        <div id="chart_8499" style="height: 400px;"></div>
+        <script>
+            
+        var data = [{
+            x: ["Unknown"],
+            y: [3551.3101800000086],
+            type: 'bar',
+            marker: {
+                color: '#DAA520',
+                line: {
+                    color: '#B8860B',
+                    width: 1
+                }
+            }
+        }];
+        
+            
+    var layout = {
+        title: {
+            text: 'BIPV Capacity Distribution by Orientation',
+            font: {
+                size: 18,
+                color: '#B8860B',
+                family: 'Segoe UI, Arial, sans-serif'
+            }
+        },
+        xaxis: {
+            title: 'Facade Orientation',
+            titlefont: {
+                color: '#666',
+                size: 14
+            },
+            tickfont: {
+                color: '#666'
+            }
+        },
+        yaxis: {
+            title: 'Installed Capacity (kW)',
+            titlefont: {
+                color: '#666',
+                size: 14
+            },
+            tickfont: {
+                color: '#666'
+            }
+        },
+        plot_bgcolor: 'white',
+        paper_bgcolor: 'white',
+        margin: {
+            l: 60,
+            r: 40,
+            t: 60,
+            b: 60
+        }
+    };
+    
+            Plotly.newPlot('chart_8499', data, layout, {responsive: true});
+        </script>
+    </div>
+    
+            <div class="content-section">
+                <h2>🔬 BIPV Glass Technology Specifications</h2>
+                <table class="data-table">
+                    <tr><th>Technology Parameter</th><th>Specification</th><th>Performance Impact</th></tr>
+                    <tr><td>Technology Type</td><td>Semi-transparent BIPV Glass</td><td>Dual function: glazing + energy generation</td></tr>
+                    <tr><td>Efficiency Range</td><td>22.0% (project average)</td><td>Balance of transparency and power</td></tr>
+                    <tr><td>Glass Transparency</td><td>15-40% light transmission</td><td>Maintains natural lighting</td></tr>
+                    <tr><td>Glass Thickness</td><td>6-12mm standard</td><td>Structural integrity maintained</td></tr>
+                    <tr><td>Power Density</td><td>2492 W/m²</td><td>Area-normalized power output</td></tr>
+                    <tr><td>Integration Method</td><td>Direct glass replacement</td><td>Seamless building integration</td></tr>
+                    <tr><td>Cost per Area</td><td>€1133/m²</td><td>Investment per glazed area</td></tr>
+                </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>🧭 Performance by Facade Orientation</h2>
+                <table class="data-table">
+                    <tr><th>Orientation</th><th>Systems Count</th><th>Total Capacity (kW)</th><th>Glass Area (m²)</th><th>Avg Power Density (W/m²)</th></tr>
+        
+                <tr>
+                    <td><strong>Unknown</strong></td>
+                    <td>950</td>
+                    <td>3551.3</td>
+                    <td>1425.0</td>
+                    <td>2492</td>
+                </tr>
+            
+                </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>💎 Top Performing BIPV Systems (by Capacity)</h2>
+                <table class="data-table">
+                    <tr><th>Element ID</th><th>Orientation</th><th>Capacity (kW)</th><th>Glass Area (m²)</th><th>Power Density (W/m²)</th></tr>
+        
+                <tr>
+                    <td><strong>354939</strong></td>
+                    <td>Unknown</td>
+                    <td>267.59</td>
+                    <td>1.5</td>
+                    <td>178390</td>
+                </tr>
+            
+                <tr>
+                    <td><strong>354939</strong></td>
+                    <td>Unknown</td>
+                    <td>267.59</td>
+                    <td>1.5</td>
+                    <td>178390</td>
+                </tr>
+            
+                <tr>
+                    <td><strong>354772</strong></td>
+                    <td>Unknown</td>
+                    <td>162.41</td>
+                    <td>1.5</td>
+                    <td>108272</td>
+                </tr>
+            
+                <tr>
+                    <td><strong>354944</strong></td>
+                    <td>Unknown</td>
+                    <td>162.41</td>
+                    <td>1.5</td>
+                    <td>108272</td>
+                </tr>
+            
+                <tr>
+                    <td><strong>354949</strong></td>
+                    <td>Unknown</td>
+                    <td>162.41</td>
+                    <td>1.5</td>
+                    <td>108272</td>
+                </tr>
+            
+                <tr>
+                    <td><strong>354954</strong></td>
+                    <td>Unknown</td>
+                    <td>162.41</td>
+                    <td>1.5</td>
+                    <td>108272</td>
+                </tr>
+            
+                <tr>
+                    <td><strong>354959</strong></td>
+                    <td>Unknown</td>
+                    <td>162.41</td>
+                    <td>1.5</td>
+                    <td>108272</td>
+                </tr>
+            
+                <tr>
+                    <td><strong>354964</strong></td>
+                    <td>Unknown</td>
+                    <td>162.41</td>
+                    <td>1.5</td>
+                    <td>108272</td>
+                </tr>
+            
+                <tr>
+                    <td><strong>354969</strong></td>
+                    <td>Unknown</td>
+                    <td>162.41</td>
+                    <td>1.5</td>
+                    <td>108272</td>
+                </tr>
+            
+                <tr>
+                    <td><strong>367761</strong></td>
+                    <td>Unknown</td>
+                    <td>107.54</td>
+                    <td>1.5</td>
+                    <td>71696</td>
+                </tr>
+            
+                </table>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 BIPV Design Validation</h3>
+                <p><strong>Technology Selection:</strong> Semi-transparent BIPV glass optimized for building integration.</p>
+                <p><strong>Performance Balance:</strong> Efficiency and transparency levels provide optimal energy-daylighting trade-off.</p>
+                <p><strong>Next Phase:</strong> Proceed to Step 7 (Yield vs Demand) for energy balance analysis.</p>
+            </div>
+        
+            </div>
+        </div>
+        <div class="footer">
+            <h3>BIPV Optimizer Platform</h3>
+            <p>Developed by <strong>Mostafa Gabr</strong>, PhD Candidate<br>
+            Technische Universität Berlin, Faculty VI - Planning Building Environment</p>
+            <p><a href="https://www.researchgate.net/profile/Mostafa-Gabr-4" target="_blank">ResearchGate Profile</a> | 
+            <a href="https://www.tu.berlin/en/planen-bauen-umwelt/" target="_blank">TU Berlin Faculty VI</a></p>
+            <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                Professional BIPV Analysis • Advanced Solar Modeling • Building Integration Solutions
+            </p>
+        </div>
+    </body>
+    </html>
+    

@@ -2599,9 +2599,37 @@ def generate_step6_report():
         # Analyze by orientation - enhanced orientation mapping
         orientation_analysis = {}
         
-        # Get building elements for orientation mapping if available
+        # Define orientation mapping function
+        def get_orientation_from_azimuth(azimuth):
+            """Convert azimuth angle to cardinal orientation."""
+            try:
+                azimuth = float(azimuth)
+                if 315 <= azimuth <= 360 or 0 <= azimuth < 45:
+                    return 'North'
+                elif 45 <= azimuth < 135:
+                    return 'East'
+                elif 135 <= azimuth < 225:
+                    return 'South'
+                elif 225 <= azimuth < 315:
+                    return 'West'
+                else:
+                    return 'Unknown'
+            except (ValueError, TypeError):
+                return 'Unknown'
+        
+        # Get building elements for orientation mapping from multiple sources
         building_elements = project_data.get('building_elements', [])
-        if hasattr(building_elements, 'to_dict'):
+        
+        # Also try to get from consolidated manager
+        if not building_elements:
+            step4_data = consolidated_manager.get_step_data(4)
+            building_elements = safe_get(step4_data, 'building_elements', [])
+        
+        # Also try to get from session state directly
+        if not building_elements:
+            building_elements = st.session_state.get('building_elements', [])
+        
+        if hasattr(building_elements, 'to_dict') and not isinstance(building_elements, list):
             building_elements = building_elements.to_dict('records')
         
         # Create orientation lookup by element ID
@@ -2610,6 +2638,13 @@ def generate_step6_report():
             for elem in building_elements:
                 element_id = str(elem.get('element_id', elem.get('Element ID', '')))
                 orientation = elem.get('orientation', elem.get('Orientation', 'Unknown'))
+                
+                # If orientation is still Unknown, try to derive from azimuth
+                if orientation == 'Unknown':
+                    azimuth = safe_float(elem.get('azimuth', elem.get('Azimuth', 0)))
+                    if azimuth > 0:
+                        orientation = get_orientation_from_azimuth(azimuth)
+                
                 if element_id and orientation != 'Unknown':
                     element_orientation_map[element_id] = orientation
         
@@ -2623,18 +2658,10 @@ def generate_step6_report():
                 if element_id in element_orientation_map:
                     orientation = element_orientation_map[element_id]
                 else:
-                    # Try alternative mapping approaches
+                    # Try alternative mapping approaches using azimuth
                     azimuth = safe_float(system.get('azimuth', 0))
                     if azimuth > 0:
-                        # Map azimuth to orientation
-                        if 315 <= azimuth <= 360 or 0 <= azimuth < 45:
-                            orientation = 'North'
-                        elif 45 <= azimuth < 135:
-                            orientation = 'East'
-                        elif 135 <= azimuth < 225:
-                            orientation = 'South'
-                        elif 225 <= azimuth < 315:
-                            orientation = 'West'
+                        orientation = get_orientation_from_azimuth(azimuth)
             
             if orientation not in orientation_analysis:
                 orientation_analysis[orientation] = {'count': 0, 'capacity': 0, 'area': 0}

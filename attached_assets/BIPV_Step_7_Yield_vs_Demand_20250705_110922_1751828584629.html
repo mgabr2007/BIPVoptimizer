@@ -1,0 +1,520 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>BIPV Optimizer - Energy Yield vs Demand Analysis</title>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+                line-height: 1.6;
+                color: #2c2c2c;
+                background: linear-gradient(135deg, #f5f3f0 0%, #faf8f3 50%, #f7f4ef 100%);
+                min-height: 100vh;
+                margin: 0;
+                padding: 20px;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background: linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1), 0 4px 15px rgba(0,0,0,0.05);
+                overflow: hidden;
+                border: 1px solid rgba(218, 165, 32, 0.2);
+            }
+            
+            .header {
+                background: linear-gradient(135deg, #DAA520 0%, #B8860B 50%, #CD853F 100%);
+                color: white;
+                text-align: center;
+                padding: 40px 30px;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .header::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+                opacity: 0.3;
+            }
+            
+            .step-badge {
+                background: linear-gradient(135deg, #FFD700, #FFA500);
+                color: #8B4513;
+                padding: 12px 24px;
+                border-radius: 25px;
+                font-weight: bold;
+                font-size: 1.1em;
+                display: inline-block;
+                margin-bottom: 15px;
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+                position: relative;
+                z-index: 1;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            
+            .header h1 {
+                font-size: 2.8em;
+                margin: 10px 0;
+                font-weight: 700;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                position: relative;
+                z-index: 1;
+            }
+            
+            .header p {
+                font-size: 1.1em;
+                opacity: 0.9;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .main-content {
+                padding: 40px;
+            }
+            
+            .content-section {
+                margin-bottom: 40px;
+                padding: 30px;
+                border: 2px solid transparent;
+                border-radius: 12px;
+                background: linear-gradient(white, white) padding-box,
+                           linear-gradient(135deg, #DAA520, #CD853F) border-box;
+                box-shadow: 0 5px 20px rgba(218, 165, 32, 0.1);
+                transition: all 0.3s ease;
+            }
+            
+            .content-section:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(218, 165, 32, 0.15);
+            }
+            
+            .content-section h2 {
+                color: #B8860B;
+                font-size: 1.8em;
+                margin-bottom: 20px;
+                padding-bottom: 12px;
+                border-bottom: 3px solid #DAA520;
+                font-weight: 600;
+                position: relative;
+            }
+            
+            .content-section h2::after {
+                content: '';
+                position: absolute;
+                bottom: -3px;
+                left: 0;
+                width: 60px;
+                height: 3px;
+                background: linear-gradient(90deg, #FFD700, #FFA500);
+                border-radius: 2px;
+            }
+            
+            .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin: 25px 0;
+            }
+            
+            .metric-card {
+                background: linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
+                border: 2px solid transparent;
+                border-radius: 10px;
+                padding: 20px;
+                text-align: center;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+                transition: all 0.3s ease;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .metric-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #DAA520, #CD853F);
+            }
+            
+            .metric-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(218, 165, 32, 0.15);
+                border-color: rgba(218, 165, 32, 0.3);
+            }
+            
+            .metric-value {
+                font-size: 2.2em;
+                font-weight: bold;
+                color: #B8860B;
+                margin-bottom: 8px;
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            }
+            
+            .metric-label {
+                color: #666;
+                font-size: 1em;
+                font-weight: 500;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            }
+            
+            .data-table th {
+                background: linear-gradient(135deg, #DAA520, #B8860B);
+                color: white;
+                padding: 15px 12px;
+                text-align: left;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-size: 0.9em;
+            }
+            
+            .data-table td {
+                padding: 12px;
+                border-bottom: 1px solid #f0f0f0;
+                transition: background-color 0.2s ease;
+            }
+            
+            .data-table tr:nth-child(even) {
+                background-color: #fafafa;
+            }
+            
+            .data-table tr:hover {
+                background-color: #f5f3f0;
+            }
+            
+            .chart-container {
+                margin: 30px 0;
+                padding: 20px;
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+                border: 1px solid rgba(218, 165, 32, 0.1);
+            }
+            
+            .chart-title {
+                font-size: 1.3em;
+                color: #B8860B;
+                margin-bottom: 15px;
+                font-weight: 600;
+                text-align: center;
+            }
+            
+            .footer {
+                background: linear-gradient(135deg, #2c2c2c 0%, #3a3a3a 100%);
+                color: white;
+                text-align: center;
+                padding: 30px;
+                margin-top: 0;
+            }
+            
+            .footer h3 {
+                color: #DAA520;
+                margin-bottom: 15px;
+                font-size: 1.4em;
+            }
+            
+            .footer a {
+                color: #DAA520;
+                text-decoration: none;
+                font-weight: 500;
+                transition: color 0.3s ease;
+            }
+            
+            .footer a:hover {
+                color: #FFD700;
+            }
+            
+            .status-indicator {
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 0.9em;
+                font-weight: bold;
+                display: inline-block;
+                margin: 5px 0;
+            }
+            
+            .status-complete {
+                background: linear-gradient(135deg, #d4edda, #c3e6cb);
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+            
+            .status-pending {
+                background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+                color: #856404;
+                border: 1px solid #ffeaa7;
+            }
+            
+            .status-excellent {
+                background: linear-gradient(135deg, #DAA520, #FFD700);
+                color: white;
+                border: 1px solid #DAA520;
+            }
+            
+            .highlight-box {
+                background: linear-gradient(135deg, #fff8dc 0%, #fffacd 100%);
+                border-left: 5px solid #DAA520;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 0 8px 8px 0;
+                box-shadow: 0 3px 10px rgba(218, 165, 32, 0.1);
+            }
+            
+            .analysis-summary {
+                background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+                border: 2px solid #DAA520;
+                border-radius: 12px;
+                padding: 25px;
+                margin: 25px 0;
+                text-align: center;
+            }
+            
+            .analysis-summary h3 {
+                color: #B8860B;
+                margin-bottom: 15px;
+                font-size: 1.5em;
+            }
+            
+            @media (max-width: 768px) {
+                .metrics-grid {
+                    grid-template-columns: 1fr;
+                }
+                .container {
+                    margin: 10px;
+                    border-radius: 10px;
+                }
+                .main-content {
+                    padding: 20px;
+                }
+                .header {
+                    padding: 30px 20px;
+                }
+                .header h1 {
+                    font-size: 2.2em;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="step-badge">Step 7</div>
+                <h1>Energy Yield vs Demand Analysis</h1>
+                <p>Analysis Report Generated: July 06, 2025 at 18:59:29</p>
+            </div>
+            <div class="main-content">
+    
+            <div class="analysis-summary">
+                <h3>⚡ Energy Balance Overview</h3>
+                <p>BIPV system generates <strong>4,261,572 kWh/year</strong> covering <strong>115.5%</strong> of building demand</p>
+                <p>Net energy import: <strong>0 kWh/year</strong> | Total savings: <strong>€1,038,457/year</strong></p>
+            </div>
+            
+            <div class="content-section">
+                <h2>📊 Annual Energy Performance</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">4,261,572 kWh</div>
+                        <div class="metric-label">Annual PV Generation</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">3,690,792 kWh</div>
+                        <div class="metric-label">Annual Building Demand</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">115.5%</div>
+                        <div class="metric-label">Energy Coverage Ratio</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">0 kWh/kW</div>
+                        <div class="metric-label">Specific Yield</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">€1,038,457</div>
+                        <div class="metric-label">Annual Cost Savings</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">€116,414</div>
+                        <div class="metric-label">Feed-in Revenue</div>
+                    </div>
+                </div>
+            </div>
+        
+            <div class="content-section">
+                <h2>💰 Economic Performance Analysis</h2>
+                <table class="data-table">
+                    <tr><th>Financial Metric</th><th>Value</th><th>Unit</th></tr>
+                    <tr><td>Annual Cost Savings</td><td>€1,038,457</td><td>per year</td></tr>
+                    <tr><td>Feed-in Revenue</td><td>€116,414</td><td>per year</td></tr>
+                    <tr><td>Total Annual Benefit</td><td>€1,154,871</td><td>per year</td></tr>
+                    <tr><td>Cost Savings Rate</td><td>€281.4</td><td>per MWh</td></tr>
+                    <tr><td>Monthly Average Savings</td><td>€86,538</td><td>per month</td></tr>
+                </table>
+            </div>
+            
+            <div class="content-section">
+                <h2>🔋 Energy Balance Details</h2>
+                <table class="data-table">
+                    <tr><th>Energy Component</th><th>Annual Value</th><th>Percentage</th></tr>
+                    <tr><td>Self-Consumed PV Energy</td><td>3,690,792 kWh</td><td>100.0%</td></tr>
+                    <tr><td>Grid Export (Surplus)</td><td>570,780 kWh</td><td>13.4%</td></tr>
+                    <tr><td>Grid Import (Deficit)</td><td>0 kWh</td><td>0.0%</td></tr>
+                    <tr><td>Energy Independence</td><td>115.5%</td><td>Coverage ratio</td></tr>
+                </table>
+            </div>
+        
+            <div class="content-section">
+                <h2>📅 Monthly Energy Balance Summary</h2>
+                <table class="data-table">
+                    <tr><th>Month</th><th>PV Generation (kWh)</th><th>Demand (kWh)</th><th>Net Import (kWh)</th><th>Savings (€)</th></tr>
+            
+                    <tr>
+                        <td><strong>Jan</strong></td>
+                        <td>127,847</td>
+                        <td>355,512</td>
+                        <td>227,665</td>
+                        <td>€40,272</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Feb</strong></td>
+                        <td>213,079</td>
+                        <td>277,008</td>
+                        <td>63,929</td>
+                        <td>€67,120</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Mar</strong></td>
+                        <td>340,926</td>
+                        <td>301,440</td>
+                        <td>-39,486</td>
+                        <td>€107,392</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Apr</strong></td>
+                        <td>468,773</td>
+                        <td>265,320</td>
+                        <td>-203,453</td>
+                        <td>€147,663</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>May</strong></td>
+                        <td>596,620</td>
+                        <td>376,704</td>
+                        <td>-219,916</td>
+                        <td>€187,935</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Jun</strong></td>
+                        <td>639,236</td>
+                        <td>264,864</td>
+                        <td>-374,372</td>
+                        <td>€201,359</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Jul</strong></td>
+                        <td>596,620</td>
+                        <td>356,760</td>
+                        <td>-239,860</td>
+                        <td>€187,935</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Aug</strong></td>
+                        <td>511,389</td>
+                        <td>272,304</td>
+                        <td>-239,085</td>
+                        <td>€161,087</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Sep</strong></td>
+                        <td>383,541</td>
+                        <td>280,032</td>
+                        <td>-103,509</td>
+                        <td>€120,816</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Oct</strong></td>
+                        <td>255,694</td>
+                        <td>334,704</td>
+                        <td>79,010</td>
+                        <td>€80,544</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Nov</strong></td>
+                        <td>127,847</td>
+                        <td>319,272</td>
+                        <td>191,425</td>
+                        <td>€40,272</td>
+                    </tr>
+                
+                    <tr>
+                        <td><strong>Dec</strong></td>
+                        <td>85,231</td>
+                        <td>286,872</td>
+                        <td>201,641</td>
+                        <td>€26,848</td>
+                    </tr>
+                
+                </table>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>🎯 Analysis Results Summary</h3>
+                <p><strong>Performance Assessment:</strong> BIPV system analysis complete with detailed energy balance calculations.</p>
+                <p><strong>Next Steps:</strong> Proceed to Step 8 (Optimization) to find optimal system configurations.</p>
+                <p><strong>Key Insights:</strong> Energy coverage ratio and cost savings demonstrate BIPV system viability for this building.</p>
+            </div>
+        
+            </div>
+        </div>
+        <div class="footer">
+            <h3>BIPV Optimizer Platform</h3>
+            <p>Developed by <strong>Mostafa Gabr</strong>, PhD Candidate<br>
+            Technische Universität Berlin, Faculty VI - Planning Building Environment</p>
+            <p><a href="https://www.researchgate.net/profile/Mostafa-Gabr-4" target="_blank">ResearchGate Profile</a> | 
+            <a href="https://www.tu.berlin/en/planen-bauen-umwelt/" target="_blank">TU Berlin Faculty VI</a></p>
+            <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                Professional BIPV Analysis • Advanced Solar Modeling • Building Integration Solutions
+            </p>
+        </div>
+    </body>
+    </html>
+    
