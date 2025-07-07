@@ -100,13 +100,24 @@ def render_facade_extraction():
     
     if uploaded_csv is not None:
         try:
-            # Use spinner instead of progress bar to avoid interface fading
-            with st.spinner("Processing CSV file..."):
-                content = uploaded_csv.getvalue().decode('utf-8-sig')
-                headers, data = parse_csv_content(content)
+            # Check if this file was already processed to prevent reprocessing on page rerun
+            current_file_name = uploaded_csv.name
+            last_processed_file = st.session_state.get('last_processed_file', '')
+            
+            # Only process if it's a new file or data hasn't been processed yet
+            if (current_file_name != last_processed_file or 
+                not st.session_state.get('step4_processing_complete', False)):
                 
-                # Clean headers
-                headers = [h.strip().replace('\ufeff', '') for h in headers]
+                # Use spinner instead of progress bar to avoid interface fading
+                with st.spinner("Processing CSV file..."):
+                    content = uploaded_csv.getvalue().decode('utf-8-sig')
+                    headers, data = parse_csv_content(content)
+                    
+                    # Clean headers
+                    headers = [h.strip().replace('\ufeff', '') for h in headers]
+                    
+                    # Mark this file as processed
+                    st.session_state.last_processed_file = current_file_name
                 
                 # Initialize variables at the top level
                 windows = []
@@ -128,7 +139,6 @@ def render_facade_extraction():
                     else:
                         st.warning("No processed data found. Please re-upload the CSV file.")
                         return
-                else:
                     # Process building elements
                     total_rows = len(data)
                 
@@ -275,12 +285,17 @@ def render_facade_extraction():
                         st.success(f"✅ Saved {len(windows)} building elements to database")
                         st.session_state.step4_db_saved = True
             
-            # Reset processing flags when uploading new file
-            if st.session_state.get('last_uploaded_file') != uploaded_csv.name:
-                st.session_state.step4_processing_complete = False
-                st.session_state.step4_already_processed = False
-                st.session_state.step4_db_saved = False
-                st.session_state.last_uploaded_file = uploaded_csv.name
+            else:
+                # File already processed, just display existing results
+                if 'building_elements' in st.session_state:
+                    windows = st.session_state.building_elements.to_dict('records')
+                    facade_data = st.session_state.project_data.get('facade_data', {})
+                    suitable_elements = facade_data.get('suitable_elements', 0)
+                    total_glass_area = facade_data.get('total_glass_area', 0)
+                    st.info("Using previously processed CSV data. Upload a new file to reprocess.")
+                else:
+                    st.warning("No processed data found. Please re-upload the CSV file.")
+                    return
             
             # Display results
             col1, col2, col3, col4 = st.columns(4)
