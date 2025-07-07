@@ -628,17 +628,16 @@ def render_yield_demand():
                     st.warning(f"⚠️ Using default educational pattern with SEASONAL VARIATION: {annual_demand:,.0f} kWh/year")
                     st.info(f"Monthly range: {min(monthly_demand):,.0f} - {max(monthly_demand):,.0f} kWh (NOT constant!)")
                 
-                # Bounds checking for realistic building energy consumption
-                # Typical educational building: 50-200 kWh/m²/year
-                # For 5000 m² building: 250,000 - 1,000,000 kWh/year
+                # Use calculated demand values without bounds checking override
+                # Display demand information for user awareness
                 if annual_demand > 1500000:  # > 1.5 million kWh/year
-                    st.warning(f"⚠️ Very high annual demand detected: {annual_demand:,.0f} kWh/year. Using conservative estimate.")
-                    annual_demand = 500000  # 100 kWh/m²/year for 5000 m²
-                    monthly_demand = [annual_demand/12] * 12
+                    st.info(f"ℹ️ High annual demand detected: {annual_demand:,.0f} kWh/year. Using calculated values from AI model and building data.")
                 elif annual_demand < 50000:  # < 50,000 kWh/year 
-                    st.warning(f"⚠️ Very low annual demand detected: {annual_demand:,.0f} kWh/year. Using typical estimate.")
-                    annual_demand = 300000  # 60 kWh/m²/year for 5000 m²
-                    monthly_demand = [annual_demand/12] * 12
+                    st.info(f"ℹ️ Low annual demand detected: {annual_demand:,.0f} kWh/year. Using calculated values from AI model and building data.")
+                else:
+                    st.success(f"✅ Annual demand: {annual_demand:,.0f} kWh/year. Using calculated values from AI model and building data.")
+                
+                # Keep the original calculated values instead of overriding them
                 
                 demand_profile = {
                     'monthly_demand': monthly_demand,
