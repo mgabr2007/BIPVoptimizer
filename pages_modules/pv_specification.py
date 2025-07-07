@@ -255,11 +255,11 @@ def render_pv_specification():
     with col1:
         panel_efficiency = st.slider(
             "Efficiency (%)",
-            min_value=10.0, max_value=22.0, 
+            min_value=2.0, max_value=25.0, 
             value=float(base_specs['efficiency']*100),
             step=0.5,
             key="panel_efficiency",
-            help="PV conversion efficiency"
+            help="BIPV glass efficiency: 2-8% (basic), 10-15% (standard), 18-25% (high-performance)"
         ) / 100
         
     with col2:
