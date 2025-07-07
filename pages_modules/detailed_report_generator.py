@@ -1068,7 +1068,7 @@ def generate_comprehensive_detailed_report():
         """
 
 def render_detailed_reporting():
-    """Render the comprehensive report upload and integration interface"""
+    """Render the comprehensive report upload and integration interface with 9-step upload system"""
     
     # Add OptiSunny character header image
     st.image("attached_assets/step10_1751436847832.png", width=400)
