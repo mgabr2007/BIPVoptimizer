@@ -140,6 +140,7 @@ def render_facade_extraction():
                     else:
                         st.warning("No processed data found. Please re-upload the CSV file.")
                         return
+                else:
                     # Process building elements
                     total_rows = len(data)
                 
@@ -255,37 +256,37 @@ def render_facade_extraction():
                         'csv_processed': True
                     }
                 
-                st.session_state.project_data['facade_data'] = facade_data
-                st.session_state.project_data['extraction_complete'] = True
+                    st.session_state.project_data['facade_data'] = facade_data
+                    st.session_state.project_data['extraction_complete'] = True
+                    
+                    # Store building elements
+                    import pandas as pd
+                    building_elements_df = pd.DataFrame(windows)
+                    st.session_state.building_elements = building_elements_df
+                    st.session_state.building_elements_completed = True
+                    st.session_state.step4_processing_complete = True
+                    st.session_state.last_processed_file = current_file_name
                 
-                # Store building elements
-                import pandas as pd
-                building_elements_df = pd.DataFrame(windows)
-                st.session_state.building_elements = building_elements_df
-                st.session_state.building_elements_completed = True
-                st.session_state.step4_processing_complete = True
-                st.session_state.last_processed_file = current_file_name
-                
-                # Only save to consolidated data manager if not already processed
-                # This prevents triggering during report generation or re-runs
-                if not st.session_state.get('skip_consolidation_save', False) and not st.session_state.get('step4_already_processed', False):
-                    consolidated_manager = ConsolidatedDataManager()
-                    step4_data = {
-                        'building_elements': windows,
-                        'facade_data': facade_data,
-                        'elements': windows,
-                        'extraction_complete': True
-                    }
-                    consolidated_manager.save_step4_data(step4_data)
-                    st.session_state.step4_already_processed = True
-                
-                # Save to database only once per processing session
-                if 'project_id' in st.session_state and not st.session_state.get('step4_db_saved', False):
-                    success = save_building_elements(st.session_state.project_id, windows)
-                    save_project_data(st.session_state.project_data)
-                    if success:
-                        st.success(f"✅ Saved {len(windows)} building elements to database")
-                        st.session_state.step4_db_saved = True
+                    # Only save to consolidated data manager if not already processed
+                    # This prevents triggering during report generation or re-runs
+                    if not st.session_state.get('skip_consolidation_save', False) and not st.session_state.get('step4_already_processed', False):
+                        consolidated_manager = ConsolidatedDataManager()
+                        step4_data = {
+                            'building_elements': windows,
+                            'facade_data': facade_data,
+                            'elements': windows,
+                            'extraction_complete': True
+                        }
+                        consolidated_manager.save_step4_data(step4_data)
+                        st.session_state.step4_already_processed = True
+                    
+                    # Save to database only once per processing session
+                    if 'project_id' in st.session_state and not st.session_state.get('step4_db_saved', False):
+                        success = save_building_elements(st.session_state.project_id, windows)
+                        save_project_data(st.session_state.project_data)
+                        if success:
+                            st.success(f"✅ Saved {len(windows)} building elements to database")
+                            st.session_state.step4_db_saved = True
             
             else:
                 # File already processed, just display existing results without reprocessing
