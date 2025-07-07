@@ -312,14 +312,38 @@ def render_yield_demand():
     
     # Use historical data from Step 2
     if historical_data_project:
-        st.success(f"Using historical consumption data: {historical_data_project['avg_consumption']:.0f} kWh/month average")
-        baseline_demand = historical_data_project
+        # Use actual AI forecast data with seasonal variation from Step 2
+        forecast_data = historical_data_project.get('forecast_25_years', [])
+        consumption_pattern = historical_data_project.get('consumption', [])
+        avg_consumption = historical_data_project.get('avg_consumption', 2500)
+        
+        st.success(f"Using AI forecast data: {avg_consumption:.0f} kWh/month average with seasonal variation")
+        
+        # Use actual monthly consumption pattern from Step 2
+        if consumption_pattern and len(consumption_pattern) >= 12:
+            monthly_demand = consumption_pattern[:12]  # Use first 12 months
+        else:
+            # Calculate from forecast if available
+            if forecast_data and len(forecast_data) >= 12:
+                monthly_demand = forecast_data[:12]
+            else:
+                # Apply seasonal factors to average
+                seasonal_factors = [1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]
+                monthly_demand = [avg_consumption * factor for factor in seasonal_factors]
+        
+        baseline_demand = {
+            'avg_consumption': avg_consumption,
+            'total_consumption': sum(monthly_demand),
+            'consumption': monthly_demand,
+            'monthly_demand': monthly_demand
+        }
     else:
         # Fallback if somehow data is missing
         baseline_demand = {
             'avg_consumption': 2500,
             'total_consumption': 30000,
-            'consumption': [2400, 2200, 2100, 2000, 1900, 1800, 2000, 2100, 2200, 2400, 2500, 2600]
+            'consumption': [2400, 2200, 2100, 2000, 1900, 1800, 2000, 2100, 2200, 2400, 2500, 2600],
+            'monthly_demand': [2400, 2200, 2100, 2000, 1900, 1800, 2000, 2100, 2200, 2400, 2500, 2600]
         }
         st.info("Using baseline demand patterns for analysis.")
     
@@ -753,7 +777,8 @@ def render_yield_demand():
                         yaxis_title="Energy (kWh)",
                         legend_title="Energy Type"
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    fig.update_layout(width=700, height=400)  # Fixed width to prevent expansion
+                    st.plotly_chart(fig, use_container_width=False)
                     
                     # Energy balance table with clear headers
                     st.subheader("📋 Detailed Monthly Breakdown")

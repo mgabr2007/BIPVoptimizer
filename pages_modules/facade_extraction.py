@@ -234,15 +234,17 @@ def render_facade_extraction():
                 st.session_state.building_elements = building_elements_df
                 st.session_state.building_elements_completed = True
                 
-                # Save to consolidated data manager
-                consolidated_manager = ConsolidatedDataManager()
-                step4_data = {
-                    'building_elements': windows,
-                    'facade_data': facade_data,
-                    'elements': windows,
-                    'extraction_complete': True
-                }
-                consolidated_manager.save_step4_data(step4_data)
+                # Only save to consolidated data manager when processing is complete
+                # This prevents triggering during report generation
+                if not st.session_state.get('skip_consolidation_save', False):
+                    consolidated_manager = ConsolidatedDataManager()
+                    step4_data = {
+                        'building_elements': windows,
+                        'facade_data': facade_data,
+                        'elements': windows,
+                        'extraction_complete': True
+                    }
+                    consolidated_manager.save_step4_data(step4_data)
                 
                 # Save to database
                 if 'project_id' in st.session_state:

@@ -834,7 +834,8 @@ def render_optimization():
                     }
                 )
                 fig_pareto.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')))
-                st.plotly_chart(fig_pareto, use_container_width=True)
+                fig_pareto.update_layout(width=700, height=400)  # Fixed width to prevent expansion
+                st.plotly_chart(fig_pareto, use_container_width=False)
             
             with tab2:
                 # Solution comparison radar chart
@@ -900,7 +901,8 @@ def render_optimization():
                         'roi': 'ROI'
                     }
                 )
-                st.plotly_chart(fig_efficiency, use_container_width=True)
+                fig_efficiency.update_layout(width=700, height=400)  # Fixed width to prevent expansion
+                st.plotly_chart(fig_efficiency, use_container_width=False)
             
             with tab4:
                 # Coverage analysis
@@ -917,7 +919,8 @@ def render_optimization():
                         labels={'coverage_ratio': 'Coverage Ratio (%)', 'solution_id': 'Solution ID'}
                     )
                     fig_coverage.update_layout(yaxis_tickformat='.1%')
-                    st.plotly_chart(fig_coverage, use_container_width=True)
+                    fig_coverage.update_layout(width=700, height=400)  # Fixed width to prevent expansion
+                    st.plotly_chart(fig_coverage, use_container_width=False)
                 else:
                     st.info("Energy balance data not available for coverage analysis")
             

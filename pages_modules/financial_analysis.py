@@ -626,7 +626,8 @@ def render_financial_analysis():
                             title=f"NPV Sensitivity to {param_names.get(param, param)}",
                             labels={'x': param_names.get(param, param), 'y': 'NPV (€)'}
                         )
-                        st.plotly_chart(fig_sens, use_container_width=True)
+                        fig_sens.update_layout(width=700, height=400)  # Fixed width to prevent expansion
+                        st.plotly_chart(fig_sens, use_container_width=False)
                 else:
                     st.info("Sensitivity analysis data not available")
             

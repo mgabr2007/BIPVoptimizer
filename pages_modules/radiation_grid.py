@@ -910,7 +910,8 @@ def render_radiation_grid():
                             title="Average Monthly Irradiation Pattern",
                             labels={'irradiation': 'Monthly Irradiation (kWh/m²)', 'month': 'Month'}
                         )
-                        st.plotly_chart(fig_monthly, use_container_width=True)
+                        fig_monthly.update_layout(width=700, height=400)  # Fixed width to prevent expansion
+                        st.plotly_chart(fig_monthly, use_container_width=False)
                     else:
                         st.info("Monthly pattern data not available")
                 else:

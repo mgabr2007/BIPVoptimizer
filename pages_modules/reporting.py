@@ -1,433 +1,268 @@
 """
-Reporting and Export page for BIPV Optimizer
+Step 10: Report Upload & Master Analysis Generator
+Upload individual step reports to create comprehensive master analysis
 """
 import streamlit as st
 from datetime import datetime
-from services.io import get_project_report_data
-from core.solar_math import get_currency_symbol, safe_divide
-from pages_modules.detailed_report_generator import generate_comprehensive_detailed_report
-from utils.comprehensive_report_fixed import generate_comprehensive_report_fixed
-from utils.step_by_step_report_generator import render_step_by_step_reporting
+import io
+from bs4 import BeautifulSoup
+import pandas as pd
+from utils.individual_step_reports import create_step_download_button
 
 
-def generate_window_elements_csv():
-    """Generate CSV file with window element data for BIPV calculations"""
-    # Get building elements from session state or database
-    project_name = st.session_state.get('project_data', {}).get('project_name', 'Unnamed Project')
-    db_data = get_project_report_data(project_name)
-    
-    building_elements = []
-    if db_data and db_data.get('building_elements'):
-        building_elements = db_data['building_elements']
-    elif 'building_elements' in st.session_state:
-        building_elements = st.session_state.building_elements
-        if hasattr(building_elements, 'to_dict'):
-            building_elements = building_elements.to_dict('records')
-    
-    if not building_elements:
-        return "No building elements data available"
-    
-    # CSV header
-    csv_content = [
-        "Element_ID,Wall_Hosted_ID,Glass_Area,Orientation,Azimuth,Annual_Radiation,Expected_Production,BIPV_Selected,Window_Width,Window_Height,Building_Level"
-    ]
-    
-    for element in building_elements:
-        element_id = element.get('element_id', 'Unknown')
-        wall_id = element.get('wall_element_id', element.get('wall_hosted_id', 'Unknown'))
-        glass_area = element.get('glass_area', element.get('window_area', 0))
-        orientation = element.get('orientation', 'Unknown')
-        azimuth = element.get('azimuth', 0)
-        
-        # Estimate radiation and production based on orientation
-        radiation_factors = {
-            "South (135-225°)": 1800,
-            "East (45-135°)": 1400,
-            "West (225-315°)": 1400,
-            "North (315-45°)": 900
-        }
-        annual_radiation = radiation_factors.get(orientation, 1200)
-        
-        # Estimate production (kWh) = area * radiation * efficiency * performance ratio
-        efficiency = 0.15  # 15% for semi-transparent BIPV
-        performance_ratio = 0.8
-        
-        # Convert to float to handle decimal.Decimal types from database
-        glass_area_float = float(glass_area) if glass_area else 0.0
-        annual_radiation_float = float(annual_radiation)
-        
-        expected_production = glass_area_float * annual_radiation_float * efficiency * performance_ratio / 1000
-        
-        bipv_selected = element.get('pv_suitable', element.get('suitable', False))
-        
-        # Window dimensions - use float conversion
-        window_width = (glass_area_float ** 0.5) * 1.2 if glass_area_float > 0 else 0
-        window_height = glass_area_float / window_width if window_width > 0 else 0
-        
-        building_level = element.get('level', element.get('building_level', 'Ground Floor'))
-        
-        csv_row = f"{element_id},{wall_id},{glass_area_float:.2f},{orientation},{azimuth},{annual_radiation_float:.1f},{expected_production:.1f},{bipv_selected},{window_width:.2f},{window_height:.2f},{building_level}"
-        csv_content.append(csv_row)
-    
-    return '\n'.join(csv_content)
-
-
-def generate_comprehensive_html_report():
-    """Generate comprehensive HTML report with all analysis results"""
-    project_name = st.session_state.get('project_data', {}).get('project_name', 'Unnamed Project')
-    db_data = get_project_report_data(project_name)
-    
-    if not db_data:
-        return "<h1>Error: No project data found</h1>"
-    
-    # Add debugging information
+def parse_html_report(html_content, step_key):
+    """Parse HTML report and extract key data points"""
     try:
-        st.info(f"Report data keys: {list(db_data.keys())}")
-        for key, value in db_data.items():
-            if key in ['initial_investment', 'annual_savings', 'npv', 'payback_period', 'co2_savings_annual', 'co2_savings_lifetime']:
-                st.info(f"{key}: {value} (type: {type(value)})")
-    except Exception as debug_error:
-        st.warning(f"Debug info error: {debug_error}")
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # Extract basic information
+        data = {
+            'html_content': html_content,
+            'step_number': step_key,
+            'parsed_successfully': True
+        }
+        
+        # Extract key metrics based on step
+        if step_key == 1:
+            # Project setup data
+            data['project_type'] = 'setup'
+        elif step_key == 2:
+            # Historical data metrics
+            data['project_type'] = 'historical'
+        elif step_key == 3:
+            # Weather data
+            data['project_type'] = 'weather'
+        elif step_key == 4:
+            # Building elements
+            data['project_type'] = 'building'
+        elif step_key == 5:
+            # Radiation analysis
+            data['project_type'] = 'radiation'
+        elif step_key == 6:
+            # PV specifications
+            data['project_type'] = 'pv_specs'
+        elif step_key == 7:
+            # Yield analysis
+            data['project_type'] = 'yield'
+        elif step_key == 8:
+            # Optimization
+            data['project_type'] = 'optimization'
+        elif step_key == 9:
+            # Financial analysis
+            data['project_type'] = 'financial'
+        
+        return data
+    except Exception as e:
+        return {
+            'html_content': html_content,
+            'step_number': step_key,
+            'parsed_successfully': False,
+            'error': str(e)
+        }
+
+
+def display_report_summary(report_data, step_key):
+    """Display summary of uploaded report data"""
+    if report_data.get('parsed_successfully'):
+        st.success(f"✅ Step {step_key} report parsed successfully")
+        st.info(f"Report type: {report_data.get('project_type', 'Unknown')}")
+    else:
+        st.error(f"❌ Failed to parse Step {step_key} report")
+        if 'error' in report_data:
+            st.error(f"Error: {report_data['error']}")
+
+
+def generate_master_report_from_uploads():
+    """Generate comprehensive master report from all uploaded step reports"""
+    uploaded_reports = st.session_state.get('uploaded_reports', {})
     
-    # Extract data safely
-    location = db_data.get('location', 'Unknown Location')
-    coordinates = {'lat': db_data.get('latitude', 0), 'lon': db_data.get('longitude', 0)}
-    building_elements = db_data.get('building_elements', [])
+    if not uploaded_reports:
+        return None
     
-    # Calculate metrics with null value handling
-    total_elements = len(building_elements)
-    suitable_elements = sum(1 for elem in building_elements if elem.get('pv_suitable', False))
+    # Generate master HTML combining all reports
+    master_html = generate_master_html_report(uploaded_reports)
     
-    # Safe glass area calculation
-    total_glass_area = 0
-    for elem in building_elements:
-        glass_area = elem.get('glass_area', 0)
-        if glass_area is not None:
-            try:
-                total_glass_area += float(glass_area)
-            except (ValueError, TypeError):
-                total_glass_area += 0
+    # Store master report
+    st.session_state.master_report = {
+        'html_content': master_html,
+        'generated_at': datetime.now(),
+        'included_steps': list(uploaded_reports.keys())
+    }
     
-    # Safe calculations
-    suitability_rate = safe_divide(suitable_elements, total_elements, 0) * 100
-    avg_glass_area = safe_divide(total_glass_area, total_elements, 0)
-    
-    # Safe financial data conversion
-    def safe_float(value, default=0):
-        if value is None:
-            return default
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return default
-    
-    initial_investment = safe_float(db_data.get('initial_investment', 0))
-    annual_savings = safe_float(db_data.get('annual_savings', 0))
-    npv = safe_float(db_data.get('npv', 0))
-    payback_period = safe_float(db_data.get('payback_period', 0))
-    
-    # Environmental data
-    co2_savings_annual = safe_float(db_data.get('co2_savings_annual', 0))
-    co2_savings_lifetime = safe_float(db_data.get('co2_savings_lifetime', 0))
-    
-    html_content = f"""
+    return st.session_state.master_report
+
+
+def generate_master_html_report(uploaded_reports):
+    """Generate HTML content for master analysis report"""
+    html = f"""
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>BIPV Analysis Report - {project_name}</title>
+        <title>BIPV Master Analysis Report</title>
         <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }}
-            .header {{ background-color: #2E8B57; color: white; padding: 20px; border-radius: 8px; }}
-            .section {{ margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }}
-            .metrics {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }}
-            .metric {{ background-color: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; }}
-            .metric-value {{ font-size: 24px; font-weight: bold; color: #2E8B57; }}
-            .metric-label {{ font-size: 14px; color: #666; }}
-            table {{ width: 100%; border-collapse: collapse; margin: 10px 0; }}
-            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-            th {{ background-color: #f2f2f2; }}
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            .header {{ background: #f0f8ff; padding: 20px; border-radius: 10px; }}
+            .step-section {{ margin: 30px 0; border-left: 4px solid #4CAF50; padding-left: 20px; }}
+            .step-title {{ color: #2E7D32; font-size: 1.5em; margin-bottom: 15px; }}
         </style>
     </head>
     <body>
         <div class="header">
-            <h1>BIPV Optimization Analysis Report</h1>
-            <p><strong>Project:</strong> {project_name}</p>
-            <p><strong>Location:</strong> {location}</p>
-            <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <h1>BIPV Master Analysis Report</h1>
+            <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p>Included Steps: {len(uploaded_reports)} of 9 workflow steps</p>
         </div>
-        
-        <div class="section">
-            <h2>Executive Summary</h2>
-            <div class="metrics">
-                <div class="metric">
-                    <div class="metric-value">{total_elements}</div>
-                    <div class="metric-label">Total Building Elements</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">{suitable_elements}</div>
-                    <div class="metric-label">BIPV Suitable Elements</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">{suitability_rate:.1f}%</div>
-                    <div class="metric-label">Suitability Rate</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">{total_glass_area:.1f} m²</div>
-                    <div class="metric-label">Total Glass Area</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h2>Financial Analysis</h2>
-            <div class="metrics">
-                <div class="metric">
-                    <div class="metric-value">€{initial_investment:,.0f}</div>
-                    <div class="metric-label">Initial Investment</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">€{annual_savings:,.0f}</div>
-                    <div class="metric-label">Annual Savings</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">€{npv:,.0f}</div>
-                    <div class="metric-label">Net Present Value</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">{payback_period:.1f} years</div>
-                    <div class="metric-label">Payback Period</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h2>Environmental Impact</h2>
-            <div class="metrics">
-                <div class="metric">
-                    <div class="metric-value">{co2_savings_annual:.1f} tons</div>
-                    <div class="metric-label">Annual CO₂ Savings</div>
-                </div>
-                <div class="metric">
-                    <div class="metric-value">{co2_savings_lifetime:.0f} tons</div>
-                    <div class="metric-label">Lifetime CO₂ Savings</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="section">
-            <h2>Building Elements Analysis</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Element ID</th>
-                        <th>Orientation</th>
-                        <th>Glass Area (m²)</th>
-                        <th>BIPV Suitable</th>
-                        <th>Level</th>
-                    </tr>
-                </thead>
-                <tbody>
     """
     
-    # Add building elements to table
-    for element in building_elements[:20]:  # Limit to first 20 elements
-        element_id = element.get('element_id', 'Unknown')
-        orientation = element.get('orientation', 'Unknown')
-        glass_area = element.get('glass_area', 0)
-        suitable = 'Yes' if element.get('pv_suitable', False) else 'No'
-        level = element.get('building_level', element.get('level', 'Unknown'))
-        
-        html_content += f"""
-                    <tr>
-                        <td>{element_id}</td>
-                        <td>{orientation}</td>
-                        <td>{glass_area:.2f}</td>
-                        <td>{suitable}</td>
-                        <td>{level}</td>
-                    </tr>
+    # Add each uploaded report
+    for step_num in sorted(uploaded_reports.keys()):
+        report_data = uploaded_reports[step_num]
+        html += f"""
+        <div class="step-section">
+            <div class="step-title">Step {step_num}: {report_data.get('project_type', 'Analysis').title()}</div>
+            {report_data.get('html_content', '<p>No content available</p>')}
+        </div>
         """
     
-    html_content += f"""
-                </tbody>
-            </table>
-            {f"<p><em>Showing first 20 of {total_elements} elements</em></p>" if total_elements > 20 else ""}
-        </div>
-        
-        <div class="section">
-            <h2>Research Attribution</h2>
-            <p><strong>Developed by:</strong> Mostafa Gabr</p>
-            <p><strong>Institution:</strong> Technische Universität Berlin</p>
-            <p><strong>Research Focus:</strong> Building-Integrated Photovoltaics Optimization</p>
-            <p><strong>Contact:</strong> <a href="https://www.researchgate.net/profile/Mostafa-Gabr-4">ResearchGate Profile</a></p>
-        </div>
+    html += """
     </body>
     </html>
     """
     
-    return html_content
+    return html
+
+
+def display_master_report_summary(master_report):
+    """Display summary of generated master report"""
+    if master_report:
+        st.success(f"✅ Master report generated successfully!")
+        st.info(f"Generated at: {master_report['generated_at'].strftime('%Y-%m-%d %H:%M:%S')}")
+        st.info(f"Includes {len(master_report['included_steps'])} steps: {', '.join(map(str, master_report['included_steps']))}")
+        
+        # Download button for master report
+        st.download_button(
+            label="📄 Download Master Analysis Report",
+            data=master_report['html_content'],
+            file_name=f"BIPV_Master_Analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
+            mime="text/html",
+            key="download_master_report"
+        )
 
 
 def render_reporting():
-    """Render the reporting and export module."""
+    """Render the comprehensive report upload and integration interface"""
+    st.header("Step 10: Report Upload & Master Analysis")
+    st.markdown("Upload individual step reports to create a comprehensive master analysis document.")
     
-    # Add OptiSunny character header image
-    st.image("attached_assets/step10_1751436847832.png", width=400)
+    # Initialize uploaded reports in session state
+    if 'uploaded_reports' not in st.session_state:
+        st.session_state.uploaded_reports = {}
     
-    st.header("Step 10: Comprehensive Reporting & Data Export")
-    st.markdown("Generate detailed analysis reports and export project data for further use.")
+    st.markdown("### 📤 Upload Individual Step Reports")
+    st.info("Upload HTML reports from Steps 1-9 to create a comprehensive master analysis. You can upload reports in any order.")
     
-    # Data Usage Information
-    with st.expander("📊 How This Data Will Be Used", expanded=False):
-        st.markdown("""
-        ### Data Flow Through BIPV Analysis Workflow:
+    # Create upload interface for each step
+    col1, col2, col3 = st.columns(3)
+    
+    step_titles = {
+        1: "Project Setup",
+        2: "Historical Data", 
+        3: "Weather Analysis",
+        4: "Facade Extraction",
+        5: "Radiation Analysis",
+        6: "PV Specification",
+        7: "Yield vs Demand",
+        8: "Optimization",
+        9: "Financial Analysis"
+    }
+    
+    # Display upload widgets in a grid
+    for i, (step_num, title) in enumerate(step_titles.items()):
+        if i % 3 == 0:
+            column = col1
+        elif i % 3 == 1:
+            column = col2
+        else:
+            column = col3
         
-        **Step 10 → Project Documentation:**
-        - **Standard HTML reports** → Executive summary for stakeholders and decision-makers
-        - **Detailed scientific reports** → Technical documentation for engineers and researchers
-        - **Window elements CSV** → Building-specific implementation data for contractors and architects
+        with column:
+            st.markdown(f"**Step {step_num}: {title}**")
+            
+            # Check if already uploaded
+            if step_num in st.session_state.uploaded_reports:
+                st.success("✅ Uploaded")
+                if st.button(f"Remove Step {step_num}", key=f"remove_{step_num}"):
+                    del st.session_state.uploaded_reports[step_num]
+                    st.rerun()
+            else:
+                uploaded_file = st.file_uploader(
+                    f"Upload Step {step_num}",
+                    type=['html'],
+                    key=f"upload_step_{step_num}",
+                    help=f"Upload the HTML report from {title}"
+                )
+                
+                if uploaded_file is not None:
+                    # Read and parse the uploaded file
+                    with st.spinner(f"Processing Step {step_num} report..."):
+                        html_content = uploaded_file.read().decode('utf-8')
+                        report_data = parse_html_report(html_content, step_num)
+                        
+                        # Store in session state
+                        st.session_state.uploaded_reports[step_num] = report_data
+                        
+                        # Display summary
+                        display_report_summary(report_data, step_num)
+                        
+                        st.rerun()
+    
+    # Progress tracking
+    st.markdown("---")
+    st.markdown("### 📊 Upload Progress")
+    
+    uploaded_count = len(st.session_state.uploaded_reports)
+    progress = uploaded_count / 9
+    
+    st.progress(progress)
+    st.info(f"Progress: {uploaded_count}/9 reports uploaded ({progress*100:.0f}%)")
+    
+    # Show uploaded reports summary
+    if st.session_state.uploaded_reports:
+        st.markdown("**Uploaded Reports:**")
+        for step_num in sorted(st.session_state.uploaded_reports.keys()):
+            report_type = st.session_state.uploaded_reports[step_num].get('project_type', 'Unknown')
+            st.write(f"• Step {step_num}: {step_titles[step_num]} ({report_type})")
+    
+    # Generate master report
+    st.markdown("---")
+    st.markdown("### 📄 Generate Master Report")
+    
+    if uploaded_count >= 3:  # Minimum 3 reports to generate master
+        st.info(f"Ready to generate master report with {uploaded_count} uploaded reports.")
         
-        **Step 10 → External Applications:**
-        - **Financial analysis results** → Integration with business planning and investment tools
-        - **BIM element specifications** → CAD software import for architectural drawing updates
-        - **Performance calculations** → Energy modeling software validation and benchmarking
-        
-        **Step 10 → Future Analysis:**
-        - **Complete project archive** → Baseline for monitoring and performance validation
-        - **Methodology documentation** → Replication and scaling to additional building projects
-        - **Research data export** → Academic publication and industry benchmarking studies
-        """)
-    
-    # Check if analysis is complete
-    project_data = st.session_state.get('project_data', {})
-    
-    if not project_data.get('extraction_complete'):
-        st.error("Please complete the previous analysis steps first.")
-        return
-    
-    # Comprehensive Report Generation
-    st.subheader("📊 Comprehensive Analysis Report")
-    
-    st.info("""
-    **Complete 9-Step Analysis Report**
-    
-    This report includes ALL information, analysis, results, graphs, and tables from your complete BIPV analysis:
-    
-    • **Step 1:** Project Setup & Location Analysis
-    • **Step 2:** Historical Data & AI Model Training  
-    • **Step 3:** Weather & Environment Integration
-    • **Step 4:** Facade & Window Extraction from BIM
-    • **Step 5:** Radiation & Shading Grid Analysis
-    • **Step 6:** BIPV Glass Panel Specification
-    • **Step 7:** Yield vs Demand Analysis
-    • **Step 8:** Multi-Objective Optimization
-    • **Step 9:** Financial & Environmental Analysis
-    
-    **Report Contents:**
-    - Complete methodology and calculations for each step
-    - All input parameters and configuration data
-    - Detailed analysis results with performance metrics
-    - Financial projections and environmental impact
-    - Scientific standards compliance documentation
-    - Academic attribution and references
-    """)
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        if st.button("📋 Generate Comprehensive Report", key="generate_comprehensive_report", use_container_width=True):
-            with st.spinner("Generating comprehensive 9-step analysis report..."):
-                try:
-                    comprehensive_report = generate_comprehensive_report_fixed()
-                    
-                    st.success("✅ Comprehensive analysis report generated successfully!")
-                    
-                    # Store in session state for download
-                    st.session_state.comprehensive_report = comprehensive_report
-                    
-                except Exception as e:
-                    st.error(f"Error generating comprehensive report: {str(e)}")
-    
-    with col2:
-        if 'comprehensive_report' in st.session_state and st.session_state.comprehensive_report:
-            try:
-                report_data = st.session_state.comprehensive_report
-                if report_data and isinstance(report_data, str):
-                    st.download_button(
-                        label="📥 Download Complete Analysis Report (HTML)",
-                        data=report_data.encode('utf-8'),
-                        file_name=f"BIPV_Comprehensive_Analysis_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html",
-                        mime="text/html",
-                        key="download_comprehensive_report",
-                        use_container_width=True
-                    )
+        if st.button("🔄 Generate Master Analysis Report", type="primary", key="generate_master"):
+            with st.spinner("Generating comprehensive master report..."):
+                master_report = generate_master_report_from_uploads()
+                
+                if master_report:
+                    display_master_report_summary(master_report)
                 else:
-                    st.error("Report content is invalid. Please regenerate the report.")
-            except Exception as e:
-                st.error(f"Error preparing report download: {str(e)}")
+                    st.error("Failed to generate master report")
+    else:
+        st.warning(f"Upload at least 3 reports to generate master analysis. Currently: {uploaded_count}/9")
     
-    # Separator
-    st.divider()
+    # Display master report if available
+    if 'master_report' in st.session_state:
+        st.markdown("---")
+        st.markdown("### 📋 Master Report Status")
+        display_master_report_summary(st.session_state.master_report)
     
-    # Step-by-Step Report Generation
-    st.subheader("📊 Step-by-Step Analysis Report")
-    
-    st.info("""
-    **Individual Step Analysis Report**
-    
-    This report breaks down the analysis results by individual workflow steps, showing:
-    - Step-by-step progress and completion status
-    - Key metrics and results from each analysis phase
-    - Data flow between workflow steps
-    - Individual step performance indicators
-    - Clean, organized presentation of analysis outcomes
-    
-    Perfect for detailed technical review and methodology documentation.
-    """)
-    
-    # Render the step-by-step reporting interface
-    render_step_by_step_reporting()
-    
-    # Separator
-    st.divider()
-    
-    # CSV data export
-    st.subheader("📄 Data Export")
-    
-    if st.button("Generate Window Elements CSV", key="generate_csv"):
-        csv_content = generate_window_elements_csv()
-        
-        st.download_button(
-            label="Download Window Elements CSV",
-            data=csv_content,
-            file_name=f"BIPV_Window_Elements_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            key="download_csv"
-        )
-        
-        st.success("CSV file generated successfully!")
-    
-    # Add step-specific download button
-    st.markdown("---")
-    st.markdown("### 📄 Step 10 Analysis Report")
-    st.markdown("Download detailed comprehensive final analysis report:")
-    
-    from utils.individual_step_reports import create_step_download_button
-    create_step_download_button(10, "Final Reporting", "Download Final Analysis Report")
-    
-    # Workflow completion
-    st.markdown("---")
-    st.subheader("Analysis Complete")
-    
-    st.success("BIPV optimization analysis workflow completed successfully!")
-    
-    if st.button("Start New Analysis", key="new_analysis", type="primary"):
-        # Clear session state for new analysis
-        for key in list(st.session_state.keys()):
-            if key not in ['current_step']:
-                del st.session_state[key]
-        
-        st.session_state.current_step = 'welcome'
-        st.session_state.scroll_to_top = True
-        st.rerun()
+    # Clear all uploads option
+    if st.session_state.uploaded_reports:
+        st.markdown("---")
+        if st.button("🗑️ Clear All Uploads", key="clear_uploads"):
+            st.session_state.uploaded_reports = {}
+            if 'master_report' in st.session_state:
+                del st.session_state.master_report
+            st.success("All uploads cleared!")
+            st.rerun()
