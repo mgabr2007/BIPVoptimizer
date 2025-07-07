@@ -577,28 +577,56 @@ def render_yield_demand():
                             }
                             yield_profiles.append(system_data)
                 
-                # Calculate net energy balance using AI forecast data with seasonal variation
-                demand_forecast = project_data.get('demand_forecast')
-                if demand_forecast and 'monthly_predictions' in demand_forecast:
-                    # Use first 12 months of AI forecast for seasonal demand pattern
-                    monthly_predictions = demand_forecast['monthly_predictions'][:12]
-                    monthly_demand = monthly_predictions
-                    annual_demand = sum(monthly_demand)
+                # Calculate DYNAMIC demand with proper seasonal variation from AI forecast
+                monthly_demand = []
+                annual_demand = 0
+                
+                # First priority: Use AI forecast data with seasonal variation
+                if historical_data_project and 'forecast_data' in historical_data_project:
+                    forecast_data = historical_data_project['forecast_data']
                     
-                    st.success(f"✅ Using AI demand forecast with seasonal variation: {annual_demand:,.0f} kWh/year")
-                    
+                    if isinstance(forecast_data, list) and len(forecast_data) >= 12:
+                        # Use actual monthly AI forecast values (not constant!)
+                        monthly_demand = forecast_data[:12]
+                        annual_demand = sum(monthly_demand)
+                        st.success(f"✅ Using AI forecast with SEASONAL VARIATION: {annual_demand:,.0f} kWh/year")
+                        st.info(f"Monthly range: {min(monthly_demand):,.0f} - {max(monthly_demand):,.0f} kWh")
+                    else:
+                        # Create seasonal pattern from forecast average if data incomplete
+                        avg_monthly = sum(forecast_data) / len(forecast_data) if forecast_data else 42000
+                        seasonal_factors = [1.30, 1.20, 1.10, 0.95, 0.85, 0.75, 0.80, 0.90, 1.00, 1.10, 1.20, 1.35]
+                        monthly_demand = [avg_monthly * factor for factor in seasonal_factors]
+                        annual_demand = sum(monthly_demand)
+                        st.info(f"Generated seasonal pattern from AI average: {annual_demand:,.0f} kWh/year")
+                        
                 elif historical_data_project and 'consumption' in historical_data_project:
-                    # Fallback to historical data if no forecast available
-                    monthly_demand = historical_data_project['consumption'][:12]
-                    annual_demand = sum(monthly_demand)
-                    
-                    st.info("ℹ️ Using historical consumption data (no seasonal forecast available)")
+                    # Second priority: Historical consumption with actual seasonal variation
+                    consumption_data = historical_data_project['consumption']
+                    if len(consumption_data) >= 12:
+                        monthly_demand = consumption_data[:12]
+                        annual_demand = sum(monthly_demand)
+                        st.success(f"✅ Using historical data with SEASONAL VARIATION: {annual_demand:,.0f} kWh/year")
+                        st.info(f"Monthly range: {min(monthly_demand):,.0f} - {max(monthly_demand):,.0f} kWh")
+                    else:
+                        # Create seasonal pattern from historical average
+                        avg_monthly = sum(consumption_data) / len(consumption_data)
+                        seasonal_factors = [1.30, 1.20, 1.10, 0.95, 0.85, 0.75, 0.80, 0.90, 1.00, 1.10, 1.20, 1.35]
+                        monthly_demand = [avg_monthly * factor for factor in seasonal_factors]
+                        annual_demand = sum(monthly_demand)
+                        st.info(f"Generated seasonal pattern from historical average: {annual_demand:,.0f} kWh/year")
+                        
                 else:
-                    # Last resort: typical educational building pattern
-                    monthly_demand = [25000] * 12  # 25 MWh/month for educational building
-                    annual_demand = 300000  # 300 MWh/year typical
+                    # Last resort: Educational building with STRONG seasonal variation (not constant!)
+                    base_annual = 500000  # 500 MWh/year
+                    # Educational buildings: high heating (winter) + cooling (summer), low spring/fall
+                    seasonal_factors = [1.35, 1.25, 1.10, 0.90, 0.80, 0.70, 0.75, 0.85, 0.95, 1.05, 1.20, 1.40]
                     
-                    st.warning("⚠️ Using default consumption pattern - upload historical data in Step 2 for better accuracy")
+                    # Normalize to get correct annual total
+                    normalization_factor = base_annual / sum(seasonal_factors)
+                    monthly_demand = [normalization_factor * factor for factor in seasonal_factors]
+                    annual_demand = sum(monthly_demand)
+                    st.warning(f"⚠️ Using default educational pattern with SEASONAL VARIATION: {annual_demand:,.0f} kWh/year")
+                    st.info(f"Monthly range: {min(monthly_demand):,.0f} - {max(monthly_demand):,.0f} kWh (NOT constant!)")
                 
                 # Bounds checking for realistic building energy consumption
                 # Typical educational building: 50-200 kWh/m²/year
