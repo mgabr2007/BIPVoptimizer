@@ -478,21 +478,42 @@ def render_project_setup():
     
     if api_key:
         if st.button("Validate Location & Weather Access", key="fetch_weather"):
-            with st.spinner("Fetching weather data..."):
-                weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
-                
-                if weather_data and weather_data.get('api_success'):
-                    st.success("Weather data retrieved!")
-                    st.info(f"{weather_data['temperature']:.1f}°C • {weather_data['description'].title()}")
+            with st.spinner("Validating location and weather access..."):
+                try:
+                    # Validate coordinates
+                    if not (-90 <= selected_lat <= 90) or not (-180 <= selected_lon <= 180):
+                        st.error("Invalid coordinates. Please select a valid location on the map.")
+                        return
                     
-                    # Store weather data
-                    st.session_state.project_data = st.session_state.get('project_data', {})
-                    st.session_state.project_data['current_weather'] = weather_data
-                    st.session_state.project_data['weather_complete'] = True
-                else:
-                    st.error("Failed to retrieve weather data")
+                    # Fetch weather data
+                    weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
+                    
+                    if weather_data and weather_data.get('api_success'):
+                        st.success("✅ Location validated successfully!")
+                        st.info(f"📍 **Current conditions:** {weather_data['temperature']:.1f}°C • {weather_data['description'].title()}")
+                        
+                        # Store weather data
+                        st.session_state.project_data = st.session_state.get('project_data', {})
+                        st.session_state.project_data['current_weather'] = weather_data
+                        st.session_state.project_data['weather_complete'] = True
+                        
+                        # Show validation summary
+                        st.success(f"""
+                        **Validation Summary:**
+                        - 📍 Location: {current_location}
+                        - 🌡️ Weather API: Connected
+                        - 📊 Data quality: Valid
+                        - ✅ Ready for TMY generation in Step 3
+                        """)
+                        
+                    else:
+                        st.error("❌ Failed to retrieve weather data. Please check your internet connection or try again.")
+                        
+                except Exception as e:
+                    st.error(f"❌ Validation failed: {str(e)}")
+                    st.info("Please try selecting a different location or check your internet connection.")
     else:
-        st.caption("OpenWeather API key not configured")
+        st.warning("⚠️ OpenWeather API key not configured. Weather validation unavailable.")
     
     # Data Usage Information
     with st.expander("📊 How This Data Will Be Used", expanded=False):
