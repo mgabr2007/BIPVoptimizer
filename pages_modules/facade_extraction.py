@@ -100,13 +100,13 @@ def render_facade_extraction():
     
     if uploaded_csv is not None:
         try:
-            # Check if this file was already processed to prevent reprocessing on page rerun
+            # Check if this file was already processed to prevent reprocessing on any page rerun
             current_file_name = uploaded_csv.name
             last_processed_file = st.session_state.get('last_processed_file', '')
+            processing_complete = st.session_state.get('step4_processing_complete', False)
             
-            # Only process if it's a new file or data hasn't been processed yet
-            if (current_file_name != last_processed_file or 
-                not st.session_state.get('step4_processing_complete', False)):
+            # Only process if it's a new file AND data hasn't been processed yet
+            if (current_file_name != last_processed_file and not processing_complete):
                 
                 # Use spinner instead of progress bar to avoid interface fading
                 with st.spinner("Processing CSV file..."):
@@ -263,6 +263,7 @@ def render_facade_extraction():
                 st.session_state.building_elements = building_elements_df
                 st.session_state.building_elements_completed = True
                 st.session_state.step4_processing_complete = True
+                st.session_state.last_processed_file = current_file_name
                 
                 # Only save to consolidated data manager if not already processed
                 # This prevents triggering during report generation or re-runs
@@ -286,13 +287,16 @@ def render_facade_extraction():
                         st.session_state.step4_db_saved = True
             
             else:
-                # File already processed, just display existing results
+                # File already processed, just display existing results without reprocessing
                 if 'building_elements' in st.session_state:
                     windows = st.session_state.building_elements.to_dict('records')
                     facade_data = st.session_state.project_data.get('facade_data', {})
                     suitable_elements = facade_data.get('suitable_elements', 0)
                     total_glass_area = facade_data.get('total_glass_area', 0)
-                    st.info("Using previously processed CSV data. Upload a new file to reprocess.")
+                    # Don't show info message on every rerun, only show success once
+                    if not st.session_state.get('step4_results_displayed', False):
+                        st.success(f"BIM data processed successfully! Analyzed {len(windows)} building elements.")
+                        st.session_state.step4_results_displayed = True
                 else:
                     st.warning("No processed data found. Please re-upload the CSV file.")
                     return
