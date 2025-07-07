@@ -100,195 +100,156 @@ def render_facade_extraction():
     
     if uploaded_csv is not None:
         try:
-            # Initialize progress tracking
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            # Step 1: File reading
-            status_text.text("Reading CSV file...")
-            progress_bar.progress(10)
-            
-            content = uploaded_csv.getvalue().decode('utf-8-sig')
-            headers, data = parse_csv_content(content)
-            
-            # Step 2: Header cleaning
-            status_text.text("Processing headers...")
-            progress_bar.progress(20)
-            
-            # Clean headers
-            headers = [h.strip().replace('\ufeff', '') for h in headers]
-            
-            # Step 3: Initialize processing
-            status_text.text("Initializing element processing...")
-            progress_bar.progress(30)
-            
-            # Process building elements
-            windows = []
-            total_glass_area = 0
-            suitable_elements = 0
-            total_rows = len(data)
-            
-            def get_orientation_from_azimuth(azimuth):
-                azimuth = float(azimuth) % 360
-                if 315 <= azimuth or azimuth < 45:
-                    return "North (315-45°)"
-                elif 45 <= azimuth < 135:
-                    return "East (45-135°)"
-                elif 135 <= azimuth < 225:
-                    return "South (135-225°)"
-                elif 225 <= azimuth < 315:
-                    return "West (225-315°)"
-                return "Unknown"
-            
-            # Step 4: Process each element with progress tracking
-            status_text.text(f"Processing {total_rows} building elements...")
-            
-            for i, row in enumerate(data):
-                # Update progress for element processing (30-80% range)
-                element_progress = 30 + int((i / total_rows) * 50)
-                progress_bar.progress(element_progress)
-                status_text.text(f"Processing element {i+1} of {total_rows}...")
+            # Use spinner instead of progress bar to avoid interface fading
+            with st.spinner("Processing CSV file..."):
+                content = uploaded_csv.getvalue().decode('utf-8-sig')
+                headers, data = parse_csv_content(content)
                 
-                if len(row) >= len(headers):
-                    try:
-                        element_data = dict(zip(headers, row))
-                        
-                        element_id = str(element_data.get('ElementId', '')).strip()
-                        host_wall_id = str(element_data.get('HostWallId', '')).strip()
-                        category = element_data.get('Category', '').strip()
-                        family = element_data.get('Family', '').strip()
-                        level = element_data.get('Level', '').strip()
-                        azimuth = float(element_data.get('Azimuth (°)', 0))
-                        glass_area = float(element_data.get('Glass Area (m²)', 0))
-                        
-                        # Extract window dimensions if available
-                        window_width = element_data.get('Width (m)', element_data.get('Window Width', element_data.get('width', None)))
-                        window_height = element_data.get('Height (m)', element_data.get('Window Height', element_data.get('height', None)))
-                        
-                        # Calculate dimensions from glass area if not provided
-                        if window_width is None or window_height is None:
-                            if glass_area > 0:
-                                # Estimate dimensions based on typical window aspect ratios
-                                if 'arched' in family.lower() or 'arch' in family.lower():
-                                    # Arched windows typically wider than tall
-                                    aspect_ratio = 1.2  # width/height
-                                    window_height = (glass_area / aspect_ratio) ** 0.5
-                                    window_width = glass_area / window_height
-                                elif 'casement' in family.lower():
-                                    # Casement windows typically taller than wide
-                                    aspect_ratio = 0.8  # width/height
-                                    window_height = (glass_area / aspect_ratio) ** 0.5
-                                    window_width = glass_area / window_height
+                # Clean headers
+                headers = [h.strip().replace('\ufeff', '') for h in headers]
+                
+                # Process building elements
+                windows = []
+                total_glass_area = 0
+                suitable_elements = 0
+                total_rows = len(data)
+                
+                def get_orientation_from_azimuth(azimuth):
+                    azimuth = float(azimuth) % 360
+                    if 315 <= azimuth or azimuth < 45:
+                        return "North (315-45°)"
+                    elif 45 <= azimuth < 135:
+                        return "East (45-135°)"
+                    elif 135 <= azimuth < 225:
+                        return "South (135-225°)"
+                    elif 225 <= azimuth < 315:
+                        return "West (225-315°)"
+                    return "Unknown"
+                
+                # Process elements without frequent progress updates
+                for i, row in enumerate(data):
+                    if len(row) >= len(headers):
+                        try:
+                            element_data = dict(zip(headers, row))
+                            
+                            element_id = str(element_data.get('ElementId', '')).strip()
+                            host_wall_id = str(element_data.get('HostWallId', '')).strip()
+                            category = element_data.get('Category', '').strip()
+                            family = element_data.get('Family', '').strip()
+                            level = element_data.get('Level', '').strip()
+                            azimuth = float(element_data.get('Azimuth (°)', 0))
+                            glass_area = float(element_data.get('Glass Area (m²)', 0))
+                            
+                            # Extract window dimensions if available
+                            window_width = element_data.get('Width (m)', element_data.get('Window Width', element_data.get('width', None)))
+                            window_height = element_data.get('Height (m)', element_data.get('Window Height', element_data.get('height', None)))
+                            
+                            # Calculate dimensions from glass area if not provided
+                            if window_width is None or window_height is None:
+                                if glass_area > 0:
+                                    # Estimate dimensions based on typical window aspect ratios
+                                    if 'arched' in family.lower() or 'arch' in family.lower():
+                                        # Arched windows typically wider than tall
+                                        aspect_ratio = 1.2  # width/height
+                                        window_height = (glass_area / aspect_ratio) ** 0.5
+                                        window_width = glass_area / window_height
+                                    elif 'casement' in family.lower():
+                                        # Casement windows typically taller than wide
+                                        aspect_ratio = 0.8  # width/height
+                                        window_height = (glass_area / aspect_ratio) ** 0.5
+                                        window_width = glass_area / window_height
+                                    else:
+                                        # Standard rectangular windows
+                                        aspect_ratio = 1.0  # square-ish
+                                        window_height = (glass_area / aspect_ratio) ** 0.5
+                                        window_width = glass_area / window_height
                                 else:
-                                    # Standard rectangular windows
-                                    aspect_ratio = 1.0  # square-ish
-                                    window_height = (glass_area / aspect_ratio) ** 0.5
-                                    window_width = glass_area / window_height
+                                    # Default dimensions for windows with no area data
+                                    window_width = 1.2
+                                    window_height = 1.5
                             else:
-                                # Default dimensions for windows with no area data
-                                window_width = 1.2
-                                window_height = 1.5
-                        else:
-                            # Convert to float if provided as strings
-                            window_width = float(window_width) if window_width else 1.2
-                            window_height = float(window_height) if window_height else 1.5
-                        
-                        orientation = get_orientation_from_azimuth(azimuth)
-                        
-                        is_window = category.lower() in ['windows', 'window', 'curtain wall', 'curtainwall', 'glazing']
-                        
-                        if is_window:
-                            window_area = glass_area if glass_area > 0 else window_width * window_height
+                                # Convert to float if provided as strings
+                                window_width = float(window_width) if window_width else 1.2
+                                window_height = float(window_height) if window_height else 1.5
                             
-                            # PV suitability scoring
-                            suitable = False
-                            if orientation in ["South (135-225°)", "East (45-135°)", "West (225-315°)"]:
-                                suitable = True
+                            orientation = get_orientation_from_azimuth(azimuth)
                             
-                            if suitable:
-                                suitable_elements += 1
+                            is_window = category.lower() in ['windows', 'window', 'curtain wall', 'curtainwall', 'glazing']
                             
-                            total_glass_area += window_area
-                            
-                            windows.append({
-                                'ElementId': element_id,  # Keep original BIM column name
-                                'element_id': element_id,  # Also store with standard name
-                                'HostWallId': host_wall_id,
-                                'wall_hosted_id': host_wall_id,
-                                'element_type': 'Window',
-                                'Category': category,
-                                'category': category,
-                                'Family': family,
-                                'family': family,
-                                'Level': level,
-                                'level': level,
-                                'orientation': orientation,
-                                'azimuth': azimuth,
-                                'tilt': 90,  # Windows are typically vertical
-                                'glass_area': glass_area,
-                                'area': glass_area,  # For radiation calculations
-                                'window_area': window_area,
-                                'window_width': window_width,
-                                'window_height': window_height,
-                                'suitable': suitable,
-                                'pv_suitable': suitable
-                            })
-                    except (ValueError, TypeError):
-                        continue
+                            if is_window:
+                                window_area = glass_area if glass_area > 0 else window_width * window_height
+                                
+                                # PV suitability scoring
+                                suitable = False
+                                if orientation in ["South (135-225°)", "East (45-135°)", "West (225-315°)"]:
+                                    suitable = True
+                                
+                                if suitable:
+                                    suitable_elements += 1
+                                
+                                total_glass_area += window_area
+                                
+                                windows.append({
+                                    'ElementId': element_id,  # Keep original BIM column name
+                                    'element_id': element_id,  # Also store with standard name
+                                    'HostWallId': host_wall_id,
+                                    'wall_hosted_id': host_wall_id,
+                                    'element_type': 'Window',
+                                    'Category': category,
+                                    'category': category,
+                                    'Family': family,
+                                    'family': family,
+                                    'Level': level,
+                                    'level': level,
+                                    'orientation': orientation,
+                                    'azimuth': azimuth,
+                                    'tilt': 90,  # Windows are typically vertical
+                                    'glass_area': glass_area,
+                                    'area': glass_area,  # For radiation calculations
+                                    'window_area': window_area,
+                                    'window_width': window_width,
+                                    'window_height': window_height,
+                                    'suitable': suitable,
+                                    'pv_suitable': suitable
+                                })
+                        except (ValueError, TypeError):
+                            continue
             
-            # Step 5: Finalizing data processing
-            status_text.text("Finalizing data processing...")
-            progress_bar.progress(85)
-            
-            # Store processed data
-            facade_data = {
-                'total_elements': len(windows),
-                'suitable_elements': suitable_elements,
-                'total_glass_area': total_glass_area,
-                'total_window_area': total_glass_area,
-                'windows': windows,
-                'csv_processed': True
-            }
-            
-            st.session_state.project_data['facade_data'] = facade_data
-            st.session_state.project_data['extraction_complete'] = True
-            
-            # Store building elements
-            import pandas as pd
-            building_elements_df = pd.DataFrame(windows)
-            st.session_state.building_elements = building_elements_df
-            st.session_state.building_elements_completed = True
-            
-            # Save to consolidated data manager
-            consolidated_manager = ConsolidatedDataManager()
-            step4_data = {
-                'building_elements': windows,
-                'facade_data': facade_data,
-                'elements': windows,
-                'extraction_complete': True
-            }
-            consolidated_manager.save_step4_data(step4_data)
-            
-            # Step 6: Saving to database
-            status_text.text("Saving to database...")
-            progress_bar.progress(95)
-            
-            # Save to database
-            if 'project_id' in st.session_state:
-                success = save_building_elements(st.session_state.project_id, windows)
-                save_project_data(st.session_state.project_data)
-                if success:
-                    st.success(f"Saved {len(windows)} building elements to database")
-            
-            # Step 7: Process complete
-            status_text.text("Upload complete!")
-            progress_bar.progress(100)
-            
-            # Clear progress indicators after a brief pause
-            import time
-            time.sleep(0.5)
-            progress_bar.empty()
-            status_text.empty()
+                # Store processed data
+                facade_data = {
+                    'total_elements': len(windows),
+                    'suitable_elements': suitable_elements,
+                    'total_glass_area': total_glass_area,
+                    'total_window_area': total_glass_area,
+                    'windows': windows,
+                    'csv_processed': True
+                }
+                
+                st.session_state.project_data['facade_data'] = facade_data
+                st.session_state.project_data['extraction_complete'] = True
+                
+                # Store building elements
+                import pandas as pd
+                building_elements_df = pd.DataFrame(windows)
+                st.session_state.building_elements = building_elements_df
+                st.session_state.building_elements_completed = True
+                
+                # Save to consolidated data manager
+                consolidated_manager = ConsolidatedDataManager()
+                step4_data = {
+                    'building_elements': windows,
+                    'facade_data': facade_data,
+                    'elements': windows,
+                    'extraction_complete': True
+                }
+                consolidated_manager.save_step4_data(step4_data)
+                
+                # Save to database
+                if 'project_id' in st.session_state:
+                    success = save_building_elements(st.session_state.project_id, windows)
+                    save_project_data(st.session_state.project_data)
+                    if success:
+                        st.success(f"Saved {len(windows)} building elements to database")
             
             st.success(f"BIM data processed successfully! Analyzed {len(windows)} building elements.")
             
