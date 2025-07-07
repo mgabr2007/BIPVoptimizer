@@ -108,6 +108,12 @@ def render_facade_extraction():
                 # Clean headers
                 headers = [h.strip().replace('\ufeff', '') for h in headers]
                 
+                # Initialize variables at the top level
+                windows = []
+                facade_data = {}
+                suitable_elements = 0
+                total_glass_area = 0
+                
                 # Check if already processed to avoid duplication
                 if st.session_state.get('step4_processing_complete', False):
                     st.info("CSV data already processed. Displaying existing results.")
@@ -124,22 +130,19 @@ def render_facade_extraction():
                         return
                 else:
                     # Process building elements
-                    windows = []
-                    total_glass_area = 0
-                    suitable_elements = 0
                     total_rows = len(data)
                 
-                def get_orientation_from_azimuth(azimuth):
-                    azimuth = float(azimuth) % 360
-                    if 315 <= azimuth or azimuth < 45:
-                        return "North (315-45°)"
-                    elif 45 <= azimuth < 135:
-                        return "East (45-135°)"
-                    elif 135 <= azimuth < 225:
-                        return "South (135-225°)"
-                    elif 225 <= azimuth < 315:
-                        return "West (225-315°)"
-                    return "Unknown"
+                    def get_orientation_from_azimuth(azimuth):
+                        azimuth = float(azimuth) % 360
+                        if 315 <= azimuth or azimuth < 45:
+                            return "North (315-45°)"
+                        elif 45 <= azimuth < 135:
+                            return "East (45-135°)"
+                        elif 135 <= azimuth < 225:
+                            return "South (135-225°)"
+                        elif 225 <= azimuth < 315:
+                            return "West (225-315°)"
+                        return "Unknown"
                 
                     # Process elements without frequent progress updates
                     for i, row in enumerate(data):
