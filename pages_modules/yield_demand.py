@@ -553,25 +553,40 @@ def render_yield_demand():
                             }
                             yield_profiles.append(system_data)
                 
-                # Calculate net energy balance using historical demand
-                if historical_data_project and 'consumption' in historical_data_project:
+                # Calculate net energy balance using AI forecast data with seasonal variation
+                demand_forecast = project_data.get('demand_forecast')
+                if demand_forecast and 'monthly_predictions' in demand_forecast:
+                    # Use first 12 months of AI forecast for seasonal demand pattern
+                    monthly_predictions = demand_forecast['monthly_predictions'][:12]
+                    monthly_demand = monthly_predictions
+                    annual_demand = sum(monthly_demand)
+                    
+                    st.success(f"✅ Using AI demand forecast with seasonal variation: {annual_demand:,.0f} kWh/year")
+                    
+                elif historical_data_project and 'consumption' in historical_data_project:
+                    # Fallback to historical data if no forecast available
                     monthly_demand = historical_data_project['consumption'][:12]
                     annual_demand = sum(monthly_demand)
                     
-                    # Bounds checking for realistic building energy consumption
-                    # Typical educational building: 50-200 kWh/m²/year
-                    # For 5000 m² building: 250,000 - 1,000,000 kWh/year
-                    if annual_demand > 1500000:  # > 1.5 million kWh/year
-                        st.warning(f"⚠️ Very high annual demand detected: {annual_demand:,.0f} kWh/year. Using conservative estimate.")
-                        annual_demand = 500000  # 100 kWh/m²/year for 5000 m²
-                        monthly_demand = [annual_demand/12] * 12
-                    elif annual_demand < 50000:  # < 50,000 kWh/year 
-                        st.warning(f"⚠️ Very low annual demand detected: {annual_demand:,.0f} kWh/year. Using typical estimate.")
-                        annual_demand = 300000  # 60 kWh/m²/year for 5000 m²
-                        monthly_demand = [annual_demand/12] * 12
+                    st.info("ℹ️ Using historical consumption data (no seasonal forecast available)")
                 else:
+                    # Last resort: typical educational building pattern
                     monthly_demand = [25000] * 12  # 25 MWh/month for educational building
                     annual_demand = 300000  # 300 MWh/year typical
+                    
+                    st.warning("⚠️ Using default consumption pattern - upload historical data in Step 2 for better accuracy")
+                
+                # Bounds checking for realistic building energy consumption
+                # Typical educational building: 50-200 kWh/m²/year
+                # For 5000 m² building: 250,000 - 1,000,000 kWh/year
+                if annual_demand > 1500000:  # > 1.5 million kWh/year
+                    st.warning(f"⚠️ Very high annual demand detected: {annual_demand:,.0f} kWh/year. Using conservative estimate.")
+                    annual_demand = 500000  # 100 kWh/m²/year for 5000 m²
+                    monthly_demand = [annual_demand/12] * 12
+                elif annual_demand < 50000:  # < 50,000 kWh/year 
+                    st.warning(f"⚠️ Very low annual demand detected: {annual_demand:,.0f} kWh/year. Using typical estimate.")
+                    annual_demand = 300000  # 60 kWh/m²/year for 5000 m²
+                    monthly_demand = [annual_demand/12] * 12
                 
                 demand_profile = {
                     'monthly_demand': monthly_demand,

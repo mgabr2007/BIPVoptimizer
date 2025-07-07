@@ -413,6 +413,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 6, 2025: Fixed Step 8 optimization "cannot access local variable 'max_investment' where it is not associated with a value" error by implementing session state storage for optimization parameters to ensure proper variable scope access across conditional execution blocks
 - July 7, 2025: Enhanced Step 7 yield calculations with realistic bounds checking to prevent unrealistic energy values (2+ million kWh generation, 0 specific yield), added capacity validation and demand validation, fixed syntax errors with Python keyword conflicts
 - July 7, 2025: Updated Step 1 Project Setup interface to clarify workflow separation - changed "Fetch Current Weather" button to "Validate Location & Weather Access" and revised "How This Data Will Be Used" sections to emphasize that Step 1 prepares data for Step 3 TMY generation rather than generating TMY immediately, eliminating workflow confusion
+- July 7, 2025: Fixed Step 7 monthly demand calculation to use AI forecast data with seasonal variation instead of flat historical consumption values, ensuring realistic monthly energy balance with proper winter/summer/transition patterns from Step 2 educational building analysis
 
 ## User Preferences
 
