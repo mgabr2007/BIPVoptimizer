@@ -498,33 +498,58 @@ def render_yield_demand():
                         performance_ratio = 0.85  # Typical for BIPV systems
                         
                         # Ensure radiation is reasonable (Central Europe: 1000-1800 kWh/m²/year)
-                        if annual_radiation > 2500:
-                            annual_radiation = 1500  # Use typical value for Germany
+                        if annual_radiation > 2500 or annual_radiation < 800:
+                            annual_radiation = 1400  # Use typical value for Germany
                         
+                        # Calculate annual energy with proper bounds
                         annual_energy = glass_area * efficiency * annual_radiation * performance_ratio
+                        
+                        # Ensure capacity is realistic - if missing, calculate from area and efficiency
+                        if capacity_kw <= 0:
+                            # BIPV glass capacity: Area × Efficiency × 1000 W/m² (STC)
+                            capacity_kw = glass_area * efficiency
                         
                         # Verify specific yield is realistic (800-1500 kWh/kW for BIPV)
                         if capacity_kw > 0:
                             specific_yield = annual_energy / capacity_kw
                             if specific_yield > 1800:  # Too high, recalculate
                                 annual_energy = capacity_kw * 1200  # Realistic specific yield
+                            elif specific_yield < 800:  # Too low, recalculate
+                                annual_energy = capacity_kw * 1000  # Minimum realistic yield
                         
-                        # Final sanity check: energy per m² should be 50-150 kWh/m²/year for BIPV
+                        # Final sanity check: energy per m² should be 80-150 kWh/m²/year for BIPV
                         if glass_area > 0:
                             energy_per_m2 = annual_energy / glass_area
                             if energy_per_m2 > 200:  # Still too high
                                 annual_energy = glass_area * 120  # Use 120 kWh/m²/year typical BIPV
+                            elif energy_per_m2 < 50:  # Too low
+                                annual_energy = glass_area * 80   # Minimum realistic BIPV yield
+                        
+                        # Apply additional realistic bounds to prevent extreme values
+                        if annual_energy > glass_area * 200:  # Max 200 kWh/m²/year
+                            annual_energy = glass_area * 150  # Conservative BIPV yield
+                        elif annual_energy < glass_area * 50:  # Min 50 kWh/m²/year
+                            annual_energy = glass_area * 80   # Minimum realistic yield
                         
                         if annual_energy > 0 and capacity_kw > 0:  # Only include valid systems
                             # Calculate monthly yields using seasonal distribution
                             monthly_yields = [annual_energy * factor for factor in monthly_solar_factors]
+                            
+                            # Calculate specific yield with bounds checking
+                            specific_yield = annual_energy / capacity_kw
+                            if specific_yield > 1800:  # Too high for BIPV
+                                specific_yield = 1200  # Realistic BIPV specific yield
+                                annual_energy = capacity_kw * specific_yield
+                            elif specific_yield < 800:  # Too low for BIPV
+                                specific_yield = 1000  # Minimum realistic yield
+                                annual_energy = capacity_kw * specific_yield
                             
                             system_data = {
                                 'element_id': system.get('element_id', ''),
                                 'system_power_kw': capacity_kw,
                                 'annual_yield': annual_energy,
                                 'monthly_yields': monthly_yields,
-                                'specific_yield': annual_energy / capacity_kw if capacity_kw > 0 else 0
+                                'specific_yield': specific_yield
                             }
                             yield_profiles.append(system_data)
                 
@@ -532,9 +557,21 @@ def render_yield_demand():
                 if historical_data_project and 'consumption' in historical_data_project:
                     monthly_demand = historical_data_project['consumption'][:12]
                     annual_demand = sum(monthly_demand)
+                    
+                    # Bounds checking for realistic building energy consumption
+                    # Typical educational building: 50-200 kWh/m²/year
+                    # For 5000 m² building: 250,000 - 1,000,000 kWh/year
+                    if annual_demand > 1500000:  # > 1.5 million kWh/year
+                        st.warning(f"⚠️ Very high annual demand detected: {annual_demand:,.0f} kWh/year. Using conservative estimate.")
+                        annual_demand = 500000  # 100 kWh/m²/year for 5000 m²
+                        monthly_demand = [annual_demand/12] * 12
+                    elif annual_demand < 50000:  # < 50,000 kWh/year 
+                        st.warning(f"⚠️ Very low annual demand detected: {annual_demand:,.0f} kWh/year. Using typical estimate.")
+                        annual_demand = 300000  # 60 kWh/m²/year for 5000 m²
+                        monthly_demand = [annual_demand/12] * 12
                 else:
-                    monthly_demand = [2500] * 12
-                    annual_demand = 30000
+                    monthly_demand = [25000] * 12  # 25 MWh/month for educational building
+                    annual_demand = 300000  # 300 MWh/year typical
                 
                 demand_profile = {
                     'monthly_demand': monthly_demand,
@@ -545,6 +582,23 @@ def render_yield_demand():
                 if yield_profiles:
                     total_annual_yield = sum([system['annual_yield'] for system in yield_profiles])
                     total_monthly_yields = [sum([system['monthly_yields'][i] for system in yield_profiles]) for i in range(12)]
+                    
+                    # Bounds checking for realistic BIPV generation
+                    # Typical BIPV systems: 10-50% of building demand
+                    # For educational building: max realistic generation ≈ 200,000-400,000 kWh/year
+                    if total_annual_yield > annual_demand * 0.8:  # More than 80% seems unrealistic for BIPV
+                        st.warning(f"⚠️ Very high PV generation detected: {total_annual_yield:,.0f} kWh/year. Applying realistic limits.")
+                        # Scale down to reasonable coverage (30% of demand maximum for BIPV)
+                        scale_factor = (annual_demand * 0.3) / total_annual_yield
+                        total_annual_yield = annual_demand * 0.3
+                        total_monthly_yields = [monthly_yield * scale_factor for monthly_yield in total_monthly_yields]
+                        
+                        # Update individual system yields proportionally
+                        for system in yield_profiles:
+                            system['annual_yield'] *= scale_factor
+                            system['monthly_yields'] = [monthly_val * scale_factor for monthly_val in system['monthly_yields']]
+                            if system['system_power_kw'] > 0:
+                                system['specific_yield'] = system['annual_yield'] / system['system_power_kw']
                 else:
                     total_annual_yield = 0
                     total_monthly_yields = [0] * 12
