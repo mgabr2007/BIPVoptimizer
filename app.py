@@ -48,6 +48,46 @@ st.markdown("""
         text-align: center;
         margin-bottom: 2rem;
     }
+    
+    /* Hide Streamlit download progress bars and UI elements */
+    .stProgress .stAlert {
+        display: none !important;
+    }
+    
+    /* Hide download status messages */
+    [data-testid="stAlert"] div[role="alert"] {
+        display: none !important;
+    }
+    
+    /* Hide progress indicators during downloads */
+    .stProgress {
+        display: none !important;
+    }
+    
+    /* Hide download completion notifications */
+    .stSuccess {
+        display: none !important;
+    }
+    
+    /* Hide Streamlit footer and branding */
+    .stApp > footer {
+        display: none !important;
+    }
+    
+    /* Hide "Made with Streamlit" footer */
+    footer[data-testid="stFooter"] {
+        display: none !important;
+    }
+    
+    /* Hide download status bars */
+    .download-content {
+        display: none !important;
+    }
+    
+    /* Clean up file download interface */
+    [data-testid="stFileDownloadButton"] + div {
+        display: none !important;
+    }
 </style>
 
 <script>
