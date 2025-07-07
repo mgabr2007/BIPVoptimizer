@@ -49,23 +49,38 @@ st.markdown("""
         margin-bottom: 2rem;
     }
     
-    /* Hide Streamlit download progress bars and UI elements */
-    .stProgress .stAlert {
-        display: none !important;
+    /* Ensure Streamlit messages are always visible */
+    .stAlert {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 999 !important;
+        margin: 1rem 0 !important;
     }
     
-    /* Hide download status messages */
-    [data-testid="stAlert"] div[role="alert"] {
-        display: none !important;
+    div[data-testid="stAlert"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 999 !important;
+        margin: 1rem 0 !important;
     }
     
-    /* Hide progress indicators during downloads */
+    /* Success messages - green */
+    div[data-testid="stAlert"][data-baseweb="notification"] {
+        background-color: #d4edda !important;
+        border-color: #c3e6cb !important;
+        color: #155724 !important;
+    }
+    
+    /* Ensure alert content is visible */
+    .stAlert > div {
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    /* Hide ONLY download progress bars, not all alerts */
     .stProgress {
-        display: none !important;
-    }
-    
-    /* Hide download completion notifications */
-    .stSuccess {
         display: none !important;
     }
     

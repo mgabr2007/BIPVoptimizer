@@ -47,7 +47,7 @@ def render_facade_extraction():
     
     # Check prerequisites
     if not st.session_state.get('project_data', {}).get('setup_complete'):
-        st.error("Please complete Step 1: Project Setup first.")
+        st.error("❌ Please complete Step 1: Project Setup first.")
         return
     
     st.subheader("BIM Data Requirements")
@@ -251,7 +251,7 @@ def render_facade_extraction():
                     success = save_building_elements(st.session_state.project_id, windows)
                     save_project_data(st.session_state.project_data)
                     if success:
-                        st.success(f"Saved {len(windows)} building elements to database")
+                        st.success(f"✅ Saved {len(windows)} building elements to database")
             
             st.success(f"BIM data processed successfully! Analyzed {len(windows)} building elements.")
             
