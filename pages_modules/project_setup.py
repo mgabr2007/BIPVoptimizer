@@ -489,7 +489,9 @@ def render_project_setup():
                     weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
                     
                     if weather_data and weather_data.get('api_success'):
-                        st.success("✅ Location validated successfully!")
+                        # Clear and prominent success message
+                        st.balloons()  # Visual celebration for successful validation
+                        st.success("🎉 **VALIDATION SUCCESSFUL!** Location and weather access confirmed!")
                         st.info(f"📍 **Current conditions:** {weather_data['temperature']:.1f}°C • {weather_data['description'].title()}")
                         
                         # Store weather data
@@ -497,14 +499,18 @@ def render_project_setup():
                         st.session_state.project_data['current_weather'] = weather_data
                         st.session_state.project_data['weather_complete'] = True
                         
-                        # Show validation summary
-                        st.success(f"""
-                        **Validation Summary:**
-                        - 📍 Location: {current_location}
-                        - 🌡️ Weather API: Connected
-                        - 📊 Data quality: Valid
-                        - ✅ Ready for TMY generation in Step 3
-                        """)
+                        # Show detailed validation summary in a nice container
+                        with st.container():
+                            st.success(f"""
+                            ✅ **VALIDATION COMPLETE - READY TO PROCEED!**
+                            
+                            📍 Location: {current_location}
+                            🌡️ Weather API: ✅ Connected & Working
+                            📊 Data Quality: ✅ Valid
+                            🔄 TMY Generation: ✅ Ready for Step 3
+                            
+                            **Next Step:** Proceed to Step 2 (Historical Data) or Step 3 (Weather Integration)
+                            """)
                         
                     else:
                         st.error("❌ Failed to retrieve weather data. Please check your internet connection or try again.")
