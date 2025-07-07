@@ -3563,12 +3563,13 @@ def generate_step8_report():
 
 def generate_step9_report():
     """Generate Step 9: Financial & Environmental Analysis Report"""
-    # Check multiple data sources for financial analysis data
-    project_data = st.session_state.get('project_data', {})
-    consolidated_manager = ConsolidatedDataManager()
-    step9_data = consolidated_manager.get_step_data(9)
-    
-    html = get_base_html_template("Financial & Environmental Analysis", 9)
+    try:
+        # Check multiple data sources for financial analysis data
+        project_data = st.session_state.get('project_data', {})
+        consolidated_manager = ConsolidatedDataManager()
+        step9_data = consolidated_manager.get_step_data(9)
+        
+        html = get_base_html_template("Financial & Environmental Analysis", 9)
     
     # Try to get financial analysis data from multiple sources
     economic_metrics = safe_get(step9_data, 'economic_metrics', {})
@@ -3983,9 +3984,25 @@ def generate_step9_report():
                 <p><strong>Strategic Value:</strong> BIPV integration provides dual benefits of energy cost reduction and building sustainability enhancement.</p>
             </div>
         """
-    
-    html += get_footer_html()
-    return html
+        
+        html += get_footer_html()
+        return html
+        
+    except Exception as e:
+        # Return a basic error report instead of raising exception
+        html = get_base_html_template("Financial & Environmental Analysis", 9)
+        html += f"""
+            <div class="content-section">
+                <h2>⚠️ Report Generation Error</h2>
+                <div class="highlight-box">
+                    <p><strong>Error Details:</strong> {str(e)}</p>
+                    <p><strong>Troubleshooting:</strong> Please ensure Steps 7-8 have been completed with valid data.</p>
+                    <p><strong>Alternative:</strong> Try regenerating the analysis or check data integrity.</p>
+                </div>
+            </div>
+        """
+        html += get_footer_html()
+        return html
 
 def generate_individual_step_report(step_number):
     """Generate individual step report based on step number"""
