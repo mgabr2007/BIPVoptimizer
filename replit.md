@@ -411,6 +411,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 6, 2025: Fixed Step 5 and Step 6 radiation analysis reports showing "Unknown" values by implementing comprehensive project location information display including project name, coordinates, and weather station details in Step 5, and enhanced orientation mapping in Step 6 using building elements lookup and azimuth-to-orientation conversion to properly display North/South/East/West orientations instead of "Unknown" in performance tables and charts
 - July 6, 2025: Fixed Step 5 report generation "Unknown format code 'f' for object of type 'str'" error by adding safe numeric conversion for latitude/longitude coordinates and proper error handling for string coordinates to prevent f-string formatting errors with non-numeric values
 - July 6, 2025: Fixed Step 8 optimization "cannot access local variable 'max_investment' where it is not associated with a value" error by implementing session state storage for optimization parameters to ensure proper variable scope access across conditional execution blocks
+- July 7, 2025: Enhanced Step 7 yield calculations with realistic bounds checking to prevent unrealistic energy values (2+ million kWh generation, 0 specific yield), added capacity validation and demand validation, fixed syntax errors with Python keyword conflicts
+- July 7, 2025: Updated Step 1 Project Setup interface to clarify workflow separation - changed "Fetch Current Weather" button to "Validate Location & Weather Access" and revised "How This Data Will Be Used" sections to emphasize that Step 1 prepares data for Step 3 TMY generation rather than generating TMY immediately, eliminating workflow confusion
 
 ## User Preferences
 

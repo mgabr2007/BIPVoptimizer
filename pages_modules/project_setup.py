@@ -441,13 +441,16 @@ def render_project_setup():
     st.subheader("🌤️ Weather Data Integration")
     
     st.info("""
-    **How Your Location Data Will Be Used:**
+    **How Your Setup Data Will Be Used:**
     
-    📍 **Selected Coordinates & WMO Station** → Step 3 TMY Generation
-    - Your precise coordinates and selected weather station will be used in Step 3 to generate authentic Typical Meteorological Year (TMY) data
-    - TMY includes 8,760 hourly data points of solar irradiance (GHI, DNI, DHI), temperature, humidity, and wind
-    - Generated using ISO 15927-4 standards with astronomical algorithms for accurate solar positioning
-    - WMO station provides authentic meteorological reference data for your climate zone
+    📍 **Location & Weather Station Selection** → Prepared for Step 3
+    - Coordinates and selected WMO station will be ready for TMY generation in Step 3
+    - Weather station provides authentic climate data reference for your region
+    - Location enables accurate solar positioning calculations
+    
+    ✅ **Validation Check** → Confirms data access and location accuracy  
+    - Tests API connectivity for future weather data retrieval
+    - Verifies coordinate precision and current conditions
     
     💰 **Electricity Rates** → Financial Analysis (Steps 7-9)
     - Import/export rates will be used for economic calculations including ROI, payback period, and cash flow analysis
@@ -474,7 +477,7 @@ def render_project_setup():
     api_key = os.environ.get('OPENWEATHER_API_KEY')
     
     if api_key:
-        if st.button("Fetch Current Weather", key="fetch_weather"):
+        if st.button("Validate Location & Weather Access", key="fetch_weather"):
             with st.spinner("Fetching weather data..."):
                 weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
                 
@@ -497,8 +500,15 @@ def render_project_setup():
         ### Data Flow Through BIPV Analysis Workflow:
         
         **Step 1 → Step 3 (Weather Integration):**
-        - **Location coordinates** → Solar position calculations and TMY generation using ISO 15927-4 standards
-        - **Selected weather station** → Authentic meteorological data from WMO CLIMAT database
+        - **Location coordinates** → Solar position calculations for TMY generation in Step 3
+        - **Selected weather station** → Authentic meteorological data source for climate modeling
+        - **Current weather validation** → Confirms API access and location precision
+        
+        **Step 1 → Steps 7-9 (Financial Analysis):**
+        - **Electricity rates** → Economic calculations including ROI, payback period, and cash flow analysis
+        - **Project configuration** → Baseline parameters for financial modeling
+        
+        **Important:** Step 1 prepares and validates data sources. The actual TMY generation with 8,760 hourly data points happens in Step 3 using ISO 15927-4 standards.ther station** → Authentic meteorological data from WMO CLIMAT database
         - **Timezone** → Proper time zone conversion for solar calculations
         
         **Step 1 → Step 5 (Radiation Analysis):**
@@ -642,9 +652,10 @@ def render_project_setup():
                 # Data usage explanation
                 st.info("""
                 **📊 How This Data Will Be Used:**
-                - **Location coordinates** → TMY generation in Step 3 using ISO 15927-4 standards
-                - **Weather station** → Authentic meteorological data for solar calculations
+                - **Location coordinates** → Solar calculations and TMY generation in Step 3
+                - **Weather station** → Climate data source for meteorological modeling
                 - **Electricity rates** → Financial analysis including ROI, payback period, and cash flow
+                - **Project setup** → Foundation for subsequent BIPV analysis workflow
                 """)
             
 
