@@ -1,0 +1,951 @@
+﻿ElementId,Category,Family,Type,Level,HostWallId,OriX,OriY,OriZ,Azimuth (°),Glass Source,Glass Area (m²)
+349359,Windows,M_Sliding with Trim,,01,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349634,Windows,M_Sliding with Trim,,01,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349667,Windows,M_Sliding with Trim,,01,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349662,Windows,M_Sliding with Trim,,01,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349657,Windows,M_Sliding with Trim,,01,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349693,Windows,M_Sliding with Trim,,00,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349694,Windows,M_Sliding with Trim,,00,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349696,Windows,M_Sliding with Trim,,00,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349697,Windows,M_Sliding with Trim,,00,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349698,Windows,M_Sliding with Trim,,00,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349702,Windows,M_Sliding with Trim,,02,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349703,Windows,M_Sliding with Trim,,02,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349705,Windows,M_Sliding with Trim,,02,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349706,Windows,M_Sliding with Trim,,02,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349707,Windows,M_Sliding with Trim,,02,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349711,Windows,M_Sliding with Trim,,03,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349712,Windows,M_Sliding with Trim,,03,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349714,Windows,M_Sliding with Trim,,03,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349715,Windows,M_Sliding with Trim,,03,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349716,Windows,M_Sliding with Trim,,03,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349720,Windows,M_Sliding with Trim,,04,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349721,Windows,M_Sliding with Trim,,04,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349723,Windows,M_Sliding with Trim,,04,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349724,Windows,M_Sliding with Trim,,04,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+349725,Windows,M_Sliding with Trim,,04,342220,-0.1,0.99,-0.0,354.12,Glass,6.57
+367277,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,02,342221,-0.99,-0.1,0.0,264.12,Glass,23.39
+367278,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,02,342221,-0.99,-0.1,0.0,264.12,Glass,23.39
+367279,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,02,342221,-0.99,-0.1,0.0,264.12,Glass,23.39
+367280,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,02,342221,-0.99,-0.1,0.0,264.12,Glass,23.39
+367274,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,00,342221,-0.99,-0.1,0.0,264.12,Glass,23.39
+367275,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,00,342221,-0.99,-0.1,0.0,264.12,Glass,23.39
+367276,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,00,342221,-0.99,-0.1,0.0,264.12,Glass,23.39
+367281,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,00,342221,-0.99,-0.1,0.0,264.12,Glass,23.39
+369332,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342221,0.99,0.1,-0.0,84.12,Glass,1.51
+369333,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342221,0.99,0.1,-0.0,84.12,Glass,1.51
+369460,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342221,0.99,0.1,-0.0,84.12,Glass,1.51
+369461,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342221,0.99,0.1,-0.0,84.12,Glass,1.51
+369471,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342221,0.99,0.1,-0.0,84.12,Glass,1.51
+369472,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342221,0.99,0.1,-0.0,84.12,Glass,1.51
+369482,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342221,0.99,0.1,-0.0,84.12,Glass,1.51
+369483,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342221,0.99,0.1,-0.0,84.12,Glass,1.51
+367761,Windows,M_Fixed,,00,342222,-0.1,0.99,-0.0,354.12,Glass,543.15
+353807,Windows,M_Sliding with Trim,,03,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353808,Windows,M_Sliding with Trim,,03,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353809,Windows,M_Sliding with Trim,,03,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353810,Windows,M_Sliding with Trim,,03,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353811,Windows,M_Sliding with Trim,,03,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353829,Windows,M_Sliding with Trim,,00,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353830,Windows,M_Sliding with Trim,,00,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353831,Windows,M_Sliding with Trim,,00,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353832,Windows,M_Sliding with Trim,,00,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353833,Windows,M_Sliding with Trim,,00,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353837,Windows,M_Sliding with Trim,,01,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353838,Windows,M_Sliding with Trim,,01,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353839,Windows,M_Sliding with Trim,,01,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353840,Windows,M_Sliding with Trim,,01,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353841,Windows,M_Sliding with Trim,,01,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353845,Windows,M_Sliding with Trim,,02,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353846,Windows,M_Sliding with Trim,,02,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353847,Windows,M_Sliding with Trim,,02,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353848,Windows,M_Sliding with Trim,,02,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353849,Windows,M_Sliding with Trim,,02,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353853,Windows,M_Sliding with Trim,,04,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353854,Windows,M_Sliding with Trim,,04,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353855,Windows,M_Sliding with Trim,,04,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353856,Windows,M_Sliding with Trim,,04,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+353857,Windows,M_Sliding with Trim,,04,342223,-0.1,0.99,-0.0,354.12,Glass,6.57
+366884,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,00,342225,-0.99,-0.11,0.0,263.51,Glass,23.39
+366593,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,02,342225,-0.99,-0.11,0.0,263.51,Glass,23.39
+366594,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,02,342225,-0.99,-0.11,0.0,263.51,Glass,23.39
+366345,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,00,342225,0.99,0.11,-0.0,83.51,Glass,23.39
+366379,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,00,342225,-0.99,-0.11,0.0,263.51,Glass,23.39
+366386,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,00,342225,-0.99,-0.11,0.0,263.51,Glass,23.39
+366595,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,02,342225,-0.99,-0.11,0.0,263.51,Glass,23.39
+350544,Windows,M_Sliding with Trim,,05,342225,0.1,-0.99,-0.0,174.12,Glass,10.68
+366874,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,02,342225,-0.99,-0.11,0.0,263.51,Glass,23.39
+367126,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342225,-0.99,-0.11,0.0,263.51,Glass,1.51
+367134,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342225,-0.99,-0.11,0.0,263.51,Glass,1.51
+369224,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342225,-0.99,-0.11,0.0,263.51,Glass,1.51
+369225,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342225,-0.99,-0.11,0.0,263.51,Glass,1.51
+369235,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342225,-0.99,-0.11,0.0,263.51,Glass,1.51
+369236,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342225,-0.99,-0.11,0.0,263.51,Glass,1.51
+369246,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342225,-0.99,-0.11,0.0,263.51,Glass,1.51
+369247,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342225,-0.99,-0.11,0.0,263.51,Glass,1.51
+385910,Windows,Arched (1),,03,342232,-0.1,0.99,-0.0,354.12,Glass,13.43
+385911,Windows,Arched (1),,01,342232,0.1,-0.99,-0.0,174.12,Glass,13.43
+385912,Windows,M_Casement 3x3 with Trim,,00,342232,0.1,-0.99,0.0,174.12,Glass,14.51
+386006,Windows,Arched (1),,04,342232,-0.1,0.99,-0.0,354.12,Glass,13.43
+386486,Windows,Arched (1),,03,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386487,Windows,Arched (1),,01,342232,0.1,-0.99,-0.0,174.12,Glass,13.43
+386488,Windows,M_Casement 3x3 with Trim,,00,342232,0.1,-0.99,-0.0,174.12,Glass,14.51
+386489,Windows,Arched (1),,04,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386643,Windows,Arched (1),,03,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386644,Windows,Arched (1),,01,342232,0.1,-0.99,-0.0,174.12,Glass,13.43
+386645,Windows,M_Casement 3x3 with Trim,,00,342232,0.1,-0.99,-0.0,174.12,Glass,10.76
+386646,Windows,Arched (1),,04,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386713,Windows,Arched (1),,03,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386714,Windows,Arched (1),,01,342232,0.1,-0.99,-0.0,174.12,Glass,13.43
+386715,Windows,M_Casement 3x3 with Trim,,00,342232,0.1,-0.99,-0.0,174.12,Glass,10.76
+386716,Windows,Arched (1),,04,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386728,Windows,Arched (1),,03,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386729,Windows,Arched (1),,01,342232,0.1,-0.99,-0.0,174.12,Glass,13.43
+386730,Windows,M_Casement 3x3 with Trim,,00,342232,0.1,-0.99,-0.0,174.12,Glass,10.76
+386731,Windows,Arched (1),,04,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386743,Windows,Arched (1),,03,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386744,Windows,Arched (1),,01,342232,0.1,-0.99,-0.0,174.12,Glass,13.43
+386745,Windows,M_Casement 3x3 with Trim,,00,342232,0.1,-0.99,-0.0,174.12,Glass,10.76
+386746,Windows,Arched (1),,04,342232,-0.1,0.99,0.0,354.12,Glass,13.43
+386770,Windows,Arched (1),,03,342232,-0.1,0.99,-0.0,354.12,Glass,13.43
+386771,Windows,Arched (1),,01,342232,0.1,-0.99,-0.0,174.12,Glass,13.43
+386772,Windows,M_Casement 3x3 with Trim,,00,342232,0.1,-0.99,0.0,174.12,Glass,10.76
+386773,Windows,Arched (1),,04,342232,-0.1,0.99,-0.0,354.12,Glass,13.43
+386774,Windows,Arched (1),,03,342232,-0.1,0.99,-0.0,354.12,Glass,13.43
+386775,Windows,Arched (1),,01,342232,0.1,-0.99,-0.0,174.12,Glass,13.43
+386776,Windows,M_Casement 3x3 with Trim,,00,342232,0.1,-0.99,0.0,174.12,Glass,10.76
+386777,Windows,Arched (1),,04,342232,-0.1,0.99,-0.0,354.12,Glass,13.43
+386778,Windows,Arched (1),,03,342232,-0.1,0.99,-0.0,354.12,Glass,13.43
+386779,Windows,Arched (1),,01,342232,0.1,-0.99,-0.0,174.12,Glass,13.43
+386780,Windows,M_Casement 3x3 with Trim,,00,342232,0.1,-0.99,0.0,174.12,Glass,10.76
+386781,Windows,Arched (1),,04,342232,-0.1,0.99,-0.0,354.12,Glass,13.43
+383924,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+383925,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+383926,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+383927,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+383928,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384220,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384221,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384222,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384223,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384224,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384378,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384379,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384380,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384381,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384382,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384367,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384368,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384369,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384370,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384371,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384356,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384357,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384358,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384359,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384360,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384345,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384346,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384347,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384348,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384349,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384334,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384335,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384336,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384337,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384338,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384323,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384324,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384325,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384326,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384327,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384312,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384313,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384314,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384315,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384316,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384301,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384302,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384303,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384304,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384305,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384290,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384291,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384292,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384293,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384294,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384279,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384280,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384281,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384282,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384283,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384268,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384269,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384270,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384271,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384272,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384257,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384258,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384259,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384260,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384261,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+384246,Windows,Arched (1),,03,342234,-0.1,0.99,0.0,354.12,Glass,13.43
+384247,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384248,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342234,0.1,-0.99,-0.0,174.12,Glass,1.51
+384249,Windows,Arched (1),,01,342234,0.1,-0.99,-0.0,174.12,Glass,13.43
+384250,Windows,M_Casement 3x3 with Trim,,00,342234,0.1,-0.99,-0.0,174.12,Glass,10.76
+375328,Windows,Arched (1),,03,342236,0.1,-0.99,-0.0,174.12,Glass,13.43
+375333,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342236,0.1,-0.99,-0.0,174.12,Glass,1.51
+375334,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342236,0.1,-0.99,-0.0,174.12,Glass,1.51
+375337,Windows,Arched (1),,01,342236,0.1,-0.99,-0.0,174.12,Glass,13.43
+375340,Windows,M_Casement 3x3 with Trim,,00,342236,0.1,-0.99,-0.0,174.12,Glass,10.76
+375354,Windows,Arched (1),,03,342236,0.1,-0.99,-0.0,174.12,Glass,13.43
+375355,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342236,0.1,-0.99,-0.0,174.12,Glass,1.51
+375356,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342236,0.1,-0.99,-0.0,174.12,Glass,1.51
+375357,Windows,Arched (1),,01,342236,0.1,-0.99,-0.0,174.12,Glass,13.43
+375358,Windows,M_Casement 3x3 with Trim,,00,342236,0.1,-0.99,-0.0,174.12,Glass,10.76
+375370,Windows,Arched (1),,03,342236,0.1,-0.99,-0.0,174.12,Glass,13.43
+375371,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342236,0.1,-0.99,-0.0,174.12,Glass,1.51
+375372,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342236,0.1,-0.99,-0.0,174.12,Glass,1.51
+375373,Windows,Arched (1),,01,342236,0.1,-0.99,-0.0,174.12,Glass,13.43
+375374,Windows,M_Casement 3x3 with Trim,,00,342236,0.1,-0.99,-0.0,174.12,Glass,10.76
+384673,Windows,M_Casement 3x3 with Trim,,01,342236,0.1,-0.99,-0.0,174.12,Glass,10.76
+384763,Windows,M_Casement 3x3 with Trim,,01,342236,0.1,-0.99,-0.0,174.12,Glass,10.76
+372278,Windows,Arched (1),,02,342237,-0.99,-0.1,0.0,264.12,Glass,13.43
+372279,Windows,Arched (1),,02,342237,-0.99,-0.1,0.0,264.12,Glass,13.43
+372280,Windows,Arched (1),,02,342237,-0.99,-0.1,0.0,264.12,Glass,13.43
+372281,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342237,-0.99,-0.1,0.0,264.12,Glass,1.51
+372282,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342237,-0.99,-0.1,0.0,264.12,Glass,1.51
+372283,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342237,-0.99,-0.1,0.0,264.12,Glass,1.51
+372284,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342237,-0.99,-0.1,0.0,264.12,Glass,1.51
+372285,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342237,-0.99,-0.1,0.0,264.12,Glass,1.51
+372286,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342237,-0.99,-0.1,0.0,264.12,Glass,1.51
+372287,Windows,Arched (1),,01,342237,-0.99,-0.1,0.0,264.12,Glass,13.43
+372288,Windows,Arched (1),,01,342237,-0.99,-0.1,0.0,264.12,Glass,13.43
+372289,Windows,Arched (1),,01,342237,-0.99,-0.1,0.0,264.12,Glass,13.43
+372290,Windows,M_Casement 3x3 with Trim,,00,342237,-0.99,-0.1,0.0,264.12,Glass,10.76
+372291,Windows,M_Casement 3x3 with Trim,,00,342237,-0.99,-0.1,0.0,264.12,Glass,10.76
+372292,Windows,M_Casement 3x3 with Trim,,00,342237,-0.99,-0.1,0.0,264.12,Glass,10.76
+371250,Windows,Arched (1),,01,342238,0.99,0.1,-0.0,84.12,Glass,13.43
+371251,Windows,Arched (1),,01,342238,0.99,0.1,-0.0,84.12,Glass,13.43
+371252,Windows,Arched (1),,01,342238,0.99,0.1,-0.0,84.12,Glass,13.43
+371253,Windows,Arched (1),,01,342238,-0.99,-0.1,0.0,264.12,Glass,13.43
+371254,Windows,Arched (1),,01,342238,0.99,0.1,-0.0,84.12,Glass,13.43
+371255,Windows,Arched (1),,01,342238,0.99,0.1,-0.0,84.12,Glass,13.43
+371256,Windows,Arched (1),,01,342238,0.99,0.1,-0.0,84.12,Glass,13.43
+371274,Windows,M_Casement 3x3 with Trim,,00,342238,-0.99,-0.1,0.0,264.12,Glass,10.76
+371273,Windows,M_Casement 3x3 with Trim,,00,342238,-0.99,-0.1,0.0,264.12,Glass,10.76
+371272,Windows,M_Casement 3x3 with Trim,,00,342238,-0.99,-0.1,0.0,264.12,Glass,10.76
+371271,Windows,M_Casement 3x3 with Trim,,00,342238,-0.99,-0.1,0.0,264.12,Glass,10.76
+371270,Windows,M_Casement 3x3 with Trim,,00,342238,-0.99,-0.1,0.0,264.12,Glass,10.76
+371269,Windows,M_Casement 3x3 with Trim,,00,342238,-0.99,-0.1,0.0,264.12,Glass,10.76
+371268,Windows,M_Casement 3x3 with Trim,,00,342238,-0.99,-0.1,0.0,264.12,Glass,10.76
+367842,Windows,Arched (1),,02,342238,-0.99,-0.1,0.0,264.12,Glass,13.43
+367843,Windows,Arched (1),,02,342238,-0.99,-0.1,0.0,264.12,Glass,13.43
+367844,Windows,Arched (1),,02,342238,-0.99,-0.1,0.0,264.12,Glass,13.43
+368995,Windows,Arched (1),,02,342238,-0.99,-0.1,0.0,264.12,Glass,13.43
+369015,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+370300,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371062,Windows,Arched (1),,02,342238,-0.99,-0.1,0.0,264.12,Glass,13.43
+371063,Windows,Arched (1),,02,342238,-0.99,-0.1,0.0,264.12,Glass,13.43
+371064,Windows,Arched (1),,02,342238,-0.99,-0.1,0.0,264.12,Glass,13.43
+371165,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371166,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371176,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371177,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371187,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371188,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371196,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371197,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371205,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371206,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371216,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+371217,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342238,-0.99,-0.1,0.0,264.12,Glass,1.51
+366884,Windows,ARCHED_ALUMINUM_WINDOW_SYSTEM_10799,,00,342319,-0.99,-0.11,0.0,263.51,Glass,23.39
+350614,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350823,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350544,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350665,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350660,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350655,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350650,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350645,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350640,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350635,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350822,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350824,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350825,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350826,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350827,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350828,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350829,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350830,Windows,M_Sliding with Trim,,05,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350859,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350860,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350861,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350862,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350863,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350864,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350865,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350866,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350867,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350868,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350869,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350870,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350871,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350872,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350873,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350874,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350875,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350876,Windows,M_Sliding with Trim,,06,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350881,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350882,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350883,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350884,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350885,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350886,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350887,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350888,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350889,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350890,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350891,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350892,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350893,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350894,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350895,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350896,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350897,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350898,Windows,M_Sliding with Trim,,07,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350903,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350904,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350905,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350906,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350907,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350908,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350909,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350910,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350911,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350912,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350913,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+350914,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350915,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350916,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350917,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350918,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350919,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+350920,Windows,M_Sliding with Trim,,08,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+355915,Windows,M_Fixed,,06,342319,0.1,-0.99,-0.0,174.12,Glass,44.04
+355916,Windows,M_Fixed,,06,342319,0.1,-0.99,-0.0,174.12,Glass,44.04
+355917,Windows,M_Fixed,,06,342319,0.1,-0.99,-0.0,174.12,Glass,44.04
+355921,Windows,M_Fixed,,07,342319,0.1,-0.99,-0.0,174.12,Glass,44.04
+355922,Windows,M_Fixed,,07,342319,0.1,-0.99,-0.0,174.12,Glass,44.04
+355923,Windows,M_Fixed,,07,342319,0.1,-0.99,-0.0,174.12,Glass,44.04
+355927,Windows,M_Fixed,,08,342319,0.1,-0.99,-0.0,174.12,Glass,44.04
+355928,Windows,M_Fixed,,08,342319,0.1,-0.99,-0.0,174.12,Glass,44.04
+355929,Windows,M_Fixed,,08,342319,0.1,-0.99,-0.0,174.12,Glass,44.04
+383893,Windows,M_Sliding with Trim,,00,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+383894,Windows,M_Sliding with Trim,,00,342319,0.1,-0.99,-0.0,174.12,Glass,10.68
+383895,Windows,M_Sliding with Trim,,00,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+383896,Windows,M_Sliding with Trim,,00,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+383897,Windows,M_Sliding with Trim,,00,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+383898,Windows,M_Sliding with Trim,,00,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+383899,Windows,M_Sliding with Trim,,00,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+383900,Windows,M_Sliding with Trim,,00,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+383901,Windows,M_Sliding with Trim,,00,342319,0.1,-0.99,-0.0,174.12,Glass,16.22
+383684,Windows,M_Sliding with Trim,,04,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383685,Windows,M_Sliding with Trim,,04,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383686,Windows,M_Sliding with Trim,,04,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383687,Windows,M_Sliding with Trim,,04,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383688,Windows,M_Sliding with Trim,,04,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383689,Windows,M_Sliding with Trim,,04,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383690,Windows,M_Sliding with Trim,,04,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383691,Windows,M_Sliding with Trim,,04,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383692,Windows,M_Sliding with Trim,,04,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383779,Windows,M_Sliding with Trim,,03,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383780,Windows,M_Sliding with Trim,,03,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383781,Windows,M_Sliding with Trim,,03,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383782,Windows,M_Sliding with Trim,,03,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383783,Windows,M_Sliding with Trim,,03,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383784,Windows,M_Sliding with Trim,,03,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383785,Windows,M_Sliding with Trim,,03,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383786,Windows,M_Sliding with Trim,,03,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383787,Windows,M_Sliding with Trim,,03,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383797,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383798,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383799,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383800,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383801,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383802,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383803,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383804,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383805,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383875,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383876,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383877,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383878,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383879,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383880,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383881,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383882,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383883,Windows,M_Sliding with Trim,,02,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383884,Windows,M_Sliding with Trim,,01,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383885,Windows,M_Sliding with Trim,,01,342320,0.1,-0.99,0.0,174.12,Glass,10.68
+383886,Windows,M_Sliding with Trim,,01,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383887,Windows,M_Sliding with Trim,,01,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383888,Windows,M_Sliding with Trim,,01,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383889,Windows,M_Sliding with Trim,,01,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383890,Windows,M_Sliding with Trim,,01,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383891,Windows,M_Sliding with Trim,,01,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383892,Windows,M_Sliding with Trim,,01,342320,0.1,-0.99,0.0,174.12,Glass,16.22
+383539,Windows,Arched (1),,03,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383540,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383541,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383542,Windows,Arched (1),,02,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383543,Windows,M_Casement 3x3 with Trim,,01,342321,0.99,0.1,-0.0,84.12,Glass,10.76
+383544,Windows,Arched (1),,03,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383545,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383546,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383547,Windows,Arched (1),,02,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383548,Windows,M_Casement 3x3 with Trim,,01,342321,0.99,0.1,-0.0,84.12,Glass,10.76
+383549,Windows,Arched (1),,03,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383550,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383551,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383552,Windows,Arched (1),,02,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383553,Windows,M_Casement 3x3 with Trim,,01,342321,0.99,0.1,-0.0,84.12,Glass,10.76
+383554,Windows,Arched (1),,03,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383555,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383556,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383557,Windows,Arched (1),,02,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383558,Windows,M_Casement 3x3 with Trim,,01,342321,0.99,0.1,-0.0,84.12,Glass,10.76
+383559,Windows,Arched (1),,03,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383560,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383561,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342321,-0.99,-0.1,0.0,264.12,Glass,1.51
+383562,Windows,Arched (1),,02,342321,0.99,0.1,-0.0,84.12,Glass,13.43
+383563,Windows,M_Casement 3x3 with Trim,,01,342321,0.99,0.1,-0.0,84.12,Glass,10.76
+395190,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395191,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395192,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395193,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395194,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395195,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395196,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395197,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395198,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395199,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395200,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395201,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395202,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395203,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395204,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395205,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395206,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395207,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395208,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395209,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395210,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395211,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395212,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395213,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395214,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395261,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395262,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395263,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395264,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395265,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395266,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395267,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395268,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395269,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395270,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395271,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395272,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395273,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395274,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395275,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395276,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395277,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395278,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395279,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395280,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395281,Windows,Arched (1),,03,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395282,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395283,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395284,Windows,Arched (1),,02,342322,-0.1,0.99,-0.0,354.12,Glass,13.43
+395285,Windows,M_Casement 3x3 with Trim,,01,342322,-0.1,0.99,-0.0,354.12,Glass,10.76
+395346,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395347,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395348,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395349,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395350,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395351,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395352,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395353,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395354,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395355,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395452,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395453,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395454,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+395508,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342322,0.1,-0.99,-0.0,174.12,Glass,1.51
+383604,Windows,Arched (1),,03,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383605,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383606,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383607,Windows,Arched (1),,02,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383608,Windows,M_Casement 3x3 with Trim,,01,342323,-0.99,-0.1,-0.0,264.12,Glass,10.76
+383609,Windows,Arched (1),,03,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383610,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383611,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383612,Windows,Arched (1),,02,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383613,Windows,M_Casement 3x3 with Trim,,01,342323,-0.99,-0.1,-0.0,264.12,Glass,10.76
+383614,Windows,Arched (1),,03,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383615,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383616,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383617,Windows,Arched (1),,02,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383618,Windows,M_Casement 3x3 with Trim,,01,342323,-0.99,-0.1,-0.0,264.12,Glass,10.76
+383619,Windows,Arched (1),,03,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383620,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383621,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383622,Windows,Arched (1),,02,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383623,Windows,M_Casement 3x3 with Trim,,01,342323,-0.99,-0.1,-0.0,264.12,Glass,10.76
+383624,Windows,Arched (1),,03,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383625,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383626,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342323,0.99,0.1,-0.0,84.12,Glass,1.51
+383627,Windows,Arched (1),,02,342323,-0.99,-0.1,-0.0,264.12,Glass,13.43
+383628,Windows,M_Casement 3x3 with Trim,,01,342323,-0.99,-0.1,-0.0,264.12,Glass,10.76
+378216,Windows,Arched (1),,03,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378217,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378218,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378219,Windows,Arched (1),,02,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378220,Windows,M_Casement 3x3 with Trim,,01,342324,-0.99,-0.1,-0.0,264.12,Glass,10.76
+378221,Windows,Arched (1),,03,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378222,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378223,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378224,Windows,Arched (1),,02,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378225,Windows,M_Casement 3x3 with Trim,,01,342324,-0.99,-0.1,-0.0,264.12,Glass,10.76
+378226,Windows,Arched (1),,03,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378227,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378228,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378229,Windows,Arched (1),,02,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378230,Windows,M_Casement 3x3 with Trim,,01,342324,-0.99,-0.1,-0.0,264.12,Glass,10.76
+378231,Windows,Arched (1),,03,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378232,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378233,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378234,Windows,Arched (1),,02,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378235,Windows,M_Casement 3x3 with Trim,,01,342324,-0.99,-0.1,-0.0,264.12,Glass,10.76
+378236,Windows,Arched (1),,03,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378237,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378238,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342324,0.99,0.1,-0.0,84.12,Glass,1.51
+378239,Windows,Arched (1),,02,342324,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378240,Windows,M_Casement 3x3 with Trim,,01,342324,-0.99,-0.1,-0.0,264.12,Glass,10.76
+377821,Windows,Arched (1),,04,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377822,Windows,WINDOW_W_SOLDIER_COURSE_8505,,05,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377823,Windows,WINDOW_W_SOLDIER_COURSE_8505,,05,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377824,Windows,Arched (1),,02,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377825,Windows,M_Casement 3x3 with Trim,,01,342325,0.1,-0.99,0.0,174.12,Glass,10.76
+377826,Windows,Arched (1),,03,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377827,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377828,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377829,Windows,Arched (1),,02,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377830,Windows,M_Casement 3x3 with Trim,,01,342325,0.1,-0.99,0.0,174.12,Glass,10.76
+377831,Windows,Arched (1),,03,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377832,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377833,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377834,Windows,Arched (1),,02,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377835,Windows,M_Casement 3x3 with Trim,,01,342325,0.1,-0.99,0.0,174.12,Glass,10.76
+377836,Windows,Arched (1),,03,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377837,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377838,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377839,Windows,Arched (1),,02,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377840,Windows,M_Casement 3x3 with Trim,,01,342325,0.1,-0.99,0.0,174.12,Glass,10.76
+377841,Windows,Arched (1),,03,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377842,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377843,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342325,-0.1,0.99,-0.0,354.12,Glass,1.51
+377844,Windows,Arched (1),,02,342325,0.1,-0.99,0.0,174.12,Glass,13.43
+377845,Windows,M_Casement 3x3 with Trim,,01,342325,0.1,-0.99,0.0,174.12,Glass,10.76
+378311,Windows,Arched (1),,03,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378312,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378313,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378314,Windows,Arched (1),,02,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378315,Windows,M_Casement 3x3 with Trim,,01,342326,0.99,0.1,-0.0,84.12,Glass,10.76
+378316,Windows,Arched (1),,03,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378317,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378318,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378319,Windows,Arched (1),,02,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378320,Windows,M_Casement 3x3 with Trim,,01,342326,0.99,0.1,-0.0,84.12,Glass,10.76
+378321,Windows,Arched (1),,03,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378322,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378323,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378324,Windows,Arched (1),,02,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378325,Windows,M_Casement 3x3 with Trim,,01,342326,0.99,0.1,-0.0,84.12,Glass,10.76
+378326,Windows,Arched (1),,03,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378327,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378328,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378329,Windows,Arched (1),,02,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378330,Windows,M_Casement 3x3 with Trim,,01,342326,0.99,0.1,-0.0,84.12,Glass,10.76
+378331,Windows,Arched (1),,03,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378332,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378333,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342326,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378334,Windows,Arched (1),,02,342326,0.99,0.1,-0.0,84.12,Glass,13.43
+378335,Windows,M_Casement 3x3 with Trim,,01,342326,0.99,0.1,-0.0,84.12,Glass,10.76
+378097,Windows,Arched (1),,03,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378098,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378099,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378100,Windows,Arched (1),,02,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378101,Windows,M_Casement 3x3 with Trim,,01,342327,-0.1,0.99,-0.0,354.12,Glass,10.76
+378102,Windows,Arched (1),,03,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378103,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378104,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378105,Windows,Arched (1),,02,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378106,Windows,M_Casement 3x3 with Trim,,01,342327,-0.1,0.99,-0.0,354.12,Glass,10.76
+378107,Windows,Arched (1),,03,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378108,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378109,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378110,Windows,Arched (1),,02,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378111,Windows,M_Casement 3x3 with Trim,,01,342327,-0.1,0.99,-0.0,354.12,Glass,10.76
+378112,Windows,Arched (1),,03,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378113,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378114,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378115,Windows,Arched (1),,02,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378116,Windows,M_Casement 3x3 with Trim,,01,342327,-0.1,0.99,-0.0,354.12,Glass,10.76
+378117,Windows,Arched (1),,03,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378118,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378119,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342327,0.1,-0.99,-0.0,174.12,Glass,1.51
+378120,Windows,Arched (1),,02,342327,-0.1,0.99,-0.0,354.12,Glass,13.43
+378121,Windows,M_Casement 3x3 with Trim,,01,342327,-0.1,0.99,-0.0,354.12,Glass,10.76
+377492,Windows,Arched (1),,04,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377493,Windows,WINDOW_W_SOLDIER_COURSE_8505,,05,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377494,Windows,WINDOW_W_SOLDIER_COURSE_8505,,05,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377495,Windows,Arched (1),,02,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377496,Windows,M_Casement 3x3 with Trim,,01,342328,0.1,-0.99,0.0,174.12,Glass,10.76
+377706,Windows,Arched (1),,03,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377707,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377708,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377709,Windows,Arched (1),,02,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377710,Windows,M_Casement 3x3 with Trim,,01,342328,0.1,-0.99,0.0,174.12,Glass,10.76
+377749,Windows,Arched (1),,03,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377750,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377751,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377752,Windows,Arched (1),,02,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377753,Windows,M_Casement 3x3 with Trim,,01,342328,0.1,-0.99,0.0,174.12,Glass,10.76
+377754,Windows,Arched (1),,03,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377755,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377756,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377757,Windows,Arched (1),,02,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377758,Windows,M_Casement 3x3 with Trim,,01,342328,0.1,-0.99,0.0,174.12,Glass,10.76
+377773,Windows,Arched (1),,03,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377774,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377775,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342328,-0.1,0.99,-0.0,354.12,Glass,1.51
+377776,Windows,Arched (1),,02,342328,0.1,-0.99,0.0,174.12,Glass,13.43
+377777,Windows,M_Casement 3x3 with Trim,,01,342328,0.1,-0.99,0.0,174.12,Glass,10.76
+378507,Windows,Arched (1),,03,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378508,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378509,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378510,Windows,Arched (1),,02,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378511,Windows,M_Casement 3x3 with Trim,,01,342329,0.99,0.1,-0.0,84.12,Glass,10.76
+378512,Windows,Arched (1),,03,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378513,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378514,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378515,Windows,Arched (1),,02,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378516,Windows,M_Casement 3x3 with Trim,,01,342329,0.99,0.1,-0.0,84.12,Glass,10.76
+378517,Windows,Arched (1),,03,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378518,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378519,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378520,Windows,Arched (1),,02,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378521,Windows,M_Casement 3x3 with Trim,,01,342329,0.99,0.1,-0.0,84.12,Glass,10.76
+378522,Windows,Arched (1),,03,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378523,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378524,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378525,Windows,Arched (1),,02,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378526,Windows,M_Casement 3x3 with Trim,,01,342329,0.99,0.1,-0.0,84.12,Glass,10.76
+378527,Windows,Arched (1),,03,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378528,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378529,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342329,-0.99,-0.1,-0.0,264.12,Glass,1.51
+378530,Windows,Arched (1),,02,342329,0.99,0.1,-0.0,84.12,Glass,13.43
+378531,Windows,M_Casement 3x3 with Trim,,01,342329,0.99,0.1,-0.0,84.12,Glass,10.76
+378072,Windows,Arched (1),,03,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378073,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378074,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378075,Windows,Arched (1),,02,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378076,Windows,M_Casement 3x3 with Trim,,01,342330,-0.1,0.99,-0.0,354.12,Glass,10.76
+378077,Windows,Arched (1),,03,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378078,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378079,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378080,Windows,Arched (1),,02,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378081,Windows,M_Casement 3x3 with Trim,,01,342330,-0.1,0.99,-0.0,354.12,Glass,10.76
+378082,Windows,Arched (1),,03,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378083,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378084,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378085,Windows,Arched (1),,02,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378086,Windows,M_Casement 3x3 with Trim,,01,342330,-0.1,0.99,-0.0,354.12,Glass,10.76
+378087,Windows,Arched (1),,03,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378088,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378089,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378090,Windows,Arched (1),,02,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378091,Windows,M_Casement 3x3 with Trim,,01,342330,-0.1,0.99,-0.0,354.12,Glass,10.76
+378092,Windows,Arched (1),,03,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378093,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378094,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342330,0.1,-0.99,-0.0,174.12,Glass,1.51
+378095,Windows,Arched (1),,02,342330,-0.1,0.99,-0.0,354.12,Glass,13.43
+378096,Windows,M_Casement 3x3 with Trim,,01,342330,-0.1,0.99,-0.0,354.12,Glass,10.76
+378424,Windows,Arched (1),,03,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378425,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378426,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378427,Windows,Arched (1),,02,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378428,Windows,M_Casement 3x3 with Trim,,01,342331,-0.99,-0.1,-0.0,264.12,Glass,10.76
+378429,Windows,Arched (1),,03,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378430,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378431,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378432,Windows,Arched (1),,02,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378433,Windows,M_Casement 3x3 with Trim,,01,342331,-0.99,-0.1,-0.0,264.12,Glass,10.76
+378434,Windows,Arched (1),,03,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378435,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378436,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378437,Windows,Arched (1),,02,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378438,Windows,M_Casement 3x3 with Trim,,01,342331,-0.99,-0.1,-0.0,264.12,Glass,10.76
+378439,Windows,Arched (1),,03,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378440,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378441,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378442,Windows,Arched (1),,02,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378443,Windows,M_Casement 3x3 with Trim,,01,342331,-0.99,-0.1,-0.0,264.12,Glass,10.76
+378444,Windows,Arched (1),,03,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378445,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378446,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,342331,0.99,0.1,-0.0,84.12,Glass,1.51
+378447,Windows,Arched (1),,02,342331,-0.99,-0.1,-0.0,264.12,Glass,13.43
+378448,Windows,M_Casement 3x3 with Trim,,01,342331,-0.99,-0.1,-0.0,264.12,Glass,10.76
+354939,Windows,M_Fixed,,01,342603,-0.1,0.99,-0.0,354.12,Glass,1351.44
+354939,Windows,M_Fixed,,01,352360,-0.1,0.99,-0.0,354.12,Glass,1351.44
+354772,Windows,M_Fixed,,03,352360,-0.1,0.99,-0.0,354.12,Glass,820.24
+354944,Windows,M_Fixed,,02,352360,-0.1,0.99,-0.0,354.12,Glass,820.24
+354949,Windows,M_Fixed,,04,352360,-0.1,0.99,-0.0,354.12,Glass,820.24
+354954,Windows,M_Fixed,,05,352360,-0.1,0.99,-0.0,354.12,Glass,820.24
+354959,Windows,M_Fixed,,06,352360,-0.1,0.99,-0.0,354.12,Glass,820.24
+354964,Windows,M_Fixed,,07,352360,-0.1,0.99,-0.0,354.12,Glass,820.24
+354969,Windows,M_Fixed,,08,352360,-0.1,0.99,-0.0,354.12,Glass,820.24
+372079,Windows,Arched (1),,02,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372080,Windows,Arched (1),,02,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372081,Windows,Arched (1),,02,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372082,Windows,Arched (1),,02,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372083,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372084,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372085,Windows,Arched (1),,02,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372086,Windows,Arched (1),,02,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372087,Windows,Arched (1),,02,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372088,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372089,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372090,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372091,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372092,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372093,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372094,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372095,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372096,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372097,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372098,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372099,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,372474,-0.99,-0.1,0.0,264.12,Glass,1.51
+372100,Windows,Arched (1),,01,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372101,Windows,Arched (1),,01,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372102,Windows,Arched (1),,01,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372103,Windows,Arched (1),,01,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372104,Windows,Arched (1),,01,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372105,Windows,Arched (1),,01,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372107,Windows,M_Casement 3x3 with Trim,,00,372474,-0.99,-0.1,0.0,264.12,Glass,10.76
+372108,Windows,M_Casement 3x3 with Trim,,00,372474,-0.99,-0.1,0.0,264.12,Glass,10.76
+372109,Windows,M_Casement 3x3 with Trim,,00,372474,-0.99,-0.1,0.0,264.12,Glass,10.76
+372110,Windows,M_Casement 3x3 with Trim,,00,372474,-0.99,-0.1,0.0,264.12,Glass,10.76
+372111,Windows,M_Casement 3x3 with Trim,,00,372474,-0.99,-0.1,0.0,264.12,Glass,10.76
+372112,Windows,M_Casement 3x3 with Trim,,00,372474,-0.99,-0.1,0.0,264.12,Glass,10.76
+374306,Windows,Arched (1),,01,372474,-0.99,-0.1,0.0,264.12,Glass,13.43
+372735,Windows,Arched (1),,02,372674,-0.99,-0.1,0.0,264.12,Glass,13.43
+372749,Windows,WINDOW_W_SOLDIER_COURSE_8505,,03,372674,-0.99,-0.1,0.0,264.12,Glass,1.51
+372842,Windows,WINDOW_W_SOLDIER_COURSE_8505,,03,372674,-0.99,-0.1,0.0,264.12,Glass,1.51
+372872,Windows,Arched (1),,00,372674,-0.99,-0.1,0.0,264.12,Glass,13.43
+372873,Windows,WINDOW_W_SOLDIER_COURSE_8505,,00,372674,-0.99,-0.1,0.0,264.12,Glass,1.51
+372874,Windows,WINDOW_W_SOLDIER_COURSE_8505,,00,372674,-0.99,-0.1,0.0,264.12,Glass,1.51
+372887,Windows,Arched (1),,01,372674,-0.99,-0.1,0.0,264.12,Glass,13.43
+372888,Windows,WINDOW_W_SOLDIER_COURSE_8505,,01,372674,-0.99,-0.1,0.0,264.12,Glass,1.51
+372889,Windows,WINDOW_W_SOLDIER_COURSE_8505,,01,372674,-0.99,-0.1,0.0,264.12,Glass,1.51
+373082,Windows,Arched (1),,02,373009,-0.99,-0.11,0.0,263.64,Glass,13.43
+373083,Windows,Arched (1),,02,373009,-0.99,-0.11,0.0,263.64,Glass,13.43
+373084,Windows,Arched (1),,02,373009,-0.99,-0.11,0.0,263.64,Glass,13.43
+373085,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373009,0.99,0.11,-0.0,83.64,Glass,1.51
+373086,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373009,0.99,0.11,-0.0,83.64,Glass,1.51
+373087,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373009,0.99,0.11,-0.0,83.64,Glass,1.51
+373088,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373009,0.99,0.11,-0.0,83.64,Glass,1.51
+373089,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373009,0.99,0.11,-0.0,83.64,Glass,1.51
+373090,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373009,0.99,0.11,-0.0,83.64,Glass,1.51
+373091,Windows,Arched (1),,01,373009,0.99,0.11,-0.0,83.64,Glass,13.43
+373092,Windows,Arched (1),,01,373009,0.99,0.11,-0.0,83.64,Glass,13.43
+373093,Windows,Arched (1),,01,373009,0.99,0.11,-0.0,83.64,Glass,13.43
+373094,Windows,M_Casement 3x3 with Trim,,00,373009,0.99,0.11,-0.0,83.64,Glass,10.76
+373095,Windows,M_Casement 3x3 with Trim,,00,373009,0.99,0.11,-0.0,83.64,Glass,10.76
+373096,Windows,M_Casement 3x3 with Trim,,00,373009,0.99,0.11,-0.0,83.64,Glass,10.76
+373035,Windows,Arched (1),,01,373010,0.99,0.1,-0.0,84.12,Glass,13.43
+373036,Windows,Arched (1),,01,373010,0.99,0.1,-0.0,84.12,Glass,13.43
+373037,Windows,Arched (1),,01,373010,0.99,0.1,-0.0,84.12,Glass,13.43
+373038,Windows,Arched (1),,01,373010,0.99,0.1,-0.0,84.12,Glass,13.43
+373039,Windows,Arched (1),,01,373010,0.99,0.1,-0.0,84.12,Glass,13.43
+373040,Windows,Arched (1),,01,373010,0.99,0.1,-0.0,84.12,Glass,13.43
+373041,Windows,Arched (1),,01,373010,0.99,0.1,-0.0,84.12,Glass,13.43
+373048,Windows,M_Casement 3x3 with Trim,,00,373010,0.99,0.1,-0.0,84.12,Glass,10.76
+373047,Windows,M_Casement 3x3 with Trim,,00,373010,0.99,0.1,-0.0,84.12,Glass,10.76
+373046,Windows,M_Casement 3x3 with Trim,,00,373010,0.99,0.1,-0.0,84.12,Glass,10.76
+373045,Windows,M_Casement 3x3 with Trim,,00,373010,0.99,0.1,-0.0,84.12,Glass,10.76
+373044,Windows,M_Casement 3x3 with Trim,,00,373010,0.99,0.1,-0.0,84.12,Glass,10.76
+373043,Windows,M_Casement 3x3 with Trim,,00,373010,0.99,0.1,-0.0,84.12,Glass,10.76
+373042,Windows,M_Casement 3x3 with Trim,,00,373010,0.99,0.1,-0.0,84.12,Glass,10.76
+373014,Windows,Arched (1),,02,373010,-0.99,-0.1,0.0,264.12,Glass,13.43
+373015,Windows,Arched (1),,02,373010,-0.99,-0.1,0.0,264.12,Glass,13.43
+373016,Windows,Arched (1),,02,373010,-0.99,-0.1,0.0,264.12,Glass,13.43
+373017,Windows,Arched (1),,02,373010,0.99,0.1,-0.0,84.12,Glass,13.43
+373018,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373019,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373020,Windows,Arched (1),,02,373010,-0.99,-0.1,0.0,264.12,Glass,13.43
+373021,Windows,Arched (1),,02,373010,-0.99,-0.1,0.0,264.12,Glass,13.43
+373022,Windows,Arched (1),,02,373010,-0.99,-0.1,0.0,264.12,Glass,13.43
+373023,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373024,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373025,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373026,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373027,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373028,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373029,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373030,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373031,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373032,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373033,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373034,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373010,0.99,0.1,-0.0,84.12,Glass,1.51
+373049,Windows,Arched (1),,02,373097,-0.99,-0.1,0.0,264.12,Glass,13.43
+373050,Windows,Arched (1),,02,373097,-0.99,-0.1,0.0,264.12,Glass,13.43
+373051,Windows,Arched (1),,02,373097,-0.99,-0.1,0.0,264.12,Glass,13.43
+373052,Windows,Arched (1),,02,373097,0.99,0.1,-0.0,84.12,Glass,13.43
+373053,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373054,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373055,Windows,Arched (1),,02,373097,-0.99,-0.1,0.0,264.12,Glass,13.43
+373056,Windows,Arched (1),,02,373097,-0.99,-0.1,0.0,264.12,Glass,13.43
+373057,Windows,Arched (1),,02,373097,-0.99,-0.1,0.0,264.12,Glass,13.43
+373058,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373059,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373060,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373061,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373062,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373063,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373064,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373065,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373066,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373067,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373068,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373069,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,373097,0.99,0.1,-0.0,84.12,Glass,1.51
+373070,Windows,Arched (1),,01,373097,0.99,0.1,-0.0,84.12,Glass,13.43
+373071,Windows,Arched (1),,01,373097,0.99,0.1,-0.0,84.12,Glass,13.43
+373072,Windows,Arched (1),,01,373097,0.99,0.1,-0.0,84.12,Glass,13.43
+373073,Windows,Arched (1),,01,373097,0.99,0.1,-0.0,84.12,Glass,13.43
+373074,Windows,Arched (1),,01,373097,0.99,0.1,-0.0,84.12,Glass,13.43
+373075,Windows,Arched (1),,01,373097,0.99,0.1,-0.0,84.12,Glass,13.43
+373076,Windows,M_Casement 3x3 with Trim,,00,373097,0.99,0.1,-0.0,84.12,Glass,10.76
+373077,Windows,M_Casement 3x3 with Trim,,00,373097,0.99,0.1,-0.0,84.12,Glass,10.76
+373078,Windows,M_Casement 3x3 with Trim,,00,373097,0.99,0.1,-0.0,84.12,Glass,10.76
+373079,Windows,M_Casement 3x3 with Trim,,00,373097,0.99,0.1,-0.0,84.12,Glass,10.76
+373080,Windows,M_Casement 3x3 with Trim,,00,373097,0.99,0.1,-0.0,84.12,Glass,10.76
+373081,Windows,M_Casement 3x3 with Trim,,00,373097,0.99,0.1,-0.0,84.12,Glass,10.76
+373489,Windows,Arched (1),,01,373097,0.99,0.1,-0.0,84.12,Glass,13.43
+373490,Windows,M_Casement 3x3 with Trim,,00,373097,0.99,0.1,-0.0,84.12,Glass,10.76
+373101,Windows,Arched (1),,02,373099,0.99,0.1,-0.0,84.12,Glass,13.43
+373102,Windows,WINDOW_W_SOLDIER_COURSE_8505,,03,373099,0.99,0.1,-0.0,84.12,Glass,1.51
+373103,Windows,WINDOW_W_SOLDIER_COURSE_8505,,03,373099,0.99,0.1,-0.0,84.12,Glass,1.51
+373104,Windows,Arched (1),,00,373099,0.99,0.1,-0.0,84.12,Glass,13.43
+373105,Windows,WINDOW_W_SOLDIER_COURSE_8505,,00,373099,0.99,0.1,-0.0,84.12,Glass,1.51
+373106,Windows,WINDOW_W_SOLDIER_COURSE_8505,,00,373099,0.99,0.1,-0.0,84.12,Glass,1.51
+373107,Windows,Arched (1),,01,373099,0.99,0.1,-0.0,84.12,Glass,13.43
+373108,Windows,WINDOW_W_SOLDIER_COURSE_8505,,01,373099,0.99,0.1,-0.0,84.12,Glass,1.51
+373109,Windows,WINDOW_W_SOLDIER_COURSE_8505,,01,373099,0.99,0.1,-0.0,84.12,Glass,1.51
+384550,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384551,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384552,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384553,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384554,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384555,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384556,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384557,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384558,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384559,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384620,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384621,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384622,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384623,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384624,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384615,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384616,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384617,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384618,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384619,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384610,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384611,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384612,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384613,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384614,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384605,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384606,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384607,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384608,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384609,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384600,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384601,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384602,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384603,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384604,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384595,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384596,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384597,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384598,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384599,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384590,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384591,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384592,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384593,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384594,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384585,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384586,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384587,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384588,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384589,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384580,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384581,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384582,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384583,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384584,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384575,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384576,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384577,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384578,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384579,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384570,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384571,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384572,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384573,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384574,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384565,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384566,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384567,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384568,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384569,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384560,Windows,Arched (1),,03,384531,-0.11,0.99,-0.0,353.64,Glass,13.43
+384561,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384562,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384531,0.11,-0.99,0.0,173.64,Glass,1.51
+384563,Windows,Arched (1),,01,384531,0.11,-0.99,0.0,173.64,Glass,13.43
+384564,Windows,M_Casement 3x3 with Trim,,00,384531,0.11,-0.99,0.0,173.64,Glass,10.76
+384535,Windows,Arched (1),,03,384532,-0.11,0.99,-0.0,353.64,Glass,13.43
+384536,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384532,0.11,-0.99,0.0,173.64,Glass,1.51
+384537,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384532,0.11,-0.99,0.0,173.64,Glass,1.51
+384538,Windows,Arched (1),,01,384532,0.11,-0.99,0.0,173.64,Glass,13.43
+384539,Windows,M_Casement 3x3 with Trim,,00,384532,0.11,-0.99,0.0,173.64,Glass,10.76
+384540,Windows,Arched (1),,03,384532,-0.11,0.99,-0.0,353.64,Glass,13.43
+384541,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384532,0.11,-0.99,0.0,173.64,Glass,1.51
+384542,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384532,0.11,-0.99,0.0,173.64,Glass,1.51
+384543,Windows,Arched (1),,01,384532,0.11,-0.99,0.0,173.64,Glass,13.43
+384544,Windows,M_Casement 3x3 with Trim,,00,384532,0.11,-0.99,0.0,173.64,Glass,10.76
+384545,Windows,Arched (1),,03,384532,-0.11,0.99,-0.0,353.64,Glass,13.43
+384546,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384532,0.11,-0.99,0.0,173.64,Glass,1.51
+384547,Windows,WINDOW_W_SOLDIER_COURSE_8505,,04,384532,0.11,-0.99,0.0,173.64,Glass,1.51
+384548,Windows,Arched (1),,01,384532,0.11,-0.99,0.0,173.64,Glass,13.43
+384549,Windows,M_Casement 3x3 with Trim,,00,384532,0.11,-0.99,0.0,173.64,Glass,10.76
+384816,Windows,M_Casement 3x3 with Trim,,01,384532,0.11,-0.99,0.0,173.64,Glass,10.76
+384817,Windows,M_Casement 3x3 with Trim,,01,384532,0.11,-0.99,0.0,173.64,Glass,10.76

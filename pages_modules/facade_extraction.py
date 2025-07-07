@@ -105,8 +105,8 @@ def render_facade_extraction():
             last_processed_file = st.session_state.get('last_processed_file', '')
             processing_complete = st.session_state.get('step4_processing_complete', False)
             
-            # Only process if it's a new file AND data hasn't been processed yet
-            if (current_file_name != last_processed_file and not processing_complete):
+            # Only process if it's a new file OR data hasn't been processed yet
+            if (current_file_name != last_processed_file or not processing_complete):
                 
                 # Use spinner instead of progress bar to avoid interface fading
                 with st.spinner("Processing CSV file..."):
@@ -125,8 +125,9 @@ def render_facade_extraction():
                 suitable_elements = 0
                 total_glass_area = 0
                 
-                # Check if already processed to avoid duplication
-                if st.session_state.get('step4_processing_complete', False):
+                # Check if this specific file was already processed to avoid duplication
+                if (st.session_state.get('step4_processing_complete', False) and 
+                    current_file_name == last_processed_file):
                     st.info("CSV data already processed. Displaying existing results.")
                     # Display existing data without reprocessing
                     if 'building_elements' in st.session_state:
