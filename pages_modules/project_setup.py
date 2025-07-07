@@ -490,7 +490,6 @@ def render_project_setup():
                     
                     if weather_data and weather_data.get('api_success'):
                         # Clear and prominent success message
-                        st.balloons()  # Visual celebration for successful validation
                         st.success("🎉 **VALIDATION SUCCESSFUL!** Location and weather access confirmed!")
                         st.info(f"📍 **Current conditions:** {weather_data['temperature']:.1f}°C • {weather_data['description'].title()}")
                         
