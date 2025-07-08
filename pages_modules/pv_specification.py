@@ -204,12 +204,37 @@ def render_pv_specification():
     
     # Convert to DataFrame if needed
     if isinstance(building_elements, list):
-        suitable_elements = pd.DataFrame(building_elements)
+        all_elements = pd.DataFrame(building_elements)
     else:
-        suitable_elements = building_elements
+        all_elements = building_elements
     
-    # Debug information
-    st.success(f"Designing BIPV systems for {len(suitable_elements)} building elements")
+    # Filter for only suitable elements (South/East/West-facing)
+    if 'pv_suitable' in all_elements.columns:
+        suitable_elements = all_elements[all_elements['pv_suitable'] == True].copy()
+    elif 'suitable' in all_elements.columns:
+        suitable_elements = all_elements[all_elements['suitable'] == True].copy()
+    else:
+        # Fallback: filter by orientation if suitability flags not available
+        suitable_orientations = ["South (135-225°)", "East (45-135°)", "West (225-315°)"]
+        if 'orientation' in all_elements.columns:
+            suitable_elements = all_elements[all_elements['orientation'].isin(suitable_orientations)].copy()
+        else:
+            st.warning("⚠️ Could not determine element suitability. Processing all elements.")
+            suitable_elements = all_elements
+    
+    # Debug information with suitability confirmation
+    total_elements = len(all_elements)
+    suitable_count = len(suitable_elements)
+    excluded_count = total_elements - suitable_count
+    
+    st.success(f"✅ Filtered for BIPV suitability: {suitable_count} suitable elements (excluded {excluded_count} non-suitable)")
+    
+    if excluded_count > 0:
+        st.info(f"💡 Excluded elements are typically north-facing windows with poor solar performance")
+    
+    if suitable_count == 0:
+        st.error("❌ No suitable elements found for BIPV installation. Check building orientation data.")
+        return
     
     # Show sample Element IDs for verification
     if len(suitable_elements) > 0:

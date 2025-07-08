@@ -230,7 +230,7 @@ def analyze_wall_window_relationship(window_id, host_wall_id, walls_data):
     return relationship
 
 def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, shading_factors=None, walls_data=None):
-    """Generate radiation grid for all suitable elements with wall-window relationship analysis."""
+    """Generate radiation grid for ONLY suitable elements (South/East/West-facing) with wall-window relationship analysis."""
     
     if tmy_data is None or len(tmy_data) == 0:
         st.warning("No TMY data available for radiation calculations")
@@ -261,6 +261,11 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
     radiation_grid = []
     
     for _, element in suitable_elements.iterrows():
+        # Verify element is actually suitable (double-check filtering)
+        is_suitable = element.get('pv_suitable', element.get('suitable', True))
+        if not is_suitable:
+            continue  # Skip non-suitable elements
+            
         # Get element properties with defaults - preserve actual BIM Element IDs
         element_id = element.get('Element ID', element.get('element_id', element.get('id', f"Unknown_Element_{len(radiation_grid)}")))
         element_area = float(element.get('Glass Area (m²)', element.get('glass_area', element.get('area', 1.5))))

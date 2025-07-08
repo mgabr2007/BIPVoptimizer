@@ -188,7 +188,8 @@ def render_financial_analysis():
             st.rerun()
         return
     
-    st.success(f"Analyzing financial performance of {selected_solution['solution_id']}")
+    st.success(f"✅ Analyzing financial performance of {selected_solution['solution_id']} (suitable elements only)")
+    st.info("💡 Financial analysis based on South/East/West-facing elements only for accurate ROI calculations")
     
     # Get electricity rates for display (define at top level)
     electricity_rates = project_data.get('electricity_rates', {})

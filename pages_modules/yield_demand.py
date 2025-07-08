@@ -281,7 +281,10 @@ def render_yield_demand():
     if isinstance(pv_specs, list):
         pv_specs = pd.DataFrame(pv_specs)
     
-    st.success(f"✅ PV specifications found ({len(pv_specs)} systems)")
+    # Verify we're only working with suitable elements
+    suitable_count = len(pv_specs)
+    st.success(f"✅ PV specifications found ({suitable_count} suitable BIPV systems)")
+    st.info("💡 Analysis includes only South/East/West-facing elements with good solar performance")
     
     # Check for historical data from Step 2 - look in correct location
     historical_data_project = project_data.get('historical_data')  # This is where Step 2 saves it

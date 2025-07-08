@@ -418,6 +418,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 7, 2025: Fixed Step 4 facade extraction processing duplication - implemented session state flags to prevent multiple processing of same CSV file, eliminated triple ConsolidatedDataManager saves, and added intelligent reprocessing detection for improved performance
 - July 7, 2025: Updated Step 6 BIPV efficiency range from 10-22% to 2-25% to provide more realistic BIPV glass technology options including basic (2-8%), standard (10-15%), and high-performance (18-25%) efficiency ranges with enhanced help text for user guidance
 - July 7, 2025: Upgraded welcome page with comprehensive content including professional banner, technology specifications, industry standards compliance, real-world applications, getting started guide, technical support resources, and enhanced visual presentation for improved user engagement
+- July 8, 2025: Fixed critical suitability filtering bug in Steps 6-9 where ALL building elements were processed instead of only suitable ones - implemented proper filtering for `pv_suitable=True` in Step 6 PV specification, ensuring only South/East/West-facing elements are used in BIPV calculations and eliminating unrealistic north-facing window analysis that showed inflated radiation values
 
 ## User Preferences
 

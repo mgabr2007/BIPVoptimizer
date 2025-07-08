@@ -367,7 +367,8 @@ def render_optimization():
         elif not isinstance(energy_balance, pd.DataFrame):
             energy_balance = None
     
-    st.success(f"Optimizing selection from {len(pv_specs)} viable BIPV systems")
+    st.success(f"✅ Optimizing selection from {len(pv_specs)} suitable BIPV systems")
+    st.info("💡 Optimization includes only South/East/West-facing elements for realistic solar performance")
     
     # Optimization configuration
     st.subheader("🔧 Optimization Configuration")
