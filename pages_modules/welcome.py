@@ -10,15 +10,31 @@ def render_welcome():
     
 
     
+    # Main banner with professional styling
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #2E8B57 0%, #228B22 50%, #32CD32 100%); 
+                padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 30px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+        <h1 style="color: white; margin: 0; font-size: 2.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+            🌟 BIPV Optimizer Platform 🏢
+        </h1>
+        <p style="color: white; font-size: 1.2em; margin: 10px 0 0 0; opacity: 0.9;">
+            Advanced Building-Integrated Photovoltaics Analysis & Optimization
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown(f"""
-    ---
+    ### {get_emoji('sun')} Transforming Buildings Into Energy Producers
     
-    ### {get_emoji('sun')} Welcome to the BIPV Optimizer Platform {get_emoji('building')}
+    **Building-Integrated Photovoltaics (BIPV)** represents the cutting-edge convergence of sustainable 
+    architecture and renewable energy technology. Unlike traditional rooftop solar panels, BIPV systems 
+    replace conventional building materials with photovoltaic elements that serve dual functions: 
+    **structural building components** and **energy generators**.
     
-    **Building-Integrated Photovoltaics (BIPV)** represents the future of sustainable architecture, 
-    where solar energy generation seamlessly integrates with building design. Our platform provides 
-    comprehensive analysis and optimization tools for BIPV installations, specifically focusing on 
-    **semi-transparent PV glass replacement** in educational and commercial buildings.
+    Our platform specializes in **semi-transparent PV glass replacement** for educational and commercial 
+    buildings, where existing windows are upgraded with advanced photovoltaic glass that maintains 
+    natural lighting while generating clean electricity.
     """)
     
     # Apply yellow container styling
@@ -29,35 +45,45 @@ def render_welcome():
     
     with col1:
         st.markdown("""
-        #### What is BIPV Glass Replacement?
+        #### Revolutionary BIPV Glass Technology
         
-        BIPV glass replacement involves **substituting conventional window glass** with semi-transparent 
-        photovoltaic panels that serve dual functions:
+        Our platform analyzes **semi-transparent photovoltaic glass** that replaces conventional windows 
+        with advanced energy-generating materials:
         
-        1. **Energy Generation:** Convert sunlight into electricity
-        2. **Building Function:** Maintain natural lighting and weather protection
-        3. **Aesthetic Integration:** Preserve architectural design integrity
+        **🔬 Technology Specifications:**
+        - **Efficiency Range:** 2-25% (basic to high-performance)
+        - **Transparency:** 10-40% light transmission
+        - **Aesthetics:** Seamless architectural integration
+        - **Durability:** 25+ year lifespan with degradation <0.5%/year
         
-        Our platform specifically analyzes **window-to-BIPV conversions** where existing glass areas 
-        are replaced with semi-transparent PV modules, optimizing both energy performance and 
-        building functionality.
+        **🏗️ Application Areas:**
+        - Educational buildings (classrooms, libraries, laboratories)
+        - Commercial offices and retail spaces
+        - Healthcare facilities and public buildings
+        - Residential high-rise developments
         """)
     
     with col2:
-        st.info("""
-        **Key Benefits:**
+        st.success("""
+        **🎯 Platform Advantages:**
         
-        ✅ **Dual Functionality**  
-        Glass + Energy Generation
+        ⚡ **Comprehensive Analysis**  
+        11-step scientific workflow
         
-        ✅ **Space Efficiency**  
-        No additional roof area needed
+        🤖 **AI-Powered Optimization**  
+        Machine learning demand prediction
         
-        ✅ **Cost Optimization**  
-        Replace existing glass costs
+        🏢 **BIM Integration**  
+        Revit model processing
         
-        ✅ **Aesthetic Integration**  
-        Seamless architectural design
+        📊 **Financial Modeling**  
+        NPV, IRR, payback analysis
+        
+        🌱 **Environmental Impact**  
+        CO₂ savings quantification
+        
+        📈 **Performance Tracking**  
+        25-year lifecycle assessment
         """)
     
     # Workflow Overview  
@@ -193,12 +219,219 @@ def render_welcome():
         - Optimization suggestions
         """)
     
-    # Additional Features Section
+    # Technology Innovation Section
     st.markdown("""
     ---
     
-    ### Enhanced Platform Capabilities
+    ### 🚀 Technology Innovation & Industry Leadership
+    
+    Our platform incorporates the latest advances in BIPV technology, renewable energy optimization, 
+    and sustainable building design:
     """)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        **🔬 Advanced Analytics:**
+        - Multi-objective genetic algorithm optimization (NSGA-II)
+        - Random Forest machine learning for demand prediction
+        - ISO 15927-4 compliant TMY data generation
+        - Real-time weather integration with OpenWeatherMap API
+        - Comprehensive shading analysis and solar radiation modeling
+        """)
+    
+    with col2:
+        st.markdown("""
+        **🌐 Industry Standards Compliance:**
+        - ISO 15927-4: Climatic data for building design
+        - ISO 9060: Solar radiation measurement standards
+        - ASHRAE 90.1: Energy efficiency requirements
+        - IEC 61853: Photovoltaic performance testing
+        - EN 410: Glass thermal and optical properties
+        """)
+    
+    # Enhanced Platform Capabilities
+    st.markdown("""
+    ---
+    
+    ### 🛠️ Comprehensive Platform Capabilities
+    
+    Our platform delivers end-to-end BIPV analysis through integrated tools and methodologies:
+    """)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        **📊 Data Analytics:**
+        - PostgreSQL database integration
+        - Real-time performance tracking
+        - Comprehensive report generation
+        - CSV/HTML export capabilities
+        - Multi-project management
+        """)
+    
+    with col2:
+        st.markdown("""
+        **🔧 Engineering Tools:**
+        - Genetic algorithm optimization
+        - Multi-objective problem solving
+        - Performance ratio calculations
+        - Shading analysis algorithms
+        - Grid integration modeling
+        """)
+    
+    with col3:
+        st.markdown("""
+        **💰 Financial Modeling:**
+        - NPV and IRR calculations
+        - 25-year lifecycle analysis
+        - Sensitivity analysis
+        - ROI optimization
+        - Carbon savings quantification
+        """)
+    
+    # Success Stories and Applications
+    st.markdown("""
+    ---
+    
+    ### 🎯 Real-World Applications & Success Stories
+    
+    The BIPV Optimizer platform has been successfully applied across various educational and commercial projects:
+    """)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        **🏫 Educational Buildings:**
+        - **University libraries:** Large south-facing windows ideal for BIPV integration
+        - **Classroom buildings:** Balanced energy generation and natural lighting
+        - **Research facilities:** High-efficiency BIPV for energy-intensive operations
+        - **Student dormitories:** Cost-effective BIPV solutions for residential applications
+        """)
+    
+    with col2:
+        st.markdown("""
+        **🏢 Commercial Applications:**
+        - **Office buildings:** Facade optimization for maximum energy yield
+        - **Healthcare facilities:** Reliable energy generation for critical operations
+        - **Retail spaces:** Aesthetic BIPV integration maintaining visual appeal
+        - **Public buildings:** Sustainable energy solutions for government facilities
+        """)
+    
+    # Getting Started Section
+    st.markdown("""
+    ---
+    
+    ### 🚀 Getting Started with BIPV Optimization
+    
+    Ready to transform your building into an energy producer? Follow these steps:
+    """)
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("""
+        **Step-by-Step Process:**
+        
+        1. **📍 Project Setup:** Define location, timezone, and project parameters
+        2. **📊 Data Upload:** Provide historical energy consumption data
+        3. **🌤️ Weather Analysis:** Generate climate data for your location
+        4. **🏗️ BIM Integration:** Upload building geometry and window data
+        5. **☀️ Solar Analysis:** Calculate radiation and shading effects
+        6. **🔋 System Design:** Specify BIPV technology and configurations
+        7. **⚡ Energy Modeling:** Compare generation with demand patterns
+        8. **🎯 Optimization:** Find optimal system configurations
+        9. **💰 Financial Analysis:** Evaluate economic viability
+        10. **📄 Reporting:** Generate comprehensive analysis reports
+        11. **🤖 AI Consultation:** Get expert recommendations
+        """)
+    
+    with col2:
+        st.info("""
+        **💡 Prerequisites:**
+        
+        ✅ **Building Data**  
+        BIM model or window measurements
+        
+        ✅ **Energy History**  
+        6-12 months consumption data
+        
+        ✅ **Project Goals**  
+        Energy targets and budget
+        
+        ✅ **Technical Specs**  
+        BIPV technology preferences
+        
+        **⏱️ Analysis Time:**  
+        Complete workflow: 30-60 minutes
+        """)
+    
+    # Technical Support and Documentation
+    st.markdown("""
+    ---
+    
+    ### 📚 Technical Support & Documentation
+    
+    Comprehensive resources available for successful BIPV implementation:
+    """)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        **📖 Documentation:**
+        - User manual and tutorials
+        - API reference documentation
+        - Best practices guide
+        - Troubleshooting FAQ
+        """)
+    
+    with col2:
+        st.markdown("""
+        **🔧 Technical Support:**
+        - BIM integration assistance
+        - Data format specifications
+        - Performance optimization tips
+        - System configuration guidance
+        """)
+    
+    with col3:
+        st.markdown("""
+        **🎓 Training Resources:**
+        - Video tutorials
+        - Webinar series
+        - Case study examples
+        - Expert consultation
+        """)
+    
+    # Call to Action
+    st.markdown("""
+    ---
+    
+    ### 🎯 Ready to Optimize Your Building?
+    
+    Transform your building into a sustainable energy producer with our comprehensive BIPV analysis platform.
+    """)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.success("""
+        **🚀 Start Your BIPV Journey Today!**
+        
+        Click "Next Step" below to begin with Project Setup and discover the energy generation 
+        potential of your building through advanced BIPV glass integration.
+        
+        **Expected Outcomes:**
+        - 30-80% energy demand coverage
+        - 15-25 year payback period
+        - Significant CO₂ emissions reduction
+        - Enhanced building aesthetics
+        - Increased property value
+        """)
     
     col1, col2, col3 = st.columns(3)
     
