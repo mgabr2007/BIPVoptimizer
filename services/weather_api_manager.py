@@ -288,17 +288,24 @@ class WeatherAPIManager:
             if response.status_code == 200:
                 weather_data = response.json()
                 
+                # Get station coordinates from OpenWeatherMap response
+                station_lat = weather_data.get('coord', {}).get('lat', lat)
+                station_lon = weather_data.get('coord', {}).get('lon', lon)
+                
+                # Calculate actual distance to the weather station
+                distance_km = self._calculate_haversine_distance(lat, lon, station_lat, station_lon)
+                
                 # Format for consistency with TU Berlin format
                 formatted_data = {
                     'station_info': {
                         'name': weather_data.get('name', 'OpenWeatherMap Station'),
-                        'coordinates': f"POINT({lon} {lat})",
+                        'coordinates': f"POINT({station_lon} {station_lat})",
                         'site': {
                             'name': weather_data.get('name', 'OpenWeatherMap'),
                             'id': weather_data.get('id')
                         }
                     },
-                    'distance_km': 0,  # Direct coordinate match
+                    'distance_km': distance_km,  # Actual calculated distance to weather station
                     'current_weather': weather_data,
                     'api_source': 'openweathermap',
                     'data_quality': 'commercial_grade'
