@@ -780,6 +780,9 @@ def render_project_setup():
     # STEP 1.5: Configuration Review & Save
     st.subheader("5️⃣ Configuration Review & Save")
     
+    # Get location name from session state with fallback
+    location_name = st.session_state.get('location_name', current_location)
+    
     # Show current configuration before saving
     with st.expander("📋 Review Current Configuration", expanded=False):
         st.markdown(f"""
@@ -790,15 +793,20 @@ def render_project_setup():
         - Timezone: {timezone}
         """)
         
-        if stations_summary['total_stations'] > 0:
-            st.markdown(f"""
-            **Weather Data Sources:**
-            - Weather stations found: {stations_summary['total_stations']}
-            - Closest station: {stations_summary['closest_distance']:.1f} km
-            - Search radius: {search_radius} km
-            """)
-        else:
-            st.warning(f"No weather stations found within {search_radius} km")
+        # Get stations summary with error handling
+        try:
+            stations_summary = get_station_summary(nearby_stations)
+            if stations_summary['total_stations'] > 0:
+                st.markdown(f"""
+                **Weather Data Sources:**
+                - Weather stations found: {stations_summary['total_stations']}
+                - Closest station: {stations_summary['closest_distance']:.1f} km
+                - Search radius: {search_radius} km
+                """)
+            else:
+                st.warning(f"No weather stations found within {search_radius} km")
+        except Exception as e:
+            st.info(f"Weather station analysis: {len(nearby_stations)} stations within {search_radius} km")
     
     if st.button("💾 Save Project Configuration", key="save_project", type="primary"):
         # Prepare enhanced project data with weather station information
@@ -821,17 +829,28 @@ def render_project_setup():
         selected_station = st.session_state.get('selected_weather_station')
         if selected_station:
             project_data['selected_weather_station'] = selected_station
-            project_data['weather_station'] = {
-                'wmo_id': selected_station['wmo_id'],
-                'name': selected_station['name'],
-                'country': selected_station['country'],
-                'coordinates': {
-                    'lat': selected_station['latitude'],
-                    'lon': selected_station['longitude']
-                },
-                'elevation': selected_station['height'],
-                'distance_km': selected_station['distance_km']
-            }
+            # Handle both WMO station and API station formats
+            if 'wmo_id' in selected_station:
+                # WMO station format
+                project_data['weather_station'] = {
+                    'wmo_id': selected_station.get('wmo_id', 'N/A'),
+                    'name': selected_station.get('name', 'Unknown'),
+                    'country': selected_station.get('country', 'Unknown'),
+                    'coordinates': {
+                        'lat': selected_station.get('latitude', selected_lat),
+                        'lon': selected_station.get('longitude', selected_lon)
+                    },
+                    'elevation': selected_station.get('height', 0),
+                    'distance_km': selected_station.get('distance_km', 0)
+                }
+            else:
+                # API station format
+                project_data['weather_station'] = {
+                    'name': selected_station.get('name', 'Unknown'),
+                    'api_source': selected_station.get('api_source', 'unknown'),
+                    'data_quality': selected_station.get('data_quality', 'standard'),
+                    'distance_km': selected_station.get('distance_km', 0)
+                }
         
         # Get location-specific parameters
         location_params = get_location_solar_parameters(location_name)
@@ -888,21 +907,41 @@ def render_project_setup():
                 """)
                 
                 if selected_station:
-                    st.markdown(f"""
-                    **🌡️ Selected Weather Station**
-                    - **Station:** {selected_station['name']}
-                    - **Country:** {selected_station['country']}
-                    - **WMO ID:** {selected_station['wmo_id']}
-                    - **Distance:** {selected_station['distance_km']:.1f} km
-                    - **Elevation:** {selected_station['height']:.0f} m
-                    """)
+                    if 'wmo_id' in selected_station:
+                        # WMO station display
+                        st.markdown(f"""
+                        **🌡️ Selected Weather Station (WMO Reference)**
+                        - **Station:** {selected_station.get('name', 'Unknown')}
+                        - **Country:** {selected_station.get('country', 'Unknown')}
+                        - **WMO ID:** {selected_station.get('wmo_id', 'N/A')}
+                        - **Distance:** {selected_station.get('distance_km', 0):.1f} km
+                        - **Elevation:** {selected_station.get('height', 0):.0f} m
+                        """)
+                    else:
+                        # API station display
+                        st.markdown(f"""
+                        **🌡️ Selected Weather Station (API Source)**
+                        - **Station:** {selected_station.get('name', 'Unknown')}
+                        - **API Source:** {selected_station.get('api_source', 'unknown').replace('_', ' ').title()}
+                        - **Data Quality:** {selected_station.get('data_quality', 'standard').replace('_', ' ').title()}
+                        - **Distance:** {selected_station.get('distance_km', 0):.1f} km
+                        """)
                 else:
-                    st.warning(f"""
-                    **🌡️ Weather Station**
-                    - No station selected
-                    - Found: {stations_summary['total_stations']} stations
-                    - Radius: {search_radius} km
-                    """)
+                    try:
+                        stations_summary = get_station_summary(nearby_stations)
+                        st.warning(f"""
+                        **🌡️ Weather Station**
+                        - No station selected
+                        - Found: {stations_summary['total_stations']} stations
+                        - Radius: {search_radius} km
+                        """)
+                    except:
+                        st.warning(f"""
+                        **🌡️ Weather Station**
+                        - No station selected
+                        - Found: {len(nearby_stations)} stations
+                        - Radius: {search_radius} km
+                        """)
                 
                 # Data usage explanation
                 st.info("""
