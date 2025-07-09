@@ -1522,7 +1522,7 @@ def generate_step3_report():
                 <h2>📈 Expected BIPV Performance Indicators</h2>
                 <table class="data-table">
                     <tr><th>Performance Indicator</th><th>Calculated Value</th><th>Performance Assessment</th></tr>
-                    <tr><td>Expected Capacity Factor</td><td>{(annual_ghi / 8760 / 1.0 * 100):.1f}%</td><td>{'Excellent' if annual_ghi > 1600 else 'Good' if annual_ghi > 1200 else 'Moderate'} annual utilization</td></tr>
+                    <tr><td>Expected Capacity Factor</td><td>{(annual_ghi / 8760 / 1.0 * 100) if annual_ghi > 0 else 0:.1f}%</td><td>{'Excellent' if annual_ghi > 1600 else 'Good' if annual_ghi > 1200 else 'Moderate'} annual utilization</td></tr>
                     <tr><td>Peak Power Generation</td><td>{peak_sun_hours * 0.85:.1f} kWh/kWp/day</td><td>Daily energy yield per kW installed</td></tr>
                     <tr><td>Annual Yield Potential</td><td>{annual_ghi * 0.15:.0f} kWh/kWp</td><td>System-specific annual generation</td></tr>
                     <tr><td>Economic Viability</td><td>{'High' if annual_ghi > 1400 else 'Medium' if annual_ghi > 1000 else 'Lower'}</td><td>Investment attractiveness</td></tr>
@@ -1628,7 +1628,7 @@ def generate_step3_report():
                     <div class="metric-label">Lost Carbon Savings</div>
                 </div>
                 <div class="metric-card">
-                    <div class="metric-value">{adjusted_ghi / annual_ghi * 100:.1f}%</div>
+                    <div class="metric-value">{(adjusted_ghi / annual_ghi * 100) if annual_ghi > 0 else 0:.1f}%</div>
                     <div class="metric-label">Remaining Potential</div>
                 </div>
             </div>
