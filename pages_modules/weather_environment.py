@@ -5,6 +5,7 @@ import streamlit as st
 import os
 import math
 import pandas as pd
+import calendar
 from datetime import datetime, timedelta
 from core.solar_math import calculate_solar_position_iso, classify_solar_resource_iso, SimpleMath
 from services.io import get_weather_data_from_coordinates, fetch_openweather_forecast_data, find_nearest_wmo_station, save_project_data
@@ -229,18 +230,30 @@ def render_weather_environment():
         """)
     
     with col2:
-        # Display selected WMO station from Step 1
+        # Display selected weather station from Step 1
         selected_station = st.session_state.project_data.get('selected_weather_station')
         if selected_station:
-            st.info(f"""
-            **Selected WMO Station (Step 1):**
-            - Name: {selected_station['name']}
-            - Country: {selected_station['country']}
-            - WMO ID: {selected_station['wmo_id']}
-            - Distance: {selected_station['distance_km']:.1f} km
-            - Elevation: {selected_station['height']:.0f} m ASL
-            - Climate Zone: {_get_climate_zone(selected_station['latitude'])}
-            """)
+            # Handle both old WMO format and new API format
+            station_type = selected_station.get('station_type', 'unknown')
+            if station_type == 'api_station':
+                # New API-based station format
+                st.info(f"""
+                **Selected API Station (Step 1):**
+                - Name: {selected_station.get('name', 'Unknown')}
+                - API Source: {selected_station.get('api_source', 'Unknown').replace('_', ' ').title()}
+                - Data Quality: {selected_station.get('data_quality', 'Standard').replace('_', ' ').title()}
+                - Distance: {selected_station.get('distance_km', 0):.1f} km
+                """)
+            else:
+                # Legacy WMO station format
+                st.info(f"""
+                **Selected WMO Station (Step 1):**
+                - Name: {selected_station.get('name', 'Unknown')}
+                - Country: {selected_station.get('country', 'Unknown')}
+                - WMO ID: {selected_station.get('wmo_id', 'Unknown')}
+                - Distance: {selected_station.get('distance_km', 0):.1f} km
+                - Elevation: {selected_station.get('height', 0):.0f} m ASL
+                """)
         else:
             # Fallback to nearest station if none selected
             nearest_station = find_nearest_wmo_station(lat, lon)
@@ -288,7 +301,11 @@ def render_weather_environment():
                 selected_station = project_data.get('selected_weather_station', {})
                 
                 if selected_station:
-                    st.info(f"🌡️ Using weather station: {selected_station['name']} ({selected_station['country']}) - {selected_station['distance_km']:.1f} km")
+                    # Handle both API and WMO station formats
+                    station_name = selected_station.get('name', 'Unknown Station')
+                    station_country = selected_station.get('country', selected_station.get('api_source', 'Unknown').replace('_', ' ').title())
+                    distance = selected_station.get('distance_km', 0)
+                    st.info(f"🌡️ Using weather station: {station_name} ({station_country}) - {distance:.1f} km")
                 
                 # Fetch weather data using hybrid approach
                 import asyncio
