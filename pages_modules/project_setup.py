@@ -436,27 +436,6 @@ def render_project_setup():
     else:
         st.warning(f"No WMO stations found within {search_radius} km. You can still use API-specific stations below.")
     
-
-    
-    # Weather data integration
-    st.subheader("🌤️ Weather Data Integration")
-    
-    st.info("""
-    **How Your Setup Data Will Be Used:**
-    
-    📍 **Location & Weather Station Selection** → Prepared for Step 3
-    - Coordinates and selected WMO station will be ready for TMY generation in Step 3
-    - Weather station provides authentic climate data reference for your region
-    - Location enables accurate solar positioning calculations
-    
-    ✅ **Validation Check** → Confirms data access and location accuracy  
-    - Tests API connectivity for future weather data retrieval
-    - Verifies coordinate precision and current conditions
-    
-    💰 **Electricity Rates** → Financial Analysis (Steps 7-9)
-    - Import/export rates will be used for economic calculations including ROI, payback period, and cash flow analysis
-    """)
-    
     # STEP 1.4: Data Integration & Configuration
     st.subheader("4️⃣ Data Integration & Configuration")
     
