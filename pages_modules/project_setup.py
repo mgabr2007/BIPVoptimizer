@@ -519,38 +519,59 @@ def render_project_setup():
         # Dynamic station fetching based on selected API
         st.markdown("### 🌡️ Active Weather Data Source")
         
-        # Check if we need to fetch stations for selected API
-        if ('dynamic_stations' not in st.session_state or 
-            st.session_state.get('last_api_used') != selected_api):
-            
+        # Check if coordinates changed and clear station data if needed
+        current_coords = f"{selected_lat:.4f},{selected_lon:.4f}"
+        if st.session_state.get('last_station_coords') != current_coords:
+            st.session_state.pop('dynamic_stations', None)
+            st.session_state.pop('selected_weather_station', None)
+            st.session_state.last_station_coords = current_coords
+        
+        # Check if we need to fetch stations for selected API or coordinates changed
+        need_refresh = ('dynamic_stations' not in st.session_state or 
+                       st.session_state.get('last_api_used') != selected_api)
+        
+        if need_refresh:
+            # Show button to load stations
             if st.button("🔄 Load Stations from Selected API", key="load_stations_api"):
-                with st.spinner(f"Loading weather stations from {selected_api.replace('_', ' ').title()}..."):
-                    try:
-                        # Determine which API to use
-                        if selected_api == 'auto':
-                            api_to_use = coverage_info['recommended_api']
-                        else:
-                            api_to_use = selected_api
+                load_weather_stations = True
+            else:
+                load_weather_stations = False
+        else:
+            # Stations already loaded for current location and API
+            load_weather_stations = False
+            
+        # Auto-load stations if coordinates changed (without user clicking button)
+        if st.session_state.get('last_station_coords') == current_coords and not st.session_state.get('dynamic_stations'):
+            load_weather_stations = True
+            
+        if load_weather_stations:
+            with st.spinner(f"Loading weather stations from {selected_api.replace('_', ' ').title()}..."):
+                try:
+                    # Determine which API to use
+                    if selected_api == 'auto':
+                        api_to_use = coverage_info['recommended_api']
+                    else:
+                        api_to_use = selected_api
+                    
+                    import asyncio
+                    # Fetch stations from the selected API
+                    if api_to_use == 'tu_berlin':
+                        station_data = asyncio.run(weather_api_manager.fetch_tu_berlin_weather_data(selected_lat, selected_lon))
+                    else:
+                        station_data = asyncio.run(weather_api_manager.fetch_openweathermap_data(selected_lat, selected_lon))
+                    
+                    if 'error' not in station_data:
+                        # Store the station data
+                        st.session_state.dynamic_stations = [station_data]
+                        st.session_state.last_api_used = selected_api
+                        # Show unified success message for station loading
+                        st.success(f"✅ Loaded {api_to_use.replace('_', ' ').title()} station")
+                        st.rerun()
+                    else:
+                        st.error(f"❌ {station_data['error']}")
                         
-                        import asyncio
-                        # Fetch stations from the selected API
-                        if api_to_use == 'tu_berlin':
-                            station_data = asyncio.run(weather_api_manager.fetch_tu_berlin_weather_data(selected_lat, selected_lon))
-                        else:
-                            station_data = asyncio.run(weather_api_manager.fetch_openweathermap_data(selected_lat, selected_lon))
-                        
-                        if 'error' not in station_data:
-                            # Store the station data
-                            st.session_state.dynamic_stations = [station_data]
-                            st.session_state.last_api_used = selected_api
-                            # Show unified success message for station loading
-                            st.success(f"✅ Loaded {api_to_use.replace('_', ' ').title()} station")
-                            st.rerun()
-                        else:
-                            st.error(f"❌ {station_data['error']}")
-                            
-                    except Exception as e:
-                        st.error(f"❌ Failed to load stations: {str(e)}")
+                except Exception as e:
+                    st.error(f"❌ Failed to load stations: {str(e)}")
         
         # Display stations from selected API if available
         if st.session_state.get('dynamic_stations'):
