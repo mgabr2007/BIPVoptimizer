@@ -254,6 +254,210 @@ def render_weather_environment():
                 *Note: No station selected in Step 1. Using nearest available.*
                 """)
     
+    # Hybrid Weather API Integration
+    project_data = st.session_state.get('project_data', {})
+    selected_api = project_data.get('weather_api_choice', 'auto')
+    
+    # Import weather API manager
+    try:
+        from services.weather_api_manager import weather_api_manager
+        
+        # Display current API configuration
+        st.subheader("🔧 Weather API Configuration")
+        
+        # Show selected API and coverage info
+        if coordinates:
+            coverage_info = weather_api_manager.get_api_coverage_info(lat, lon)
+            current_api = selected_api if selected_api != 'auto' else coverage_info['recommended_api']
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.info(f"**Active API:** {current_api.replace('_', ' ').title()}")
+                st.info(f"**Coverage:** {coverage_info['recommendation']['coverage_area']}")
+            with col2:
+                if current_api == 'tu_berlin':
+                    st.success("🎓 Using TU Berlin Climate Portal")
+                    st.write("Academic-grade meteorological data")
+                else:
+                    st.info("🌍 Using OpenWeatherMap Global")
+                    st.write("Commercial weather service")
+        
+        # Enhanced TMY generation with hybrid API support
+        if st.button("🌤️ Generate TMY Weather Data (Hybrid API)", key="generate_tmy_hybrid"):
+            with st.spinner(f"Generating TMY data using {current_api.replace('_', ' ').title()} API..."):
+                selected_station = project_data.get('selected_weather_station', {})
+                
+                if selected_station:
+                    st.info(f"🌡️ Using weather station: {selected_station['name']} ({selected_station['country']}) - {selected_station['distance_km']:.1f} km")
+                
+                # Fetch weather data using hybrid approach
+                import asyncio
+                weather_data = asyncio.run(weather_api_manager.fetch_weather_data(lat, lon, selected_api))
+                
+                if 'error' not in weather_data:
+                    # Generate TMY using the hybrid approach
+                    tmy_df = weather_api_manager.generate_tmy_from_api_data(weather_data, lat, lon)
+                    
+                    if tmy_df is not None and len(tmy_df) > 0:
+                        # Convert DataFrame to list format for compatibility
+                        tmy_data = []
+                        for _, row in tmy_df.iterrows():
+                            tmy_data.append({
+                                'datetime': row['datetime'].isoformat() if hasattr(row['datetime'], 'isoformat') else str(row['datetime']),
+                                'temperature': row['temperature'],
+                                'humidity': row['humidity'],
+                                'pressure': row['pressure'],
+                                'dni': row['dni'],
+                                'dhi': row['dhi'],
+                                'ghi': row['ghi'],
+                                'wind_speed': row['wind_speed']
+                            })
+                        
+                        # Calculate comprehensive statistics
+                        annual_ghi = tmy_df['ghi'].sum() / 1000  # Convert to kWh/m²/year
+                        annual_dni = tmy_df['dni'].sum() / 1000
+                        annual_dhi = tmy_df['dhi'].sum() / 1000
+                        peak_sun_hours = annual_ghi / 365
+                        avg_temperature = tmy_df['temperature'].mean()
+                        
+                        # Create monthly solar profile
+                        tmy_df['month'] = tmy_df['datetime'].dt.month
+                        monthly_solar = {}
+                        for month in range(1, 13):
+                            month_data = tmy_df[tmy_df['month'] == month]
+                            if len(month_data) > 0:
+                                monthly_ghi = month_data['ghi'].sum() / 1000
+                                monthly_solar[calendar.month_name[month]] = monthly_ghi
+                        
+                        # Enhanced weather analysis structure
+                        weather_analysis = {
+                            'tmy_data': tmy_data,
+                            'summary_stats': {
+                                'annual_ghi': annual_ghi,
+                                'annual_dni': annual_dni,
+                                'annual_dhi': annual_dhi,
+                                'peak_sun_hours': peak_sun_hours,
+                                'avg_temperature': avg_temperature,
+                                'data_points': len(tmy_data)
+                            },
+                            'monthly_solar': monthly_solar,
+                            'station_info': weather_data.get('station_info', selected_station),
+                            'api_source': weather_data.get('api_source', current_api),
+                            'data_quality': weather_data.get('data_quality', 'standard'),
+                            'generation_method': f'hybrid_{current_api}_api',
+                            'coordinates': coordinates,
+                            'coverage_info': coverage_info,
+                            'analysis_complete': True
+                        }
+                        
+                        st.session_state.project_data['weather_analysis'] = weather_analysis
+                        st.session_state.weather_generated = True
+                        
+                        # Enhanced success message
+                        api_source = weather_data.get('api_source', current_api)
+                        st.success(f"✅ TMY Generation Complete using {api_source.replace('_', ' ').title()}!")
+                        
+                        # Display results
+                        st.subheader("📊 TMY Generation Results")
+                        
+                        # Summary statistics
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Annual GHI", f"{annual_ghi:.0f} kWh/m²", help="Global Horizontal Irradiance")
+                            st.metric("Annual DNI", f"{annual_dni:.0f} kWh/m²", help="Direct Normal Irradiance")
+                        with col2:
+                            st.metric("Annual DHI", f"{annual_dhi:.0f} kWh/m²", help="Diffuse Horizontal Irradiance")
+                            st.metric("Peak Sun Hours", f"{peak_sun_hours:.1f} hrs/day", help="Daily equivalent full sun hours")
+                        with col3:
+                            st.metric("Average Temperature", f"{avg_temperature:.1f}°C", help="Annual average temperature")
+                            st.metric("Data Points", f"{len(tmy_data):,}", help="Total hourly measurements")
+                        
+                        # Monthly solar profile chart
+                        if monthly_solar:
+                            st.subheader("☀️ Monthly Solar Profile")
+                            
+                            # Create ordered month list for chronological display
+                            import calendar
+                            month_names = [calendar.month_name[i] for i in range(1, 13)]
+                            month_values = [monthly_solar.get(month, 0) for month in month_names]
+                            
+                            monthly_df = pd.DataFrame({
+                                'Month': month_names,
+                                'Solar_Irradiance': month_values
+                            })
+                            
+                            import plotly.express as px
+                            fig = px.bar(
+                                monthly_df, 
+                                x='Month', 
+                                y='Solar_Irradiance',
+                                title='Monthly Solar Irradiance Distribution',
+                                labels={'Solar_Irradiance': 'Solar Irradiance (kWh/m²/month)', 'Month': 'Month'},
+                                category_orders={'Month': month_names}
+                            )
+                            fig.update_layout(
+                                xaxis_title="Month",
+                                yaxis_title="Solar Irradiance (kWh/m²/month)",
+                                showlegend=False
+                            )
+                            st.plotly_chart(fig, use_container_width=True)
+                        
+                        # Enhanced data quality information
+                        with st.expander("📈 Data Source & Methodology", expanded=False):
+                            station_info = weather_analysis['station_info']
+                            st.markdown(f"""
+                            **Data Source:** {api_source.replace('_', ' ').title()}
+                            **Data Quality:** {weather_analysis['data_quality'].replace('_', ' ').title()}
+                            **Generation Method:** {weather_analysis['generation_method']}
+                            
+                            **Station Details:**
+                            - Name: {station_info.get('site', {}).get('name', station_info.get('name', 'Unknown'))}
+                            - Distance: {weather_data.get('distance_km', 0):.1f} km from project
+                            - Coverage: {coverage_info['recommendation']['coverage_area']}
+                            
+                            **Quality Indicators:**
+                            - Data Coverage: Complete 8,760 hourly values
+                            - Temporal Resolution: 1-hour intervals
+                            - API Source: {api_source.replace('_', ' ').title()}
+                            - Methodology: {'Academic-grade' if 'tu_berlin' in api_source else 'Commercial-grade'} weather modeling
+                            """)
+                        
+                        # Save to database
+                        if 'project_id' in st.session_state:
+                            try:
+                                from database_manager import BIPVDatabaseManager
+                                db_manager = BIPVDatabaseManager()
+                                db_manager.save_weather_data(
+                                    st.session_state.project_data['project_id'],
+                                    weather_analysis
+                                )
+                                st.success("💾 Weather data saved to database")
+                            except Exception as e:
+                                st.warning(f"Database save failed: {str(e)}")
+                        
+                        # Workflow guidance
+                        st.info("""
+                        **Next Steps:**
+                        1. **Step 4:** Upload BIM building data (CSV format)
+                        2. **Step 5:** Generate radiation analysis using this TMY data
+                        3. **Continue:** Through the complete BIPV optimization workflow
+                        """)
+                        
+                    else:
+                        st.error("Failed to generate TMY data from weather source")
+                        
+                else:
+                    error_msg = weather_data.get('error', 'Unknown error')
+                    st.error(f"❌ Weather data fetch failed: {error_msg}")
+                    
+                    # Show fallback information
+                    if weather_data.get('fallback_recommended'):
+                        st.info(f"💡 Consider using {weather_data['fallback_recommended'].replace('_', ' ').title()} API as alternative")
+    
+    except ImportError:
+        st.error("❌ Weather API manager not available. Using OpenWeatherMap fallback.")
+        
+    # Fallback: Original TMY generation
     if api_key:
         if st.button("🔄 Generate TMY from Selected WMO Station (ISO 15927-4)", key="fetch_tmy"):
             with st.spinner("Generating TMY dataset using ISO 15927-4 standards from WMO station..."):

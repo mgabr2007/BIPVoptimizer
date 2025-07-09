@@ -472,53 +472,168 @@ def render_project_setup():
     st.markdown("**🔌 Electricity Rate Integration**")
     enable_live_rates = enhance_project_setup_with_live_rates()
     
-    # Current Weather Data
-    st.markdown("**🌤️ Current Weather Data**")
-    api_key = os.environ.get('OPENWEATHER_API_KEY')
+    # Weather API Selection and Validation
+    st.markdown("**🌤️ Weather API Selection & Validation**")
     
-    if api_key:
-        if st.button("Validate Location & Weather Access", key="fetch_weather"):
-            with st.spinner("Validating location and weather access..."):
-                try:
-                    # Validate coordinates
-                    if not (-90 <= selected_lat <= 90) or not (-180 <= selected_lon <= 180):
-                        st.error("Invalid coordinates. Please select a valid location on the map.")
-                        return
-                    
-                    # Fetch weather data
-                    weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
-                    
-                    if weather_data and weather_data.get('api_success'):
-                        # Clear and prominent success message
-                        st.success("🎉 **VALIDATION SUCCESSFUL!** Location and weather access confirmed!")
-                        st.info(f"📍 **Current conditions:** {weather_data['temperature']:.1f}°C • {weather_data['description'].title()}")
+    # Import the weather API manager
+    try:
+        from services.weather_api_manager import weather_api_manager
+        
+        # Get coverage information
+        coverage_info = weather_api_manager.get_api_coverage_info(selected_lat, selected_lon)
+        
+        # Display coverage analysis
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**📍 Location Coverage Analysis**")
+            st.info(f"**Coordinates:** {coverage_info['location']}")
+            
+            rec_api = coverage_info['recommended_api']
+            rec_details = coverage_info['recommendation']
+            
+            if rec_api == 'tu_berlin':
+                st.success(f"🎓 **Recommended:** TU Berlin Climate Portal")
+                st.write(f"**Coverage:** {rec_details['coverage_area']}")
+                st.write(f"**Quality:** {rec_details['coverage_level'].title()}")
+                st.write(f"**Reason:** {rec_details['reason']}")
+            else:
+                st.info(f"🌍 **Recommended:** OpenWeatherMap")
+                st.write(f"**Coverage:** {rec_details['coverage_area']}")
+                st.write(f"**Reason:** {rec_details['reason']}")
+        
+        with col2:
+            st.write("**⚙️ API Selection**")
+            
+            # API choice selection
+            api_options = {
+                'auto': f"🤖 Automatic ({coverage_info['recommended_api'].replace('_', ' ').title()})",
+                'tu_berlin': "🎓 TU Berlin Climate Portal",
+                'openweathermap': "🌍 OpenWeatherMap Global"
+            }
+            
+            selected_api = st.selectbox(
+                "Choose Weather Data Source:",
+                options=list(api_options.keys()),
+                format_func=lambda x: api_options[x],
+                index=0,
+                key="weather_api_choice"
+            )
+            
+            # Store selection
+            if 'project_data' not in st.session_state:
+                st.session_state.project_data = {}
+            st.session_state.project_data['weather_api_choice'] = selected_api
+        
+        # Weather service comparison
+        with st.expander("📊 Weather Service Comparison", expanded=False):
+            comparison_col1, comparison_col2 = st.columns(2)
+            
+            with comparison_col1:
+                st.write("**🎓 TU Berlin Climate Portal**")
+                tu_info = coverage_info['coverage_details']['tu_berlin']
+                st.write(f"**Available:** {'✅ Yes' if tu_info['available'] else '❌ Outside coverage'}")
+                st.write(f"**Quality:** {tu_info['quality']}")
+                st.write(f"**Coverage:** {tu_info['coverage']}")
+                st.write(f"**Sources:** {tu_info['data_sources']}")
+                
+                st.write("**Advantages:**")
+                for adv in tu_info['advantages']:
+                    st.write(f"• {adv}")
+            
+            with comparison_col2:
+                st.write("**🌍 OpenWeatherMap Global**")
+                ow_info = coverage_info['coverage_details']['openweathermap']
+                st.write(f"**Available:** ✅ Yes")
+                st.write(f"**Quality:** {ow_info['quality']}")
+                st.write(f"**Coverage:** {ow_info['coverage']}")
+                st.write(f"**Sources:** {ow_info['data_sources']}")
+                
+                st.write("**Advantages:**")
+                for adv in ow_info['advantages']:
+                    st.write(f"• {adv}")
+        
+        # Weather validation
+        weather_col1, weather_col2 = st.columns(2)
+        
+        with weather_col1:
+            if st.button("🌤️ Validate Weather Data Access", key="validate_weather_hybrid"):
+                with st.spinner(f"Testing {selected_api.replace('_', ' ').title()} API..."):
+                    try:
+                        # Validate coordinates
+                        if not (-90 <= selected_lat <= 90) or not (-180 <= selected_lon <= 180):
+                            st.error("Invalid coordinates. Please select a valid location on the map.")
+                            return
                         
-                        # Store weather data
-                        st.session_state.project_data = st.session_state.get('project_data', {})
-                        st.session_state.project_data['current_weather'] = weather_data
-                        st.session_state.project_data['weather_complete'] = True
+                        # Use the weather API manager for validation
+                        import asyncio
+                        weather_data = asyncio.run(weather_api_manager.fetch_weather_data(selected_lat, selected_lon, selected_api))
                         
-                        # Show detailed validation summary in a nice container
-                        with st.container():
-                            st.success(f"""
-                            ✅ **VALIDATION COMPLETE - READY TO PROCEED!**
+                        if 'error' in weather_data:
+                            st.error(f"❌ {weather_data['error']}")
+                        else:
+                            api_source = weather_data.get('api_source', selected_api)
+                            station_name = weather_data.get('station_info', {}).get('site', {}).get('name', 'Weather Station')
+                            distance = weather_data.get('distance_km', 0)
                             
-                            📍 Location: {current_location}
-                            🌡️ Weather API: ✅ Connected & Working
-                            📊 Data Quality: ✅ Valid
-                            🔄 TMY Generation: ✅ Ready for Step 3
+                            st.success(f"✅ {api_source.replace('_', ' ').title()} API accessible")
+                            st.info(f"📡 Station: {station_name}")
+                            if distance > 0:
+                                st.info(f"📏 Distance: {distance:.1f} km")
                             
-                            **Next Step:** Proceed to Step 2 (Historical Data) or Step 3 (Weather Integration)
-                            """)
-                        
-                    else:
-                        st.error("❌ Failed to retrieve weather data. Please check your internet connection or try again.")
-                        
-                except Exception as e:
-                    st.error(f"❌ Validation failed: {str(e)}")
-                    st.info("Please try selecting a different location or check your internet connection.")
-    else:
-        st.warning("⚠️ OpenWeather API key not configured. Weather validation unavailable.")
+                            # Store validation
+                            st.session_state.weather_validated = True
+                            st.session_state.project_data['weather_validation'] = weather_data
+                            st.session_state.project_data['weather_complete'] = True
+                            
+                            # Show detailed validation summary
+                            with st.container():
+                                st.success(f"""
+                                ✅ **VALIDATION COMPLETE - READY TO PROCEED!**
+                                
+                                📍 Location: {current_location}
+                                🌡️ Weather API: ✅ {api_source.replace('_', ' ').title()}
+                                📊 Data Quality: ✅ {weather_data.get('data_quality', 'Valid').replace('_', ' ').title()}
+                                🔄 TMY Generation: ✅ Ready for Step 3
+                                
+                                **Next Step:** Proceed to Step 2 (Historical Data) or Step 3 (Weather Integration)
+                                """)
+                            
+                    except Exception as e:
+                        st.error(f"❌ Weather API validation failed: {str(e)}")
+                        st.info("Please try selecting a different location or check your internet connection.")
+        
+        with weather_col2:
+            if st.session_state.get('weather_validated', False):
+                validation_data = st.session_state.get('project_data', {}).get('weather_validation', {})
+                api_source = validation_data.get('api_source', 'unknown')
+                data_quality = validation_data.get('data_quality', 'standard')
+                
+                st.success("✅ Weather data access confirmed")
+                st.info(f"🔧 Using: {api_source.replace('_', ' ').title()}")
+                st.info(f"📊 Quality: {data_quality.replace('_', ' ').title()}")
+                st.info("💡 Ready for TMY generation in Step 3")
+            else:
+                st.info("🔄 Click validate to test weather access")
+                
+    except ImportError:
+        st.error("❌ Weather API manager not available. Using OpenWeatherMap fallback.")
+        # Fallback to original OpenWeatherMap only
+        api_key = os.environ.get('OPENWEATHER_API_KEY')
+        if api_key:
+            if st.button("🌤️ Validate Weather Access (OpenWeatherMap)", key="validate_weather_fallback"):
+                with st.spinner("Validating OpenWeatherMap access..."):
+                    try:
+                        weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
+                        if weather_data and weather_data.get('api_success'):
+                            st.success("✅ OpenWeatherMap API accessible")
+                            st.session_state.weather_validated = True
+                        else:
+                            st.error("❌ Failed to retrieve weather data")
+                    except Exception as e:
+                        st.error(f"❌ Validation failed: {str(e)}")
+        else:
+            st.warning("⚠️ OpenWeather API key not configured")
     
     # Data Usage Information
     with st.expander("📊 How This Data Will Be Used", expanded=False):
