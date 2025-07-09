@@ -482,6 +482,9 @@ def render_project_setup():
         # Get coverage information
         coverage_info = weather_api_manager.get_api_coverage_info(selected_lat, selected_lon)
         
+        # Store coverage info in session state for save function access
+        st.session_state.coverage_info = coverage_info
+        
         # Display coverage analysis
         col1, col2 = st.columns(2)
         
@@ -618,6 +621,13 @@ def render_project_setup():
                 
     except ImportError:
         st.error("❌ Weather API manager not available. Using OpenWeatherMap fallback.")
+        
+        # Set default coverage info for fallback
+        st.session_state.coverage_info = {
+            'coverage_level': 'standard',
+            'recommended_api': 'openweathermap'
+        }
+        
         # Fallback to original OpenWeatherMap only
         api_key = os.environ.get('OPENWEATHER_API_KEY')
         if api_key:
@@ -775,8 +785,8 @@ def render_project_setup():
                 
                 **🌤️ Weather API Configuration**
                 - **API Choice:** {project_data['weather_api_choice'].replace('_', ' ').title()}
-                - **Coverage Level:** {coverage_info['coverage_level'].replace('_', ' ').title()}
-                - **Recommended API:** {coverage_info['recommended_api'].replace('_', ' ').title()}
+                - **Coverage Level:** {st.session_state.get('coverage_info', {}).get('coverage_level', 'standard').replace('_', ' ').title()}
+                - **Recommended API:** {st.session_state.get('coverage_info', {}).get('recommended_api', 'auto').replace('_', ' ').title()}
                 """)
                 
                 if selected_station:
