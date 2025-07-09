@@ -154,7 +154,7 @@ def get_location_from_coordinates(lat, lon):
         return f"Location at {lat:.4f}°, {lon:.4f}°"
     
     except Exception as e:
-
+        st.error(f"Error getting location name: {str(e)}")
         return f"Location at {lat:.4f}°, {lon:.4f}°"
 
 
@@ -162,58 +162,65 @@ def render_project_setup():
     """Render the project setup module with configuration inputs."""
     
     # Add OptiSunny character header image
-    st.image("attached_assets/step01_1751436847828.png", width=400)
+    try:
+        st.image("attached_assets/step01_1751436847828.png", width=400)
+    except:
+        st.info("🏗️ **Step 1: Project Setup & Configuration**")
     
     st.header("Step 1: Project Setup & Configuration")
     st.markdown("Configure your BIPV optimization project with location selection and data integration.")
     
+    # Initialize session state
+    if 'project_data' not in st.session_state:
+        st.session_state.project_data = {}
+    if 'map_coordinates' not in st.session_state:
+        st.session_state.map_coordinates = {'lat': 52.5200, 'lng': 13.4050}
+    
     # STEP 1.1: Basic Project Information
     st.subheader("1️⃣ Project Information")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        project_name = st.text_input(
-            "Project Name",
-            value="BIPV Optimization Project",
-            help="Enter a descriptive name for your BIPV analysis project",
-            key="project_name_input"
-        )
-    
-    with col2:
-        # Auto-set currency to EUR (standardized)
-        currency = "EUR"
-        st.text_input(
-            "Currency (Fixed)",
-            value="EUR",
-            disabled=True,
-            help="All financial calculations use EUR with automatic exchange rate conversion",
-            key="currency_display"
-        )
+    with st.container():
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            project_name = st.text_input(
+                "Project Name",
+                value="BIPV Optimization Project",
+                help="Enter a descriptive name for your BIPV analysis project",
+                key="project_name_input"
+            )
+        
+        with col2:
+            # Auto-set currency to EUR (standardized)
+            currency = "EUR"
+            st.text_input(
+                "Currency (Fixed)",
+                value="EUR",
+                disabled=True,
+                help="All financial calculations use EUR with automatic exchange rate conversion",
+                key="currency_display"
+            )
     
     # STEP 1.2: Location Selection
     st.subheader("2️⃣ Location Selection")
     
-    # Initialize map with default coordinates (Berlin)
-    if 'map_coordinates' not in st.session_state:
-        st.session_state.map_coordinates = {'lat': 52.5200, 'lng': 13.4050}
-    
-    # Location method selection
-    location_method = st.radio(
-        "Choose Location Selection Method",
-        ["Interactive Map", "Manual Coordinates"],
-        help="Select how to specify your project location",
-        key="location_method",
-        horizontal=True
-    )
-    
-    # Configuration settings in balanced layout
-    search_radius = st.selectbox(
-        "Weather Station Search Radius (km)",
-        [100, 200, 300, 500, 750, 1000],
-        index=3,
-        help="Maximum distance to search for meteorological stations",
-        key="search_radius"
-    )
+    with st.container():
+        # Location method selection
+        location_method = st.radio(
+            "Choose Location Selection Method",
+            ["Interactive Map", "Manual Coordinates"],
+            help="Select how to specify your project location",
+            key="location_method",
+            horizontal=True
+        )
+        
+        # Configuration settings
+        search_radius = st.selectbox(
+            "Weather Station Search Radius (km)",
+            [100, 200, 300, 500, 750, 1000],
+            index=3,
+            help="Maximum distance to search for meteorological stations",
+            key="search_radius"
+        )
     
     # Location input based on selected method
     if location_method == "Manual Coordinates":
@@ -243,12 +250,16 @@ def render_project_setup():
             # Update location name based on new coordinates
             st.session_state.location_name = get_location_from_coordinates(manual_lat, manual_lon)
     
-    # Find nearby weather stations
-    nearby_stations = find_nearest_stations(
-        st.session_state.map_coordinates['lat'], 
-        st.session_state.map_coordinates['lng'], 
-        max_distance_km=search_radius
-    )
+    # Find nearby weather stations with error handling
+    try:
+        nearby_stations = find_nearest_stations(
+            st.session_state.map_coordinates['lat'], 
+            st.session_state.map_coordinates['lng'], 
+            max_distance_km=search_radius
+        )
+    except Exception as e:
+        st.error(f"Error finding weather stations: {str(e)}")
+        nearby_stations = pd.DataFrame()  # Empty dataframe fallback
     
     # Create stable folium map with weather stations (prevent continuous refreshing)
     current_zoom = st.session_state.get('map_zoom', 13)
@@ -305,28 +316,34 @@ def render_project_setup():
     </style>
     """, unsafe_allow_html=True)
     
-    # Display stable map with minimal refresh during panning
+    # Display map with proper error handling
     map_data = None
     if location_method == "Interactive Map":
         # Initialize map processing flag
         if 'map_processing' not in st.session_state:
             st.session_state.map_processing = False
             
-        # Use stable map rendering with maximum stability for panning
-        with st.container():
-            # Create a unique key to prevent unnecessary re-renders
-            map_key = f"location_map_{st.session_state.get('location_method', 'interactive')}"
-            
-            map_data = st_folium(
-                m, 
-                key=map_key, 
-                height=450, 
-                width=700,
-                returned_objects=["last_clicked"],  # Only track clicks
-                feature_group_to_add=None,
-                debug=False,
-                use_container_width=False  # Fixed width to prevent resizing issues
-            )
+        # Use stable map rendering with error handling
+        try:
+            with st.container():
+                st.info("📍 Click on the map to select your project location")
+                
+                # Create a unique key to prevent unnecessary re-renders
+                map_key = f"location_map_{st.session_state.get('location_method', 'interactive')}"
+                
+                map_data = st_folium(
+                    m, 
+                    key=map_key, 
+                    height=450, 
+                    width=700,
+                    returned_objects=["last_clicked"],  # Only track clicks
+                    feature_group_to_add=None,
+                    debug=False,
+                    use_container_width=False  # Fixed width to prevent resizing issues
+                )
+        except Exception as e:
+            st.error(f"Error displaying map: {str(e)}")
+            st.info("Please use Manual Coordinates option below")
         
         # Only process actual clicks, not pan/zoom interactions
         if (map_data and 
@@ -387,73 +404,100 @@ def render_project_setup():
     selected_lat = st.session_state.map_coordinates['lat']
     selected_lon = st.session_state.map_coordinates['lng']
     
-    # Get current location name and weather info
-    current_location = st.session_state.get('location_name', 'Loading location...')
-    timezone = determine_timezone_from_coordinates(selected_lat, selected_lon)
-    stations_summary = get_station_summary(nearby_stations)
+    # Get current location name and weather info with error handling
+    try:
+        current_location = st.session_state.get('location_name', 'Loading location...')
+        timezone = determine_timezone_from_coordinates(selected_lat, selected_lon)
+        stations_summary = get_station_summary(nearby_stations)
+    except Exception as e:
+        st.error(f"Error processing location data: {str(e)}")
+        current_location = f"Location at {selected_lat:.4f}°, {selected_lon:.4f}°"
+        timezone = "UTC"
+        stations_summary = {'total_stations': 0, 'closest_distance': 0}
     
     # Show current coordinates for reference
-    st.info(f"Selected coordinates: {selected_lat:.4f}°, {selected_lon:.4f}° ({current_location})")
+    with st.container():
+        st.info(f"📍 **Selected Location:** {current_location}")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write(f"**Coordinates:** {selected_lat:.4f}°, {selected_lon:.4f}°")
+        with col2:
+            st.write(f"**Timezone:** {timezone}")
     
-    # Show both WMO stations and API-specific stations as separate options
-    if not nearby_stations.empty:
-        st.markdown("**🏛️ WMO CLIMAT Database Stations**")
-        st.info("These are official WMO weather stations from the global CLIMAT database")
-        
-        # Station selection dropdown
-        station_options = []
-        station_details = {}
-        
-        for idx, station in nearby_stations.head(5).iterrows():  # Show top 5 closest
-            display_name = f"WMO: {station['name']} ({station['country']}) - {station['distance_km']:.1f} km"
-            station_options.append(display_name)
-            # Convert to dict but ensure distance_km maintains precision
-            station_dict = station.to_dict()
-            station_dict['distance_km'] = float(station['distance_km'])  # Ensure proper float precision
-            station_dict['station_type'] = 'wmo_station'
-            station_details[display_name] = station_dict
-        
-        selected_wmo_station = st.selectbox(
-            "Choose WMO Weather Station",
-            ["None"] + station_options,
-            help="Select from official WMO CLIMAT database stations",
-            key="wmo_weather_station_selector"
-        )
-        
-        if selected_wmo_station and selected_wmo_station != "None":
-            selected_station_data = station_details[selected_wmo_station]
+    # Weather station selection with improved error handling
+    with st.container():
+        if not nearby_stations.empty:
+            st.markdown("### 🏛️ WMO CLIMAT Database Stations")
+            st.info(f"Found {len(nearby_stations)} official WMO weather stations within {search_radius} km")
             
-            # Compact station details in a single info box
-            st.info(f"""
-            **Selected Station:** {selected_station_data['name']} (WMO ID: {selected_station_data['wmo_id']})  
-            **Location:** {selected_station_data['country']} • {selected_station_data['latitude']:.4f}°, {selected_station_data['longitude']:.4f}° • {selected_station_data['height']:.0f}m elevation  
-            **Distance:** {selected_station_data['distance_km']:.1f} km from project location
-            """)
+            # Station selection dropdown
+            station_options = []
+            station_details = {}
             
-            # Save selected station to session state
-            st.session_state.selected_weather_station = selected_station_data
-    
-    else:
-        st.warning(f"No WMO stations found within {search_radius} km. You can still use API-specific stations below.")
+            try:
+                for idx, station in nearby_stations.head(5).iterrows():  # Show top 5 closest
+                    display_name = f"{station['name']} ({station['country']}) - {station['distance_km']:.1f} km"
+                    station_options.append(display_name)
+                    # Convert to dict but ensure distance_km maintains precision
+                    station_dict = station.to_dict()
+                    station_dict['distance_km'] = float(station['distance_km'])
+                    station_dict['station_type'] = 'wmo_station'
+                    station_details[display_name] = station_dict
+                
+                selected_wmo_station = st.selectbox(
+                    "Choose WMO Weather Station",
+                    ["None"] + station_options,
+                    help="Select from official WMO CLIMAT database stations",
+                    key="wmo_weather_station_selector"
+                )
+                
+                if selected_wmo_station and selected_wmo_station != "None":
+                    selected_station_data = station_details[selected_wmo_station]
+                    
+                    # Compact station details with better formatting
+                    with st.container():
+                        st.success(f"✅ **Selected:** {selected_station_data['name']}")
+                        info_col1, info_col2 = st.columns(2)
+                        with info_col1:
+                            st.write(f"**WMO ID:** {selected_station_data['wmo_id']}")
+                            st.write(f"**Country:** {selected_station_data['country']}")
+                        with info_col2:
+                            st.write(f"**Distance:** {selected_station_data['distance_km']:.1f} km")
+                            st.write(f"**Elevation:** {selected_station_data['height']:.0f} m")
+                    
+                    # Save selected station to session state
+                    st.session_state.selected_weather_station = selected_station_data
+                    
+            except Exception as e:
+                st.error(f"Error processing weather stations: {str(e)}")
+        
+        else:
+            st.warning(f"⚠️ No WMO stations found within {search_radius} km")
+            st.info("💡 Try increasing the search radius or use API-specific stations below")
     
     # STEP 1.4: Data Integration & Configuration
     st.subheader("4️⃣ Data Integration & Configuration")
     
-    # Location name input
-    default_location = st.session_state.get('location_name', "Berlin, Germany")
-    location_name = st.text_input(
-        "Project Location Name",
-        value=default_location,
-        help="Location name auto-detected from map selection. You can modify if needed.",
-        key="location_name_input"
-    )
-    
-    # Electricity Rate Integration
-    st.markdown("**🔌 Electricity Rate Integration**")
-    enable_live_rates = enhance_project_setup_with_live_rates()
-    
-    # Weather API Selection and Validation
-    st.markdown("**🌤️ Weather API Selection & Validation**")
+    with st.container():
+        # Location name input
+        default_location = st.session_state.get('location_name', "Berlin, Germany")
+        location_name = st.text_input(
+            "Project Location Name",
+            value=default_location,
+            help="Location name auto-detected from map selection. You can modify if needed.",
+            key="location_name_input"
+        )
+        
+        # Electricity Rate Integration
+        st.markdown("### 🔌 Electricity Rate Integration")
+        try:
+            enable_live_rates = enhance_project_setup_with_live_rates()
+        except Exception as e:
+            st.error(f"Error loading electricity rates: {str(e)}")
+            st.info("Using default rates for calculations")
+        
+        # Weather API Selection and Validation  
+        st.markdown("### 🌤️ Weather API Selection & Validation")
     
     # Import the weather API manager
     try:
