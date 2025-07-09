@@ -188,7 +188,7 @@ def display_rate_source_info(rates_data):
 def enhance_project_setup_with_live_rates():
     """Enhancement to project setup for live electricity rate fetching"""
     
-    st.subheader("⚡ Real-Time Electricity Rate Integration")
+
     
     enable_live_rates = st.checkbox(
         "Enable Real-Time Rate Fetching",
