@@ -96,6 +96,79 @@ class WeatherAPIManager:
         
         return info
     
+    def _calculate_haversine_distance(self, lat1, lon1, lat2, lon2):
+        """
+        Calculate the great circle distance between two points 
+        on the earth (specified in decimal degrees) using Haversine formula
+        Returns distance in kilometers
+        """
+        import math
+        
+        # Convert decimal degrees to radians
+        lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+        
+        # Haversine formula
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+        c = 2 * math.asin(math.sqrt(a))
+        
+        # Radius of earth in kilometers
+        r = 6371
+        
+        return c * r
+    
+    def _utm_to_wgs84(self, easting, northing, zone_number, zone_letter):
+        """
+        Convert UTM coordinates to WGS84 lat/lon
+        Simplified conversion for Berlin area (Zone 33N)
+        """
+        import math
+        
+        # Constants for WGS84
+        a = 6378137.0  # Semi-major axis
+        e = 0.0818191908426  # First eccentricity
+        e1sq = 0.00673949674228  # First eccentricity squared
+        k0 = 0.9996  # Scale factor
+        
+        # For Zone 33N (Berlin)
+        lon_origin = math.radians(15)  # Central meridian 15°E
+        
+        # Remove false easting
+        x = easting - 500000.0
+        
+        # Calculate latitude
+        y = northing
+        
+        # Footprint latitude
+        M = y / k0
+        mu = M / (a * (1 - e1sq/4 - 3*e1sq*e1sq/64 - 5*e1sq*e1sq*e1sq/256))
+        
+        e1 = (1 - math.sqrt(1 - e1sq)) / (1 + math.sqrt(1 - e1sq))
+        
+        J1 = (3*e1/2 - 27*e1*e1*e1/32)
+        J2 = (21*e1*e1/16 - 55*e1*e1*e1*e1/32)
+        J3 = (151*e1*e1*e1/96)
+        
+        fp = mu + J1*math.sin(2*mu) + J2*math.sin(4*mu) + J3*math.sin(6*mu)
+        
+        # Calculate coefficients
+        C1 = e1sq * math.cos(fp) * math.cos(fp)
+        T1 = math.tan(fp) * math.tan(fp)
+        R1 = a * (1 - e1sq) / math.pow(1 - e1sq * math.sin(fp) * math.sin(fp), 1.5)
+        N1 = a / math.sqrt(1 - e1sq * math.sin(fp) * math.sin(fp))
+        D = x / (N1 * k0)
+        
+        # Calculate latitude
+        lat = fp - (N1 * math.tan(fp) / R1) * (D*D/2 - (5 + 3*T1 + 10*C1 - 4*C1*C1 - 9*e1sq)*D*D*D*D/24 + (61 + 90*T1 + 298*C1 + 45*T1*T1 - 252*e1sq - 3*C1*C1)*D*D*D*D*D*D/720)
+        lat = math.degrees(lat)
+        
+        # Calculate longitude  
+        lon = lon_origin + (D - (1 + 2*T1 + C1)*D*D*D/6 + (5 - 2*C1 + 28*T1 - 3*C1*C1 + 8*e1sq + 24*T1*T1)*D*D*D*D*D/120) / math.cos(fp)
+        lon = math.degrees(lon)
+        
+        return lat, lon
+    
     async def fetch_tu_berlin_weather_data(self, lat, lon, start_date=None, end_date=None):
         """Fetch weather data from TU Berlin API"""
         try:
@@ -141,34 +214,15 @@ class WeatherAPIManager:
                         if isinstance(coords_parsed, list) and len(coords_parsed) > 0:
                             x, y = coords_parsed[0]  # Get first coordinate pair
                             
-                            # Convert EPSG:25833 (UTM Zone 33N) to WGS84
-                            # More accurate conversion for Berlin area
-                            # EPSG:25833 parameters for Berlin: False Easting = 500000, False Northing = 0
-                            # Central meridian = 15°E, latitude of origin = 0°
+                            # Convert EPSG:25833 (UTM Zone 33N) to WGS84 using proper UTM conversion
+                            # EPSG:25833 parameters: Central meridian = 15°E, False Easting = 500000, False Northing = 0
+                            station_lat, station_lon = self._utm_to_wgs84(x, y, 33, 'N')
                             
-                            # UTM to lat/lon conversion (simplified for Berlin area)
-                            # This is more accurate than the previous approximation
-                            a = 6378137.0  # WGS84 semi-major axis
-                            e2 = 0.00669438  # WGS84 first eccentricity squared
-                            k0 = 0.9996  # UTM scale factor
+                            # Calculate distance using Haversine formula for accurate great-circle distance
+                            distance_km = self._calculate_haversine_distance(target_lat, target_lon, station_lat, station_lon)
                             
-                            # Remove false easting and false northing
-                            x_norm = x - 500000.0
-                            y_norm = y
-                            
-                            # Convert to geographic coordinates (simplified)
-                            # This is approximate but much more accurate for the Berlin area
-                            lat_rad = y_norm / (a * k0)
-                            lon_rad = x_norm / (a * k0) + 0.261799  # 15° in radians (central meridian)
-                            
-                            station_lat = lat_rad * 180.0 / 3.14159265359
-                            station_lon = lon_rad * 180.0 / 3.14159265359
-                            
-                            # Calculate distance
-                            distance = ((target_lat - station_lat) ** 2 + (target_lon - station_lon) ** 2) ** 0.5
-                            
-                            if distance < min_distance:
-                                min_distance = distance
+                            if distance_km < min_distance:
+                                min_distance = distance_km
                                 nearest_station = station
                                 
                     except (json.JSONDecodeError, ValueError, IndexError) as e:
@@ -191,7 +245,7 @@ class WeatherAPIManager:
                     
                     weather_data = {
                         'station_info': nearest_station,
-                        'distance_km': min_distance * 111,  # Rough conversion to km
+                        'distance_km': min_distance,  # Already in km from Haversine calculation
                         'temperature_datasets': temp_response.json() if temp_response.status_code == 200 else None,
                         'api_source': 'tu_berlin',
                         'data_quality': 'academic_grade'
