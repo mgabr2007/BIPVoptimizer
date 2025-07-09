@@ -49,7 +49,8 @@ class BIPVDatabaseManager:
                     cursor.execute("""
                         UPDATE projects SET 
                             location = %s, latitude = %s, longitude = %s, 
-                            timezone = %s, currency = %s, updated_at = CURRENT_TIMESTAMP
+                            timezone = %s, currency = %s, weather_api_choice = %s, 
+                            location_method = %s, search_radius = %s, updated_at = CURRENT_TIMESTAMP
                         WHERE project_name = %s
                         RETURNING id
                     """, (
@@ -58,13 +59,16 @@ class BIPVDatabaseManager:
                         project_data.get('coordinates', {}).get('lon'),
                         project_data.get('timezone'),
                         project_data.get('currency', 'EUR'),
+                        project_data.get('weather_api_choice', 'auto'),
+                        project_data.get('location_method', 'map'),
+                        project_data.get('search_radius', 500),
                         project_data.get('project_name')
                     ))
                 else:
                     # Insert new project
                     cursor.execute("""
-                        INSERT INTO projects (project_name, location, latitude, longitude, timezone, currency)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        INSERT INTO projects (project_name, location, latitude, longitude, timezone, currency, weather_api_choice, location_method, search_radius)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
                     """, (
                         project_data.get('project_name'),
@@ -72,7 +76,10 @@ class BIPVDatabaseManager:
                         project_data.get('coordinates', {}).get('lat'),
                         project_data.get('coordinates', {}).get('lon'),
                         project_data.get('timezone'),
-                        project_data.get('currency', 'EUR')
+                        project_data.get('currency', 'EUR'),
+                        project_data.get('weather_api_choice', 'auto'),
+                        project_data.get('location_method', 'map'),
+                        project_data.get('search_radius', 500)
                     ))
                 
                 project_id = cursor.fetchone()[0]

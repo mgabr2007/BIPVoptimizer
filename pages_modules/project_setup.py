@@ -705,7 +705,8 @@ def render_project_setup():
             'currency': currency,
             'setup_complete': True,
             'location_method': location_method,
-            'search_radius': search_radius
+            'search_radius': search_radius,
+            'weather_api_choice': st.session_state.get('weather_api_choice', 'auto')
         }
         
         # Add selected weather station data if available
@@ -771,6 +772,11 @@ def render_project_setup():
                 - **Import Rate:** €{electricity_rates['import_rate']:.3f}/kWh
                 - **Export Rate:** €{electricity_rates['export_rate']:.3f}/kWh
                 - **Rate Source:** {electricity_rates.get('source', 'database_estimates').replace('_', ' ').title()}
+                
+                **🌤️ Weather API Configuration**
+                - **API Choice:** {project_data['weather_api_choice'].replace('_', ' ').title()}
+                - **Coverage Level:** {coverage_info['coverage_level'].replace('_', ' ').title()}
+                - **Recommended API:** {coverage_info['recommended_api'].replace('_', ' ').title()}
                 """)
                 
                 if selected_station:

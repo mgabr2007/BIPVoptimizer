@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS projects (
     longitude DECIMAL(10, 6),
     timezone VARCHAR(100),
     currency VARCHAR(3) DEFAULT 'EUR',
+    weather_api_choice VARCHAR(50) DEFAULT 'auto',
+    location_method VARCHAR(50),
+    search_radius INTEGER DEFAULT 500,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
