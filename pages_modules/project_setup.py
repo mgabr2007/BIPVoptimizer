@@ -213,14 +213,8 @@ def render_project_setup():
             horizontal=True
         )
         
-        # Configuration settings
-        search_radius = st.selectbox(
-            "Weather Station Search Radius (km)",
-            [100, 200, 300, 500, 750, 1000],
-            index=3,
-            help="Maximum distance to search for meteorological stations",
-            key="search_radius"
-        )
+        # Use fixed search radius to find nearest stations automatically
+        search_radius = 500  # km - reasonable radius to find nearest stations
     
     # Location input based on selected method
     if location_method == "Manual Coordinates":
@@ -520,7 +514,7 @@ def render_project_setup():
                 for idx, station in nearby_stations.head(3).iterrows():
                     st.write(f"• **{station['name']}** ({station['country']}) - {station['distance_km']:.1f} km")
         else:
-            st.info(f"ℹ️ No WMO reference stations found within {search_radius} km radius")
+            st.info(f"ℹ️ No WMO reference stations found in the area")
         
         # Dynamic station fetching based on selected API
         st.markdown("### 🌡️ Active Weather Data Source")
@@ -776,7 +770,7 @@ def render_project_setup():
             'currency': currency,
             'setup_complete': True,
             'location_method': location_method,
-            'search_radius': search_radius,
+
             'weather_api_choice': st.session_state.get('weather_api_choice', 'auto')
         }
         
