@@ -32,21 +32,26 @@ class WeatherAPIManager:
             'lon_max': 15.0   # Eastern Brandenburg/Saxony
         }
         
+        # Note: TU Berlin API is currently not accessible, defaulting to OpenWeatherMap
+        # This will be updated when the API becomes available again
+        
         if (berlin_bounds['lat_min'] <= lat <= berlin_bounds['lat_max'] and 
             berlin_bounds['lon_min'] <= lon <= berlin_bounds['lon_max']):
             return {
-                'recommended_api': 'tu_berlin',
-                'coverage_level': 'optimal',
+                'recommended_api': 'openweathermap',
+                'coverage_level': 'high',
                 'coverage_area': 'Berlin/Brandenburg',
-                'reason': 'High-precision academic data available'
+                'reason': 'Global weather data with high accuracy for Berlin area',
+                'note': 'TU Berlin API temporarily unavailable'
             }
         elif (germany_bounds['lat_min'] <= lat <= germany_bounds['lat_max'] and 
               germany_bounds['lon_min'] <= lon <= germany_bounds['lon_max']):
             return {
-                'recommended_api': 'tu_berlin',
+                'recommended_api': 'openweathermap',
                 'coverage_level': 'good',
                 'coverage_area': 'Germany',
-                'reason': 'German meteorological network coverage'
+                'reason': 'Reliable global weather data for German locations',
+                'note': 'TU Berlin API temporarily unavailable'
             }
         else:
             return {
@@ -65,11 +70,12 @@ class WeatherAPIManager:
             'recommended_api': coverage['recommended_api'],
             'coverage_details': {
                 'tu_berlin': {
-                    'available': coverage['recommended_api'] == 'tu_berlin',
+                    'available': False,  # Currently unavailable
                     'quality': 'Academic-grade meteorological data',
-                    'coverage': coverage['coverage_area'] if coverage['recommended_api'] == 'tu_berlin' else 'Outside coverage area',
+                    'coverage': 'Temporarily unavailable',
                     'data_sources': 'TU Berlin Climate Portal, German Weather Service',
                     'temporal_resolution': 'High-frequency measurements',
+                    'status': 'API endpoint not accessible',
                     'advantages': [
                         'Institutional research-grade data',
                         'Local atmospheric modeling',
@@ -99,15 +105,30 @@ class WeatherAPIManager:
     async def fetch_tu_berlin_weather_data(self, lat, lon, start_date=None, end_date=None):
         """Fetch weather data from TU Berlin API"""
         try:
-            # Find nearest station
-            stations_url = f"{self.tu_berlin_base_url}/dpbase/geolocation/"
+            # Try multiple potential endpoints
+            endpoints = [
+                f"{self.tu_berlin_base_url}/dpbase/geolocation/",
+                f"{self.tu_berlin_base_url}/api/geolocation/",
+                f"{self.tu_berlin_base_url}/geolocation/"
+            ]
             
             headers = {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'User-Agent': 'BIPV-Optimizer/1.0'
             }
             
-            response = requests.get(stations_url, headers=headers, timeout=10)
+            response = None
+            for endpoint in endpoints:
+                try:
+                    response = requests.get(endpoint, headers=headers, timeout=15)
+                    if response.status_code == 200:
+                        break
+                except:
+                    continue
+            
+            if not response or response.status_code != 200:
+                return {'error': 'TU Berlin API endpoints not accessible', 'fallback_recommended': 'openweathermap'}
             
             if response.status_code == 200:
                 stations_data = response.json()
