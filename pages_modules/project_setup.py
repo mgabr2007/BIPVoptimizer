@@ -543,7 +543,8 @@ def render_project_setup():
                             # Store the station data
                             st.session_state.dynamic_stations = [station_data]
                             st.session_state.last_api_used = selected_api
-                            st.success(f"✅ Found station from {api_to_use.replace('_', ' ').title()}")
+                            # Show unified success message for station loading
+                            st.success(f"✅ Loaded {api_to_use.replace('_', ' ').title()} station")
                             st.rerun()
                         else:
                             st.error(f"❌ {station_data['error']}")
@@ -603,68 +604,39 @@ def render_project_setup():
                         'station_type': 'api_station'
                     }
         
-        # Weather validation
-        weather_col1, weather_col2 = st.columns(2)
-        
-        with weather_col1:
-            if st.button("🌤️ Validate Weather Data Access", key="validate_weather_hybrid"):
-                with st.spinner(f"Testing {selected_api.replace('_', ' ').title()} API..."):
-                    try:
-                        # Validate coordinates
-                        if not (-90 <= selected_lat <= 90) or not (-180 <= selected_lon <= 180):
-                            st.error("Invalid coordinates. Please select a valid location on the map.")
-                            return
+        # Weather validation with unified success system
+        if st.button("🌤️ Validate Weather Data Access", key="validate_weather_hybrid"):
+            with st.spinner(f"Testing {selected_api.replace('_', ' ').title()} API..."):
+                try:
+                    # Validate coordinates
+                    if not (-90 <= selected_lat <= 90) or not (-180 <= selected_lon <= 180):
+                        st.error("Invalid coordinates. Please select a valid location on the map.")
+                        return
+                    
+                    # Use the weather API manager for validation
+                    import asyncio
+                    weather_data = asyncio.run(weather_api_manager.fetch_weather_data(selected_lat, selected_lon, selected_api))
+                    
+                    if 'error' in weather_data:
+                        st.error(f"❌ {weather_data['error']}")
+                    else:
+                        api_source = weather_data.get('api_source', selected_api)
+                        station_name = weather_data.get('station_info', {}).get('site', {}).get('name', 'Weather Station')
+                        distance = weather_data.get('distance_km', 0)
                         
-                        # Use the weather API manager for validation
-                        import asyncio
-                        weather_data = asyncio.run(weather_api_manager.fetch_weather_data(selected_lat, selected_lon, selected_api))
+                        # Store validation
+                        st.session_state.weather_validated = True
+                        st.session_state.project_data['weather_validation'] = weather_data
+                        st.session_state.project_data['weather_complete'] = True
                         
-                        if 'error' in weather_data:
-                            st.error(f"❌ {weather_data['error']}")
-                        else:
-                            api_source = weather_data.get('api_source', selected_api)
-                            station_name = weather_data.get('station_info', {}).get('site', {}).get('name', 'Weather Station')
-                            distance = weather_data.get('distance_km', 0)
-                            
-                            st.success(f"✅ {api_source.replace('_', ' ').title()} API accessible")
-                            st.info(f"📡 Station: {station_name}")
-                            if distance > 0:
-                                st.info(f"📏 Distance: {distance:.1f} km")
-                            
-                            # Store validation
-                            st.session_state.weather_validated = True
-                            st.session_state.project_data['weather_validation'] = weather_data
-                            st.session_state.project_data['weather_complete'] = True
-                            
-                            # Show detailed validation summary
-                            with st.container():
-                                st.success(f"""
-                                ✅ **VALIDATION COMPLETE - READY TO PROCEED!**
-                                
-                                📍 Location: {current_location}
-                                🌡️ Weather API: ✅ {api_source.replace('_', ' ').title()}
-                                📊 Data Quality: ✅ {weather_data.get('data_quality', 'Valid').replace('_', ' ').title()}
-                                🔄 TMY Generation: ✅ Ready for Step 3
-                                
-                                **Next Step:** Proceed to Step 2 (Historical Data) or Step 3 (Weather Integration)
-                                """)
-                            
-                    except Exception as e:
-                        st.error(f"❌ Weather API validation failed: {str(e)}")
-                        st.info("Please try selecting a different location or check your internet connection.")
-        
-        with weather_col2:
-            if st.session_state.get('weather_validated', False):
-                validation_data = st.session_state.get('project_data', {}).get('weather_validation', {})
-                api_source = validation_data.get('api_source', 'unknown')
-                data_quality = validation_data.get('data_quality', 'standard')
-                
-                st.success("✅ Weather data access confirmed")
-                st.info(f"🔧 Using: {api_source.replace('_', ' ').title()}")
-                st.info(f"📊 Quality: {data_quality.replace('_', ' ').title()}")
-                st.info("💡 Ready for TMY generation in Step 3")
-            else:
-                st.info("🔄 Click validate to test weather access")
+                        # Show unified validation success
+                        st.success(f"✅ Weather API validation successful")
+                        st.info(f"📡 Station: {station_name} ({distance:.1f} km)")
+                        st.info(f"🔧 Using: {api_source.replace('_', ' ').title()}")
+                        
+                except Exception as e:
+                    st.error(f"❌ Weather API validation failed: {str(e)}")
+                    st.info("Please try selecting a different location or check your internet connection.")
                 
     except ImportError:
         st.error("❌ Weather API manager not available. Using OpenWeatherMap fallback.")
@@ -817,10 +789,11 @@ def render_project_setup():
         if project_id:
             st.session_state.project_id = project_id
             
-            # Consolidated project summary
+            # Unified success message system
+            st.success("✅ Project configuration saved successfully!")
             
             with st.container():
-                st.markdown("### 📋 Complete Project Configuration")
+                st.markdown("### 📋 Project Configuration Summary")
                 
                 # Create a comprehensive summary in organized sections
                 st.markdown(f"""
