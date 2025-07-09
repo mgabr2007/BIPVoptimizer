@@ -513,59 +513,14 @@ def render_project_setup():
                 for adv in ow_info['advantages']:
                     st.write(f"• {adv}")
         
-        # WMO CLIMAT Database Stations (Reference Only)
-        st.markdown("### 🏛️ WMO CLIMAT Database Stations")
-        st.info("These are official WMO weather stations for reference. The selected API above will be used for actual weather data.")
-        
-        # Weather station selection based on API choice
-        with st.container():
-            if not nearby_stations.empty:
-                st.write(f"Found {len(nearby_stations)} official WMO weather stations within {search_radius} km:")
-                
-                # Station selection dropdown
-                station_options = []
-                station_details = {}
-                
-                try:
-                    for idx, station in nearby_stations.head(5).iterrows():  # Show top 5 closest
-                        display_name = f"{station['name']} ({station['country']}) - {station['distance_km']:.1f} km"
-                        station_options.append(display_name)
-                        # Convert to dict but ensure distance_km maintains precision
-                        station_dict = station.to_dict()
-                        station_dict['distance_km'] = float(station['distance_km'])
-                        station_dict['station_type'] = 'wmo_station'
-                        station_details[display_name] = station_dict
-                    
-                    selected_wmo_station = st.selectbox(
-                        "Choose WMO Reference Station",
-                        ["None"] + station_options,
-                        help="Select from official WMO CLIMAT database stations (for reference only)",
-                        key="wmo_weather_station_selector"
-                    )
-                    
-                    if selected_wmo_station and selected_wmo_station != "None":
-                        selected_station_data = station_details[selected_wmo_station]
-                        
-                        # Compact station details with better formatting
-                        with st.container():
-                            st.success(f"✅ **Reference Station:** {selected_station_data['name']}")
-                            info_col1, info_col2 = st.columns(2)
-                            with info_col1:
-                                st.write(f"**WMO ID:** {selected_station_data['wmo_id']}")
-                                st.write(f"**Country:** {selected_station_data['country']}")
-                            with info_col2:
-                                st.write(f"**Distance:** {selected_station_data['distance_km']:.1f} km")
-                                st.write(f"**Elevation:** {selected_station_data['height']:.0f} m")
-                        
-                        # Save selected station to session state
-                        st.session_state.selected_weather_station = selected_station_data
-                        
-                except Exception as e:
-                    st.error(f"Error processing weather stations: {str(e)}")
-            
-            else:
-                st.warning(f"⚠️ No WMO stations found within {search_radius} km")
-                st.info("💡 Try increasing the search radius above")
+        # Show nearby WMO stations for reference (without selection functionality)
+        if not nearby_stations.empty:
+            with st.expander(f"📊 Nearby WMO CLIMAT Stations ({len(nearby_stations)} found)", expanded=False):
+                st.info("Reference information - actual weather data comes from the selected API above")
+                for idx, station in nearby_stations.head(3).iterrows():
+                    st.write(f"• **{station['name']}** ({station['country']}) - {station['distance_km']:.1f} km")
+        else:
+            st.info(f"ℹ️ No WMO reference stations found within {search_radius} km radius")
         
         # Dynamic station fetching based on selected API
         st.markdown("### 🌡️ Active Weather Data Source")
@@ -825,32 +780,18 @@ def render_project_setup():
             'weather_api_choice': st.session_state.get('weather_api_choice', 'auto')
         }
         
-        # Add selected weather station data if available
+        # Add selected weather station data if available (API stations only)
         selected_station = st.session_state.get('selected_weather_station')
         if selected_station:
             project_data['selected_weather_station'] = selected_station
-            # Handle both WMO station and API station formats
-            if 'wmo_id' in selected_station:
-                # WMO station format
-                project_data['weather_station'] = {
-                    'wmo_id': selected_station.get('wmo_id', 'N/A'),
-                    'name': selected_station.get('name', 'Unknown'),
-                    'country': selected_station.get('country', 'Unknown'),
-                    'coordinates': {
-                        'lat': selected_station.get('latitude', selected_lat),
-                        'lon': selected_station.get('longitude', selected_lon)
-                    },
-                    'elevation': selected_station.get('height', 0),
-                    'distance_km': selected_station.get('distance_km', 0)
-                }
-            else:
-                # API station format
-                project_data['weather_station'] = {
-                    'name': selected_station.get('name', 'Unknown'),
-                    'api_source': selected_station.get('api_source', 'unknown'),
-                    'data_quality': selected_station.get('data_quality', 'standard'),
-                    'distance_km': selected_station.get('distance_km', 0)
-                }
+            # Only API station format since WMO stations are reference only
+            project_data['weather_station'] = {
+                'name': selected_station.get('name', 'Unknown'),
+                'api_source': selected_station.get('api_source', project_data['weather_api_choice']),
+                'data_quality': selected_station.get('data_quality', 'standard'),
+                'distance_km': selected_station.get('distance_km', 0),
+                'station_type': 'api_station'
+            }
         
         # Get location-specific parameters
         location_params = get_location_solar_parameters(location_name)
@@ -907,41 +848,21 @@ def render_project_setup():
                 """)
                 
                 if selected_station:
-                    if 'wmo_id' in selected_station:
-                        # WMO station display
-                        st.markdown(f"""
-                        **🌡️ Selected Weather Station (WMO Reference)**
-                        - **Station:** {selected_station.get('name', 'Unknown')}
-                        - **Country:** {selected_station.get('country', 'Unknown')}
-                        - **WMO ID:** {selected_station.get('wmo_id', 'N/A')}
-                        - **Distance:** {selected_station.get('distance_km', 0):.1f} km
-                        - **Elevation:** {selected_station.get('height', 0):.0f} m
-                        """)
-                    else:
-                        # API station display
-                        st.markdown(f"""
-                        **🌡️ Selected Weather Station (API Source)**
-                        - **Station:** {selected_station.get('name', 'Unknown')}
-                        - **API Source:** {selected_station.get('api_source', 'unknown').replace('_', ' ').title()}
-                        - **Data Quality:** {selected_station.get('data_quality', 'standard').replace('_', ' ').title()}
-                        - **Distance:** {selected_station.get('distance_km', 0):.1f} km
-                        """)
+                    # API station display only
+                    st.markdown(f"""
+                    **🌡️ Active Weather Station**
+                    - **Station:** {selected_station.get('name', 'Unknown')}
+                    - **API Source:** {selected_station.get('api_source', project_data['weather_api_choice']).replace('_', ' ').title()}
+                    - **Data Quality:** {selected_station.get('data_quality', 'standard').replace('_', ' ').title()}
+                    - **Distance:** {selected_station.get('distance_km', 0):.1f} km
+                    """)
                 else:
-                    try:
-                        stations_summary = get_station_summary(nearby_stations)
-                        st.warning(f"""
-                        **🌡️ Weather Station**
-                        - No station selected
-                        - Found: {stations_summary['total_stations']} stations
-                        - Radius: {search_radius} km
-                        """)
-                    except:
-                        st.warning(f"""
-                        **🌡️ Weather Station**
-                        - No station selected
-                        - Found: {len(nearby_stations)} stations
-                        - Radius: {search_radius} km
-                        """)
+                    st.info(f"""
+                    **🌡️ Weather Station**
+                    - No API station loaded yet
+                    - Selected API: {project_data['weather_api_choice'].replace('_', ' ').title()}
+                    - Use "Load Stations from Selected API" button above
+                    """)
                 
                 # Data usage explanation
                 st.info("""
