@@ -667,44 +667,7 @@ def render_project_setup():
     # STEP 1.4: Data Integration & Configuration
     st.subheader("4️⃣ Data Integration & Configuration")
     
-    # Electricity Rate Integration
-    st.markdown("### ⚡ Electricity Rate Integration")
-    
-    # Try to load live rates using the existing service
-    try:
-        from services.electricity_rates import enhance_project_setup_with_live_rates
-        enhance_project_setup_with_live_rates()
-    except ImportError:
-        # Fallback manual rate input
-        st.info("Live rate integration not available - using manual input")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            import_rate = st.number_input(
-                "Electricity Import Rate (€/kWh)",
-                min_value=0.10, max_value=0.50, value=0.30, step=0.01,
-                help="Cost to buy electricity from the grid",
-                key="manual_import_rate"
-            )
-        with col2:
-            export_rate = st.number_input(
-                "Electricity Export Rate (€/kWh)",
-                min_value=0.05, max_value=0.20, value=0.08, step=0.01,
-                help="Payment for selling electricity to the grid",
-                key="manual_export_rate"
-            )
-        
-        # Store manual rates in session state
-        st.session_state.live_electricity_rates = {
-            'success': True,
-            'import_rate': import_rate,
-            'export_rate': export_rate,
-            'source': 'manual_input',
-            'live_rates_enabled': False
-        }
-        
-        st.success(f"✅ Manual rates configured: €{import_rate:.3f}/kWh (buy), €{export_rate:.3f}/kWh (sell)")
-    
+
     # Data Usage Information
     with st.expander("📊 How This Data Will Be Used", expanded=False):
         st.markdown("""
