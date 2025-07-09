@@ -289,11 +289,17 @@ class WeatherAPIManager:
                 weather_data = response.json()
                 
                 # Get station coordinates from OpenWeatherMap response
-                station_lat = weather_data.get('coord', {}).get('lat', lat)
-                station_lon = weather_data.get('coord', {}).get('lon', lon)
+                coord_data = weather_data.get('coord', {})
+                station_lat = coord_data.get('lat', lat)
+                station_lon = coord_data.get('lon', lon)
+                
+                # Debug: Print coordinate values for troubleshooting
+                print(f"DEBUG: Input coords: {lat}, {lon}")
+                print(f"DEBUG: Station coords: {station_lat}, {station_lon}")
                 
                 # Calculate actual distance to the weather station
                 distance_km = self._calculate_haversine_distance(lat, lon, station_lat, station_lon)
+                print(f"DEBUG: Calculated distance: {distance_km} km")
                 
                 # Format for consistency with TU Berlin format
                 formatted_data = {
