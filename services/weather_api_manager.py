@@ -116,8 +116,17 @@ class WeatherAPIManager:
                 nearest_station = None
                 min_distance = float('inf')
                 
-                for station in stations_data.get('results', []):
-                    if 'coordinates' in station:
+                # Handle different response structures
+                stations_list = stations_data
+                if isinstance(stations_data, dict):
+                    stations_list = stations_data.get('results', stations_data.get('data', [stations_data]))
+                elif isinstance(stations_data, list):
+                    stations_list = stations_data
+                else:
+                    stations_list = []
+                
+                for station in stations_list:
+                    if isinstance(station, dict) and 'coordinates' in station:
                         # Parse coordinates (assuming format like "POINT(13.4050 52.5200)")
                         coord_str = station['coordinates']
                         if 'POINT' in coord_str:
@@ -132,17 +141,46 @@ class WeatherAPIManager:
                                 if distance < min_distance:
                                     min_distance = distance
                                     nearest_station = station
+                    elif isinstance(station, dict):
+                        # Try alternative coordinate formats
+                        site_info = station.get('site', {})
+                        if isinstance(site_info, dict) and ('latitude' in site_info or 'lat' in site_info):
+                            station_lat = site_info.get('latitude', site_info.get('lat', 0))
+                            station_lon = site_info.get('longitude', site_info.get('lon', 0))
+                            
+                            if station_lat and station_lon:
+                                distance = ((lat - station_lat) ** 2 + (lon - station_lon) ** 2) ** 0.5
+                                
+                                if distance < min_distance:
+                                    min_distance = distance
+                                    nearest_station = station
                 
                 if nearest_station:
                     # Fetch weather variables for the station
                     dataset_url = f"{self.tu_berlin_base_url}/dpbase/dataset/"
                     
-                    # Get temperature data
-                    temp_params = {
-                        'geolocation__site__id': nearest_station['site']['id'],
-                        'variable__standard_name__icontains': 'temperature',
-                        'limit': 100
-                    }
+                    # Get site ID safely
+                    site_id = None
+                    if isinstance(nearest_station.get('site'), dict):
+                        site_id = nearest_station['site'].get('id')
+                    elif 'site_id' in nearest_station:
+                        site_id = nearest_station['site_id']
+                    elif 'id' in nearest_station:
+                        site_id = nearest_station['id']
+                    
+                    if site_id:
+                        # Get temperature data
+                        temp_params = {
+                            'geolocation__site__id': site_id,
+                            'variable__standard_name__icontains': 'temperature',
+                            'limit': 100
+                        }
+                    else:
+                        # Use simpler parameters if site ID not available
+                        temp_params = {
+                            'variable__standard_name__icontains': 'temperature',
+                            'limit': 10
+                        }
                     
                     temp_response = requests.get(dataset_url, params=temp_params, headers=headers, timeout=10)
                     
@@ -166,7 +204,14 @@ class WeatherAPIManager:
     async def fetch_openweathermap_data(self, lat, lon):
         """Fetch weather data from OpenWeatherMap API"""
         try:
-            api_key = st.secrets.get("OPENWEATHER_API_KEY")
+            import os
+            # Try multiple methods to get the API key
+            api_key = None
+            try:
+                api_key = st.secrets.get("OPENWEATHER_API_KEY")
+            except:
+                api_key = os.environ.get("OPENWEATHER_API_KEY")
+            
             if not api_key:
                 return {'error': 'OpenWeatherMap API key not available'}
             
