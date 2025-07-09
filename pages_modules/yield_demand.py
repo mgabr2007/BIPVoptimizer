@@ -79,13 +79,21 @@ def predict_future_demand(model, feature_columns, start_date, end_date):
     
     return demand_df
 
-def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data):
-    """Calculate monthly PV yield profiles for each system using actual TMY data."""
+def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data, environmental_factors=None):
+    """Calculate monthly PV yield profiles for each system using actual TMY data with environmental shading."""
     
     if pv_specs is None or len(pv_specs) == 0:
         return pd.DataFrame()
     
     yield_profiles = []
+    
+    # Get environmental shading factor from Step 3
+    shading_reduction = 0
+    if environmental_factors:
+        shading_reduction = environmental_factors.get('shading_reduction', 0)
+    
+    # Apply shading reduction factor (1 - percentage reduction)
+    shading_factor = 1 - (shading_reduction / 100)
     
     # Create monthly irradiation profiles from TMY data
     monthly_irradiation_profile = {}
@@ -124,21 +132,27 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data):
                     hour_month = 12
                 
                 if hour_month == month:
-                    month_total += hour_data.get('ghi', 0) / 1000  # Convert Wh/m² to kWh/m²
+                    # Apply environmental shading factor to solar irradiance
+                    adjusted_ghi = hour_data.get('ghi', 0) * shading_factor
+                    month_total += adjusted_ghi / 1000  # Convert Wh/m² to kWh/m²
                     hours_in_month += 1
             
             monthly_irradiation_profile[month] = month_total
     else:
-        # Use typical monthly distribution for Berlin climate
+        # Use typical monthly distribution for Berlin climate with shading applied
         annual_ghi = 1200  # kWh/m² typical for Berlin
+        adjusted_annual_ghi = annual_ghi * shading_factor
         monthly_distribution = [0.03, 0.05, 0.08, 0.11, 0.14, 0.15, 0.14, 0.12, 0.09, 0.06, 0.03, 0.02]
         for month in range(1, 13):
-            monthly_irradiation_profile[month] = annual_ghi * monthly_distribution[month-1]
+            monthly_irradiation_profile[month] = adjusted_annual_ghi * monthly_distribution[month-1]
     
     # Calculate yield for each PV system
     for _, system in pv_specs.iterrows():
         element_id = system['element_id']
         annual_yield = system.get('annual_energy_kwh', 0)
+        
+        # Apply environmental shading to annual yield
+        adjusted_annual_yield = annual_yield * shading_factor
         
         # Get element-specific radiation data if available
         element_radiation = None
@@ -164,11 +178,11 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data):
             # Use ratio of monthly to annual irradiation to distribute annual yield
             annual_irradiation = sum(monthly_irradiation_profile.values())
             if annual_irradiation > 0:
-                monthly_yield = annual_yield * (month_irradiation / annual_irradiation)
+                monthly_yield = adjusted_annual_yield * (month_irradiation / annual_irradiation)
             else:
                 # Fallback to seasonal distribution
                 monthly_distribution = [0.03, 0.05, 0.08, 0.11, 0.14, 0.15, 0.14, 0.12, 0.09, 0.06, 0.03, 0.02]
-                monthly_yield = annual_yield * monthly_distribution[month-1]
+                monthly_yield = adjusted_annual_yield * monthly_distribution[month-1]
             
             yield_profiles.append({
                 'element_id': element_id,
@@ -176,7 +190,9 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data):
                 'yield_kwh': monthly_yield,
                 'system_power_kw': system['system_power_kw'],
                 'irradiation': month_irradiation,
-                'orientation': system.get('orientation', 'Unknown')
+                'orientation': system.get('orientation', 'Unknown'),
+                'shading_factor': shading_factor,
+                'environmental_reduction': shading_reduction
             })
     
     return pd.DataFrame(yield_profiles)
@@ -504,13 +520,42 @@ def render_yield_demand():
                 # Skip complex demand forecasting and use historical data directly
                 # This avoids potential NoneType iteration issues
                 
-                # Calculate PV yield profiles using simplified approach
+                # Get environmental factors from Step 3
+                weather_analysis = project_data.get('weather_analysis', {})
+                environmental_factors = weather_analysis.get('environmental_factors', {})
+                
+                # Also check project-level environmental factors
+                if not environmental_factors:
+                    environmental_factors = project_data.get('environmental_factors', {})
+                
+                # Display environmental shading impact
+                shading_reduction = environmental_factors.get('shading_reduction', 0)
+                if shading_reduction > 0:
+                    st.warning(f"🌳 Environmental shading detected: {shading_reduction}% reduction applied to yield calculations")
+                    trees_nearby = environmental_factors.get('trees_nearby', False)
+                    tall_buildings = environmental_factors.get('tall_buildings', False)
+                    
+                    factors = []
+                    if trees_nearby:
+                        factors.append("trees/vegetation (15%)")
+                    if tall_buildings:
+                        factors.append("tall buildings (10%)")
+                    
+                    if factors:
+                        st.info(f"Shading sources: {', '.join(factors)}")
+                else:
+                    st.success("🌞 No environmental shading factors - optimal solar conditions")
+                
+                # Calculate PV yield profiles using environmental factors
                 tmy_data = project_data.get('tmy_data', {})
                 
-                # Create yield profiles with realistic monthly distribution
+                # Create yield profiles with realistic monthly distribution and environmental shading
                 yield_profiles = []
                 # Monthly solar irradiation distribution for Central Europe (Berlin climate)
                 monthly_solar_factors = [0.03, 0.05, 0.08, 0.11, 0.14, 0.15, 0.14, 0.12, 0.09, 0.06, 0.03, 0.02]
+                
+                # Apply environmental shading factor
+                shading_factor = 1 - (shading_reduction / 100)
                 
                 if pv_specs is not None and len(pv_specs) > 0:
                     st.info(f"Processing {len(pv_specs)} BIPV systems...")
@@ -523,15 +568,15 @@ def render_yield_demand():
                         annual_radiation = safe_float(system.get('annual_radiation_kwh_m2', 1500))  # kWh/m²/year
                         
                         # Recalculate realistic annual energy based on actual physics
-                        # Formula: Energy = Area × Efficiency × Solar Radiation × Performance Ratio
+                        # Formula: Energy = Area × Efficiency × Solar Radiation × Performance Ratio × Environmental Shading
                         performance_ratio = 0.85  # Typical for BIPV systems
                         
                         # Ensure radiation is reasonable (Central Europe: 1000-1800 kWh/m²/year)
                         if annual_radiation > 2500 or annual_radiation < 800:
                             annual_radiation = 1400  # Use typical value for Germany
                         
-                        # Calculate annual energy using actual calculated values
-                        annual_energy = glass_area * efficiency * annual_radiation * performance_ratio
+                        # Calculate annual energy with environmental shading applied
+                        annual_energy = glass_area * efficiency * annual_radiation * performance_ratio * shading_factor
                         
                         # Only show details for first few systems to avoid UI clutter
                         if idx < 3:
@@ -590,7 +635,11 @@ def render_yield_demand():
                                 'system_power_kw': capacity_kw,
                                 'annual_yield': annual_energy,
                                 'monthly_yields': monthly_yields,
-                                'specific_yield': specific_yield
+                                'specific_yield': specific_yield,
+                                'environmental_shading_reduction': shading_reduction,
+                                'shading_factor': shading_factor,
+                                'trees_nearby': environmental_factors.get('trees_nearby', False),
+                                'tall_buildings': environmental_factors.get('tall_buildings', False)
                             }
                             yield_profiles.append(system_data)
                 
