@@ -745,30 +745,7 @@ def render_project_setup():
     # Get location name from session state with fallback
     location_name = st.session_state.get('location_name', current_location)
     
-    # Show current configuration before saving
-    with st.expander("📋 Review Current Configuration", expanded=False):
-        st.markdown(f"""
-        **Project Details:**
-        - Name: {project_name}
-        - Location: {location_name}
-        - Coordinates: {selected_lat:.4f}°, {selected_lon:.4f}°
-        - Timezone: {timezone}
-        """)
-        
-        # Get stations summary with error handling
-        try:
-            stations_summary = get_station_summary(nearby_stations)
-            if stations_summary['total_stations'] > 0:
-                st.markdown(f"""
-                **Weather Data Sources:**
-                - Weather stations found: {stations_summary['total_stations']}
-                - Closest station: {stations_summary['closest_distance']:.1f} km
-                - Search radius: {search_radius} km
-                """)
-            else:
-                st.warning(f"No weather stations found within {search_radius} km")
-        except Exception as e:
-            st.info(f"Weather station analysis: {len(nearby_stations)} stations within {search_radius} km")
+
     
     if st.button("💾 Save Project Configuration", key="save_project", type="primary"):
         # Prepare enhanced project data with weather station information
