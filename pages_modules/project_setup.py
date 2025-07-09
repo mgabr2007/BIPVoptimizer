@@ -398,8 +398,8 @@ def render_project_setup():
                 debug=False
             )
     
-    # STEP 1.3: Weather Station Selection
-    st.subheader("3️⃣ Weather Station Selection")
+    # STEP 1.3: Weather API Selection & Data Sources
+    st.subheader("3️⃣ Weather API Selection & Data Sources")
     
     selected_lat = st.session_state.map_coordinates['lat']
     selected_lon = st.session_state.map_coordinates['lng']
@@ -408,12 +408,10 @@ def render_project_setup():
     try:
         current_location = st.session_state.get('location_name', 'Loading location...')
         timezone = determine_timezone_from_coordinates(selected_lat, selected_lon)
-        stations_summary = get_station_summary(nearby_stations)
     except Exception as e:
         st.error(f"Error processing location data: {str(e)}")
         current_location = f"Location at {selected_lat:.4f}°, {selected_lon:.4f}°"
         timezone = "UTC"
-        stations_summary = {'total_stations': 0, 'closest_distance': 0}
     
     # Show current coordinates for reference
     with st.container():
@@ -424,80 +422,8 @@ def render_project_setup():
         with col2:
             st.write(f"**Timezone:** {timezone}")
     
-    # Weather station selection with improved error handling
-    with st.container():
-        if not nearby_stations.empty:
-            st.markdown("### 🏛️ WMO CLIMAT Database Stations")
-            st.info(f"Found {len(nearby_stations)} official WMO weather stations within {search_radius} km")
-            
-            # Station selection dropdown
-            station_options = []
-            station_details = {}
-            
-            try:
-                for idx, station in nearby_stations.head(5).iterrows():  # Show top 5 closest
-                    display_name = f"{station['name']} ({station['country']}) - {station['distance_km']:.1f} km"
-                    station_options.append(display_name)
-                    # Convert to dict but ensure distance_km maintains precision
-                    station_dict = station.to_dict()
-                    station_dict['distance_km'] = float(station['distance_km'])
-                    station_dict['station_type'] = 'wmo_station'
-                    station_details[display_name] = station_dict
-                
-                selected_wmo_station = st.selectbox(
-                    "Choose WMO Weather Station",
-                    ["None"] + station_options,
-                    help="Select from official WMO CLIMAT database stations",
-                    key="wmo_weather_station_selector"
-                )
-                
-                if selected_wmo_station and selected_wmo_station != "None":
-                    selected_station_data = station_details[selected_wmo_station]
-                    
-                    # Compact station details with better formatting
-                    with st.container():
-                        st.success(f"✅ **Selected:** {selected_station_data['name']}")
-                        info_col1, info_col2 = st.columns(2)
-                        with info_col1:
-                            st.write(f"**WMO ID:** {selected_station_data['wmo_id']}")
-                            st.write(f"**Country:** {selected_station_data['country']}")
-                        with info_col2:
-                            st.write(f"**Distance:** {selected_station_data['distance_km']:.1f} km")
-                            st.write(f"**Elevation:** {selected_station_data['height']:.0f} m")
-                    
-                    # Save selected station to session state
-                    st.session_state.selected_weather_station = selected_station_data
-                    
-            except Exception as e:
-                st.error(f"Error processing weather stations: {str(e)}")
-        
-        else:
-            st.warning(f"⚠️ No WMO stations found within {search_radius} km")
-            st.info("💡 Try increasing the search radius or use API-specific stations below")
-    
-    # STEP 1.4: Data Integration & Configuration
-    st.subheader("4️⃣ Data Integration & Configuration")
-    
-    with st.container():
-        # Location name input
-        default_location = st.session_state.get('location_name', "Berlin, Germany")
-        location_name = st.text_input(
-            "Project Location Name",
-            value=default_location,
-            help="Location name auto-detected from map selection. You can modify if needed.",
-            key="location_name_input"
-        )
-        
-        # Electricity Rate Integration
-        st.markdown("### 🔌 Electricity Rate Integration")
-        try:
-            enable_live_rates = enhance_project_setup_with_live_rates()
-        except Exception as e:
-            st.error(f"Error loading electricity rates: {str(e)}")
-            st.info("Using default rates for calculations")
-        
-        # Weather API Selection and Validation  
-        st.markdown("### 🌤️ Weather API Selection & Validation")
+    # Weather API Selection and Validation  
+    st.markdown("### 🌤️ Weather API Selection & Coverage Analysis")
     
     # Import the weather API manager
     try:
@@ -587,8 +513,62 @@ def render_project_setup():
                 for adv in ow_info['advantages']:
                     st.write(f"• {adv}")
         
+        # WMO CLIMAT Database Stations (Reference Only)
+        st.markdown("### 🏛️ WMO CLIMAT Database Stations")
+        st.info("These are official WMO weather stations for reference. The selected API above will be used for actual weather data.")
+        
+        # Weather station selection based on API choice
+        with st.container():
+            if not nearby_stations.empty:
+                st.write(f"Found {len(nearby_stations)} official WMO weather stations within {search_radius} km:")
+                
+                # Station selection dropdown
+                station_options = []
+                station_details = {}
+                
+                try:
+                    for idx, station in nearby_stations.head(5).iterrows():  # Show top 5 closest
+                        display_name = f"{station['name']} ({station['country']}) - {station['distance_km']:.1f} km"
+                        station_options.append(display_name)
+                        # Convert to dict but ensure distance_km maintains precision
+                        station_dict = station.to_dict()
+                        station_dict['distance_km'] = float(station['distance_km'])
+                        station_dict['station_type'] = 'wmo_station'
+                        station_details[display_name] = station_dict
+                    
+                    selected_wmo_station = st.selectbox(
+                        "Choose WMO Reference Station",
+                        ["None"] + station_options,
+                        help="Select from official WMO CLIMAT database stations (for reference only)",
+                        key="wmo_weather_station_selector"
+                    )
+                    
+                    if selected_wmo_station and selected_wmo_station != "None":
+                        selected_station_data = station_details[selected_wmo_station]
+                        
+                        # Compact station details with better formatting
+                        with st.container():
+                            st.success(f"✅ **Reference Station:** {selected_station_data['name']}")
+                            info_col1, info_col2 = st.columns(2)
+                            with info_col1:
+                                st.write(f"**WMO ID:** {selected_station_data['wmo_id']}")
+                                st.write(f"**Country:** {selected_station_data['country']}")
+                            with info_col2:
+                                st.write(f"**Distance:** {selected_station_data['distance_km']:.1f} km")
+                                st.write(f"**Elevation:** {selected_station_data['height']:.0f} m")
+                        
+                        # Save selected station to session state
+                        st.session_state.selected_weather_station = selected_station_data
+                        
+                except Exception as e:
+                    st.error(f"Error processing weather stations: {str(e)}")
+            
+            else:
+                st.warning(f"⚠️ No WMO stations found within {search_radius} km")
+                st.info("💡 Try increasing the search radius above")
+        
         # Dynamic station fetching based on selected API
-        st.markdown("**🌡️ Station Selection from Selected API**")
+        st.markdown("### 🌡️ Active Weather Data Source")
         
         # Check if we need to fetch stations for selected API
         if ('dynamic_stations' not in st.session_state or 
