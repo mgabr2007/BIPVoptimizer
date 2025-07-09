@@ -340,11 +340,13 @@ def render_weather_environment():
                         # Create monthly solar profile
                         tmy_df['month'] = tmy_df['datetime'].dt.month
                         monthly_solar = {}
+                        month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                                      'July', 'August', 'September', 'October', 'November', 'December']
                         for month in range(1, 13):
                             month_data = tmy_df[tmy_df['month'] == month]
                             if len(month_data) > 0:
                                 monthly_ghi = month_data['ghi'].sum() / 1000
-                                monthly_solar[calendar.month_name[month]] = monthly_ghi
+                                monthly_solar[month_names[month-1]] = monthly_ghi
                         
                         # Enhanced weather analysis structure
                         weather_analysis = {
@@ -570,11 +572,11 @@ def render_weather_environment():
                         if selected_station:
                             st.info(f"""
                             **TMY Generated from WMO Station:**
-                            - Station: {selected_station['name']} ({selected_station['country']})
-                            - WMO ID: {selected_station['wmo_id']}
-                            - Distance from Project: {selected_station['distance_km']:.1f} km
-                            - Elevation: {selected_station['height']:.0f} m ASL
-                            - Climate Zone: {_get_climate_zone(selected_station['latitude'])}
+                            - Station: {selected_station.get('name', 'Unknown')} ({selected_station.get('country', 'Unknown')})
+                            - WMO ID: {selected_station.get('wmo_id', 'N/A')}
+                            - Distance from Project: {selected_station.get('distance_km', 0):.1f} km
+                            - Elevation: {selected_station.get('height', 0):.0f} m ASL
+                            - Climate Zone: {_get_climate_zone(selected_station.get('latitude', 0))}
                             - Method: ISO 15927-4 standards with astronomical calculations
                             """)
                         
