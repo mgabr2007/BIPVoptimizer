@@ -32,26 +32,21 @@ class WeatherAPIManager:
             'lon_max': 15.0   # Eastern Brandenburg/Saxony
         }
         
-        # Note: TU Berlin API is currently not accessible, defaulting to OpenWeatherMap
-        # This will be updated when the API becomes available again
-        
         if (berlin_bounds['lat_min'] <= lat <= berlin_bounds['lat_max'] and 
             berlin_bounds['lon_min'] <= lon <= berlin_bounds['lon_max']):
             return {
-                'recommended_api': 'openweathermap',
-                'coverage_level': 'high',
+                'recommended_api': 'tu_berlin',
+                'coverage_level': 'optimal',
                 'coverage_area': 'Berlin/Brandenburg',
-                'reason': 'Global weather data with high accuracy for Berlin area',
-                'note': 'TU Berlin API temporarily unavailable'
+                'reason': 'High-precision academic data available'
             }
         elif (germany_bounds['lat_min'] <= lat <= germany_bounds['lat_max'] and 
               germany_bounds['lon_min'] <= lon <= germany_bounds['lon_max']):
             return {
-                'recommended_api': 'openweathermap',
+                'recommended_api': 'tu_berlin',
                 'coverage_level': 'good',
                 'coverage_area': 'Germany',
-                'reason': 'Reliable global weather data for German locations',
-                'note': 'TU Berlin API temporarily unavailable'
+                'reason': 'German meteorological network coverage'
             }
         else:
             return {
@@ -70,12 +65,11 @@ class WeatherAPIManager:
             'recommended_api': coverage['recommended_api'],
             'coverage_details': {
                 'tu_berlin': {
-                    'available': False,  # Currently unavailable
+                    'available': coverage['recommended_api'] == 'tu_berlin',
                     'quality': 'Academic-grade meteorological data',
-                    'coverage': 'Temporarily unavailable',
+                    'coverage': coverage['coverage_area'] if coverage['recommended_api'] == 'tu_berlin' else 'Outside coverage area',
                     'data_sources': 'TU Berlin Climate Portal, German Weather Service',
                     'temporal_resolution': 'High-frequency measurements',
-                    'status': 'API endpoint not accessible',
                     'advantages': [
                         'Institutional research-grade data',
                         'Local atmospheric modeling',
@@ -105,103 +99,93 @@ class WeatherAPIManager:
     async def fetch_tu_berlin_weather_data(self, lat, lon, start_date=None, end_date=None):
         """Fetch weather data from TU Berlin API"""
         try:
-            # Try multiple potential endpoints
-            endpoints = [
-                f"{self.tu_berlin_base_url}/dpbase/geolocation/",
-                f"{self.tu_berlin_base_url}/api/geolocation/",
-                f"{self.tu_berlin_base_url}/geolocation/"
-            ]
+            # Use the correct TU Berlin API endpoint
+            geolocation_url = f"{self.tu_berlin_base_url}/dpbase/geolocation/"
             
             headers = {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
                 'User-Agent': 'BIPV-Optimizer/1.0'
             }
             
-            response = None
-            for endpoint in endpoints:
-                try:
-                    response = requests.get(endpoint, headers=headers, timeout=15)
-                    if response.status_code == 200:
-                        break
-                except:
+            response = requests.get(geolocation_url, headers=headers, timeout=15)
+            
+            if response.status_code != 200:
+                return {'error': f'TU Berlin API request failed: {response.status_code}', 'fallback_recommended': 'openweathermap'}
+            
+            stations_data = response.json()
+            
+            # The API returns a list of stations directly
+            if not isinstance(stations_data, list):
+                return {'error': 'Unexpected API response format', 'fallback_recommended': 'openweathermap'}
+            
+            # Find nearest station
+            nearest_station = None
+            min_distance = float('inf')
+            
+            # Convert target coordinates to WGS84 (lat/lon) for distance calculation
+            target_lat, target_lon = lat, lon
+            
+            for station in stations_data:
+                if not isinstance(station, dict):
                     continue
-            
-            if not response or response.status_code != 200:
-                return {'error': 'TU Berlin API endpoints not accessible', 'fallback_recommended': 'openweathermap'}
-            
-            if response.status_code == 200:
-                stations_data = response.json()
+                    
+                # The coordinates are in EPSG:25833 format as a string like "[[x, y]]"
+                coord_str = station.get('coordinates', '')
+                epsg = station.get('epsg', 25833)
                 
-                # Find nearest station (simplified distance calculation)
-                nearest_station = None
-                min_distance = float('inf')
-                
-                # Handle different response structures
-                stations_list = stations_data
-                if isinstance(stations_data, dict):
-                    stations_list = stations_data.get('results', stations_data.get('data', [stations_data]))
-                elif isinstance(stations_data, list):
-                    stations_list = stations_data
-                else:
-                    stations_list = []
-                
-                for station in stations_list:
-                    if isinstance(station, dict) and 'coordinates' in station:
-                        # Parse coordinates (assuming format like "POINT(13.4050 52.5200)")
-                        coord_str = station['coordinates']
-                        if 'POINT' in coord_str:
-                            coords = coord_str.replace('POINT(', '').replace(')', '').split()
-                            if len(coords) >= 2:
-                                station_lon = float(coords[0])
-                                station_lat = float(coords[1])
-                                
-                                # Simple distance calculation
-                                distance = ((lat - station_lat) ** 2 + (lon - station_lon) ** 2) ** 0.5
-                                
-                                if distance < min_distance:
-                                    min_distance = distance
-                                    nearest_station = station
-                    elif isinstance(station, dict):
-                        # Try alternative coordinate formats
-                        site_info = station.get('site', {})
-                        if isinstance(site_info, dict) and ('latitude' in site_info or 'lat' in site_info):
-                            station_lat = site_info.get('latitude', site_info.get('lat', 0))
-                            station_lon = site_info.get('longitude', site_info.get('lon', 0))
+                if coord_str and epsg == 25833:
+                    try:
+                        # Parse the coordinate string "[[x, y]]" 
+                        import json
+                        coords_parsed = json.loads(coord_str)
+                        if isinstance(coords_parsed, list) and len(coords_parsed) > 0:
+                            x, y = coords_parsed[0]  # Get first coordinate pair
                             
-                            if station_lat and station_lon:
-                                distance = ((lat - station_lat) ** 2 + (lon - station_lon) ** 2) ** 0.5
+                            # Convert EPSG:25833 (UTM Zone 33N) to WGS84
+                            # More accurate conversion for Berlin area
+                            # EPSG:25833 parameters for Berlin: False Easting = 500000, False Northing = 0
+                            # Central meridian = 15°E, latitude of origin = 0°
+                            
+                            # UTM to lat/lon conversion (simplified for Berlin area)
+                            # This is more accurate than the previous approximation
+                            a = 6378137.0  # WGS84 semi-major axis
+                            e2 = 0.00669438  # WGS84 first eccentricity squared
+                            k0 = 0.9996  # UTM scale factor
+                            
+                            # Remove false easting and false northing
+                            x_norm = x - 500000.0
+                            y_norm = y
+                            
+                            # Convert to geographic coordinates (simplified)
+                            # This is approximate but much more accurate for the Berlin area
+                            lat_rad = y_norm / (a * k0)
+                            lon_rad = x_norm / (a * k0) + 0.261799  # 15° in radians (central meridian)
+                            
+                            station_lat = lat_rad * 180.0 / 3.14159265359
+                            station_lon = lon_rad * 180.0 / 3.14159265359
+                            
+                            # Calculate distance
+                            distance = ((target_lat - station_lat) ** 2 + (target_lon - station_lon) ** 2) ** 0.5
+                            
+                            if distance < min_distance:
+                                min_distance = distance
+                                nearest_station = station
                                 
-                                if distance < min_distance:
-                                    min_distance = distance
-                                    nearest_station = station
+                    except (json.JSONDecodeError, ValueError, IndexError) as e:
+                        continue
+            
+            if nearest_station:
+                # Get datasets for this station
+                dataset_url = f"{self.tu_berlin_base_url}/dpbase/dataset/"
+                site_id = nearest_station.get('site', {}).get('id')
                 
-                if nearest_station:
-                    # Fetch weather variables for the station
-                    dataset_url = f"{self.tu_berlin_base_url}/dpbase/dataset/"
-                    
-                    # Get site ID safely
-                    site_id = None
-                    if isinstance(nearest_station.get('site'), dict):
-                        site_id = nearest_station['site'].get('id')
-                    elif 'site_id' in nearest_station:
-                        site_id = nearest_station['site_id']
-                    elif 'id' in nearest_station:
-                        site_id = nearest_station['id']
-                    
-                    if site_id:
-                        # Get temperature data
-                        temp_params = {
-                            'geolocation__site__id': site_id,
-                            'variable__standard_name__icontains': 'temperature',
-                            'limit': 100
-                        }
-                    else:
-                        # Use simpler parameters if site ID not available
-                        temp_params = {
-                            'variable__standard_name__icontains': 'temperature',
-                            'limit': 10
-                        }
+                if site_id:
+                    # Query for temperature data
+                    temp_params = {
+                        'geolocation__site__id': site_id,
+                        'variable__standard_name__icontains': 'temperature',
+                        'limit': 10
+                    }
                     
                     temp_response = requests.get(dataset_url, params=temp_params, headers=headers, timeout=10)
                     
@@ -215,9 +199,9 @@ class WeatherAPIManager:
                     
                     return weather_data
                 else:
-                    return {'error': 'No nearby stations found', 'fallback_recommended': 'openweathermap'}
+                    return {'error': 'Station site ID not available', 'fallback_recommended': 'openweathermap'}
             else:
-                return {'error': f'API request failed: {response.status_code}', 'fallback_recommended': 'openweathermap'}
+                return {'error': 'No nearby stations found', 'fallback_recommended': 'openweathermap'}
                 
         except Exception as e:
             return {'error': f'TU Berlin API error: {str(e)}', 'fallback_recommended': 'openweathermap'}

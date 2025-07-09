@@ -532,11 +532,7 @@ def render_project_setup():
             with comparison_col1:
                 st.write("**🎓 TU Berlin Climate Portal**")
                 tu_info = coverage_info['coverage_details']['tu_berlin']
-                if tu_info.get('status') == 'API endpoint not accessible':
-                    st.write(f"**Available:** ❌ Temporarily unavailable")
-                    st.write(f"**Status:** {tu_info.get('status', 'Unknown')}")
-                else:
-                    st.write(f"**Available:** {'✅ Yes' if tu_info['available'] else '❌ Outside coverage'}")
+                st.write(f"**Available:** {'✅ Yes' if tu_info['available'] else '❌ Outside coverage'}")
                 st.write(f"**Quality:** {tu_info['quality']}")
                 st.write(f"**Coverage:** {tu_info['coverage']}")
                 st.write(f"**Sources:** {tu_info['data_sources']}")
