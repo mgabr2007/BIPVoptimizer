@@ -476,262 +476,78 @@ def render_weather_environment():
     except ImportError:
         st.error("❌ Weather API manager not available. Using OpenWeatherMap fallback.")
         
-    # Fallback: Original TMY generation
-    if api_key:
-        if st.button("🔄 Generate TMY from Selected WMO Station (ISO 15927-4)", key="fetch_tmy"):
-            with st.spinner("Generating TMY dataset using ISO 15927-4 standards from WMO station..."):
-                # Fetch current weather for validation
-                current_weather = get_weather_data_from_coordinates(lat, lon, api_key)
-                
-                # Get selected weather station from Step 1
-                selected_station = st.session_state.project_data.get('selected_weather_station')
-                
-                if current_weather and current_weather.get('api_success'):
-                    # Get solar parameters
-                    solar_params = st.session_state.project_data.get('solar_parameters', {})
-                    
-                    # Get selected weather station from Step 1
-                    selected_station = st.session_state.project_data.get('selected_weather_station')
-                    
-                    # Generate TMY data using WMO station
-                    if selected_station:
-                        tmy_data = generate_tmy_from_wmo_station(selected_station, solar_params, coordinates)
-                    else:
-                        st.warning("No weather station selected in Step 1. Using basic TMY generation.")
-                        tmy_data = generate_tmy_from_wmo_station({}, solar_params, coordinates)
-                    
-                    if tmy_data:
-                        # Calculate annual solar resource
-                        annual_ghi = sum(hour['ghi'] for hour in tmy_data) / 1000  # Convert to kWh/m²
-                        annual_dni = sum(hour['dni'] for hour in tmy_data) / 1000
-                        annual_dhi = sum(hour['dhi'] for hour in tmy_data) / 1000
-                        
-                        # Calculate peak sun hours and average temperature
-                        peak_sun_hours = annual_ghi / 365  # Simplified calculation
-                        avg_temperature = SimpleMath.mean([hour['temperature'] for hour in tmy_data]) if tmy_data else 15.0
-                        
-                        # Calculate monthly profiles for reporting
-                        monthly_profiles = {}
-                        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        for month_idx in range(12):
-                            # Get hours for this month (simplified: 730 hours per month)
-                            start_hour = month_idx * 730
-                            end_hour = min((month_idx + 1) * 730, len(tmy_data))
-                            month_data = tmy_data[start_hour:end_hour]
-                            
-                            if month_data:
-                                monthly_ghi = sum(hour['ghi'] for hour in month_data) / 1000
-                                monthly_profiles[months[month_idx]] = {
-                                    'ghi': monthly_ghi,
-                                    'temperature': SimpleMath.mean([hour['temperature'] for hour in month_data])
-                                }
-                        
-                        # Store weather and TMY data
-                        weather_analysis = {
-                            'current_weather': current_weather,
-                            'wmo_station': selected_station,
-                            'tmy_data': tmy_data[:8760],  # First year only
-                            'annual_ghi': annual_ghi,
-                            'annual_dni': annual_dni,
-                            'annual_dhi': annual_dhi,
-                            'peak_sun_hours': peak_sun_hours,
-                            'average_temperature': avg_temperature,
-                            'monthly_profiles': monthly_profiles,
-                            'solar_resource_assessment': {
-                                'annual_ghi': annual_ghi,
-                                'annual_dni': annual_dni,
-                                'annual_dhi': annual_dhi,
-                                'peak_sun_hours': peak_sun_hours,
-                                'climate_zone': 'Temperate'
-                            },
-                            'solar_resource_class': classify_solar_resource_iso(annual_ghi),
-                            'data_quality': 'ISO_15927-4_Compliant',
-                            'generation_method': 'WMO_Station_ISO_Standards',
-                            'generation_date': datetime.now().isoformat(),
-                            'analysis_complete': True
-                        }
-                        
-                        st.session_state.project_data['weather_analysis'] = weather_analysis
-                        st.session_state.project_data['weather_complete'] = True
-                        
-                        # Save to database
-                        if 'project_id' in st.session_state:
-                            try:
-                                from services.io import save_project_data
-                                save_project_data(st.session_state.project_data)
-                            except ImportError:
-                                # Fallback if import fails
-                                pass
-                        
-                        st.success("✅ TMY generated successfully using ISO 15927-4 standards from WMO station data!")
-                        
-                        # Display results
-                        st.subheader("📊 TMY Generation Results")
-                        
-                        # WMO Station Information
-                        if selected_station:
-                            st.info(f"""
-                            **TMY Generated from WMO Station:**
-                            - Station: {selected_station.get('name', 'Unknown')} ({selected_station.get('country', 'Unknown')})
-                            - WMO ID: {selected_station.get('wmo_id', 'N/A')}
-                            - Distance from Project: {selected_station.get('distance_km', 0):.1f} km
-                            - Elevation: {selected_station.get('height', 0):.0f} m ASL
-                            - Climate Zone: {_get_climate_zone(selected_station.get('latitude', 0))}
-                            - Method: ISO 15927-4 standards with astronomical calculations
-                            """)
-                        
-                        # Current weather validation
-                        col1, col2, col3, col4 = st.columns(4)
-                        with col1:
-                            st.metric("Current Temperature", f"{current_weather['temperature']:.1f}°C")
-                        with col2:
-                            st.metric("Current Humidity", f"{current_weather['humidity']}%")
-                        with col3:
-                            st.metric("Wind Speed", f"{current_weather['wind_speed']} m/s")
-                        with col4:
-                            st.metric("Cloud Cover", f"{current_weather['clouds']}%")
-                        
-                        st.caption(f"Current conditions for validation: {current_weather['description'].title()}")
-                        
-                        # Solar resource analysis
-                        st.subheader("☀️ Solar Resource Assessment")
-                        
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("Annual GHI", f"{annual_ghi:,.0f} kWh/m²")
-                        with col2:
-                            st.metric("Annual DNI", f"{annual_dni:,.0f} kWh/m²")
-                        with col3:
-                            st.metric("Annual DHI", f"{annual_dhi:,.0f} kWh/m²")
-                        
-                        # Resource classification
-                        resource_class = classify_solar_resource_iso(annual_ghi)
-                        st.info(f"**Solar Resource Classification:** {resource_class}")
-                        
-                        # TMY quality assessment with WMO station information
-                        st.subheader("📈 TMY Data Quality Report")
-                        
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown(f"""
-                            **Data Generation Method:**
-                            - Source: WMO Station + ISO 15927-4 standards
-                            - Station: {selected_station.get('name', 'Unknown') if selected_station else 'Default'}
-                            - WMO ID: {selected_station.get('wmo_id', 'N/A') if selected_station else 'N/A'}
-                            - Distance: {selected_station.get('distance_km', 0):.1f} km
-                            - Temporal Resolution: Hourly (8,760 data points)
-                            - Solar Position: ISO 15927-4 astronomical algorithms
-                            - Irradiance: ISO 9060 solar constant with air mass corrections
-                            """)
-                        
-                        with col2:
-                            st.markdown(f"""
-                            **Quality Metrics:**
-                            - Data Completeness: 100%
-                            - Temporal Coverage: Full year
-                            - Solar Resource Class: {resource_class}
-                            - Generation Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}
-                            """)
-                        
-
-                        
-                        # Monthly solar profile
-                        st.subheader("📅 Monthly Solar Profile")
-                        
-                        # Calculate monthly averages with proper chronological ordering
-                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        monthly_ghi = []
-                        
-                        for month in range(12):
-                            month_start = month * 730  # Approximate hours per month
-                            month_end = min((month + 1) * 730, len(tmy_data))
-                            month_data = tmy_data[month_start:month_end]
-                            month_ghi = sum(hour['ghi'] for hour in month_data) / 1000  # kWh/m²
-                            monthly_ghi.append(month_ghi)
-                        
-                        # Create DataFrame for proper month ordering
-                        chart_df = pd.DataFrame({
-                            'Month': month_names,
-                            'Solar Irradiation (kWh/m²)': monthly_ghi
-                        })
-                        
-                        # Use plotly to ensure proper month ordering
-                        import plotly.express as px
-                        fig_monthly = px.bar(
-                            chart_df,
-                            x='Month',
-                            y='Solar Irradiation (kWh/m²)',
-                            title="Monthly Solar Irradiation Profile",
-                            category_orders={'Month': month_names}  # Enforce chronological order
-                        )
-                        fig_monthly.update_layout(
-                            xaxis_title="Month",
-                            yaxis_title="Solar Irradiation (kWh/m²)",
-                            height=400
-                        )
-                        st.plotly_chart(fig_monthly, use_container_width=True)
-                        
-
-                        
-                        # Environmental Shading References Section
-                        with st.expander("📚 Environmental Shading References", expanded=False):
-                            st.markdown("### Academic Sources for Shading Reduction Factors")
-                            st.markdown("""
-                            **Vegetation Shading (15% reduction factor):**
-                            
-                            1. **Gueymard, C.A.** (2012). "Clear-sky irradiance predictions for solar resource mapping and large-scale applications: Improved validation methodology and detailed performance analysis of 18 broadband radiative models." *Solar Energy*, 86(12), 3284-3297.
-                               - Methodology for calculating vegetation impact on solar irradiance
-                            
-                            2. **Hofierka, J. & Kaňuk, J.** (2009). "Assessment of photovoltaic potential in urban areas using open-source solar radiation tools." *Renewable Energy*, 34(10), 2206-2214.
-                               - Open-source tools for urban PV potential assessment
-                            
-                            **Building Shading (10% reduction factor):**
-                            
-                            3. **Appelbaum, J. & Bany, J.** (1979). "Shadow effect of adjacent solar collectors in large scale solar plants." *Solar Energy*, 23(6), 497-507.
-                               - Quantitative analysis of building shadow effects
-                            
-                            4. **Quaschning, V. & Hanitsch, R.** (1998). "Irradiance calculation on shaded surfaces." *Solar Energy*, 62(5), 369-375.
-                               - Mathematical models for shaded surface calculations
-                            
-                            **Methodology Notes:**
-                            - Reduction factors are applied cumulatively (not additive)
-                            - Values based on averaged results from multiple peer-reviewed studies
-                            - Conservative estimates to ensure realistic BIPV performance projections
-                            """)
-
-                else:
-                    st.error("Failed to fetch weather data. Please check your internet connection and API key.")
-    
-    else:
-        st.warning("OpenWeatherMap API key not found. Please add your API key to environment variables.")
+    # TMY Download Functionality
+    weather_analysis = st.session_state.get('project_data', {}).get('weather_analysis')
+    if weather_analysis and weather_analysis.get('tmy_data'):
+        st.markdown("---")
+        st.subheader("📁 TMY Data Download")
         
-        # Allow manual input for testing
-        if st.checkbox("Use default weather parameters (for testing)", key="use_defaults"):
-            # Create default TMY data
-            default_weather = {
-                'temperature': 15,
-                'humidity': 65,
-                'description': 'Default conditions',
-                'api_success': True
-            }
-            
-            solar_params = st.session_state.project_data.get('solar_parameters', {
-                'ghi': 1400, 'dni': 1700, 'dhi': 750, 'clearness': 0.55
-            })
-            
-            # Generate basic TMY using WMO method with default station
-            selected_station = st.session_state.project_data.get('selected_weather_station', {})
-            tmy_data = generate_tmy_from_wmo_station(selected_station, solar_params, coordinates)
-            
-            if tmy_data:
-                annual_ghi = sum(hour['ghi'] for hour in tmy_data) / 1000
-                annual_dni = sum(hour['dni'] for hour in tmy_data) / 1000
-                annual_dhi = sum(hour['dhi'] for hour in tmy_data) / 1000
-                peak_sun_hours = annual_ghi / 365
-                avg_temperature = SimpleMath.mean([hour['temperature'] for hour in tmy_data]) if tmy_data else 15.0
+        # Create downloadable TMY file
+        tmy_data = weather_analysis['tmy_data']
+        
+        # Convert TMY data to CSV format
+        tmy_rows = []
+        for hour_data in tmy_data:
+            tmy_rows.append([
+                hour_data.get('datetime', f"Hour_{len(tmy_rows)+1}"),
+                hour_data.get('temperature', 0),
+                hour_data.get('humidity', 0),
+                hour_data.get('pressure', 1013.25),
+                hour_data.get('wind_speed', 0),
+                hour_data.get('wind_direction', 0),
+                hour_data.get('cloud_cover', 0),
+                hour_data.get('ghi', 0),
+                hour_data.get('dni', 0),
+                hour_data.get('dhi', 0),
+                hour_data.get('solar_elevation', 0),
+                hour_data.get('solar_azimuth', 0),
+                hour_data.get('air_mass', 0),
+                hour_data.get('clearness_index', 0.5)
+            ])
+        
+        # Create CSV content
+        csv_header = "DateTime,Temperature_C,Humidity_percent,Pressure_hPa,WindSpeed_ms,WindDirection_deg,CloudCover_percent,GHI_Wm2,DNI_Wm2,DHI_Wm2,SolarElevation_deg,SolarAzimuth_deg,AirMass,ClearnessIndex\n"
+        csv_content = csv_header
+        for row in tmy_rows:
+            csv_content += ",".join(str(val) for val in row) + "\n"
+        
+        # Project info for filename
+        project_name = st.session_state.get('project_data', {}).get('project_name', 'BIPV_Project')
+        location = st.session_state.get('project_data', {}).get('location', 'Location')
+        
+        # Create download button
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"TMY_Data_{project_name.replace(' ', '_')}_{timestamp}.csv"
+        
+        st.download_button(
+            label="📁 Download TMY Data (CSV)",
+            data=csv_content,
+            file_name=filename,
+            mime="text/csv",
+            help="Download complete TMY dataset with 8,760 hourly weather records"
+        )
+        
+        # TMY file information
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"""
+            **TMY File Information:**
+            - Data Points: {len(tmy_data):,} hourly records
+            - Coverage: Full year (8,760 hours)
+            - Format: CSV with ISO 15927-4 compliance
+            - Generation Method: {weather_analysis.get('generation_method', 'Hybrid API')}
+            """)
+        
+        with col2:
+            st.info(f"""
+            **Data Columns:**
+            - Weather: Temperature, Humidity, Pressure, Wind
+            - Solar: GHI, DNI, DHI irradiance values
+            - Position: Solar elevation and azimuth angles
+            - Quality: Air mass and clearness index
+            """)
     
-    # Environmental Considerations Section - TMY DATA DEPENDENT
+    # Environmental Considerations Section
     weather_analysis = st.session_state.project_data.get('weather_analysis', {})
     if weather_analysis and weather_analysis.get('tmy_data'):
         st.markdown("---")
@@ -755,7 +571,7 @@ def render_weather_environment():
             trees_nearby = st.checkbox(
                 "Trees or vegetation nearby", 
                 value=env_data.get('trees_nearby', False), 
-                key="trees_nearby_env_dependent",
+                key="trees_nearby_env_main",
                 help="Select if there are trees or vegetation that could cast shadows on the building"
             )
         
@@ -763,7 +579,7 @@ def render_weather_environment():
             tall_buildings = st.checkbox(
                 "Tall buildings in vicinity", 
                 value=env_data.get('tall_buildings', False), 
-                key="tall_buildings_env_dependent",
+                key="tall_buildings_env_main",
                 help="Select if there are tall buildings nearby that could create shadows"
             )
         
@@ -774,8 +590,8 @@ def render_weather_environment():
         if tall_buildings:
             shading_reduction += 10  # 10% reduction from buildings
         
-        # Get annual GHI from weather analysis (if available)
-        base_ghi = weather_analysis.get('annual_ghi', 1400)  # Default if no weather data
+        # Get annual GHI from weather analysis
+        base_ghi = weather_analysis.get('annual_ghi', weather_analysis.get('summary_stats', {}).get('annual_ghi', 1400))
         
         # Display shading impact
         if shading_reduction > 0:
@@ -787,8 +603,6 @@ def render_weather_environment():
             adjusted_ghi = base_ghi
         
         # Update environmental data in session state
-        if 'project_data' not in st.session_state:
-            st.session_state.project_data = {}
         st.session_state.project_data['environmental_factors'] = {
             'trees_nearby': trees_nearby,
             'tall_buildings': tall_buildings,
@@ -822,29 +636,6 @@ def render_weather_environment():
             - Conservative estimates for preliminary analysis
             - Final analysis in Step 5 will use precise geometric modeling
             """)
-        
-        # Save environmental data to project data for database persistence
-        try:
-            from database_manager import BIPVDatabaseManager
-            db_manager = BIPVDatabaseManager()
-            
-            if st.session_state.project_data.get('project_id'):
-                # Update weather data with environmental factors directly
-                if 'weather_analysis' in st.session_state.project_data:
-                    st.session_state.project_data['weather_analysis']['environmental_factors'] = {
-                        'trees_nearby': trees_nearby,
-                        'tall_buildings': tall_buildings,
-                        'shading_reduction': shading_reduction,
-                        'adjusted_ghi': adjusted_ghi
-                    }
-                    
-                    # Save updated weather data with environmental factors
-                    db_manager.save_weather_data(
-                        st.session_state.project_data['project_id'],
-                        st.session_state.project_data['weather_analysis']
-                    )
-        except Exception as e:
-            pass  # Silent fail for database operations
     
     else:
         # Show message when TMY data is not available
