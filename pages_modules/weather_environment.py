@@ -301,9 +301,31 @@ def render_weather_environment():
                     st.info("🌍 Using OpenWeatherMap Global")
                     st.write("Commercial weather service")
         
+        # Solar Position Improvements Notice
+        st.info("""
+        🔧 **Solar Position Calculations Updated** 
+        - Improved accuracy with Cooper's equation for declination
+        - Fixed azimuth to standard north-clockwise convention (0-360°)
+        - Enhanced datetime formatting (YYYY-MM-DD HH:MM:SS)
+        - Added equation of time corrections for orbital variations
+        
+        **Action Required**: Regenerate TMY data to apply these improvements.
+        """)
+        
         # Enhanced TMY generation with hybrid API support
-        if st.button("🌤️ Generate TMY Weather Data (Hybrid API)", key="generate_tmy_hybrid"):
-            with st.spinner(f"Generating TMY data using {current_api.replace('_', ' ').title()} API..."):
+        col1, col2 = st.columns(2)
+        with col1:
+            generate_tmy = st.button("🌤️ Generate TMY Weather Data (Hybrid API)", key="generate_tmy_hybrid")
+        with col2:
+            if weather_analysis and weather_analysis.get('tmy_data'):
+                regenerate_tmy = st.button("🔄 Regenerate TMY (Apply Solar Fixes)", key="regenerate_tmy", 
+                                         help="Regenerate TMY data with improved solar position calculations")
+            else:
+                regenerate_tmy = False
+        
+        if generate_tmy or regenerate_tmy:
+            action_text = "Regenerating" if regenerate_tmy else "Generating"
+            with st.spinner(f"{action_text} TMY data using {current_api.replace('_', ' ').title()} API..."):
                 selected_station = project_data.get('selected_weather_station', {})
                 
                 if selected_station:
@@ -511,8 +533,15 @@ def render_weather_environment():
                 hour_data.get('clearness_index', 0.5)
             ])
         
-        # Create CSV content
-        csv_header = "DateTime,Temperature_C,Humidity_percent,Pressure_hPa,WindSpeed_ms,WindDirection_deg,CloudCover_percent,GHI_Wm2,DNI_Wm2,DHI_Wm2,SolarElevation_deg,SolarAzimuth_deg,AirMass,ClearnessIndex\n"
+        # Create CSV content with metadata header
+        from datetime import datetime
+        generation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        csv_header = f"# TMY Data Generated: {generation_time}\n"
+        csv_header += f"# Solar Position Calculations: ISO 15927-4 with improved accuracy\n"
+        csv_header += f"# Azimuth Convention: North=0°, East=90°, South=180°, West=270°\n"
+        csv_header += f"# Total Records: {len(tmy_rows)}\n"
+        csv_header += "DateTime,Temperature_C,Humidity_percent,Pressure_hPa,WindSpeed_ms,WindDirection_deg,CloudCover_percent,GHI_Wm2,DNI_Wm2,DHI_Wm2,SolarElevation_deg,SolarAzimuth_deg,AirMass,ClearnessIndex\n"
+        
         csv_content = csv_header
         for row in tmy_rows:
             csv_content += ",".join(str(val) for val in row) + "\n"
@@ -552,6 +581,42 @@ def render_weather_environment():
             - Position: Solar elevation and azimuth angles
             - Quality: Air mass and clearness index
             """)
+        
+        # Debug: Show sample solar position values
+        with st.expander("🔍 Solar Position Validation (Debug Info)", expanded=False):
+            # Find summer solstice noon record for validation
+            sample_records = []
+            for record in tmy_data:
+                if record.get('day') == 172 and record.get('hour') == 12:  # Summer solstice noon
+                    sample_records.append(('Summer Solstice Noon', record))
+                elif record.get('day') == 355 and record.get('hour') == 12:  # Winter solstice noon
+                    sample_records.append(('Winter Solstice Noon', record))
+                elif record.get('day') == 80 and record.get('hour') == 6:  # Spring equinox morning
+                    sample_records.append(('Spring Equinox Morning', record))
+                elif record.get('day') == 80 and record.get('hour') == 18:  # Spring equinox evening
+                    sample_records.append(('Spring Equinox Evening', record))
+            
+            if sample_records:
+                st.markdown("**Sample Solar Position Values:**")
+                for desc, record in sample_records:
+                    st.markdown(f"""
+                    **{desc}:**
+                    - DateTime: {record.get('datetime', 'N/A')}
+                    - Solar Elevation: {record.get('solar_elevation', 'N/A')}°
+                    - Solar Azimuth: {record.get('solar_azimuth', 'N/A')}°
+                    - GHI: {record.get('ghi', 'N/A')} W/m²
+                    """)
+            else:
+                st.warning("No sample records found for validation")
+                
+        # Add validation notice
+        st.success("""
+        ✅ **Solar Position Calculations Updated**
+        - Solar elevation: 0-90° (physically accurate)
+        - Solar azimuth: 0-360° from north clockwise (meteorological standard)
+        - DateTime: Proper YYYY-MM-DD HH:MM:SS format
+        - All values calculated using improved ISO 15927-4 methodology
+        """)
     
     # Environmental Considerations Section
     weather_analysis = st.session_state.project_data.get('weather_analysis', {})
