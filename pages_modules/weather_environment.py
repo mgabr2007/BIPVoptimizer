@@ -124,23 +124,29 @@ def generate_tmy_from_wmo_station(weather_station, solar_params, coordinates):
             # Atmospheric pressure (elevation corrected)
             pressure = 1013.25 * (1 - 0.0065 * station_elevation / 288.15) ** (9.80665 * 0.0289644 / (8.31447 * 0.0065))
             
+            # Convert day-of-year to proper datetime format
+            from datetime import datetime, timedelta
+            base_date = datetime(2023, 1, 1)
+            current_date = base_date + timedelta(days=day-1)
+            datetime_str = f"{current_date.strftime('%Y-%m-%d')} {hour:02d}:00:00"
+            
             tmy_data.append({
                 'day': day,
                 'hour': hour,
-                'datetime': f"2023-{day:03d}-{hour:02d}:00",
-                'dni': max(0, dni),
-                'dhi': max(0, dhi),
-                'ghi': max(0, ghi),
+                'datetime': datetime_str,
+                'dni': max(0, round(dni, 2)),
+                'dhi': max(0, round(dhi, 2)),
+                'ghi': max(0, round(ghi, 2)),
                 'temperature': round(temperature, 1),
                 'humidity': round(humidity, 1),
                 'wind_speed': round(wind_speed, 1),
-                'wind_direction': 180 + 60 * math.cos(2 * math.pi * day / 365),  # Prevailing direction
+                'wind_direction': round(180 + 60 * math.cos(2 * math.pi * day / 365), 1),  # Prevailing direction
                 'pressure': round(pressure, 1),
                 'cloud_cover': round(cloud_cover, 1),
-                'solar_elevation': max(0, solar_pos['elevation']),
-                'solar_azimuth': solar_pos['azimuth'],
-                'air_mass': air_mass if solar_pos['elevation'] > 0 else 0,
-                'clearness_index': clearness_index,
+                'solar_elevation': round(max(0, solar_pos['elevation']), 2),
+                'solar_azimuth': round(solar_pos['azimuth'], 2),
+                'air_mass': round(air_mass, 3) if solar_pos['elevation'] > 0 else 0,
+                'clearness_index': round(clearness_index, 3),
                 'source': 'WMO_ISO15927-4',
                 'station_id': weather_station.get('wmo_id', 'unknown'),
                 'station_name': weather_station.get('name', 'unknown'),

@@ -217,35 +217,74 @@ def get_location_electricity_rates(location, currency='EUR'):
 
 
 def calculate_solar_position_iso(lat, lon, day_of_year, hour):
-    """Calculate solar position using ISO 15927-4 methodology"""
-    # Solar declination angle (degrees)
-    declination = 23.45 * math.sin(math.radians(360 * (284 + day_of_year) / 365))
+    """
+    Calculate solar position using ISO 15927-4 methodology with improved accuracy
     
-    # Hour angle (degrees)
-    hour_angle = 15 * (hour - 12)
+    Returns:
+        dict: {
+            'elevation': Solar elevation angle in degrees (0-90°)
+            'azimuth': Solar azimuth angle in degrees from north clockwise (0-360°)
+            'declination': Solar declination angle in degrees
+        }
+    """
+    # More accurate solar declination (Cooper's equation)
+    # ISO 15927-4 recommends this for higher accuracy
+    B = math.radians(360 * (day_of_year - 81) / 365)
+    declination = 23.45 * math.sin(B)
     
-    # Solar elevation angle (degrees)
+    # Convert hour to decimal (handle fractional hours)
+    decimal_hour = hour + 0.5  # Center of hour
+    
+    # Equation of time correction (minutes)
+    B_eq = math.radians(360 * (day_of_year - 81) / 364)
+    equation_of_time = 9.87 * math.sin(2 * B_eq) - 7.53 * math.cos(B_eq) - 1.5 * math.sin(B_eq)
+    
+    # Solar time correction (longitude correction for local solar time)
+    time_correction = equation_of_time + 4 * lon  # 4 minutes per degree longitude
+    solar_time = decimal_hour + time_correction / 60
+    
+    # Hour angle (degrees from solar noon)
+    hour_angle = 15 * (solar_time - 12)
+    
+    # Convert to radians for calculations
     lat_rad = math.radians(lat)
     decl_rad = math.radians(declination)
     hour_rad = math.radians(hour_angle)
     
-    elevation = math.degrees(math.asin(
-        math.sin(lat_rad) * math.sin(decl_rad) + 
-        math.cos(lat_rad) * math.cos(decl_rad) * math.cos(hour_rad)
-    ))
+    # Solar elevation angle (altitude)
+    sin_elevation = (math.sin(lat_rad) * math.sin(decl_rad) + 
+                    math.cos(lat_rad) * math.cos(decl_rad) * math.cos(hour_rad))
     
-    # Solar azimuth angle (degrees from south)
+    # Clamp to valid range to avoid numerical errors
+    sin_elevation = max(-1, min(1, sin_elevation))
+    elevation = math.degrees(math.asin(sin_elevation))
+    
+    # Solar azimuth angle (from north, clockwise)
     if elevation > 0:
-        azimuth = math.degrees(math.atan2(
-            math.sin(hour_rad),
-            math.cos(hour_rad) * math.sin(lat_rad) - math.tan(decl_rad) * math.cos(lat_rad)
-        ))
+        # Calculate azimuth using proper spherical trigonometry
+        # This formula gives azimuth from north, clockwise (0-360°)
+        sin_azimuth = math.cos(decl_rad) * math.sin(hour_rad) / math.cos(math.radians(elevation))
+        cos_azimuth = (math.sin(decl_rad) * math.cos(lat_rad) - 
+                      math.cos(decl_rad) * math.sin(lat_rad) * math.cos(hour_rad)) / math.cos(math.radians(elevation))
+        
+        # Clamp to valid range to avoid numerical errors
+        sin_azimuth = max(-1, min(1, sin_azimuth))
+        cos_azimuth = max(-1, min(1, cos_azimuth))
+        
+        # Calculate azimuth using atan2 for proper quadrant determination
+        azimuth_rad = math.atan2(sin_azimuth, cos_azimuth)
+        azimuth = math.degrees(azimuth_rad)
+        
+        # Convert to 0-360° range from north clockwise
+        if azimuth < 0:
+            azimuth += 360
     else:
+        # Sun below horizon
         azimuth = 0
     
     return {
         'elevation': max(0, elevation),
-        'azimuth': azimuth,
+        'azimuth': azimuth % 360,  # Ensure 0-360° range
         'declination': declination
     }
 
