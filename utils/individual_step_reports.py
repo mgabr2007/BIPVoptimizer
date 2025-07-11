@@ -1157,15 +1157,35 @@ def generate_step3_report():
             </div>
         """
     else:
-        tmy_data = safe_get(weather_analysis, 'tmy_data', {})
-        solar_resource = safe_get(weather_analysis, 'solar_resource_assessment', {})
-        monthly_profiles = safe_get(weather_analysis, 'monthly_profiles', {})
+        # Extract TMY data from the newly generated dataset
+        tmy_data = safe_get(weather_analysis, 'tmy_data', [])
         
-        annual_ghi = safe_float(safe_get(solar_resource, 'annual_ghi'), 0.0)
-        annual_dni = safe_float(safe_get(solar_resource, 'annual_dni'), 0.0)
-        annual_dhi = safe_float(safe_get(solar_resource, 'annual_dhi'), 0.0)
-        peak_sun_hours = safe_float(safe_get(solar_resource, 'peak_sun_hours'), 0.0)
-        avg_temperature = safe_float(safe_get(weather_analysis, 'average_temperature'), 0.0)
+        # Calculate solar resource metrics from actual TMY data
+        if isinstance(tmy_data, list) and len(tmy_data) > 0:
+            # Extract values from TMY records
+            ghi_values = [safe_float(record.get('ghi', 0)) for record in tmy_data]
+            dni_values = [safe_float(record.get('dni', 0)) for record in tmy_data]
+            dhi_values = [safe_float(record.get('dhi', 0)) for record in tmy_data]
+            temp_values = [safe_float(record.get('temperature', 0)) for record in tmy_data]
+            
+            # Calculate annual totals (kWh/m²/year)
+            annual_ghi = sum(ghi_values) / 1000.0  # Convert Wh to kWh
+            annual_dni = sum(dni_values) / 1000.0
+            annual_dhi = sum(dhi_values) / 1000.0
+            avg_temperature = sum(temp_values) / len(temp_values) if temp_values else 0.0
+            
+            # Calculate peak sun hours (GHI > 200 W/m²)
+            peak_hours = sum(1 for ghi in ghi_values if ghi > 200)
+            peak_sun_hours = peak_hours / 365.0  # Average per day
+            
+        else:
+            # Fallback to stored values if TMY data structure is different
+            solar_resource = safe_get(weather_analysis, 'solar_resource_assessment', {})
+            annual_ghi = safe_float(safe_get(solar_resource, 'annual_ghi'), 0.0)
+            annual_dni = safe_float(safe_get(solar_resource, 'annual_dni'), 0.0)
+            annual_dhi = safe_float(safe_get(solar_resource, 'annual_dhi'), 0.0)
+            peak_sun_hours = safe_float(safe_get(solar_resource, 'peak_sun_hours'), 0.0)
+            avg_temperature = safe_float(safe_get(weather_analysis, 'average_temperature'), 0.0)
         
         # Determine solar resource class
         if annual_ghi >= 1800:
@@ -1260,24 +1280,58 @@ def generate_step3_report():
                 </div>
         """
         
-        # Generate monthly solar profile chart if data available
-        if monthly_profiles:
-            months = list(monthly_profiles.keys())
-            ghi_values = [safe_float(monthly_profiles[month].get('ghi', 0)) for month in months]
+        # Generate monthly solar profile chart from actual TMY data
+        if isinstance(tmy_data, list) and len(tmy_data) > 0:
+            # Calculate monthly averages from TMY data
+            months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            monthly_ghi = [0] * 12
+            monthly_counts = [0] * 12
             
-            if ghi_values:
-                # Monthly GHI profile
-                monthly_ghi_chart_data = {
-                    'x': months,
-                    'y': ghi_values
-                }
-                html += generate_plotly_chart(
-                    monthly_ghi_chart_data, 
-                    'bar', 
-                    'Monthly Solar Irradiance Profile',
-                    'Month', 
-                    'GHI (kWh/m²)'
-                )
+            for record in tmy_data:
+                day = safe_get(record, 'day', 1)
+                ghi = safe_float(record.get('ghi', 0))
+                
+                # Convert day of year to month
+                if day <= 31: month_idx = 0    # Jan
+                elif day <= 59: month_idx = 1  # Feb
+                elif day <= 90: month_idx = 2  # Mar
+                elif day <= 120: month_idx = 3 # Apr
+                elif day <= 151: month_idx = 4 # May
+                elif day <= 181: month_idx = 5 # Jun
+                elif day <= 212: month_idx = 6 # Jul
+                elif day <= 243: month_idx = 7 # Aug
+                elif day <= 273: month_idx = 8 # Sep
+                elif day <= 304: month_idx = 9 # Oct
+                elif day <= 334: month_idx = 10 # Nov
+                else: month_idx = 11 # Dec
+                
+                monthly_ghi[month_idx] += ghi
+                monthly_counts[month_idx] += 1
+            
+            # Calculate monthly averages and convert to kWh/m²/month
+            monthly_averages = []
+            for i in range(12):
+                if monthly_counts[i] > 0:
+                    avg_daily = monthly_ghi[i] / monthly_counts[i] / 1000.0  # Convert to kWh
+                    days_in_month = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][i]
+                    monthly_avg = avg_daily * days_in_month
+                    monthly_averages.append(monthly_avg)
+                else:
+                    monthly_averages.append(0)
+            
+            # Monthly GHI profile from actual TMY calculations
+            monthly_ghi_chart_data = {
+                'x': months,
+                'y': monthly_averages
+            }
+            html += generate_plotly_chart(
+                monthly_ghi_chart_data, 
+                'bar', 
+                'Monthly Solar Irradiance Profile (from TMY Data)',
+                'Month', 
+                'GHI (kWh/m²/month)'
+            )
         
         # Create temperature correlation chart with realistic seasonal data
         # Generate realistic temperature profile based on average temperature and location
