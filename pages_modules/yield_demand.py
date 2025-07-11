@@ -110,7 +110,6 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data, environmenta
                     datetime_str = hour_data.get('datetime', hour_data.get('DateTime', ''))
                     if datetime_str:
                         try:
-                            from datetime import datetime
                             dt = datetime.strptime(datetime_str.split()[0], '%Y-%m-%d')
                             day = dt.timetuple().tm_yday  # Day of year
                         except:
