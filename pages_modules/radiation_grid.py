@@ -627,6 +627,7 @@ def render_radiation_grid():
                 element_progress.text(f"Processing: {element_id} | {orientation} | {area:.1f}m² | Tilt: {tilt:.1f}° | {level}")
                 current_progress = 10 + int(70 * i / total_elements)
                 progress_bar.progress(current_progress)
+                status_text.text(f"Processing {i+1} of {total_elements} elements total with {analysis_precision.lower()} precision...")
                 
                 # Calculate radiation for this element
                 annual_irradiance = 0
