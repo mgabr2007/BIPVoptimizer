@@ -12,136 +12,81 @@ from database_manager import db_manager
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
 
-def calculate_geometric_shading_factors(walls_data, window_elements, latitude, longitude):
-    """Calculate geometric shading factors using building walls data."""
-    
-    def calculate_shadow_polygon(wall_element, sun_elevation, sun_azimuth, wall_height=3.0):
-        """Calculate shadow polygon cast by a wall element."""
-        try:
-            # Get wall properties
-            wall_azimuth = float(wall_element.get('Azimuth (°)', 180))
-            wall_length = float(wall_element.get('Length (m)', 1.0))
-            
-            # Calculate shadow length based on sun elevation
-            if sun_elevation <= 0:
-                return None  # No shadow during night
-            
-            shadow_length = wall_height / np.tan(np.radians(max(sun_elevation, 1)))
-            
-            # Calculate shadow direction (opposite to sun azimuth)
-            shadow_azimuth = (sun_azimuth + 180) % 360
-            
-            # Calculate shadow end points
-            shadow_dx = shadow_length * np.sin(np.radians(shadow_azimuth))
-            shadow_dy = shadow_length * np.cos(np.radians(shadow_azimuth))
-            
-            # Return shadow polygon coordinates (simplified as rectangle)
-            return {
-                'length': shadow_length,
-                'width': wall_length,
-                'azimuth': shadow_azimuth,
-                'dx': shadow_dx,
-                'dy': shadow_dy
-            }
-        except:
-            return None
-    
-    def calculate_shading_factor(window_element, shadow_polygons):
-        """Calculate shading factor for a window based on shadow polygons."""
-        try:
-            window_azimuth = float(window_element.get('Azimuth (degrees)', 180))
-            window_area = float(window_element.get('Glass Area (m²)', 1.5))
-            
-            # Simplified shading calculation
-            total_shading = 0.0
-            
-            for shadow in shadow_polygons:
-                if shadow is None:
-                    continue
-                
-                # Calculate azimuth difference
-                azimuth_diff = abs(window_azimuth - shadow['azimuth'])
-                if azimuth_diff > 180:
-                    azimuth_diff = 360 - azimuth_diff
-                
-                # Apply shading based on proximity and shadow size
-                if azimuth_diff < 45:  # Shadow in similar direction
-                    shading_intensity = max(0, 1 - (azimuth_diff / 45))
-                    shadow_coverage = min(0.8, shadow['length'] / 10.0)  # Normalize by 10m
-                    total_shading += shading_intensity * shadow_coverage
-            
-            # Clamp total shading and return factor
-            total_shading = min(0.7, total_shading)  # Max 70% shading
-            shading_factor = 1.0 - total_shading
-            return max(0.3, shading_factor)  # Min 30% radiation
-            
-        except:
-            return 0.9  # Default moderate shading
-    
-    # Generate shading factors for each hour
-    shading_factors = {}
-    
+def calculate_precise_shading_factor(wall_element, window_element, solar_position):
+    """Calculate precise shading factor for a window from a specific wall at given solar position."""
     try:
-        # Sample hours for calculation efficiency
-        sample_hours = [6, 8, 10, 12, 14, 16, 18]
+        # Get wall properties
+        wall_azimuth = float(wall_element.get('Azimuth (°)', 180))
+        wall_length = float(wall_element.get('Length (m)', 1.0))
+        wall_height = float(wall_element.get('Height (m)', 3.0))
+        wall_level = wall_element.get('Level', 'Level 1')
         
-        for hour in range(24):
-            if hour in sample_hours:
-                # Calculate solar position for this hour (simplified)
-                day_of_year = 172  # June 21 (summer solstice)
-                
-                # Simplified solar calculations
-                solar_declination = 23.45 * np.sin(np.radians(360 * (284 + day_of_year) / 365))
-                hour_angle = 15 * (hour - 12)
-                
-                lat_rad = np.radians(latitude)
-                decl_rad = np.radians(solar_declination)
-                hour_rad = np.radians(hour_angle)
-                
-                sun_elevation = np.degrees(np.arcsin(
-                    np.sin(lat_rad) * np.sin(decl_rad) + 
-                    np.cos(lat_rad) * np.cos(decl_rad) * np.cos(hour_rad)
-                ))
-                
-                sun_azimuth = np.degrees(np.arctan2(
-                    np.sin(hour_rad),
-                    np.cos(hour_rad) * np.sin(lat_rad) - np.tan(decl_rad) * np.cos(lat_rad)
-                )) + 180
-                
-                # Calculate shadows from all walls
-                shadow_polygons = []
-                for _, wall in walls_data.iterrows():
-                    shadow = calculate_shadow_polygon(wall, sun_elevation, sun_azimuth)
-                    if shadow:
-                        shadow_polygons.append(shadow)
-                
-                # Calculate average shading factor for this hour
-                total_shading_factor = 0.0
-                valid_windows = 0
-                
-                for _, window in window_elements.iterrows():
-                    factor = calculate_shading_factor(window, shadow_polygons)
-                    total_shading_factor += factor
-                    valid_windows += 1
-                
-                if valid_windows > 0:
-                    avg_shading_factor = total_shading_factor / valid_windows
-                else:
-                    avg_shading_factor = 0.9
-                
-                shading_factors[str(hour)] = {'shading_factor': avg_shading_factor}
+        # Get window properties
+        window_azimuth = float(window_element.get('azimuth', 180))
+        window_level = window_element.get('level', 'Level 1')
+        window_area = float(window_element.get('glass_area', 1.5))
+        
+        # Get solar position
+        sun_elevation = solar_position.get('elevation', 0)
+        sun_azimuth = solar_position.get('azimuth', 180)
+        
+        # Skip if sun below horizon
+        if sun_elevation <= 0:
+            return 1.0  # No shading at night
+        
+        # Calculate shadow length based on sun elevation
+        shadow_length = wall_height / np.tan(np.radians(max(sun_elevation, 0.1)))
+        
+        # Check if wall can shade this window based on relative positions
+        # 1. Azimuth proximity check
+        azimuth_diff = abs(wall_azimuth - window_azimuth)
+        if azimuth_diff > 180:
+            azimuth_diff = 360 - azimuth_diff
+        
+        # 2. Level compatibility check (wall should be same level or higher)
+        level_factor = 1.0
+        if wall_level != window_level:
+            # Simplified level impact - walls on different levels have reduced shading effect
+            level_factor = 0.5
+        
+        # 3. Calculate geometric shading intensity
+        if azimuth_diff < 90:  # Wall can potentially shade window
+            # Calculate shadow coverage based on wall-window relationship
+            proximity_factor = max(0, 1 - (azimuth_diff / 90))  # Closer azimuth = more shading
+            
+            # Shadow intensity based on sun angle relative to wall
+            wall_sun_angle = abs(wall_azimuth - sun_azimuth)
+            if wall_sun_angle > 180:
+                wall_sun_angle = 360 - wall_sun_angle
+            
+            # Wall creates shadow when sun is behind it (angle > 90°)
+            if wall_sun_angle > 90:
+                shadow_intensity = min(0.6, (wall_sun_angle - 90) / 90 * 0.6)  # Max 60% shading
+                shading_factor = max(0.4, 1.0 - (shadow_intensity * proximity_factor * level_factor))
             else:
-                # Interpolate or use default for non-sample hours
-                if hour < 6 or hour > 20:
-                    shading_factors[str(hour)] = {'shading_factor': 0.1}  # Night
-                else:
-                    shading_factors[str(hour)] = {'shading_factor': 0.85}  # Default daylight
+                shading_factor = 1.0  # No shading when sun hits wall directly
+        else:
+            shading_factor = 1.0  # No shading when azimuth difference too large
         
-        return shading_factors
+        return shading_factor
         
     except Exception as e:
-        print(f"Error in geometric shading calculation: {e}")
-        return None
+        return 0.9  # Conservative default shading factor
+    
+def calculate_combined_shading_factor(window_element, walls_data, solar_position):
+    """Calculate combined shading factor from all walls for a window at specific solar position."""
+    if walls_data is None or len(walls_data) == 0:
+        return 1.0  # No shading if no wall data
+    
+    combined_shading_factor = 1.0
+    
+    # Check shading from each wall
+    for _, wall in walls_data.iterrows():
+        wall_shading_factor = calculate_precise_shading_factor(wall, window_element, solar_position)
+        # Multiply factors (shadows accumulate multiplicatively)
+        combined_shading_factor *= wall_shading_factor
+    
+    return max(0.2, combined_shading_factor)  # Minimum 20% of unshaded radiation
 
 def calculate_solar_position_simple(latitude, longitude, day_of_year, hour):
     """Calculate solar position using simplified formulas."""
@@ -588,14 +533,11 @@ def render_radiation_grid():
         else:
             st.warning("⚠️ Building walls data required for geometric self-shading analysis. Please upload walls CSV file.")
         
-        # Generate geometric shading factors if walls data is available
+        # Prepare shading analysis with walls data
         if walls_data is not None:
-            with st.spinner("Calculating geometric shading factors from building walls..."):
-                shading_factors = calculate_geometric_shading_factors(walls_data, suitable_elements, latitude, longitude)
-                if shading_factors:
-                    st.success(f"Generated geometric shading factors for {len(shading_factors)} time periods")
-                else:
-                    st.warning("Could not generate shading factors from walls data")
+            st.success(f"Ready for precise self-shading analysis using {len(walls_data)} building walls")
+        else:
+            st.info("No walls data available - shading analysis will be skipped")
     
     # Analysis execution
     if st.button("🚀 Run Radiation Analysis", key="run_radiation_analysis"):
@@ -610,6 +552,9 @@ def render_radiation_grid():
             # Initialize progress
             status_text.text("Initializing radiation analysis...")
             progress_bar.progress(5)
+            
+            # Ensure walls_data is accessible to radiation calculations
+            # (walls_data is defined in the shading configuration section above)
             
             # Optimize analysis based on precision setting
             if analysis_precision == "Standard":
@@ -732,6 +677,11 @@ def render_radiation_grid():
                                         tilt,
                                         azimuth
                                     )
+                                    
+                                    # Apply precise shading calculations if walls data available
+                                    if walls_data is not None and include_shading:
+                                        shading_factor = calculate_combined_shading_factor(element, walls_data, solar_pos)
+                                        surface_irradiance *= shading_factor
                                     
                                     annual_irradiance += surface_irradiance
                                     monthly_total += surface_irradiance
