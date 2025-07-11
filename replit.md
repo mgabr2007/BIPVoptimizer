@@ -437,6 +437,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 11, 2025: Fixed critical datetime variable scope error in Step 7 yield_demand module by implementing proper date-to-datetime conversion for timedelta calculations and analysis_config serialization, resolving "cannot access local variable 'datetime' where it is not associated with a value" error
 - July 11, 2025: Fixed Step 6 CSV download functionality causing analysis reset by removing conflicting local datetime import on line 461 that was interfering with global datetime import, ensuring download buttons work without disrupting workflow state
 - July 11, 2025: Completely resolved Step 6 CSV download reset issue by restructuring download functionality - moved CSV generation outside calculation conditional block to persistent session state storage, ensuring download buttons remain available and functional without triggering analysis resets, providing reliable data export capability
+- July 11, 2025: Fixed critical Step 6 radiation data lookup issue where all elements showed identical 1500 kWh/m²/year instead of authentic TMY-derived values - implemented comprehensive radiation data mapping with multiple field name recognition, enhanced element ID matching, and strict requirement for authentic TMY data with no fallback values, ensuring BIPV calculations use real solar irradiance from weather station data
 
 ## User Preferences
 

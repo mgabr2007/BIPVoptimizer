@@ -61,13 +61,38 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
     # Try to get radiation data for more accurate calculations
     radiation_lookup = {}
     if radiation_data is not None:
+        st.info(f"🔍 Debug: Radiation data type: {type(radiation_data)}, columns: {list(radiation_data.columns) if hasattr(radiation_data, 'columns') else 'N/A'}")
+        
         if isinstance(radiation_data, pd.DataFrame) and 'element_id' in radiation_data.columns:
+            st.info(f"📊 Processing DataFrame with {len(radiation_data)} radiation records")
             for _, rad_row in radiation_data.iterrows():
                 element_id = rad_row.get('element_id', '')
-                annual_radiation = rad_row.get('annual_radiation', 1500)  # kWh/m²/year
-                radiation_lookup[element_id] = annual_radiation
+                # Try multiple field names for annual radiation
+                annual_radiation = (
+                    rad_row.get('annual_radiation') or
+                    rad_row.get('annual_irradiation') or 
+                    rad_row.get('radiation') or
+                    rad_row.get('annual_radiation_kwh_m2') or
+                    None
+                )
+                if annual_radiation is not None and annual_radiation > 0:
+                    radiation_lookup[element_id] = float(annual_radiation)
+                    
+            st.success(f"✅ Created radiation lookup for {len(radiation_lookup)} elements")
+            # Show sample radiation values for debugging
+            if len(radiation_lookup) > 0:
+                sample_items = list(radiation_lookup.items())[:3]
+                st.info(f"📈 Sample radiation values: {sample_items}")
+                
         elif isinstance(radiation_data, dict) and 'element_radiation' in radiation_data:
             radiation_lookup = radiation_data['element_radiation']
+        elif isinstance(radiation_data, dict):
+            # Handle direct radiation data dict
+            for element_id, rad_value in radiation_data.items():
+                if isinstance(rad_value, (int, float)) and rad_value > 0:
+                    radiation_lookup[element_id] = float(rad_value)
+    else:
+        st.error("❌ No radiation data available from Step 5 - authentic TMY calculations required")
     
     for idx, element in suitable_elements.iterrows():
         # Use actual Element ID from building elements
@@ -98,8 +123,16 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
         azimuth = element.get('Azimuth', element.get('azimuth', 0))
         orientation = element.get('Orientation', element.get('orientation', get_orientation_from_azimuth(azimuth)))
         
-        # Get radiation data for this specific element
-        annual_radiation = radiation_lookup.get(element_id, 1500)  # Default fallback
+        # Get radiation data for this specific element - REQUIRE authentic TMY data
+        annual_radiation = radiation_lookup.get(element_id)
+        if annual_radiation is None or annual_radiation <= 0:
+            # Try alternative element ID formats
+            alt_element_id = str(element_id).replace('element_', '') if 'element_' in str(element_id) else f"element_{element_id}"
+            annual_radiation = radiation_lookup.get(alt_element_id)
+            
+            if annual_radiation is None or annual_radiation <= 0:
+                st.error(f"❌ No authentic TMY radiation data found for element {element_id}. Cannot proceed without real data.")
+                continue  # Skip this element instead of using fallback values
         
         # Calculate BIPV specifications
         bipv_area = calculate_bipv_glass_coverage(glass_area)
