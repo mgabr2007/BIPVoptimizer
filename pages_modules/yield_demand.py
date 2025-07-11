@@ -658,8 +658,28 @@ def render_yield_demand():
                                 annual_energy = glass_area * 50
                         
                         if annual_energy > 0 and capacity_kw > 0:  # Only include valid systems
-                            # Calculate monthly yields using seasonal distribution
-                            monthly_yields = [annual_energy * factor for factor in monthly_solar_factors]
+                            # Calculate monthly yields using authentic TMY data
+                            monthly_yields = []
+                            if tmy_data and len(tmy_data) > 0:
+                                # Calculate actual monthly yields from TMY data
+                                monthly_irradiation = {}
+                                for month in range(1, 13):
+                                    month_total = 0
+                                    for record in tmy_data:
+                                        record_month = int(record.get('DateTime', '2023-01-01 00:00:00').split('-')[1])
+                                        if record_month == month:
+                                            ghi = record.get('ghi', record.get('GHI_Wm2', record.get('GHI', 0)))
+                                            month_total += ghi / 1000  # Convert to kWh/m²
+                                    monthly_irradiation[month] = month_total
+                                
+                                # Calculate monthly yield for this system
+                                for month in range(1, 13):
+                                    month_radiation = monthly_irradiation.get(month, 0)
+                                    month_yield = glass_area * efficiency * month_radiation * performance_ratio * shading_factor
+                                    monthly_yields.append(month_yield)
+                            else:
+                                # Skip system if no TMY data
+                                continue
                             
                             # Calculate final specific yield
                             specific_yield = annual_energy / capacity_kw
