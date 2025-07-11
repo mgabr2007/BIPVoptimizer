@@ -630,32 +630,12 @@ def render_yield_demand():
                             specific_yield = annual_energy / capacity_kw
                             if idx < 3:
                                 st.info(f"System {idx+1} specific yield: {specific_yield:,.0f} kWh/kW")
-                            
-                            # Only apply minimal realistic bounds
-                            if specific_yield > 2500:  # Extremely high, likely calculation error
-                                if idx < 3:
-                                    st.warning(f"System {idx+1}: Unrealistic specific yield {specific_yield:,.0f} kWh/kW detected, capping at 2000 kWh/kW")
-                                annual_energy = capacity_kw * 2000
-                            elif specific_yield < 500:  # Very low for any PV system
-                                if idx < 3:
-                                    st.warning(f"System {idx+1}: Low specific yield {specific_yield:,.0f} kWh/kW detected, setting minimum 600 kWh/kW")
-                                annual_energy = capacity_kw * 600
                         
-                        # Minimal energy per m² validation (allow higher yields for good orientations)
+                        # Display energy density without constraints
                         if glass_area > 0:
                             energy_per_m2 = annual_energy / glass_area
                             if idx < 3:
                                 st.info(f"System {idx+1} energy per m²: {energy_per_m2:,.0f} kWh/m²/year")
-                            
-                            # Only cap extreme values
-                            if energy_per_m2 > 300:  # Unrealistically high
-                                if idx < 3:
-                                    st.warning(f"System {idx+1}: Extremely high energy density {energy_per_m2:,.0f} kWh/m²/year, capping at 250 kWh/m²/year")
-                                annual_energy = glass_area * 250
-                            elif energy_per_m2 < 30:  # Extremely low
-                                if idx < 3:
-                                    st.warning(f"System {idx+1}: Very low energy density {energy_per_m2:,.0f} kWh/m²/year, setting minimum 50 kWh/m²/year")
-                                annual_energy = glass_area * 50
                         
                         if annual_energy > 0 and capacity_kw > 0:  # Only include valid systems
                             # Calculate monthly yields using authentic TMY data
