@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import datetime as dt, timedelta
 import pickle
 from database_manager import db_manager
 from core.solar_math import safe_divide
@@ -525,10 +525,10 @@ def render_yield_demand():
                 # Determine analysis end date
                 period_months = {"1 Year": 12, "2 Years": 24, "5 Years": 60, "10 Years": 120}
                 # Convert date to datetime if needed
-                if isinstance(analysis_start, datetime):
+                if isinstance(analysis_start, dt):
                     analysis_datetime = analysis_start
                 else:
-                    analysis_datetime = datetime.combine(analysis_start, datetime.min.time())
+                    analysis_datetime = dt.combine(analysis_start, dt.min.time())
                 end_date = analysis_datetime + timedelta(days=period_months[analysis_period] * 30)
                 
                 # Skip complex demand forecasting and use historical data directly
