@@ -41,10 +41,19 @@ def generate_tmy_from_wmo_station(weather_station, solar_params, coordinates):
         base_temperature = 5.0
     
     # Generate hourly data for typical meteorological year
+    debug_records = []  # Store sample records for debugging
+    
     for day in range(1, 366):  # 365 days (ISO 15927-4 standard)
         for hour in range(24):
             # Calculate solar position using ISO methodology
             solar_pos = calculate_solar_position_iso(station_lat, station_lon, day, hour)
+            
+            # Debug: Store sample records for verification
+            if (day == 172 and hour == 12) or (day == 1 and hour in [6, 12, 18]) or (day == 180 and hour == 12):
+                debug_records.append({
+                    'day': day, 'hour': hour, 'elevation': solar_pos['elevation'], 
+                    'azimuth': solar_pos['azimuth'], 'lat': station_lat, 'lon': station_lon
+                })
             
             # Initialize default values
             clearness_index = solar_params.get('clearness', 0.5)
@@ -66,25 +75,36 @@ def generate_tmy_from_wmo_station(weather_station, solar_params, coordinates):
                 extraterrestrial_irradiance = solar_constant * eccentricity_correction * \
                                             math.sin(math.radians(solar_pos['elevation']))
                 
-                # Direct Normal Irradiance (DNI) - ISO 15927-4
-                dni = extraterrestrial_irradiance * clearness_index * \
-                      math.exp(-0.09 * air_mass * (1 - station_elevation / 8400))
-                
-                # Diffuse Horizontal Irradiance (DHI) - ISO 15927-4
-                if clearness_index <= 0.22:
-                    diffuse_fraction = 1.0 - 0.09 * clearness_index
-                elif clearness_index <= 0.80:
-                    diffuse_fraction = 0.9511 - 0.1604 * clearness_index + \
-                                     4.388 * clearness_index**2 - 16.638 * clearness_index**3 + \
-                                     12.336 * clearness_index**4
+                # Ensure minimum elevation for realistic irradiance
+                if solar_pos['elevation'] > 5.0:  # Only calculate for meaningful elevation angles
+                    # Direct Normal Irradiance (DNI) - ISO 15927-4
+                    atmospheric_attenuation = math.exp(-0.09 * air_mass * (1 - station_elevation / 8400))
+                    dni = extraterrestrial_irradiance * clearness_index * atmospheric_attenuation
+                    
+                    # Diffuse Horizontal Irradiance (DHI) - ISO 15927-4
+                    if clearness_index <= 0.22:
+                        diffuse_fraction = 1.0 - 0.09 * clearness_index
+                    elif clearness_index <= 0.80:
+                        diffuse_fraction = 0.9511 - 0.1604 * clearness_index + \
+                                         4.388 * clearness_index**2 - 16.638 * clearness_index**3 + \
+                                         12.336 * clearness_index**4
+                    else:
+                        diffuse_fraction = 0.165
+                    
+                    dhi = extraterrestrial_irradiance * clearness_index * diffuse_fraction
+                    
+                    # Global Horizontal Irradiance (GHI) - ISO 15927-4
+                    ghi = dni * math.sin(math.radians(solar_pos['elevation'])) + dhi
+                    
+                    # Debug: Store calculation details for noon hours
+                    if hour == 12 and day in [1, 172, 355]:
+                        debug_records.append({
+                            'day': day, 'hour': hour, 'elevation': solar_pos['elevation'],
+                            'clearness': clearness_index, 'extraterrestrial': extraterrestrial_irradiance,
+                            'dni': dni, 'dhi': dhi, 'ghi': ghi, 'air_mass': air_mass
+                        })
                 else:
-                    diffuse_fraction = 0.165
-                
-                dhi = extraterrestrial_irradiance * clearness_index * diffuse_fraction
-                
-                # Global Horizontal Irradiance (GHI) - ISO 15927-4
-                ghi = dni * math.sin(math.radians(solar_pos['elevation'])) + dhi
-                
+                    dni = dhi = ghi = 0
             else:
                 dni = dhi = ghi = 0
             
@@ -152,6 +172,10 @@ def generate_tmy_from_wmo_station(weather_station, solar_params, coordinates):
                 'station_name': weather_station.get('name', 'unknown'),
                 'station_distance_km': weather_station.get('distance_km', 0)
             })
+    
+    # Store debug records for analysis
+    if debug_records:
+        st.session_state['tmy_debug_records'] = debug_records
     
     return tmy_data
 
@@ -343,41 +367,38 @@ def render_weather_environment():
                 weather_data = asyncio.run(weather_api_manager.fetch_weather_data(lat, lon, selected_api))
                 
                 if 'error' not in weather_data:
-                    # Generate TMY using the hybrid approach
-                    tmy_df = weather_api_manager.generate_tmy_from_api_data(weather_data, lat, lon)
+                    # Get solar parameters for location
+                    from core.solar_math import get_location_solar_parameters
+                    solar_params = get_location_solar_parameters(project_data.get('location', 'berlin'))
                     
-                    if tmy_df is not None and len(tmy_df) > 0:
-                        # Convert DataFrame to list format for compatibility
-                        tmy_data = []
-                        for _, row in tmy_df.iterrows():
-                            tmy_data.append({
-                                'datetime': row['datetime'].isoformat() if hasattr(row['datetime'], 'isoformat') else str(row['datetime']),
-                                'temperature': row['temperature'],
-                                'humidity': row['humidity'],
-                                'pressure': row['pressure'],
-                                'dni': row['dni'],
-                                'dhi': row['dhi'],
-                                'ghi': row['ghi'],
-                                'wind_speed': row['wind_speed']
-                            })
+                    # Generate TMY using our custom ISO-compliant function with solar position calculations
+                    tmy_data = generate_iso_tmy_data(selected_station, solar_params, coordinates)
+                    
+                    if tmy_data and len(tmy_data) > 0:
                         
-                        # Calculate comprehensive statistics
-                        annual_ghi = tmy_df['ghi'].sum() / 1000  # Convert to kWh/m²/year
-                        annual_dni = tmy_df['dni'].sum() / 1000
-                        annual_dhi = tmy_df['dhi'].sum() / 1000
+                        # Calculate comprehensive statistics from our TMY data
+                        annual_ghi = sum(record.get('ghi', 0) for record in tmy_data) / 1000  # Convert to kWh/m²/year
+                        annual_dni = sum(record.get('dni', 0) for record in tmy_data) / 1000
+                        annual_dhi = sum(record.get('dhi', 0) for record in tmy_data) / 1000
                         peak_sun_hours = annual_ghi / 365
-                        avg_temperature = tmy_df['temperature'].mean()
+                        avg_temperature = sum(record.get('temperature', 15) for record in tmy_data) / len(tmy_data)
                         
                         # Create monthly solar profile
-                        tmy_df['month'] = tmy_df['datetime'].dt.month
                         monthly_solar = {}
                         month_names = ['January', 'February', 'March', 'April', 'May', 'June',
                                       'July', 'August', 'September', 'October', 'November', 'December']
+                        
+                        # Group data by month
+                        monthly_data = {i: [] for i in range(1, 13)}
+                        for record in tmy_data:
+                            day = record.get('day', 1)
+                            # Convert day of year to month (approximate)
+                            month = min(12, max(1, ((day - 1) // 30) + 1))
+                            monthly_data[month].append(record.get('ghi', 0))
+                        
                         for month in range(1, 13):
-                            month_data = tmy_df[tmy_df['month'] == month]
-                            if len(month_data) > 0:
-                                monthly_ghi = month_data['ghi'].sum() / 1000
-                                monthly_solar[month_names[month-1]] = monthly_ghi
+                            monthly_ghi = sum(monthly_data[month]) / 1000  # Convert to kWh/m²/month
+                            monthly_solar[month_names[month-1]] = monthly_ghi
                         
                         # Enhanced weather analysis structure
                         weather_analysis = {
@@ -624,6 +645,23 @@ def render_weather_environment():
                 st.markdown("**First Record Structure:**")
                 first_record = tmy_data[0]
                 st.json(first_record)
+                
+            # Show debug solar position records
+            debug_records = st.session_state.get('tmy_debug_records', [])
+            if debug_records:
+                st.markdown("**Solar Position & Irradiance Debug Records:**")
+                for record in debug_records:
+                    if 'ghi' in record:  # Irradiance debug record
+                        st.markdown(f"Day {record['day']}: Elevation={record['elevation']:.1f}°, Clearness={record['clearness']:.2f}, DNI={record['dni']:.0f}, GHI={record['ghi']:.0f} W/m²")
+                    else:  # Position debug record
+                        st.markdown(f"Day {record['day']}, Hour {record['hour']}: Elevation={record['elevation']:.2f}°, Azimuth={record['azimuth']:.2f}°")
+                
+            # Show irradiance sample
+            noon_records = [r for r in tmy_data if r.get('hour') == 12 and r.get('day') in [1, 90, 180, 270]]
+            if noon_records:
+                st.markdown("**Sample Noon Irradiance Values:**")
+                for record in noon_records[:4]:
+                    st.markdown(f"Day {record['day']}: GHI={record['ghi']} W/m², Elevation={record['solar_elevation']}°")
                 
         # Add validation notice
         st.success("""
