@@ -152,12 +152,9 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data, environmenta
             
             monthly_irradiation_profile[month] = month_total
     else:
-        # Use typical monthly distribution for Berlin climate with shading applied
-        annual_ghi = 1200  # kWh/m² typical for Berlin
-        adjusted_annual_ghi = annual_ghi * shading_factor
-        monthly_distribution = [0.03, 0.05, 0.08, 0.11, 0.14, 0.15, 0.14, 0.12, 0.09, 0.06, 0.03, 0.02]
-        for month in range(1, 13):
-            monthly_irradiation_profile[month] = adjusted_annual_ghi * monthly_distribution[month-1]
+        # No TMY data available - cannot calculate authentic yields
+        st.error("❌ No TMY data available - authentic radiation calculations require TMY data from Step 3")
+        return pd.DataFrame()  # Return empty DataFrame
     
     # Calculate yield for each PV system
     for _, system in pv_specs.iterrows():
@@ -572,15 +569,18 @@ def render_yield_demand():
                     if tmy_data:
                         st.info(f"✅ Using TMY data: {len(tmy_data)} hourly records")
                     else:
-                        st.warning("⚠️ No TMY data found - using statistical monthly distribution")
+                        st.error("❌ No TMY data found - cannot proceed without authentic weather data from Step 3")
                 
-                # Create yield profiles with realistic monthly distribution and environmental shading
+                # Create yield profiles using authentic TMY data and environmental shading
                 yield_profiles = []
-                # Monthly solar irradiation distribution for Central Europe (Berlin climate)
-                monthly_solar_factors = [0.03, 0.05, 0.08, 0.11, 0.14, 0.15, 0.14, 0.12, 0.09, 0.06, 0.03, 0.02]
                 
                 # Apply environmental shading factor
                 shading_factor = 1 - (shading_reduction / 100)
+                
+                # Check if TMY data is available before proceeding
+                if not tmy_data or len(tmy_data) == 0:
+                    st.error("❌ Cannot calculate energy yields without TMY data from Step 3. Please complete Step 3 first.")
+                    return
                 
                 if pv_specs is not None and len(pv_specs) > 0:
                     st.info(f"Processing {len(pv_specs)} BIPV systems...")
@@ -590,13 +590,13 @@ def render_yield_demand():
                         capacity_kw = safe_float(system.get('capacity_kw', 0))
                         glass_area = safe_float(system.get('glass_area_m2', system.get('bipv_area_m2', 1.5)))
                         efficiency = safe_float(system.get('efficiency', 0.08))  # Default 8% BIPV efficiency
-                        annual_radiation = safe_float(system.get('annual_radiation_kwh_m2', 1500))  # kWh/m²/year
+                        annual_radiation = 0  # Will be calculated from TMY data only
                         
                         # Recalculate realistic annual energy based on actual physics
                         # Formula: Energy = Area × Efficiency × Solar Radiation × Performance Ratio × Environmental Shading
                         performance_ratio = 0.85  # Typical for BIPV systems
                         
-                        # Use actual TMY-derived radiation if available, otherwise use system's radiation data
+                        # Use actual TMY-derived radiation - only authentic data
                         if tmy_data and len(tmy_data) > 0:
                             # Calculate annual radiation from TMY data
                             tmy_annual_ghi = sum(record.get('ghi', record.get('GHI_Wm2', record.get('GHI', 0))) for record in tmy_data) / 1000  # Convert to kWh/m²/year
@@ -604,12 +604,14 @@ def render_yield_demand():
                                 annual_radiation = tmy_annual_ghi
                                 if idx < 3:
                                     st.success(f"System {idx+1}: Using authentic TMY radiation: {annual_radiation:.0f} kWh/m²/year")
-                        
-                        # Ensure radiation is reasonable (Central Europe: 1000-1800 kWh/m²/year)
-                        if annual_radiation > 2500 or annual_radiation < 800:
-                            annual_radiation = 1400  # Use typical value for Germany as last resort
+                            else:
+                                if idx < 3:
+                                    st.error(f"System {idx+1}: Invalid TMY data - cannot calculate yield without authentic radiation data")
+                                continue  # Skip this system
+                        else:
                             if idx < 3:
-                                st.warning(f"System {idx+1}: Using fallback radiation value: {annual_radiation:.0f} kWh/m²/year")
+                                st.error(f"System {idx+1}: No TMY data available - cannot calculate yield without authentic radiation data")
+                            continue  # Skip this system
                         
                         # Calculate annual energy with environmental shading applied
                         annual_energy = glass_area * efficiency * annual_radiation * performance_ratio * shading_factor
