@@ -708,8 +708,16 @@ def render_radiation_grid():
                                     if hour < 6 or hour > 19:
                                         continue
                                     
-                                    # Calculate solar position
-                                    solar_pos = calculate_solar_position_simple(latitude, longitude, day_of_year, hour)
+                                    # Extract solar position from TMY data (authentic calculations from Step 3)
+                                    solar_pos = {
+                                        'elevation': hour_data.get('solar_elevation', 0),
+                                        'azimuth': hour_data.get('solar_azimuth', 180),
+                                        'zenith': 90 - hour_data.get('solar_elevation', 0)
+                                    }
+                                    
+                                    # Fallback to calculated values if TMY doesn't have solar position data
+                                    if solar_pos['elevation'] == 0 and solar_pos['azimuth'] == 180:
+                                        solar_pos = calculate_solar_position_simple(latitude, longitude, day_of_year, hour)
                                     
                                     # Skip if sun below horizon
                                     if solar_pos['elevation'] <= 0:
