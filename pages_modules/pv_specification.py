@@ -95,10 +95,13 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
         st.error("❌ No radiation data available from Step 5 - authentic TMY calculations required")
     
     for idx, element in suitable_elements.iterrows():
-        # Use actual Element ID from building elements
-        element_id = element.get('Element ID', element.get('element_id', f"element_{idx}"))
+        # Use actual Element ID from building elements - REQUIRE authentic BIM data
+        element_id = element.get('Element ID') or element.get('element_id')
+        if not element_id:
+            st.error(f"❌ No Element ID found for building element at index {idx}. Authentic BIM data required.")
+            continue  # Skip this element instead of using fallback values
         
-        # Extract glass area from multiple possible column names
+        # Extract glass area from multiple possible column names - REQUIRE authentic BIM data
         glass_area_raw = (
             element.get('Glass Area (m²)') or
             element.get('glass_area') or
@@ -107,21 +110,26 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
             element.get('area') or
             element.get('Window Area') or
             element.get('window_area') or
-            element.get('glass_area_m2') or
-            1.5  # Only use default as last resort
+            element.get('glass_area_m2')
         )
         
-        # Convert to float and ensure it's a reasonable value
+        # Convert to float and validate - NO fallback values allowed
         try:
-            glass_area = float(glass_area_raw)
-            if glass_area <= 0:
-                glass_area = 1.5  # Fallback for zero or negative values
+            glass_area = float(glass_area_raw) if glass_area_raw is not None else None
+            if glass_area is None or glass_area <= 0:
+                st.error(f"❌ No valid glass area found for element {element_id}. Authentic BIM data required.")
+                continue  # Skip this element instead of using fallback values
         except (ValueError, TypeError):
-            glass_area = 1.5  # Fallback for non-numeric values
+            st.error(f"❌ Invalid glass area data for element {element_id}. Authentic BIM data required.")
+            continue  # Skip this element instead of using fallback values
         
-        # Get orientation information from building elements
-        azimuth = element.get('Azimuth', element.get('azimuth', 0))
-        orientation = element.get('Orientation', element.get('orientation', get_orientation_from_azimuth(azimuth)))
+        # Get orientation information from building elements - REQUIRE authentic BIM data
+        azimuth = element.get('Azimuth') or element.get('azimuth')
+        if azimuth is None:
+            st.error(f"❌ No azimuth data found for element {element_id}. Authentic BIM data required.")
+            continue  # Skip this element instead of using fallback values
+            
+        orientation = element.get('Orientation') or element.get('orientation') or get_orientation_from_azimuth(azimuth)
         
         # Get radiation data for this specific element - REQUIRE authentic TMY data
         annual_radiation = radiation_lookup.get(element_id)
@@ -163,7 +171,7 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
             'capacity_kw': capacity_kw,
             'annual_energy_kwh': annual_energy_kwh,
             'annual_radiation_kwh_m2': annual_radiation,
-            'specific_yield_kwh_kw': safe_divide(annual_energy_kwh, capacity_kw, 0) if capacity_kw > 0 else 0,
+            'specific_yield_kwh_kw': annual_energy_kwh / capacity_kw if capacity_kw > 0 else None,
             'power_density_w_m2': actual_power_density,
             'total_cost_eur': total_cost_eur,
             'efficiency': panel_specs['efficiency'],
