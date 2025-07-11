@@ -111,7 +111,7 @@ def generate_tmy_from_wmo_station(weather_station, solar_params, coordinates):
             # Temperature calculation using ISO 15927-4 methodology
             # Seasonal variation (sinusoidal model)
             seasonal_amplitude = 12.0  # ±12°C seasonal variation
-            seasonal_phase = 46  # Day of minimum temperature (mid-February)
+            seasonal_phase = 228  # Day of maximum temperature (mid-August, day 228)
             seasonal_temp = seasonal_amplitude * math.cos(2 * math.pi * (day - seasonal_phase) / 365)
             
             # Daily temperature variation
@@ -121,6 +121,14 @@ def generate_tmy_from_wmo_station(weather_station, solar_params, coordinates):
             
             # Final temperature
             temperature = base_temperature + seasonal_temp + daily_temp
+            
+            # Debug: Store temperature calculation details for verification
+            if (day == 1 and hour == 12) or (day == 213 and hour == 12):  # Jan 1st noon and Aug 1st noon
+                debug_records.append({
+                    'day': day, 'hour': hour, 'base_temp': base_temperature,
+                    'seasonal': seasonal_temp, 'daily': daily_temp, 'final_temp': temperature,
+                    'season_phase': seasonal_phase, 'day_phase': daily_phase
+                })
             
             # Humidity calculation (ISO 15927-4 based)
             # Higher humidity at night and in winter
@@ -492,6 +500,32 @@ def render_weather_environment():
                             - API Source: {api_source.replace('_', ' ').title()}
                             - Methodology: {'Academic-grade' if 'tu_berlin' in api_source else 'Commercial-grade'} weather modeling
                             """)
+                            
+                            # Display temperature calculation debug information
+                            if 'tmy_debug_records' in st.session_state:
+                                debug_records = st.session_state['tmy_debug_records']
+                                st.subheader("🌡️ Temperature Calculation Verification")
+                                
+                                for record in debug_records:
+                                    if 'base_temp' in record:  # Temperature debug record
+                                        day_str = "January 1st (Winter)" if record['day'] == 1 else "August 1st (Summer)"
+                                        st.write(f"**{day_str} at noon:**")
+                                        st.write(f"- Base temperature: {record['base_temp']:.1f}°C")
+                                        st.write(f"- Seasonal adjustment: {record['seasonal']:+.1f}°C")
+                                        st.write(f"- Daily adjustment: {record['daily']:+.1f}°C")
+                                        st.write(f"- **Final temperature: {record['final_temp']:.1f}°C**")
+                                        st.write("---")
+                                        
+                                # Show that August should be warmer than January
+                                temp_records = [r for r in debug_records if 'final_temp' in r]
+                                if len(temp_records) >= 2:
+                                    jan_temp = next((r['final_temp'] for r in temp_records if r['day'] == 1), None)
+                                    aug_temp = next((r['final_temp'] for r in temp_records if r['day'] == 213), None)
+                                    if jan_temp and aug_temp:
+                                        if aug_temp > jan_temp:
+                                            st.success(f"✅ Temperature calculation correct: August ({aug_temp:.1f}°C) > January ({jan_temp:.1f}°C)")
+                                        else:
+                                            st.error(f"❌ Temperature calculation error: August ({aug_temp:.1f}°C) should be > January ({jan_temp:.1f}°C)")
                         
                         # Save to database
                         if 'project_id' in st.session_state:
