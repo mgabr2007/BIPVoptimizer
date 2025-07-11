@@ -423,21 +423,33 @@ def render_radiation_grid():
     
     st.success(f"Analyzing {len(suitable_elements)} building elements for solar radiation potential")
     
-    # Configuration section
-    with st.expander("🔧 Analysis Configuration", expanded=False):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            include_shading = st.checkbox("Include Geometric Self-Shading", value=True, key="include_shading_rad")
-            apply_corrections = st.checkbox("Apply Orientation Corrections", value=True, key="apply_corrections_rad")
-        
-        with col2:
-            analysis_precision = st.selectbox(
-                "Analysis Precision",
-                ["Standard", "High", "Maximum"],
-                index=0,
-                key="analysis_precision_rad"
-            )
+    # Analysis Precision Selection (prominently displayed)
+    col1, col2, col3 = st.columns([2, 2, 2])
+    
+    with col1:
+        analysis_precision = st.selectbox(
+            "📊 Analysis Precision Level",
+            ["Standard", "High", "Maximum"],
+            index=0,
+            key="analysis_precision_rad",
+            help="Standard: Every 2 hours, monthly samples • High: Hourly, bi-weekly samples • Maximum: All hours, weekly samples"
+        )
+    
+    with col2:
+        include_shading = st.checkbox("🏢 Include Geometric Self-Shading", value=True, key="include_shading_rad",
+                                    help="Calculate precise shadows from building walls")
+    
+    with col3:
+        apply_corrections = st.checkbox("🧭 Apply Orientation Corrections", value=True, key="apply_corrections_rad",
+                                      help="Apply tilt and azimuth corrections for surface irradiance")
+    
+    # Show precision details
+    precision_info = {
+        "Standard": "⚡ Efficient analysis with representative sampling (every 2 hours, monthly)",
+        "High": "🔍 Detailed analysis with hourly precision (hourly, bi-weekly)", 
+        "Maximum": "🎯 Complete analysis with maximum accuracy (all hours, weekly)"
+    }
+    st.info(precision_info[analysis_precision])
     
     # Building walls upload for geometric shading
     walls_data = None
