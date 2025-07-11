@@ -1033,6 +1033,160 @@ def render_yield_demand():
             total_feed_in = analysis_data.get('total_feed_in_revenue', 0)
             st.info(f"💡 Annual feed-in revenue: €{total_feed_in:,.0f} | Monthly values now show realistic seasonal variation based on solar irradiation patterns")
             
+            # CSV Download functionality
+            st.markdown("---")
+            st.subheader("📥 Download Yield vs Demand Analysis")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Prepare monthly energy balance CSV
+                if 'energy_balance' in analysis_data:
+                    energy_balance = analysis_data['energy_balance']
+                    
+                    # Create comprehensive monthly data
+                    monthly_csv_data = []
+                    for month_data in energy_balance:
+                        row = {
+                            'Month': month_data.get('month', 'Unknown'),
+                            'Building_Demand_kWh': month_data.get('predicted_demand', 0),
+                            'Solar_Generation_kWh': month_data.get('total_yield_kwh', 0),
+                            'Net_Grid_Import_kWh': month_data.get('net_import', 0),
+                            'Surplus_Export_kWh': month_data.get('surplus', 0),
+                            'Self_Consumption_Ratio_%': month_data.get('self_consumption_ratio', 0) * 100,
+                            'Cost_Savings_EUR': month_data.get('electricity_cost_savings', 0),
+                            'Feed_in_Revenue_EUR': month_data.get('feed_in_revenue', 0),
+                            'Total_Monthly_Savings_EUR': month_data.get('total_savings', 0)
+                        }
+                        monthly_csv_data.append(row)
+                    
+                    # Create DataFrame and CSV
+                    import pandas as pd
+                    import io
+                    monthly_df = pd.DataFrame(monthly_csv_data)
+                    
+                    # Add annual summary row
+                    annual_summary = {
+                        'Month': 'ANNUAL_TOTAL',
+                        'Building_Demand_kWh': annual_demand,
+                        'Solar_Generation_kWh': total_annual_yield,
+                        'Net_Grid_Import_kWh': annual_demand - total_annual_yield,
+                        'Surplus_Export_kWh': max(0, total_annual_yield - annual_demand),
+                        'Self_Consumption_Ratio_%': min(100, (total_annual_yield / annual_demand) * 100) if annual_demand > 0 else 0,
+                        'Cost_Savings_EUR': sum(month['electricity_cost_savings'] for month in energy_balance),
+                        'Feed_in_Revenue_EUR': total_feed_in,
+                        'Total_Monthly_Savings_EUR': total_annual_savings
+                    }
+                    monthly_df = pd.concat([monthly_df, pd.DataFrame([annual_summary])], ignore_index=True)
+                    
+                    # Generate CSV
+                    csv_buffer = io.StringIO()
+                    monthly_df.to_csv(csv_buffer, index=False, float_format='%.2f')
+                    csv_string = csv_buffer.getvalue()
+                    
+                    # Generate filename with timestamp
+                    import datetime
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"BIPV_Monthly_Energy_Balance_{timestamp}.csv"
+                    
+                    st.download_button(
+                        label="📊 Download Monthly Energy Balance",
+                        data=csv_string,
+                        file_name=filename,
+                        mime="text/csv",
+                        help="Download detailed monthly energy flows, savings, and performance metrics"
+                    )
+            
+            with col2:
+                # Prepare system-level yield data CSV
+                if 'yield_profiles' in analysis_data:
+                    yield_profiles = analysis_data['yield_profiles']
+                    
+                    # Create system-level data
+                    system_csv_data = []
+                    for i, system in enumerate(yield_profiles):
+                        # Get monthly yields
+                        monthly_yields = system.get('monthly_yields', [0]*12)
+                        row = {
+                            'Element_ID': system.get('element_id', f'System_{i+1}'),
+                            'System_Power_kW': system.get('system_power_kw', 0),
+                            'Annual_Yield_kWh': system.get('annual_yield', 0),
+                            'Specific_Yield_kWh_kW': system.get('specific_yield', 0),
+                            'Environmental_Shading_Reduction_%': system.get('environmental_shading_reduction', 0),
+                            'Shading_Factor': system.get('shading_factor', 1.0),
+                            'Trees_Nearby': system.get('trees_nearby', False),
+                            'Tall_Buildings': system.get('tall_buildings', False),
+                            'Jan_kWh': monthly_yields[0] if len(monthly_yields) > 0 else 0,
+                            'Feb_kWh': monthly_yields[1] if len(monthly_yields) > 1 else 0,
+                            'Mar_kWh': monthly_yields[2] if len(monthly_yields) > 2 else 0,
+                            'Apr_kWh': monthly_yields[3] if len(monthly_yields) > 3 else 0,
+                            'May_kWh': monthly_yields[4] if len(monthly_yields) > 4 else 0,
+                            'Jun_kWh': monthly_yields[5] if len(monthly_yields) > 5 else 0,
+                            'Jul_kWh': monthly_yields[6] if len(monthly_yields) > 6 else 0,
+                            'Aug_kWh': monthly_yields[7] if len(monthly_yields) > 7 else 0,
+                            'Sep_kWh': monthly_yields[8] if len(monthly_yields) > 8 else 0,
+                            'Oct_kWh': monthly_yields[9] if len(monthly_yields) > 9 else 0,
+                            'Nov_kWh': monthly_yields[10] if len(monthly_yields) > 10 else 0,
+                            'Dec_kWh': monthly_yields[11] if len(monthly_yields) > 11 else 0
+                        }
+                        system_csv_data.append(row)
+                    
+                    # Create DataFrame and CSV
+                    systems_df = pd.DataFrame(system_csv_data)
+                    
+                    systems_csv_buffer = io.StringIO()
+                    systems_df.to_csv(systems_csv_buffer, index=False, float_format='%.2f')
+                    systems_csv_string = systems_csv_buffer.getvalue()
+                    
+                    systems_filename = f"BIPV_System_Yields_{timestamp}.csv"
+                    
+                    st.download_button(
+                        label="🔋 Download System-Level Yields",
+                        data=systems_csv_string,
+                        file_name=systems_filename,
+                        mime="text/csv",
+                        help="Download individual BIPV system yields and performance by month"
+                    )
+            
+            # Analysis parameters summary
+            st.markdown("---")
+            st.subheader("📋 Analysis Configuration Summary")
+            
+            if 'analysis_config' in analysis_data:
+                config = analysis_data['analysis_config']
+                config_summary = {
+                    'Analysis_Start_Date': config.get('start_date', 'Not specified'),
+                    'Analysis_Period': config.get('period', 'Not specified'),
+                    'Electricity_Purchase_Price_EUR_kWh': config.get('electricity_price', 0),
+                    'Feed_in_Tariff_EUR_kWh': config.get('feed_in_tariff', 0),
+                    'Annual_Demand_Growth_Rate_%': config.get('demand_growth_rate', 0),
+                    'System_Degradation_Rate_%': config.get('system_degradation', 0),
+                    'Total_Annual_Yield_kWh': total_annual_yield,
+                    'Total_Annual_Demand_kWh': annual_demand,
+                    'Energy_Coverage_Ratio_%': coverage_ratio,
+                    'Total_Annual_Savings_EUR': total_annual_savings,
+                    'Annual_Feed_in_Revenue_EUR': total_feed_in
+                }
+                
+                # Create config summary CSV
+                config_df = pd.DataFrame(list(config_summary.items()), columns=['Parameter', 'Value'])
+                
+                config_csv_buffer = io.StringIO()
+                config_df.to_csv(config_csv_buffer, index=False)
+                config_csv_string = config_csv_buffer.getvalue()
+                
+                config_filename = f"BIPV_Analysis_Summary_{timestamp}.csv"
+                
+                st.download_button(
+                    label="⚙️ Download Analysis Summary",
+                    data=config_csv_string,
+                    file_name=config_filename,
+                    mime="text/csv",
+                    help="Download analysis configuration and key performance indicators"
+                )
+            
+            st.info("💡 **CSV Contents:** Monthly energy balance, individual system yields, and complete analysis configuration for integration with financial modeling or further analysis tools.")
+            
             # Add step-specific download button
             st.markdown("---")
             st.markdown("### 📄 Step 7 Analysis Report")
