@@ -278,8 +278,23 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
         # Analyze wall-window relationship if walls data is available
         wall_relationship = analyze_wall_window_relationship(element_id, host_wall_id, walls_data)
         
-        # Calculate tilt based on building type (assume vertical windows for BIPV)
-        tilt = 90.0  # Vertical facade
+        # Calculate actual tilt angle from BIM orientation vectors
+        import math
+        ori_z = element.get('OriZ', element.get('oriz', None))
+        
+        if ori_z is not None:
+            try:
+                ori_z_float = float(ori_z)
+                # Clamp OriZ to valid range [-1, 1] to avoid math domain errors
+                ori_z_clamped = max(-1.0, min(1.0, ori_z_float))
+                # Calculate tilt: tilt = arccos(|OriZ|) in degrees
+                tilt = math.degrees(math.acos(abs(ori_z_clamped)))
+            except (ValueError, TypeError):
+                # Fallback to vertical if OriZ is invalid
+                tilt = 90.0
+        else:
+            # Fallback to vertical if OriZ not available
+            tilt = 90.0
         
         # Calculate irradiance for each hour
         hourly_irradiance = []
@@ -616,20 +631,39 @@ def render_radiation_grid():
             
             # Convert DataFrame to list of dictionaries if needed
             if hasattr(suitable_elements, 'iterrows'):
+                import math
                 elements_list = []
                 for _, row in suitable_elements.iterrows():
                     # Preserve actual Element IDs from BIM upload
                     actual_element_id = row.get('Element ID', row.get('element_id', f'Unknown_Element_{len(elements_list)+1}'))
+                    
+                    # Calculate actual tilt angle from BIM orientation vectors
+                    ori_z = row.get('OriZ', row.get('oriz', None))
+                    if ori_z is not None:
+                        try:
+                            ori_z_float = float(ori_z)
+                            # Clamp OriZ to valid range [-1, 1] to avoid math domain errors
+                            ori_z_clamped = max(-1.0, min(1.0, ori_z_float))
+                            # Calculate tilt: tilt = arccos(|OriZ|) in degrees
+                            calculated_tilt = math.degrees(math.acos(abs(ori_z_clamped)))
+                        except (ValueError, TypeError):
+                            # Fallback to vertical if OriZ is invalid
+                            calculated_tilt = 90.0
+                    else:
+                        # Fallback to vertical if OriZ not available
+                        calculated_tilt = 90.0
+                    
                     elements_list.append({
                         'element_id': actual_element_id,
                         'azimuth': row.get('azimuth', 180),
-                        'tilt': row.get('tilt', 90),
+                        'tilt': calculated_tilt,
                         'glass_area': row.get('glass_area', 1.5),
                         'orientation': row.get('orientation', 'Unknown'),
                         'level': row.get('level', 'Level 1'),
                         'wall_hosted_id': row.get('wall_hosted_id', 'N/A'),
                         'width': row.get('window_width', row.get('width', row.get('Width', 1.2))),
-                        'height': row.get('window_height', row.get('height', row.get('Height', 1.5)))
+                        'height': row.get('window_height', row.get('height', row.get('Height', 1.5))),
+                        'ori_z': ori_z  # Store original OriZ for debugging
                     })
                 suitable_elements = elements_list
             
@@ -644,8 +678,8 @@ def render_radiation_grid():
                 width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
                 height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
                 
-                # Update progress indicators with BIM data details
-                element_progress.text(f"Processing: {element_id} | {orientation} | {area:.1f}m² | {level}")
+                # Update progress indicators with BIM data details including calculated tilt
+                element_progress.text(f"Processing: {element_id} | {orientation} | {area:.1f}m² | Tilt: {tilt:.1f}° | {level}")
                 current_progress = 10 + int(70 * i / total_elements)
                 progress_bar.progress(current_progress)
                 
