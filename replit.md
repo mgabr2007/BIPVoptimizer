@@ -432,6 +432,7 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 11, 2025: Implemented comprehensive CSV download functionality for Step 6 (PV Specifications) with dual download options including complete BIPV specifications with all calculated parameters and system summary with key performance indicators, featuring timestamped filenames, logical column ordering, and enhanced calculations for specific yield, cost per kW, and power density
 - July 11, 2025: Added comprehensive CSV download functionality to Step 7 (Yield vs Demand Analysis) with triple download options including monthly energy balance with detailed energy flows and financial analysis, system-level yields with individual BIPV performance by month, and analysis summary with configuration parameters and key performance indicators
 - July 11, 2025: Fixed pandas import errors in both Step 6 and Step 7 modules by removing redundant local pandas imports that were conflicting with global imports, ensuring error-free CSV download functionality throughout the workflow
+- July 11, 2025: Streamlined Welcome page to be short and to the point per user request - removed verbose content, kept essential BIPV introduction, workflow overview, and added downloadable sample files (TU Berlin building energy data CSV and Dynamo window extraction script) for user guidance in data preparation
 
 ## User Preferences
 

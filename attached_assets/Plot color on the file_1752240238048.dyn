@@ -1,0 +1,311 @@
+{
+  "Uuid": "bdedc973-2ec1-4ab5-abdf-ad9ceea02aed",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "Plot color on the file",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "# -*- coding: utf-8 -*-\r\n# IN[0] = CSV file path (string)\r\n# IN[1] = Target view (Revit view / wrapper / element-id)\r\n\r\nimport csv, os, clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nclr.AddReference(\"RevitNodes\")\r\n\r\nfrom Autodesk.Revit.DB import (\r\n    ElementId, View, FilteredElementCollector, ViewType,\r\n    Transaction, OverrideGraphicSettings, FillPatternElement,\r\n    BuiltInCategory, Color\r\n)\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport Revit; clr.ImportExtensions(Revit.Elements)\r\n\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# ───────────── helpers ─────────────\r\ndef unwrap_view(v):\r\n    if hasattr(v, \"InternalElement\"):\r\n        v = v.InternalElement\r\n    if isinstance(v, View):\r\n        return v\r\n    try:\r\n        return doc.GetElement(ElementId(int(v)))\r\n    except Exception:\r\n        return doc.ActiveView                                    # fallback\r\n\r\ndef read_pairs(path):\r\n    \"\"\"Return {elementId:int → production:float} from CSV.\"\"\"\r\n    pairs = {}\r\n    with open(path, newline=\"\", encoding=\"utf-8-sig\") as f:\r\n        rdr = csv.DictReader(f)\r\n        hdr = {h.lower(): h for h in rdr.fieldnames}\r\n\r\n        id_k = next((hdr[k] for k in hdr if \"element_id\" in k), None)\r\n        pr_k = next((hdr[k] for k in hdr if any(p in k for p in (\r\n                    \"expected_production_kwh\", \"expected_production\",\r\n                    \"production_kwh\", \"production\"))), None)\r\n        if not (id_k and pr_k):\r\n            raise KeyError(\"CSV must contain Element_ID and production columns.\")\r\n\r\n        for r in rdr:\r\n            try:\r\n                pairs[int(r[id_k])] = float(r[pr_k])\r\n            except Exception:\r\n                pass\r\n    return pairs\r\n\r\n# colour-scale helper\r\ndef colour_scale(val, vmin, rng):\r\n    t = (val - vmin) / rng if rng else 0.0\r\n    return Color(int((1 - t) * 255), int(t * 255), 0)            # green→red\r\n\r\n# ───────────── main ─────────────\r\ntarget_view = unwrap_view(IN[1])\r\npairs       = read_pairs(IN[0])                                  # {id: kWh}\r\n\r\n# compute range once\r\nvalues = list(pairs.values())\r\nvmin, vmax = min(values), max(values)\r\nrng        = vmax - vmin\r\n\r\n# solid fill pattern id\r\nsolid_id = next(fp.Id for fp in\r\n                FilteredElementCollector(doc).OfClass(FillPatternElement)\r\n                if fp.GetFillPattern().IsSolidFill)\r\n\r\n# Revit 2024+ has projection setters; fall back for older versions\r\nogs_template = OverrideGraphicSettings()\r\nhas_proj     = hasattr(ogs_template, \"SetProjectionFillPatternId\")\r\n\r\n# reset then apply per-element overrides\r\nwith Transaction(doc, \"Reset & colour windows\") as tx:\r\n    tx.Start()\r\n\r\n    blank = OverrideGraphicSettings()                            # reset\r\n    for eid, production in pairs.items():\r\n        el = doc.GetElement(ElementId(eid))\r\n        if not el or el.Category.Id.IntegerValue != int(BuiltInCategory.OST_Windows):\r\n            continue\r\n\r\n        # 1) clear any previous overrides\r\n        target_view.SetElementOverrides(el.Id, blank)\r\n\r\n        # 2) compute new colour and apply\r\n        ogs = OverrideGraphicSettings()\r\n        col = colour_scale(production, vmin, rng)\r\n\r\n        if has_proj:\r\n            ogs.SetProjectionFillPatternId(solid_id)\r\n            ogs.SetProjectionFillColor(col)\r\n        else:\r\n            ogs.SetSurfaceForegroundPatternId(solid_id)\r\n            ogs.SetSurfaceForegroundPatternColor(col)\r\n\r\n        target_view.SetElementOverrides(el.Id, ogs)\r\n\r\n    tx.Commit()\r\n\r\nOUT = \"Applied colour overrides to {} window elements.\".format(len(pairs))\r\n",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "b56e3c3a63b34c02b975e8f82396eb97",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "b685f4ee60eb42d6aee5df6eddcc8bb8",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "d0d4b94c18f24ec2bdf5cc3f3eb9b868",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "67debae7d55942da87313106aae09232",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
+      "Id": "439794cae0d14f22b872b025ba35a02d",
+      "NodeType": "ExtensionNode",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "788f188abd53449297c758eaa902cdc6",
+          "Name": "",
+          "Description": "File Path",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows you to select a file on the system and returns its file path",
+      "HintPath": "D:\\Mostafa\\PhD\\BIPV_Window_Elements_20250704_121311.csv",
+      "InputValue": "..\\BIPV_Window_Elements_20250704_121311.csv"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "Id": "5938408d3937484b8be75d56470475d7",
+      "NodeType": "FunctionNode",
+      "Inputs": [
+        {
+          "Id": "4095625b38b64602a94a8abf6ee37e11",
+          "Name": "document",
+          "Description": "Revit.Application.Document",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "139a31b256e54fdfb9f924e0d26d02cc",
+          "Name": "View",
+          "Description": "View",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "FunctionSignature": "Revit.Application.Document.ActiveView",
+      "Replication": "Auto",
+      "Description": "Get the active view for the document\n\nDocument.ActiveView: View"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "WatchWidth": 420.0,
+      "WatchHeight": 200.0,
+      "Id": "1fe71af5231e450daec4995ae314471a",
+      "NodeType": "ExtensionNode",
+      "Inputs": [
+        {
+          "Id": "ae1ad9a33d9a43139b1db911a10ca978",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "531c423cf56a49c7a887947ac5b44ba8",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualizes a node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "Code": "# -*- coding: utf-8 -*-\r\n# IN[0] = CSV file path (string)\r\n# IN[1] = Target view (Revit view / wrapper / element-id)\r\n\r\nimport csv, clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nclr.AddReference(\"RevitNodes\")\r\n\r\nfrom Autodesk.Revit.DB import (\r\n    ElementId, View, FilteredElementCollector, FillPatternElement,\r\n    Transaction, OverrideGraphicSettings, BuiltInCategory, Color\r\n)\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport Revit; clr.ImportExtensions(Revit.Elements)\r\n\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# ───────────── helpers ─────────────\r\ndef unwrap_view(v):\r\n    if hasattr(v, \"InternalElement\"):\r\n        v = v.InternalElement\r\n    if isinstance(v, View):\r\n        return v\r\n    try:\r\n        return doc.GetElement(ElementId(int(v)))\r\n    except Exception:\r\n        return doc.ActiveView                                  # fallback\r\n\r\ndef read_pairs(path):\r\n    \"\"\"Skip rows where selector column is False/0/blank; keep the largest\r\n       production value per ID; return {id:int → production:float}.\"\"\"\r\n    pairs, skipped = {}, 0\r\n    with open(path, newline=\"\", encoding=\"utf-8-sig\") as f:\r\n        rdr = csv.DictReader(f)\r\n        hdr = {h.lower(): h for h in rdr.fieldnames}\r\n\r\n        id_k = next((hdr[k] for k in hdr if \"element_id\" in k), None)\r\n        pr_k = next((hdr[k] for k in hdr if any(p in k for p in (\r\n                    \"expected_production_kwh\", \"expected_production\",\r\n                    \"production_kwh\", \"production\"))), None)\r\n        sel_k = next((hdr[k] for k in hdr if any(s in k for s in (\r\n                    \"selected\", \"include\", \"use\"))), None)\r\n\r\n        if not (id_k and pr_k):\r\n            raise KeyError(\"CSV must contain Element_ID and production columns.\")\r\n\r\n        for r in rdr:\r\n            if sel_k:\r\n                flag = str(r[sel_k]).strip().lower()\r\n                if flag in (\"false\", \"0\", \"\", \"no\", \"n\"):\r\n                    skipped += 1\r\n                    continue\r\n            try:\r\n                eid  = int(r[id_k])\r\n                prod = float(r[pr_k])\r\n            except Exception:\r\n                skipped += 1\r\n                continue\r\n            if eid not in pairs or prod > pairs[eid]:\r\n                pairs[eid] = prod\r\n            else:\r\n                skipped += 1\r\n    return pairs, skipped\r\n\r\ndef colour_scale(val, vmin, rng):\r\n    t = (val - vmin) / rng if rng else 0.0\r\n    return Color(int((1 - t) * 255), int(t * 255), 0)          # green→red\r\n\r\n# ───────────── main ─────────────\r\ntarget_view    = unwrap_view(IN[1])\r\npairs, skipped = read_pairs(IN[0])\r\n\r\nvalues = list(pairs.values())\r\nvmin, vmax = min(values), max(values)\r\nrng        = vmax - vmin\r\n\r\nsolid_id = next(fp.Id for fp in\r\n                FilteredElementCollector(doc).OfClass(FillPatternElement)\r\n                if fp.GetFillPattern().IsSolidFill)\r\n\r\nogs_template = OverrideGraphicSettings()\r\nhas_proj     = hasattr(ogs_template, \"SetProjectionFillPatternId\")\r\n\r\nwith Transaction(doc, \"Reset & colour windows\") as tx:\r\n    tx.Start()\r\n\r\n    blank = OverrideGraphicSettings()\r\n\r\n    # ---------- 1) global reset ----------\r\n    for win in FilteredElementCollector(doc, target_view.Id)\\\r\n                 .OfCategory(BuiltInCategory.OST_Windows)\\\r\n                 .WhereElementIsNotElementType():\r\n        target_view.SetElementOverrides(win.Id, blank)\r\n\r\n    # ---------- 2) apply new colour scale ----------\r\n    coloured = 0\r\n    for eid, production in pairs.items():\r\n        el = doc.GetElement(ElementId(eid))\r\n        if not el or el.Category.Id.IntegerValue != int(BuiltInCategory.OST_Windows):\r\n            continue\r\n\r\n        ogs = OverrideGraphicSettings()\r\n        col = colour_scale(production, vmin, rng)\r\n\r\n        if has_proj:\r\n            ogs.SetProjectionFillPatternId(solid_id)\r\n            ogs.SetProjectionFillColor(col)\r\n        else:\r\n            ogs.SetSurfaceForegroundPatternId(solid_id)\r\n            ogs.SetSurfaceForegroundPatternColor(col)\r\n\r\n        target_view.SetElementOverrides(el.Id, ogs)\r\n        coloured += 1\r\n\r\n    tx.Commit()\r\n\r\nOUT = (\"Rows kept after selector check : {}\\n\"\r\n       \"Rows skipped (False flag / parse error / lower duplicate) : {}\\n\"\r\n       \"Window elements coloured        : {}\"\r\n       ).format(len(pairs), skipped, coloured)\r\n",
+      "Engine": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "46f7688fd6a84e82ab97817f368fcd26",
+      "NodeType": "PythonScriptNode",
+      "Inputs": [
+        {
+          "Id": "58d49590a8e844fb98ec75ab991ef987",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "6f84354e88694b98aad2d19cb6a7f3cc",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "0e6f6125441144c69bf3627163487e14",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "788f188abd53449297c758eaa902cdc6",
+      "End": "58d49590a8e844fb98ec75ab991ef987",
+      "Id": "464642033cdd49c0a847bec06ea02762",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "139a31b256e54fdfb9f924e0d26d02cc",
+      "End": "6f84354e88694b98aad2d19cb6a7f3cc",
+      "Id": "d439c9814a184a5289d0ec41ae8a30e5",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "0e6f6125441144c69bf3627163487e14",
+      "End": "ae1ad9a33d9a43139b1db911a10ca978",
+      "Id": "35054b8630c349039093f93521738e90",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [
+    {
+      "Name": "BIPV_Window_Elements_20250704_121311.csv",
+      "ReferenceType": "External",
+      "Nodes": [
+        "439794cae0d14f22b872b025ba35a02d"
+      ]
+    }
+  ],
+  "EnableLegacyPolyCurveBehavior": true,
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "3.3",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "8.2",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "3.3.0.6316",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "_Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Id": "b56e3c3a63b34c02b975e8f82396eb97",
+        "Name": "Python Script",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": true,
+        "ShowGeometry": true,
+        "X": 462.5371839354771,
+        "Y": 22.56838080200859
+      },
+      {
+        "Id": "439794cae0d14f22b872b025ba35a02d",
+        "Name": "File Path",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": -163.19999999999993,
+        "Y": -6.3999999999999915
+      },
+      {
+        "Id": "5938408d3937484b8be75d56470475d7",
+        "Name": "Document.ActiveView",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 22.400000000000034,
+        "Y": 407.20000000000005
+      },
+      {
+        "Id": "1fe71af5231e450daec4995ae314471a",
+        "Name": "Watch",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 796.818250496846,
+        "Y": 7.192569421629372
+      },
+      {
+        "Id": "46f7688fd6a84e82ab97817f368fcd26",
+        "Name": "Python Script",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "ShowGeometry": true,
+        "X": 598.913582088433,
+        "Y": 326.4442597829475
+      }
+    ],
+    "Annotations": [],
+    "X": 103.18770728649872,
+    "Y": 176.96792402033495,
+    "Zoom": 0.3268169788741843
+  }
+}
