@@ -27,14 +27,28 @@ def render_welcome():
     **Building-Integrated Photovoltaics (BIPV)** replaces conventional windows with semi-transparent 
     photovoltaic glass that generates electricity while maintaining natural lighting.
     
-    ### Quick Start Guide
+    ### Key Platform Features
     
-    **1. Project Setup** - Select location and configure project settings  
-    **2. Historical Data** - Upload energy consumption data (see sample below)  
-    **3. Weather Analysis** - Generate TMY solar data for your location  
-    **4. Building Data** - Upload BIM window elements (see Dynamo script below)  
-    **5. Analysis Steps** - Complete radiation, PV specs, yield calculations  
-    **6. Results** - View optimization results and download reports
+    • **AI-Powered Analysis** - Machine learning for energy demand prediction  
+    • **Multi-Objective Optimization** - Genetic algorithms for optimal BIPV placement  
+    • **Real Weather Data** - TMY generation from actual meteorological stations  
+    • **BIM Integration** - Direct Revit model processing with Dynamo scripts  
+    • **Financial Modeling** - 25-year NPV, IRR, and payback analysis  
+    • **Standards Compliance** - ISO 15927-4, ASHRAE 90.1, IEC 61853  
+    
+    ### Complete 11-Step Analysis Workflow
+    
+    **1. Project Setup** - Location selection and project configuration  
+    **2. Historical Data** - Energy consumption analysis and AI model training  
+    **3. Weather Integration** - TMY data generation and climate analysis  
+    **4. BIM Extraction** - Building geometry and window element analysis  
+    **5. Radiation Analysis** - Solar irradiance and shading calculations  
+    **6. PV Specification** - BIPV technology selection and system design  
+    **7. Yield vs Demand** - Energy balance and grid interaction analysis  
+    **8. Optimization** - Multi-objective genetic algorithm optimization  
+    **9. Financial Analysis** - Economic viability and investment analysis  
+    **10. Reporting** - Comprehensive analysis reports and data export  
+    **11. AI Consultation** - Expert analysis and optimization recommendations
     """)
     
     # Sample Files Section
@@ -89,13 +103,21 @@ def render_welcome():
             help="Revit Dynamo script to extract building window data for BIPV analysis"
         )
     
-    # Ready to start section
+    # Important notes section
     st.markdown("---")
+    st.warning("""
+    **Important Workflow Requirements:**
+    
+    • **Step 4 (BIM Extraction) is MANDATORY** - All subsequent analysis steps require building element data
+    • **Steps must be completed in sequence** - Each step builds on previous results
+    • **Use sample files above** as templates for your data uploads
+    """)
+    
+    # Ready to start section
     st.success("""
     **Ready to begin your BIPV analysis?**
     
-    Click **Step 1: Project Setup** in the sidebar to start your analysis. 
-    Use the sample files above as templates for your data uploads.
+    Click **Step 1: Project Setup** in the sidebar to start your complete 11-step analysis workflow.
     """)
     
     # Research attribution (footer)
