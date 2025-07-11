@@ -419,6 +419,92 @@ def render_pv_specification():
                 top_systems.columns = ['Element ID', 'Glass Area (m²)', 'Capacity (kW)', 'Annual Energy (kWh)', 'Solar Radiation (kWh/m²)']
                 st.dataframe(top_systems, use_container_width=True)
                 
+                # CSV Download functionality
+                st.markdown("---")
+                st.subheader("📥 Download BIPV Specifications")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Prepare comprehensive CSV data
+                    download_df = bipv_specifications.copy()
+                    
+                    # Add calculated fields for export
+                    download_df['specific_yield_kwh_kw'] = download_df['annual_energy_kwh'] / download_df['capacity_kw']
+                    download_df['cost_per_kw_eur'] = download_df['total_cost_eur'] / download_df['capacity_kw']
+                    download_df['power_density_w_m2'] = (download_df['capacity_kw'] * 1000) / download_df['glass_area_m2']
+                    
+                    # Add panel specifications
+                    download_df['panel_efficiency_%'] = final_panel_specs['efficiency']
+                    download_df['panel_transparency_%'] = final_panel_specs['transparency']
+                    download_df['panel_cost_per_m2_eur'] = final_panel_specs['cost_per_m2']
+                    
+                    # Reorder columns for logical flow
+                    column_order = [
+                        'element_id', 'orientation', 'glass_area_m2', 'annual_radiation_kwh_m2',
+                        'capacity_kw', 'annual_energy_kwh', 'specific_yield_kwh_kw', 
+                        'power_density_w_m2', 'total_cost_eur', 'cost_per_kw_eur',
+                        'panel_efficiency_%', 'panel_transparency_%', 'panel_cost_per_m2_eur'
+                    ]
+                    
+                    # Include only available columns
+                    available_columns = [col for col in column_order if col in download_df.columns]
+                    csv_df = download_df[available_columns]
+                    
+                    # Create CSV string
+                    import io
+                    csv_buffer = io.StringIO()
+                    csv_df.to_csv(csv_buffer, index=False, float_format='%.2f')
+                    csv_string = csv_buffer.getvalue()
+                    
+                    # Generate filename with timestamp
+                    import datetime
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"BIPV_Specifications_{timestamp}.csv"
+                    
+                    st.download_button(
+                        label="📊 Download Complete BIPV Specifications",
+                        data=csv_string,
+                        file_name=filename,
+                        mime="text/csv",
+                        help="Download comprehensive BIPV system specifications with all calculated parameters"
+                    )
+                
+                with col2:
+                    # Summary statistics for download
+                    summary_stats = {
+                        'Total_Elements': len(bipv_specifications),
+                        'Total_Capacity_kW': bipv_specifications['capacity_kw'].sum(),
+                        'Total_Glass_Area_m2': bipv_specifications['glass_area_m2'].sum(),
+                        'Total_Annual_Energy_kWh': bipv_specifications['annual_energy_kwh'].sum(),
+                        'Average_Specific_Yield_kWh_kW': (bipv_specifications['annual_energy_kwh'].sum() / bipv_specifications['capacity_kw'].sum()),
+                        'Total_Investment_EUR': bipv_specifications['total_cost_eur'].sum(),
+                        'Average_Power_Density_W_m2': (bipv_specifications['capacity_kw'].sum() * 1000 / bipv_specifications['glass_area_m2'].sum()),
+                        'Panel_Efficiency_%': final_panel_specs['efficiency'],
+                        'Panel_Transparency_%': final_panel_specs['transparency'],
+                        'Panel_Cost_per_m2_EUR': final_panel_specs['cost_per_m2']
+                    }
+                    
+                    # Create summary CSV
+                    import pandas as pd
+                    summary_df = pd.DataFrame(list(summary_stats.items()), columns=['Parameter', 'Value'])
+                    
+                    summary_csv_buffer = io.StringIO()
+                    summary_df.to_csv(summary_csv_buffer, index=False, float_format='%.2f')
+                    summary_csv_string = summary_csv_buffer.getvalue()
+                    
+                    summary_filename = f"BIPV_Summary_{timestamp}.csv"
+                    
+                    st.download_button(
+                        label="📋 Download System Summary",
+                        data=summary_csv_string,
+                        file_name=summary_filename,
+                        mime="text/csv",
+                        help="Download project summary with key performance indicators and totals"
+                    )
+                
+                st.info("💡 **CSV Contents:** Complete specifications include element details, performance metrics, costs, and panel specifications for further analysis or integration with other tools.")
+                
             else:
                 st.error("Could not calculate BIPV specifications. Please check your data.")
     
