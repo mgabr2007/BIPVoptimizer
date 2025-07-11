@@ -110,8 +110,8 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data, environmenta
                     datetime_str = hour_data.get('datetime', hour_data.get('DateTime', ''))
                     if datetime_str:
                         try:
-                            dt = datetime.strptime(datetime_str.split()[0], '%Y-%m-%d')
-                            day = dt.timetuple().tm_yday  # Day of year
+                            dt_parsed = dt.strptime(datetime_str.split()[0], '%Y-%m-%d')
+                            day = dt_parsed.timetuple().tm_yday  # Day of year
                         except:
                             day = hour_data.get('day', hour_data.get('Day', 1))
                     else:
@@ -414,7 +414,7 @@ def render_yield_demand():
         
         analysis_start = st.date_input(
             "Analysis Timeline Start Date",
-            value=datetime(2024, 1, 1),
+            value=dt(2024, 1, 1),
             key="analysis_start_yield",
             help="When your BIPV system operation begins - used for demand forecasting, yield calculations, and financial analysis timeline"
         )
@@ -1088,8 +1088,7 @@ def render_yield_demand():
                     csv_string = csv_buffer.getvalue()
                     
                     # Generate filename with timestamp
-                    import datetime
-                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    timestamp = dt.now().strftime("%Y%m%d_%H%M%S")
                     filename = f"BIPV_Monthly_Energy_Balance_{timestamp}.csv"
                     
                     st.download_button(
