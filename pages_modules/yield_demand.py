@@ -104,8 +104,19 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data, environmenta
             hours_in_month = 0
             
             for hour_data in tmy_data:
-                # Calculate which month this day belongs to
-                day = hour_data.get('day', 1)
+                # Parse datetime if it's in string format
+                if isinstance(hour_data, dict):
+                    # Try to extract day from datetime string or day field
+                    datetime_str = hour_data.get('datetime', hour_data.get('DateTime', ''))
+                    if datetime_str:
+                        try:
+                            from datetime import datetime
+                            dt = datetime.strptime(datetime_str.split()[0], '%Y-%m-%d')
+                            day = dt.timetuple().tm_yday  # Day of year
+                        except:
+                            day = hour_data.get('day', hour_data.get('Day', 1))
+                    else:
+                        day = hour_data.get('day', hour_data.get('Day', 1))
                 if day <= 31:
                     hour_month = 1
                 elif day <= 59:
@@ -133,7 +144,9 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data, environmenta
                 
                 if hour_month == month:
                     # Apply environmental shading factor to solar irradiance
-                    adjusted_ghi = hour_data.get('ghi', 0) * shading_factor
+                    # Handle different GHI field names from TMY data
+                    ghi_value = hour_data.get('ghi', hour_data.get('GHI_Wm2', hour_data.get('GHI', 0)))
+                    adjusted_ghi = ghi_value * shading_factor
                     month_total += adjusted_ghi / 1000  # Convert Wh/m² to kWh/m²
                     hours_in_month += 1
             
@@ -547,7 +560,19 @@ def render_yield_demand():
                     st.success("🌞 No environmental shading factors - optimal solar conditions")
                 
                 # Calculate PV yield profiles using environmental factors
-                tmy_data = project_data.get('tmy_data', {})
+                # Access TMY data from weather analysis structure (Step 3)
+                tmy_data = {}
+                weather_analysis = project_data.get('weather_analysis', {})
+                if weather_analysis:
+                    tmy_data = weather_analysis.get('tmy_data', {})
+                    st.info(f"✅ Using authentic TMY data from Step 3: {len(tmy_data) if tmy_data else 0} hourly records")
+                else:
+                    # Fallback: Check direct storage
+                    tmy_data = project_data.get('tmy_data', {})
+                    if tmy_data:
+                        st.info(f"✅ Using TMY data: {len(tmy_data)} hourly records")
+                    else:
+                        st.warning("⚠️ No TMY data found - using statistical monthly distribution")
                 
                 # Create yield profiles with realistic monthly distribution and environmental shading
                 yield_profiles = []
@@ -571,9 +596,20 @@ def render_yield_demand():
                         # Formula: Energy = Area × Efficiency × Solar Radiation × Performance Ratio × Environmental Shading
                         performance_ratio = 0.85  # Typical for BIPV systems
                         
+                        # Use actual TMY-derived radiation if available, otherwise use system's radiation data
+                        if tmy_data and len(tmy_data) > 0:
+                            # Calculate annual radiation from TMY data
+                            tmy_annual_ghi = sum(record.get('ghi', record.get('GHI_Wm2', record.get('GHI', 0))) for record in tmy_data) / 1000  # Convert to kWh/m²/year
+                            if tmy_annual_ghi > 100:  # Valid TMY data
+                                annual_radiation = tmy_annual_ghi
+                                if idx < 3:
+                                    st.success(f"System {idx+1}: Using authentic TMY radiation: {annual_radiation:.0f} kWh/m²/year")
+                        
                         # Ensure radiation is reasonable (Central Europe: 1000-1800 kWh/m²/year)
                         if annual_radiation > 2500 or annual_radiation < 800:
-                            annual_radiation = 1400  # Use typical value for Germany
+                            annual_radiation = 1400  # Use typical value for Germany as last resort
+                            if idx < 3:
+                                st.warning(f"System {idx+1}: Using fallback radiation value: {annual_radiation:.0f} kWh/m²/year")
                         
                         # Calculate annual energy with environmental shading applied
                         annual_energy = glass_area * efficiency * annual_radiation * performance_ratio * shading_factor
