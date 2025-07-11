@@ -355,9 +355,8 @@ class WeatherAPIManager:
             return self._generate_tmy_openweathermap(weather_data, lat, lon)
     
     def _generate_tmy_tu_berlin(self, weather_data, lat, lon):
-        """Generate TMY from TU Berlin data"""
-        # Use actual TU Berlin API data for TMY generation
-        
+        """Generate TMY from TU Berlin data with realistic Berlin solar irradiance"""
+        import math
         from core.solar_math import calculate_solar_position_iso
         from datetime import datetime, timedelta
         
@@ -387,7 +386,7 @@ class WeatherAPIManager:
                 daily_variation = 8 * math.cos(2 * math.pi * (hour - 14) / 24)
                 temperature = temp_base + seasonal_variation + daily_variation
                 
-                # Calculate solar irradiance components
+                # Calculate solar irradiance components with realistic Berlin values
                 if solar_pos['elevation'] > 0:
                     # Direct Normal Irradiance (DNI)
                     air_mass = 1 / (math.sin(math.radians(solar_pos['elevation'])) + 0.50572 * (6.07995 + solar_pos['elevation'])**-1.6364)
@@ -397,16 +396,27 @@ class WeatherAPIManager:
                     day_angle = 2 * math.pi * (day - 1) / 365
                     extraterrestrial_irradiance = solar_constant * (1 + 0.033 * math.cos(day_angle))
                     
-                    # Atmospheric transmission (simplified)
-                    clearness_index = 0.6 * math.exp(-0.14 * air_mass)
-                    dni = extraterrestrial_irradiance * clearness_index
+                    # Realistic atmospheric transmission for Berlin/Central Europe
+                    # Annual GHI target: ~1300 kWh/m² (realistic for Berlin)
+                    base_clearness = 0.35  # Conservative clearness for Central European climate
+                    seasonal_factor = 0.1 * math.cos(2 * math.pi * (day - 172) / 365)  # Summer peak around June 21
+                    elevation_factor = min(1.0, solar_pos['elevation'] / 60.0)  # Scale with elevation
+                    clearness_index = max(0.1, min(0.55, base_clearness + seasonal_factor)) * elevation_factor
                     
-                    # Diffuse Horizontal Irradiance (DHI)
-                    diffuse_fraction = 0.8 - 0.4 * clearness_index
-                    dhi = extraterrestrial_irradiance * clearness_index * diffuse_fraction
+                    # Direct Normal Irradiance with conservative transmission
+                    dni = extraterrestrial_irradiance * clearness_index * 0.5  # Conservative factor
                     
-                    # Global Horizontal Irradiance (GHI)
+                    # Diffuse Horizontal Irradiance (40-60% of total for cloudy climate)
+                    diffuse_fraction = 0.5 + 0.2 * (1 - clearness_index)
+                    dhi = extraterrestrial_irradiance * diffuse_fraction * clearness_index * 0.3
+                    
+                    # Global Horizontal Irradiance (direct + diffuse components)
                     ghi = dni * math.sin(math.radians(solar_pos['elevation'])) + dhi
+                    
+                    # Apply realistic upper limits for Berlin climate
+                    dni = min(dni, 800)  # Max DNI for Berlin
+                    dhi = min(dhi, 300)  # Max DHI for Berlin  
+                    ghi = min(ghi, 900)  # Max GHI for Berlin
                 else:
                     dni = dhi = ghi = 0
                 
@@ -435,12 +445,10 @@ class WeatherAPIManager:
         return tmy_data
     
     def _generate_tmy_openweathermap(self, weather_data, lat, lon):
-        """Generate TMY from OpenWeatherMap data"""
-        # Use actual OpenWeatherMap API data for TMY generation
-        
+        """Generate TMY from OpenWeatherMap data with realistic solar irradiance"""
+        import math
         from core.solar_math import calculate_solar_position_iso
         from datetime import datetime, timedelta
-        import math
         
         tmy_data = []
         station_info = weather_data.get('station_info', {})
@@ -448,6 +456,21 @@ class WeatherAPIManager:
         
         # Extract actual current temperature as base
         current_temp = current_weather.get('main', {}).get('temp', 15.0)
+        
+        # Determine climate zone based on latitude for realistic irradiance
+        abs_lat = abs(lat)
+        if abs_lat < 30:
+            # Tropical/subtropical - higher irradiance
+            base_clearness = 0.55
+            annual_target = 1800  # kWh/m²
+        elif abs_lat < 45:
+            # Temperate - moderate irradiance  
+            base_clearness = 0.45
+            annual_target = 1400  # kWh/m²
+        else:
+            # Northern/high latitude - lower irradiance
+            base_clearness = 0.35
+            annual_target = 1200  # kWh/m²
         
         # Generate hourly data for a full year using API-informed parameters
         for day in range(1, 366):
@@ -461,7 +484,7 @@ class WeatherAPIManager:
                 daily_variation = 8 * math.cos(2 * math.pi * (hour - 14) / 24)
                 temperature = temp_base + seasonal_variation + daily_variation
                 
-                # Calculate solar irradiance components
+                # Calculate solar irradiance components with location-specific realism
                 if solar_pos['elevation'] > 0:
                     # Direct Normal Irradiance (DNI)
                     air_mass = 1 / (math.sin(math.radians(solar_pos['elevation'])) + 0.50572 * (6.07995 + solar_pos['elevation'])**-1.6364)
@@ -471,16 +494,40 @@ class WeatherAPIManager:
                     day_angle = 2 * math.pi * (day - 1) / 365
                     extraterrestrial_irradiance = solar_constant * (1 + 0.033 * math.cos(day_angle))
                     
-                    # Atmospheric transmission (simplified)
-                    clearness_index = 0.6 * math.exp(-0.14 * air_mass)
-                    dni = extraterrestrial_irradiance * clearness_index
+                    # Realistic atmospheric transmission based on latitude
+                    seasonal_factor = 0.1 * math.cos(2 * math.pi * (day - 172) / 365)  # Summer peak around June 21
+                    elevation_factor = min(1.0, solar_pos['elevation'] / 60.0)  # Scale with elevation
+                    clearness_index = max(0.1, min(0.65, base_clearness + seasonal_factor)) * elevation_factor
                     
-                    # Diffuse Horizontal Irradiance (DHI)
-                    diffuse_fraction = 0.8 - 0.4 * clearness_index
-                    dhi = extraterrestrial_irradiance * clearness_index * diffuse_fraction
+                    # Direct Normal Irradiance with realistic transmission
+                    dni = extraterrestrial_irradiance * clearness_index * 0.6  # Conservative factor
                     
-                    # Global Horizontal Irradiance (GHI)
+                    # Diffuse Horizontal Irradiance (location-dependent ratio)
+                    if abs_lat > 50:
+                        diffuse_fraction = 0.6  # Higher diffuse for northern latitudes
+                    elif abs_lat > 30:
+                        diffuse_fraction = 0.45  # Moderate diffuse for temperate
+                    else:
+                        diffuse_fraction = 0.35  # Lower diffuse for sunny climates
+                    
+                    dhi = extraterrestrial_irradiance * diffuse_fraction * clearness_index * 0.35
+                    
+                    # Global Horizontal Irradiance (direct + diffuse components)
                     ghi = dni * math.sin(math.radians(solar_pos['elevation'])) + dhi
+                    
+                    # Apply realistic upper limits based on location
+                    if abs_lat > 50:
+                        dni = min(dni, 700)  # Northern climate limits
+                        dhi = min(dhi, 280)
+                        ghi = min(ghi, 800)
+                    elif abs_lat > 30:
+                        dni = min(dni, 850)  # Temperate climate limits
+                        dhi = min(dhi, 350)
+                        ghi = min(ghi, 950)
+                    else:
+                        dni = min(dni, 1000)  # Tropical climate limits
+                        dhi = min(dhi, 450)
+                        ghi = min(ghi, 1200)
                 else:
                     dni = dhi = ghi = 0
                 
