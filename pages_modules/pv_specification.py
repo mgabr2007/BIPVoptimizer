@@ -486,7 +486,6 @@ def render_pv_specification():
                     }
                     
                     # Create summary CSV
-                    import pandas as pd
                     summary_df = pd.DataFrame(list(summary_stats.items()), columns=['Parameter', 'Value'])
                     
                     summary_csv_buffer = io.StringIO()
