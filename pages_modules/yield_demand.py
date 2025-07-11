@@ -1061,7 +1061,6 @@ def render_yield_demand():
                         monthly_csv_data.append(row)
                     
                     # Create DataFrame and CSV
-                    import pandas as pd
                     import io
                     monthly_df = pd.DataFrame(monthly_csv_data)
                     
