@@ -525,7 +525,12 @@ def render_yield_demand():
             try:
                 # Determine analysis end date
                 period_months = {"1 Year": 12, "2 Years": 24, "5 Years": 60, "10 Years": 120}
-                end_date = analysis_start + timedelta(days=period_months[analysis_period] * 30)
+                # Convert date to datetime if needed
+                if isinstance(analysis_start, datetime):
+                    analysis_datetime = analysis_start
+                else:
+                    analysis_datetime = datetime.combine(analysis_start, datetime.min.time())
+                end_date = analysis_datetime + timedelta(days=period_months[analysis_period] * 30)
                 
                 # Skip complex demand forecasting and use historical data directly
                 # This avoids potential NoneType iteration issues
@@ -852,7 +857,7 @@ def render_yield_demand():
                     'total_annual_savings': total_annual_savings,
                     'total_feed_in_revenue': total_feed_in_revenue,
                     'analysis_config': {
-                        'start_date': analysis_start.isoformat(),
+                        'start_date': analysis_datetime.isoformat(),
                         'period': analysis_period,
                         'electricity_price': electricity_price,
                         'feed_in_tariff': feed_in_tariff,

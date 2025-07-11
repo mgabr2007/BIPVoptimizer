@@ -433,6 +433,8 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 11, 2025: Added comprehensive CSV download functionality to Step 7 (Yield vs Demand Analysis) with triple download options including monthly energy balance with detailed energy flows and financial analysis, system-level yields with individual BIPV performance by month, and analysis summary with configuration parameters and key performance indicators
 - July 11, 2025: Fixed pandas import errors in both Step 6 and Step 7 modules by removing redundant local pandas imports that were conflicting with global imports, ensuring error-free CSV download functionality throughout the workflow
 - July 11, 2025: Streamlined Welcome page to be short and to the point per user request - removed verbose content, kept essential BIPV introduction, workflow overview, and added downloadable sample files (TU Berlin building energy data CSV and Dynamo window extraction script) for user guidance in data preparation
+- July 11, 2025: Enhanced Welcome page with complete 11-step workflow details, key platform features (AI analysis, optimization, real weather data, BIM integration, financial modeling, standards compliance), important workflow requirements emphasizing Step 4 BIM extraction as mandatory, and comprehensive sample file downloads for user guidance
+- July 11, 2025: Fixed critical datetime variable scope error in Step 7 yield_demand module by implementing proper date-to-datetime conversion for timedelta calculations and analysis_config serialization, resolving "cannot access local variable 'datetime' where it is not associated with a value" error
 
 ## User Preferences
 
