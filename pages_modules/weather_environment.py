@@ -372,7 +372,7 @@ def render_weather_environment():
                     solar_params = get_location_solar_parameters(project_data.get('location', 'berlin'))
                     
                     # Generate TMY using our custom ISO-compliant function with solar position calculations
-                    tmy_data = generate_iso_tmy_data(selected_station, solar_params, coordinates)
+                    tmy_data = generate_tmy_from_wmo_station(selected_station, solar_params, coordinates)
                     
                     if tmy_data and len(tmy_data) > 0:
                         
