@@ -180,6 +180,9 @@ def render_weather_environment():
     st.header("Step 3: Weather & Environment Integration")
     st.markdown("Integrate weather data and generate Typical Meteorological Year (TMY) datasets for solar analysis.")
     
+    # Initialize weather_analysis variable to avoid scope issues
+    weather_analysis = st.session_state.get('project_data', {}).get('weather_analysis')
+    
     # Data Usage Information
     with st.expander("📊 How This Data Will Be Used", expanded=False):
         st.markdown("""
@@ -504,7 +507,7 @@ def render_weather_environment():
     except ImportError:
         st.error("❌ Weather API manager not available. Using OpenWeatherMap fallback.")
         
-    # TMY Download Functionality
+    # TMY Download Functionality - refresh weather_analysis in case it was updated
     weather_analysis = st.session_state.get('project_data', {}).get('weather_analysis')
     if weather_analysis and weather_analysis.get('tmy_data'):
         st.markdown("---")
