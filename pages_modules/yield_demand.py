@@ -643,14 +643,63 @@ def render_yield_demand():
                             if tmy_data and len(tmy_data) > 0:
                                 # Calculate actual monthly yields from TMY data
                                 monthly_irradiation = {}
+                                
+                                # Debug: Check TMY data structure for first few records
+                                if idx == 0 and len(tmy_data) > 0:
+                                    st.info(f"TMY sample record: {list(tmy_data.keys())[:5] if isinstance(tmy_data, dict) else tmy_data[0] if isinstance(tmy_data, list) else str(tmy_data)[:200]}")
+                                
                                 for month in range(1, 13):
                                     month_total = 0
-                                    for record in tmy_data:
-                                        record_month = int(record.get('DateTime', '2023-01-01 00:00:00').split('-')[1])
-                                        if record_month == month:
-                                            ghi = record.get('ghi', record.get('GHI_Wm2', record.get('GHI', 0)))
-                                            month_total += ghi / 1000  # Convert to kWh/m²
+                                    hours_count = 0
+                                    
+                                    if isinstance(tmy_data, dict):
+                                        # TMY data is stored as dict with hour keys
+                                        for hour_key, record in tmy_data.items():
+                                            try:
+                                                # Extract month from various possible datetime formats
+                                                datetime_str = record.get('DateTime', record.get('datetime', ''))
+                                                if datetime_str:
+                                                    if '-' in datetime_str:  # YYYY-MM-DD format
+                                                        record_month = int(datetime_str.split('-')[1])
+                                                    elif '/' in datetime_str:  # MM/DD/YYYY format  
+                                                        record_month = int(datetime_str.split('/')[0])
+                                                    else:
+                                                        continue
+                                                    
+                                                    if record_month == month:
+                                                        ghi = record.get('ghi', record.get('GHI_Wm2', record.get('GHI', 0)))
+                                                        if ghi > 0:
+                                                            month_total += ghi / 1000  # Convert to kWh/m²
+                                                            hours_count += 1
+                                            except (ValueError, IndexError):
+                                                continue
+                                    
+                                    elif isinstance(tmy_data, list):
+                                        # TMY data is stored as list of records
+                                        for record in tmy_data:
+                                            try:
+                                                datetime_str = record.get('DateTime', record.get('datetime', ''))
+                                                if datetime_str:
+                                                    if '-' in datetime_str:  # YYYY-MM-DD format
+                                                        record_month = int(datetime_str.split('-')[1])
+                                                    elif '/' in datetime_str:  # MM/DD/YYYY format
+                                                        record_month = int(datetime_str.split('/')[0])
+                                                    else:
+                                                        continue
+                                                    
+                                                    if record_month == month:
+                                                        ghi = record.get('ghi', record.get('GHI_Wm2', record.get('GHI', 0)))
+                                                        if ghi > 0:
+                                                            month_total += ghi / 1000  # Convert to kWh/m²
+                                                            hours_count += 1
+                                            except (ValueError, IndexError):
+                                                continue
+                                    
                                     monthly_irradiation[month] = month_total
+                                    
+                                    # Debug info for first system
+                                    if idx == 0 and month <= 3:
+                                        st.info(f"Month {month}: {month_total:.1f} kWh/m² from {hours_count} hours")
                                 
                                 # Calculate monthly yield for this system
                                 for month in range(1, 13):
