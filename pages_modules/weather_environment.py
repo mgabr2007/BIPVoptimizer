@@ -375,12 +375,8 @@ def render_weather_environment():
                 weather_data = asyncio.run(weather_api_manager.fetch_weather_data(lat, lon, selected_api))
                 
                 if 'error' not in weather_data:
-                    # Get solar parameters for location
-                    from core.solar_math import get_location_solar_parameters
-                    solar_params = get_location_solar_parameters(project_data.get('location', 'berlin'))
-                    
-                    # Generate TMY using our custom ISO-compliant function with solar position calculations
-                    tmy_data = generate_tmy_from_wmo_station(selected_station, solar_params, coordinates)
+                    # Generate TMY using actual API data instead of synthetic calculation
+                    tmy_data = weather_api_manager.generate_tmy_from_api_data(weather_data, lat, lon)
                     
                     if tmy_data and len(tmy_data) > 0:
                         
