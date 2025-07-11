@@ -458,8 +458,7 @@ def render_pv_specification():
                     csv_string = csv_buffer.getvalue()
                     
                     # Generate filename with timestamp
-                    import datetime
-                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     filename = f"BIPV_Specifications_{timestamp}.csv"
                     
                     st.download_button(
