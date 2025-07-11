@@ -1160,6 +1160,9 @@ def generate_step3_report():
         # Extract TMY data from the newly generated dataset
         tmy_data = safe_get(weather_analysis, 'tmy_data', [])
         
+        # Initialize solar_resource variable for both branches
+        solar_resource = safe_get(weather_analysis, 'solar_resource_assessment', {})
+        
         # Calculate solar resource metrics from actual TMY data
         if isinstance(tmy_data, list) and len(tmy_data) > 0:
             # Extract values from TMY records
@@ -1180,7 +1183,6 @@ def generate_step3_report():
             
         else:
             # Fallback to stored values if TMY data structure is different
-            solar_resource = safe_get(weather_analysis, 'solar_resource_assessment', {})
             annual_ghi = safe_float(safe_get(solar_resource, 'annual_ghi'), 0.0)
             annual_dni = safe_float(safe_get(solar_resource, 'annual_dni'), 0.0)
             annual_dhi = safe_float(safe_get(solar_resource, 'annual_dhi'), 0.0)
