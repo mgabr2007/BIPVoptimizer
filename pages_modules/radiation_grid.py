@@ -659,10 +659,10 @@ def render_radiation_grid():
     with col1:
         analysis_precision = st.selectbox(
             "📊 Computational Settings",
-            ["Hourly", "Daily Peak", "Monthly Peak", "Yearly Average"],
+            ["Hourly", "Daily Peak", "Monthly Average", "Yearly Average"],
             index=1,  # Default to Daily Peak
             key="analysis_precision_rad",
-            help="Hourly: Complete hourly analysis • Daily Peak: Noon analysis all days • Monthly Peak: Peak days monthly • Yearly Average: Simplified calculation"
+            help="Hourly: Only hours with sun irradiance • Daily Peak: Noon as mid of daily irradiance • Monthly Average: Average solar days seasonal • Yearly Average: Total solar irradiance average"
         )
     
     with col2:
@@ -675,10 +675,10 @@ def render_radiation_grid():
     
     # Show computational method details
     computational_info = {
-        "Hourly": "⏰ Complete hourly analysis - Full 8,760 calculations per year for maximum accuracy",
-        "Daily Peak": "☀️ Daily peak analysis - Noon solar position for all 365 days (high accuracy, efficient)",
-        "Monthly Peak": "📅 Monthly peak analysis - Peak radiation days for each month (12 representative days)",
-        "Yearly Average": "📊 Yearly average analysis - Simplified calculation using annual averages"
+        "Hourly": "⏰ Hourly analysis - Only hours with sun irradiance for maximum accuracy",
+        "Daily Peak": "☀️ Daily Peak analysis - Noon is the mid of the daily sun irradiance",
+        "Monthly Peak": "📅 Monthly average - Average solar days for seasonal representation",
+        "Yearly Average": "📊 Yearly Average - Average of the total solar irradiance in the whole year"
     }
     st.info(computational_info[analysis_precision])
     
@@ -812,29 +812,29 @@ def render_radiation_grid():
             else:
                 # User-selected computational methods
                 if analysis_precision == "Hourly":
-                    # Complete hourly analysis - maximum accuracy
-                    sample_hours = list(range(6, 19))  # All daylight hours (6 AM to 6 PM)
+                    # Only hours with sun irradiance - exclude nighttime and very low sun
+                    sample_hours = list(range(7, 18))  # Hours with meaningful sun irradiance (7 AM to 5 PM)
                     days_sample = list(range(1, 366))  # All 365 days
-                    st.info("⏰ **Hourly Analysis**: Processing all daylight hours for complete accuracy")
+                    st.info("⏰ **Hourly Analysis**: Processing only hours with sun irradiance")
                 
                 elif analysis_precision == "Daily Peak":
-                    # Daily peak analysis - noon position for all days
-                    sample_hours = [12]  # Noon solar position only
+                    # Noon as mid of daily sun irradiance
+                    sample_hours = [12]  # Noon as the mid-point of daily sun irradiance
                     days_sample = list(range(1, 366))  # All 365 days
-                    st.info("☀️ **Daily Peak Analysis**: Analyzing noon solar position for all 365 days")
+                    st.info("☀️ **Daily Peak Analysis**: Noon as the mid of daily sun irradiance")
                 
-                elif analysis_precision == "Monthly Peak":
-                    # Monthly peak analysis - peak days for each month
-                    sample_hours = [12]  # Noon solar position
-                    # Peak solar days for each month (around 21st when sun is typically highest)
-                    days_sample = [21, 52, 80, 111, 141, 172, 202, 233, 264, 294, 325, 355]  # 12 peak days
-                    st.info("📅 **Monthly Peak Analysis**: Analyzing peak solar days for each month")
+                elif analysis_precision == "Monthly Average":
+                    # Average solar days for seasonal representation
+                    sample_hours = [12]  # Noon position
+                    # Representative average days for each month (15th of each month)
+                    days_sample = [15, 46, 74, 105, 135, 166, 196, 227, 258, 288, 319, 349]  # 12 average days
+                    st.info("📅 **Monthly Average Analysis**: Average solar days for seasonal representation")
                 
                 else:  # Yearly Average
-                    # Simplified yearly average - minimal calculation
+                    # Average of total solar irradiance in the whole year
                     sample_hours = [12]  # Noon only
-                    days_sample = [172]  # Summer solstice (day 172 - June 21st) as representative
-                    st.info("📊 **Yearly Average Analysis**: Using summer solstice as representative day")
+                    days_sample = [80, 172, 266, 355]  # Four seasonal representative days (equinoxes & solstices)
+                    st.info("📊 **Yearly Average Analysis**: Average of total solar irradiance in the whole year")
             
             status_text.text(f"Processing {len(suitable_elements)} elements with {analysis_precision.lower()} precision...")
             progress_bar.progress(10)
@@ -1059,8 +1059,8 @@ def render_radiation_grid():
                         elif analysis_precision == "Daily Peak":
                             # Daily peak: scale from noon samples to daily totals (assume noon = 15% of daily)
                             scaling_factor = (8760 / 365) / 0.15 / max(sample_count/365, 1)
-                        elif analysis_precision == "Monthly Peak":
-                            # Monthly peak: scale from 12 peak days to full year
+                        elif analysis_precision == "Monthly Average":
+                            # Monthly average: scale from 12 average days to full year
                             scaling_factor = 365 / 12 / max(sample_count/12, 1)
                         else:  # Yearly Average
                             # Yearly average: scale from single day to full year
