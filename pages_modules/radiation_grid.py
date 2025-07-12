@@ -630,19 +630,22 @@ def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sa
             if not tmy_hour.empty:
                 hour_data = tmy_hour.iloc[0]
                 
-                # Extract radiation values with flexible column name support
+                # Extract radiation values with TMY format support (GHI_Wm2, DNI_Wm2, DHI_Wm2)
                 ghi_value = (hour_data.get('ghi', 0) or 
                            hour_data.get('GHI', 0) or 
+                           hour_data.get('GHI_Wm2', 0) or
                            hour_data.get('solar_ghi', 0) or
                            hour_data.get('ghi_irradiance', 0))
                            
                 dni_value = (hour_data.get('dni', 0) or 
                            hour_data.get('DNI', 0) or 
+                           hour_data.get('DNI_Wm2', 0) or
                            hour_data.get('solar_dni', 0) or
                            hour_data.get('dni_irradiance', 0))
                            
                 dhi_value = (hour_data.get('dhi', 0) or 
                            hour_data.get('DHI', 0) or 
+                           hour_data.get('DHI_Wm2', 0) or
                            hour_data.get('solar_dhi', 0) or
                            hour_data.get('dhi_irradiance', 0))
                 
@@ -1225,13 +1228,15 @@ def render_radiation_grid():
                 column_found = False
                 for actual_col in tmy_df.columns:
                     actual_lower = actual_col.lower()
-                    # Check multiple patterns
+                    # Check multiple patterns including TMY-specific formats like GHI_Wm2
                     if (actual_lower == req_col or 
                         actual_lower == req_col.upper() or
                         actual_lower.endswith(f'_{req_col}') or
+                        actual_lower.endswith(f'{req_col}_wm2') or  # TMY format: GHI_Wm2
                         actual_lower.endswith(f'{req_col}_irradiance') or
                         actual_lower.startswith(f'{req_col}_') or
                         actual_lower.startswith(f'solar_{req_col}') or
+                        actual_col == f'{req_col.upper()}_Wm2' or  # Exact TMY format
                         req_col in actual_lower):
                         found_cols[req_col] = actual_col
                         column_found = True
@@ -1275,8 +1280,17 @@ def render_radiation_grid():
                     tmy_df[standard_name] = tmy_df[actual_name]
                     st.info(f"Mapped '{actual_name}' → '{standard_name}'")
             
-            # Ensure datetime column exists
-            if 'datetime' not in tmy_df.columns:
+            # Ensure datetime column exists - handle TMY format with DateTime column
+            datetime_col = None
+            for col in tmy_df.columns:
+                if col.lower() in ['datetime', 'date_time', 'timestamp']:
+                    datetime_col = col
+                    break
+            
+            if datetime_col:
+                tmy_df['datetime'] = pd.to_datetime(tmy_df[datetime_col])
+                st.info(f"Using datetime column: '{datetime_col}'")
+            elif 'datetime' not in tmy_df.columns:
                 # Create datetime from month, day, hour if available
                 if all(col in tmy_df.columns for col in ['month', 'day', 'hour']):
                     tmy_df['datetime'] = pd.to_datetime(
@@ -1287,10 +1301,16 @@ def render_radiation_grid():
                     from datetime import datetime
                     base_date = datetime(2023, 1, 1)
                     tmy_df['datetime'] = pd.date_range(base_date, periods=len(tmy_df), freq='H')
+                    st.info("Created datetime column from hourly sequence")
+            else:
+                tmy_df['datetime'] = pd.to_datetime(tmy_df['datetime'])
             
-            tmy_df['datetime'] = pd.to_datetime(tmy_df['datetime'])
             tmy_df['day_of_year'] = tmy_df['datetime'].dt.dayofyear
             tmy_df['hour'] = tmy_df['datetime'].dt.hour
+            
+            # Show sample of processed TMY data
+            st.write("Sample processed TMY data:")
+            st.dataframe(tmy_df[['datetime', 'day_of_year', 'hour'] + list(found_cols.values())].head(3))
             
             # Ensure walls_data is accessible to radiation calculations
             # (walls_data is defined in the shading configuration section above)
