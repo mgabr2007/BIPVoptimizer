@@ -646,16 +646,15 @@ def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sa
                            hour_data.get('solar_dhi', 0) or
                            hour_data.get('dhi_irradiance', 0))
                 
-                # Only add to lookup if we have valid radiation data
-                if ghi_value > 0 or dni_value > 0 or dhi_value > 0:
-                    solar_lookup[key] = {
-                        'solar_position': solar_pos,
-                        'ghi': float(ghi_value),
-                        'dni': float(dni_value),
-                        'dhi': float(dhi_value),
-                        'solar_elevation': hour_data.get('solar_elevation', solar_pos['elevation']),
-                        'solar_azimuth': hour_data.get('solar_azimuth', solar_pos['azimuth'])
-                    }
+                # Add to lookup with any available radiation data (even if some values are zero)
+                solar_lookup[key] = {
+                    'solar_position': solar_pos,
+                    'ghi': float(ghi_value) if ghi_value is not None else 0.0,
+                    'dni': float(dni_value) if dni_value is not None else 0.0,
+                    'dhi': float(dhi_value) if dhi_value is not None else 0.0,
+                    'solar_elevation': hour_data.get('solar_elevation', solar_pos['elevation']),
+                    'solar_azimuth': hour_data.get('solar_azimuth', solar_pos['azimuth'])
+                }
     
     return solar_lookup
 
@@ -1213,44 +1212,68 @@ def render_radiation_grid():
             else:
                 tmy_df = tmy_data.copy()
                 
-            # Debug TMY data structure
+            # Debug TMY data structure with detailed column analysis
             st.info(f"📊 TMY Data Info: {len(tmy_df)} records, Columns: {list(tmy_df.columns)}")
             
-            # Check for required radiation columns with flexible column name matching
+            # Check for required radiation columns with comprehensive pattern matching
             required_cols = ['ghi', 'dni', 'dhi']
             available_cols = [col.lower() for col in tmy_df.columns]
-            missing_cols = []
             found_cols = {}
             
+            # More comprehensive column matching patterns
             for req_col in required_cols:
-                # Check for exact match, uppercase, or variations
-                if req_col in available_cols:
-                    found_cols[req_col] = req_col
-                elif req_col.upper() in tmy_df.columns:
-                    found_cols[req_col] = req_col.upper()
-                elif f'solar_{req_col}' in available_cols:
-                    found_cols[req_col] = f'solar_{req_col}'
-                elif f'{req_col}_irradiance' in available_cols:
-                    found_cols[req_col] = f'{req_col}_irradiance'
-                else:
-                    missing_cols.append(req_col)
-            
-            if missing_cols:
-                st.warning(f"⚠️ Missing radiation columns in TMY data: {missing_cols}")
-                st.write("📊 Available columns in TMY data:")
-                st.write(list(tmy_df.columns))
-                # Show sample of available data
-                if len(tmy_df) > 0:
-                    st.write("Sample TMY data:")
-                    st.dataframe(tmy_df.head(3))
-            else:
-                st.success("✅ TMY data contains required radiation values (GHI, DNI, DHI)")
-                st.info(f"Found columns: {found_cols}")
+                column_found = False
+                for actual_col in tmy_df.columns:
+                    actual_lower = actual_col.lower()
+                    # Check multiple patterns
+                    if (actual_lower == req_col or 
+                        actual_lower == req_col.upper() or
+                        actual_lower.endswith(f'_{req_col}') or
+                        actual_lower.endswith(f'{req_col}_irradiance') or
+                        actual_lower.startswith(f'{req_col}_') or
+                        actual_lower.startswith(f'solar_{req_col}') or
+                        req_col in actual_lower):
+                        found_cols[req_col] = actual_col
+                        column_found = True
+                        break
                 
-                # Standardize column names for processing
-                for standard_name, actual_name in found_cols.items():
-                    if actual_name != standard_name:
-                        tmy_df[standard_name] = tmy_df[actual_name]
+                if not column_found:
+                    # Check if any radiation-related columns exist at all
+                    radiation_cols = [col for col in tmy_df.columns if any(term in col.lower() for term in ['ghi', 'dni', 'dhi', 'irrad', 'solar'])]
+                    if radiation_cols:
+                        st.warning(f"⚠️ Could not find exact match for '{req_col}' but found radiation columns: {radiation_cols}")
+                        # Use first matching radiation column as fallback
+                        for rad_col in radiation_cols:
+                            if req_col in rad_col.lower():
+                                found_cols[req_col] = rad_col
+                                st.info(f"Using '{rad_col}' for {req_col}")
+                                break
+            
+            # Show detailed analysis
+            missing_cols = [col for col in required_cols if col not in found_cols]
+            
+            st.write("🔍 **Column Analysis:**")
+            st.write(f"- Required: {required_cols}")
+            st.write(f"- Found: {found_cols}")
+            st.write(f"- Missing: {missing_cols}")
+            st.write(f"- Available columns: {list(tmy_df.columns)}")
+            
+            if len(found_cols) == 0:
+                st.error("❌ No radiation columns found in TMY data")
+                st.write("Sample TMY data:")
+                st.dataframe(tmy_df.head(3))
+                return
+            elif len(found_cols) < 3:
+                st.warning(f"⚠️ Only found {len(found_cols)} of 3 required radiation columns: {list(found_cols.keys())}")
+                # Continue with available columns
+            else:
+                st.success("✅ TMY data contains required radiation values")
+            
+            # Standardize column names for processing
+            for standard_name, actual_name in found_cols.items():
+                if actual_name != standard_name:
+                    tmy_df[standard_name] = tmy_df[actual_name]
+                    st.info(f"Mapped '{actual_name}' → '{standard_name}'")
             
             # Ensure datetime column exists
             if 'datetime' not in tmy_df.columns:
