@@ -803,7 +803,7 @@ def render_radiation_grid():
     computational_info = {
         "Hourly": "⏰ Hourly analysis - Only hours with sun irradiance for maximum accuracy",
         "Daily Peak": "☀️ Daily Peak analysis - Noon is the mid of the daily sun irradiance",
-        "Monthly Peak": "📅 Monthly average - Average solar days for seasonal representation",
+        "Monthly Average": "📅 Monthly average - Average solar days for seasonal representation",
         "Yearly Average": "📊 Yearly Average - Average of the total solar irradiance in the whole year"
     }
     st.info(computational_info[analysis_precision])
