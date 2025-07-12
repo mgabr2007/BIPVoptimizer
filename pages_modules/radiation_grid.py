@@ -1389,18 +1389,10 @@ def render_radiation_grid():
                         timeout_occurred = False
                         
                         for month in range(1, 13):
-                            # Check for timeout every month but continue with next element
+                            # Check for timeout - skip element if calculation takes too long
                             if time.time() - element_start_time > ELEMENT_TIMEOUT:
                                 timeout_occurred = True
-                                # Use realistic fallback values based on orientation
-                                if 'South' in orientation:
-                                    annual_irradiance = 1200  # Higher for south-facing
-                                elif orientation in ['East', 'West']:
-                                    annual_irradiance = 1000  # Medium for east/west
-                                else:
-                                    annual_irradiance = 800   # Lower for other orientations
-                                peak_irradiance = annual_irradiance * 1.2
-                                sample_count = 100
+                                st.warning(f"⚠️ Element {element_id}: Calculation timeout - skipping element")
                                 break
                             
                             monthly_total = 0
@@ -1474,110 +1466,71 @@ def render_radiation_grid():
                             if monthly_samples > 0:
                                 monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
                         
-                        # Scale to annual totals based on computational method
-                        if analysis_precision == "Hourly":
-                            # Hourly analysis: scale from samples to full year
-                            scaling_factor = 8760 / max(sample_count, 1)
-                        elif analysis_precision == "Daily Peak":
-                            # Daily peak: scale from noon samples to daily totals (assume noon = 15% of daily)
-                            scaling_factor = (8760 / 365) / 0.15 / max(sample_count/365, 1)
-                        elif analysis_precision == "Monthly Average":
-                            # Monthly average: scale from 12 average days to full year
-                            scaling_factor = 365 / 12 / max(sample_count/12, 1)
-                        else:  # Yearly Average
-                            # Yearly average: scale from single day to full year
-                            scaling_factor = 365 / max(sample_count, 1)
-                        
-                        annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
-                        
-                        # Calculate height-related parameters for reporting
-                        height_from_ground = estimate_height_from_ground(level)
-                        avg_ground_reflectance = calculate_ground_reflectance_factor(height_from_ground, tilt)
-                        
-                        # Calculate average height-dependent effects for this element
-                        sample_ghi = 800  # Typical GHI for height effect calculation
-                        ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, sample_ghi)
-                        sample_solar_pos = {'elevation': 45, 'azimuth': 180}  # Sample solar position
-                        angle_effects = calculate_height_dependent_solar_angles(sample_solar_pos, height_from_ground)
-                        
-                        radiation_results.append({
-                            'element_id': element_id,
-                            'element_type': 'Window',
-                            'orientation': orientation,
-                            'azimuth': azimuth,
-                            'tilt': tilt,
-                            'area': area,
-                            'level': level,
-                            'height_from_ground': height_from_ground,
-                            'ground_reflectance_factor': avg_ground_reflectance,
-                            'ghi_height_factor': ghi_effects['height_factor'],
-                            'atmospheric_clarity_factor': ghi_effects['atmospheric_clarity'],
-                            'horizon_factor': ghi_effects['horizon_factor'],
-                            'horizon_depression_deg': angle_effects['horizon_depression'],
-                            'total_height_enhancement': ghi_effects['height_factor'] + avg_ground_reflectance,
-                            'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
-                            'width': width,
-                            'height': height,
-                            'annual_irradiation': annual_irradiance,
-                            'peak_irradiance': peak_irradiance,
-                            'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
-                            'monthly_irradiation': monthly_irradiation,
-                            'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
-                            'annual_energy_potential': annual_irradiance * area  # kWh per element
-                        })
+                        # Only proceed if we have valid calculation data (no timeout)
+                        if not timeout_occurred and sample_count > 0:
+                            # Scale to annual totals based on computational method
+                            if analysis_precision == "Hourly":
+                                # Hourly analysis: scale from samples to full year
+                                scaling_factor = 8760 / sample_count
+                            elif analysis_precision == "Daily Peak":
+                                # Daily peak: scale from noon samples to daily totals (assume noon = 15% of daily)
+                                scaling_factor = (8760 / 365) / 0.15 / (sample_count/365)
+                            elif analysis_precision == "Monthly Average":
+                                # Monthly average: scale from 12 average days to full year
+                                scaling_factor = 365 / 12 / (sample_count/12)
+                            else:  # Yearly Average
+                                # Yearly average: scale from single day to full year
+                                scaling_factor = 365 / sample_count
+                            
+                            annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
+                            
+                            # Calculate height-related parameters for reporting
+                            height_from_ground = estimate_height_from_ground(level)
+                            avg_ground_reflectance = calculate_ground_reflectance_factor(height_from_ground, tilt)
+                            
+                            # Calculate average height-dependent effects for this element
+                            sample_ghi = 800  # Typical GHI for height effect calculation
+                            ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, sample_ghi)
+                            sample_solar_pos = {'elevation': 45, 'azimuth': 180}  # Sample solar position
+                            angle_effects = calculate_height_dependent_solar_angles(sample_solar_pos, height_from_ground)
+                            
+                            radiation_results.append({
+                                'element_id': element_id,
+                                'element_type': 'Window',
+                                'orientation': orientation,
+                                'azimuth': azimuth,
+                                'tilt': tilt,
+                                'area': area,
+                                'level': level,
+                                'height_from_ground': height_from_ground,
+                                'ground_reflectance_factor': avg_ground_reflectance,
+                                'ghi_height_factor': ghi_effects['height_factor'],
+                                'atmospheric_clarity_factor': ghi_effects['atmospheric_clarity'],
+                                'horizon_factor': ghi_effects['horizon_factor'],
+                                'horizon_depression_deg': angle_effects['horizon_depression'],
+                                'total_height_enhancement': ghi_effects['height_factor'] + avg_ground_reflectance,
+                                'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
+                                'width': width,
+                                'height': height,
+                                'annual_irradiation': annual_irradiance,
+                                'peak_irradiance': peak_irradiance,
+                                'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
+                                'monthly_irradiation': monthly_irradiation,
+                                'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
+                                'annual_energy_potential': annual_irradiance * area  # kWh per element
+                            })
+                        else:
+                            # Skip element if timeout or no valid data - no fallback values
+                            st.warning(f"⚠️ Element {element_id}: Skipped due to timeout or insufficient data")
                 
                     except Exception as e:
-                        # Robust error handling - NEVER stop the analysis, always continue
-                        error_msg = f"Element {element_id}: Processing error - using fallback calculation"
-                        st.warning(f"⚠️ {error_msg}")
+                        # Skip element on processing error - no fallback values
+                        error_msg = f"Element {element_id}: Processing error - skipping element"
+                        st.warning(f"⚠️ {error_msg}: {str(e)[:50]}")
                         
-                        # Add fallback radiation calculation based on orientation
-                        fallback_radiation = {
-                            'South (135-225°)': 1500,
-                            'Southeast': 1400,
-                            'Southwest': 1400,
-                            'West (225-315°)': 1200,
-                            'East (45-135°)': 1200,
-                            'North (315-45°)': 600
-                        }.get(orientation, 1000)
+                        # Continue processing next element - no fallback data added
                         
-                        # Calculate height parameters for fallback data consistency
-                        fallback_height = estimate_height_from_ground(level)
-                        fallback_ground_reflectance = calculate_ground_reflectance_factor(fallback_height, tilt)
-                        fallback_ghi_effects = calculate_height_dependent_ghi_effects(fallback_height, 800)
-                        fallback_solar_pos = {'elevation': 45, 'azimuth': 180}
-                        fallback_angle_effects = calculate_height_dependent_solar_angles(fallback_solar_pos, fallback_height)
-                        
-                        # ALWAYS add element to results - never skip or stop analysis
-                        radiation_results.append({
-                            'element_id': element_id,
-                            'element_type': 'Window',
-                            'orientation': orientation,
-                            'azimuth': azimuth,
-                            'tilt': tilt,
-                            'area': area,
-                            'level': level,
-                            'height_from_ground': fallback_height,
-                            'ground_reflectance_factor': fallback_ground_reflectance,
-                            'ghi_height_factor': fallback_ghi_effects['height_factor'],
-                            'atmospheric_clarity_factor': fallback_ghi_effects['atmospheric_clarity'],
-                            'horizon_factor': fallback_ghi_effects['horizon_factor'],
-                            'horizon_depression_deg': fallback_angle_effects['horizon_depression'],
-                            'total_height_enhancement': fallback_ghi_effects['height_factor'] + fallback_ground_reflectance,
-                            'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
-                            'width': width,
-                            'height': height,
-                            'annual_irradiation': fallback_radiation,
-                            'peak_irradiance': fallback_radiation * 1.2,
-                            'avg_irradiance': fallback_radiation * 1000 / 8760,
-                            'monthly_irradiation': {str(m): fallback_radiation/12 for m in range(1, 13)},
-                            'capacity_factor': min(fallback_radiation / 1800, 1.0),
-                            'annual_energy_potential': fallback_radiation * area,
-                            'error_fallback': True,
-                            'processing_error': str(e)[:100]  # Store error for debugging
-                        })
-                        
-                        # Continue processing - never break or return here
+
                 
                 # Add batch completion checkpoint with memory management
                 if batch_end % 100 == 0 or batch_end == len(suitable_elements):
@@ -1598,50 +1551,11 @@ def render_radiation_grid():
                     st.session_state.temp_radiation_results = radiation_results.copy()
                     st.info(f"🚀 **Deployment Checkpoint**: Saved {len(radiation_results)} results")
             
-            # FAILSAFE: Ensure we have radiation results - create them if missing
+            # NO FALLBACK: If no radiation results, analysis stops with authentic data requirement
             if len(radiation_results) == 0:
-                st.warning("⚠️ Creating failsafe radiation data for analysis continuation...")
-                # Create minimal radiation data to prevent analysis stoppage
-                for i, element in enumerate(suitable_elements[:10]):  # At least 10 elements
-                    element_id = element.get('element_id', f'Failsafe_Element_{i+1}')
-                    orientation = element.get('orientation', 'South')
-                    level = element.get('level', 'Level 1')
-                    tilt = element.get('tilt', 90)
-                    fallback_radiation = 1000 if 'South' in orientation else 800
-                    
-                    # Calculate height parameters for failsafe data consistency
-                    failsafe_height = estimate_height_from_ground(level)
-                    failsafe_ground_reflectance = calculate_ground_reflectance_factor(failsafe_height, tilt)
-                    failsafe_ghi_effects = calculate_height_dependent_ghi_effects(failsafe_height, 800)
-                    failsafe_solar_pos = {'elevation': 45, 'azimuth': 180}
-                    failsafe_angle_effects = calculate_height_dependent_solar_angles(failsafe_solar_pos, failsafe_height)
-                    
-                    radiation_results.append({
-                        'element_id': element_id,
-                        'element_type': 'Window',
-                        'orientation': orientation,
-                        'azimuth': element.get('azimuth', 180),
-                        'tilt': tilt,
-                        'area': element.get('glass_area', 1.5),
-                        'level': level,
-                        'height_from_ground': failsafe_height,
-                        'ground_reflectance_factor': failsafe_ground_reflectance,
-                        'ghi_height_factor': failsafe_ghi_effects['height_factor'],
-                        'atmospheric_clarity_factor': failsafe_ghi_effects['atmospheric_clarity'],
-                        'horizon_factor': failsafe_ghi_effects['horizon_factor'],
-                        'horizon_depression_deg': failsafe_angle_effects['horizon_depression'],
-                        'total_height_enhancement': failsafe_ghi_effects['height_factor'] + failsafe_ground_reflectance,
-                        'wall_hosted_id': 'N/A',
-                        'width': 1.2,
-                        'height': 1.5,
-                        'annual_irradiation': fallback_radiation,
-                        'peak_irradiance': fallback_radiation * 1.2,
-                        'avg_irradiance': fallback_radiation * 1000 / 8760,
-                        'monthly_irradiation': {str(m): fallback_radiation/12 for m in range(1, 13)},
-                        'capacity_factor': min(fallback_radiation / 1800, 1.0),
-                        'annual_energy_potential': fallback_radiation * 1.5,
-                        'failsafe_data': True
-                    })
+                st.error("⚠️ No radiation data calculated - all elements failed validation. Analysis requires authentic TMY data.")
+                st.info("📋 **Required for continuation:**\n- Valid building elements with proper orientation data\n- Complete TMY weather data from Step 3\n- Non-timeout element calculations")
+                return None
             
             # Convert to DataFrame
             radiation_data = pd.DataFrame(radiation_results)
@@ -1656,50 +1570,10 @@ def render_radiation_grid():
             status_text.text("Finalizing analysis and saving results...")
             progress_bar.progress(95)
             
-            # ALWAYS continue analysis - never stop due to empty data
+            # NO FALLBACK: If empty radiation data, analysis stops
             if len(radiation_data) == 0:
-                st.error("⚠️ Critical error: No radiation data generated - using emergency fallback")
-                
-                # Calculate height parameters for emergency fallback consistency
-                emergency_level = 'Level 1'
-                emergency_tilt = 90
-                emergency_height = estimate_height_from_ground(emergency_level)
-                emergency_ground_reflectance = calculate_ground_reflectance_factor(emergency_height, emergency_tilt)
-                emergency_ghi_effects = calculate_height_dependent_ghi_effects(emergency_height, 800)
-                emergency_solar_pos = {'elevation': 45, 'azimuth': 180}
-                emergency_angle_effects = calculate_height_dependent_solar_angles(emergency_solar_pos, emergency_height)
-                
-                # Emergency fallback - create basic data structure
-                radiation_data = pd.DataFrame([{
-                    'element_id': 'Emergency_Element_1',
-                    'element_type': 'Window',
-                    'orientation': 'South',
-                    'azimuth': 180,
-                    'tilt': emergency_tilt,
-                    'area': 1.5,
-                    'level': emergency_level,
-                    'height_from_ground': emergency_height,
-                    'ground_reflectance_factor': emergency_ground_reflectance,
-                    'ghi_height_factor': emergency_ghi_effects['height_factor'],
-                    'atmospheric_clarity_factor': emergency_ghi_effects['atmospheric_clarity'],
-                    'horizon_factor': emergency_ghi_effects['horizon_factor'],
-                    'horizon_depression_deg': emergency_angle_effects['horizon_depression'],
-                    'total_height_enhancement': emergency_ghi_effects['height_factor'] + emergency_ground_reflectance,
-                    'wall_hosted_id': 'N/A',
-                    'width': 1.2,
-                    'height': 1.5,
-                    'annual_irradiation': 1000,
-                    'peak_irradiance': 1200,
-                    'avg_irradiance': 114,
-                    'monthly_irradiation': {str(m): 83.3 for m in range(1, 13)},
-                    'capacity_factor': 0.56,
-                    'annual_energy_potential': 1500,
-                    'emergency_fallback': True
-                }])
-                
-                # Apply orientation corrections if requested
-                if apply_corrections:
-                    radiation_data = apply_orientation_corrections(radiation_data)
+                st.error("⚠️ Critical error: No radiation data generated. Analysis requires authentic calculations.")
+                return None
                 
             # Save to session state and database
             st.session_state.project_data['radiation_data'] = radiation_data
