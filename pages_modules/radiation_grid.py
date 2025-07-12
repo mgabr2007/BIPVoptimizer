@@ -1541,6 +1541,13 @@ def render_radiation_grid():
                             'North (315-45°)': 600
                         }.get(orientation, 1000)
                         
+                        # Calculate height parameters for fallback data consistency
+                        fallback_height = estimate_height_from_ground(level)
+                        fallback_ground_reflectance = calculate_ground_reflectance_factor(fallback_height, tilt)
+                        fallback_ghi_effects = calculate_height_dependent_ghi_effects(fallback_height, 800)
+                        fallback_solar_pos = {'elevation': 45, 'azimuth': 180}
+                        fallback_angle_effects = calculate_height_dependent_solar_angles(fallback_solar_pos, fallback_height)
+                        
                         # ALWAYS add element to results - never skip or stop analysis
                         radiation_results.append({
                             'element_id': element_id,
@@ -1550,6 +1557,13 @@ def render_radiation_grid():
                             'tilt': tilt,
                             'area': area,
                             'level': level,
+                            'height_from_ground': fallback_height,
+                            'ground_reflectance_factor': fallback_ground_reflectance,
+                            'ghi_height_factor': fallback_ghi_effects['height_factor'],
+                            'atmospheric_clarity_factor': fallback_ghi_effects['atmospheric_clarity'],
+                            'horizon_factor': fallback_ghi_effects['horizon_factor'],
+                            'horizon_depression_deg': fallback_angle_effects['horizon_depression'],
+                            'total_height_enhancement': fallback_ghi_effects['height_factor'] + fallback_ground_reflectance,
                             'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
                             'width': width,
                             'height': height,
@@ -1591,16 +1605,32 @@ def render_radiation_grid():
                 for i, element in enumerate(suitable_elements[:10]):  # At least 10 elements
                     element_id = element.get('element_id', f'Failsafe_Element_{i+1}')
                     orientation = element.get('orientation', 'South')
+                    level = element.get('level', 'Level 1')
+                    tilt = element.get('tilt', 90)
                     fallback_radiation = 1000 if 'South' in orientation else 800
+                    
+                    # Calculate height parameters for failsafe data consistency
+                    failsafe_height = estimate_height_from_ground(level)
+                    failsafe_ground_reflectance = calculate_ground_reflectance_factor(failsafe_height, tilt)
+                    failsafe_ghi_effects = calculate_height_dependent_ghi_effects(failsafe_height, 800)
+                    failsafe_solar_pos = {'elevation': 45, 'azimuth': 180}
+                    failsafe_angle_effects = calculate_height_dependent_solar_angles(failsafe_solar_pos, failsafe_height)
                     
                     radiation_results.append({
                         'element_id': element_id,
                         'element_type': 'Window',
                         'orientation': orientation,
                         'azimuth': element.get('azimuth', 180),
-                        'tilt': element.get('tilt', 90),
+                        'tilt': tilt,
                         'area': element.get('glass_area', 1.5),
-                        'level': element.get('level', 'Level 1'),
+                        'level': level,
+                        'height_from_ground': failsafe_height,
+                        'ground_reflectance_factor': failsafe_ground_reflectance,
+                        'ghi_height_factor': failsafe_ghi_effects['height_factor'],
+                        'atmospheric_clarity_factor': failsafe_ghi_effects['atmospheric_clarity'],
+                        'horizon_factor': failsafe_ghi_effects['horizon_factor'],
+                        'horizon_depression_deg': failsafe_angle_effects['horizon_depression'],
+                        'total_height_enhancement': failsafe_ghi_effects['height_factor'] + failsafe_ground_reflectance,
                         'wall_hosted_id': 'N/A',
                         'width': 1.2,
                         'height': 1.5,
@@ -1629,15 +1659,35 @@ def render_radiation_grid():
             # ALWAYS continue analysis - never stop due to empty data
             if len(radiation_data) == 0:
                 st.error("⚠️ Critical error: No radiation data generated - using emergency fallback")
+                
+                # Calculate height parameters for emergency fallback consistency
+                emergency_level = 'Level 1'
+                emergency_tilt = 90
+                emergency_height = estimate_height_from_ground(emergency_level)
+                emergency_ground_reflectance = calculate_ground_reflectance_factor(emergency_height, emergency_tilt)
+                emergency_ghi_effects = calculate_height_dependent_ghi_effects(emergency_height, 800)
+                emergency_solar_pos = {'elevation': 45, 'azimuth': 180}
+                emergency_angle_effects = calculate_height_dependent_solar_angles(emergency_solar_pos, emergency_height)
+                
                 # Emergency fallback - create basic data structure
                 radiation_data = pd.DataFrame([{
                     'element_id': 'Emergency_Element_1',
                     'element_type': 'Window',
                     'orientation': 'South',
                     'azimuth': 180,
-                    'tilt': 90,
+                    'tilt': emergency_tilt,
                     'area': 1.5,
-                    'level': 'Level 1',
+                    'level': emergency_level,
+                    'height_from_ground': emergency_height,
+                    'ground_reflectance_factor': emergency_ground_reflectance,
+                    'ghi_height_factor': emergency_ghi_effects['height_factor'],
+                    'atmospheric_clarity_factor': emergency_ghi_effects['atmospheric_clarity'],
+                    'horizon_factor': emergency_ghi_effects['horizon_factor'],
+                    'horizon_depression_deg': emergency_angle_effects['horizon_depression'],
+                    'total_height_enhancement': emergency_ghi_effects['height_factor'] + emergency_ground_reflectance,
+                    'wall_hosted_id': 'N/A',
+                    'width': 1.2,
+                    'height': 1.5,
                     'annual_irradiation': 1000,
                     'peak_irradiance': 1200,
                     'avg_irradiance': 114,
