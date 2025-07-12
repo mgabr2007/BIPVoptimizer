@@ -1326,6 +1326,14 @@ def render_radiation_grid():
             element_clusters = cluster_elements_by_orientation(suitable_elements)
             level_groups = group_elements_by_level(suitable_elements)
             
+            # Initialize control state for pause/stop functionality FIRST
+            if 'radiation_control_state' not in st.session_state:
+                st.session_state.radiation_control_state = 'running'
+            if 'radiation_partial_results' not in st.session_state:
+                st.session_state.radiation_partial_results = []
+            if 'radiation_start_index' not in st.session_state:
+                st.session_state.radiation_start_index = 0
+            
             # Add control buttons for pause/resume/stop
             control_col1, control_col2, control_col3 = st.columns(3)
             
@@ -1368,14 +1376,6 @@ def render_radiation_grid():
             
             # Initialize caching systems for optimized calculations
             level_height_cache = {}  # Cache height calculations by building level
-            
-            # Initialize control state for pause/stop functionality
-            if 'radiation_control_state' not in st.session_state:
-                st.session_state.radiation_control_state = 'running'
-            if 'radiation_partial_results' not in st.session_state:
-                st.session_state.radiation_partial_results = []
-            if 'radiation_start_index' not in st.session_state:
-                st.session_state.radiation_start_index = 0
             
             # Process each element with detailed progress
             radiation_results = st.session_state.radiation_partial_results.copy()
