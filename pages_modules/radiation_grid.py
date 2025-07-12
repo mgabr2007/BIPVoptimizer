@@ -798,16 +798,23 @@ def render_radiation_grid():
             # Ensure walls_data is accessible to radiation calculations
             # (walls_data is defined in the shading configuration section above)
             
-            # Optimize analysis based on precision setting
-            if analysis_precision == "Standard":
-                sample_hours = list(range(6, 19, 2))  # Every 2 hours during daylight
-                days_sample = list(range(15, 365, 30))  # Monthly samples
-            elif analysis_precision == "High":
-                sample_hours = list(range(6, 19))  # Hourly during daylight
-                days_sample = list(range(1, 365, 15))  # Bi-weekly samples
-            else:  # Maximum
-                sample_hours = list(range(24))  # All hours
-                days_sample = list(range(1, 365, 7))  # Weekly samples
+            # Optimize analysis based on precision setting and deployment environment
+            if is_deployment:
+                # Ultra-fast deployment sampling - minimal calculations
+                sample_hours = list(range(8, 17, 4))  # Every 4 hours during core daylight (8am, 12pm, 4pm)
+                days_sample = list(range(15, 365, 45))  # Season samples (8 per year)
+                st.info("🚀 **Deployment Optimization**: Using minimal sampling for resource efficiency")
+            else:
+                # Standard sampling for preview/development
+                if analysis_precision == "Standard":
+                    sample_hours = list(range(6, 19, 2))  # Every 2 hours during daylight
+                    days_sample = list(range(15, 365, 30))  # Monthly samples
+                elif analysis_precision == "High":
+                    sample_hours = list(range(6, 19))  # Hourly during daylight
+                    days_sample = list(range(1, 365, 15))  # Bi-weekly samples
+                else:  # Maximum
+                    sample_hours = list(range(24))  # All hours
+                    days_sample = list(range(1, 365, 7))  # Weekly samples
             
             status_text.text(f"Processing {len(suitable_elements)} elements with {analysis_precision.lower()} precision...")
             progress_bar.progress(10)
@@ -857,21 +864,30 @@ def render_radiation_grid():
             # Dynamic batch processing based on element count and precision
             total_elements_count = len(suitable_elements)
             
-            # Calculate optimal batch size based on element count and precision
-            # Increase batch sizes for better performance on larger datasets
-            if total_elements_count > 800:
-                BATCH_SIZE = 50  # Increased from 25 for better throughput
-                st.info(f"🔧 **Large Dataset Optimization**: Processing {total_elements_count} elements in optimized batches of {BATCH_SIZE}")
-            elif total_elements_count > 400:
-                BATCH_SIZE = 75  # Increased from 50 for better throughput
-                st.info(f"⚡ **Medium Dataset Processing**: Using optimized batch size {BATCH_SIZE} for {total_elements_count} elements")
-            else:
-                BATCH_SIZE = 150  # Increased from 100 for smaller datasets
+            # DEPLOYMENT OPTIMIZATION: Detect deployment environment and apply ultra-aggressive optimization
+            import os
+            is_deployment = os.environ.get('REPLIT_DEPLOYMENT') == 'true' or os.environ.get('REPLIT_ENVIRONMENT') == 'production'
             
-            # Adjust batch size based on precision level
-            if analysis_precision == "Maximum":
-                BATCH_SIZE = max(10, BATCH_SIZE // 2)  # Reduce batch size for maximum precision
-                st.warning(f"⏱️ **Maximum Precision Mode**: Reduced batch size to {BATCH_SIZE} for detailed analysis")
+            if is_deployment:
+                # Ultra-aggressive optimization for deployment
+                BATCH_SIZE = min(15, total_elements_count // 5)  # Much smaller batches for deployment
+                st.warning(f"🚀 **Deployment Mode Detected**: Using ultra-optimized batch size {BATCH_SIZE} for {total_elements_count} elements")
+                st.info("⚡ **Performance Mode**: Reduced calculations for deployment resource limits")
+            else:
+                # Standard batch sizes for preview/development
+                if total_elements_count > 800:
+                    BATCH_SIZE = 50  # Increased from 25 for better throughput
+                    st.info(f"🔧 **Large Dataset Optimization**: Processing {total_elements_count} elements in optimized batches of {BATCH_SIZE}")
+                elif total_elements_count > 400:
+                    BATCH_SIZE = 75  # Increased from 50 for better throughput
+                    st.info(f"⚡ **Medium Dataset Processing**: Using optimized batch size {BATCH_SIZE} for {total_elements_count} elements")
+                else:
+                    BATCH_SIZE = 150  # Increased from 100 for smaller datasets
+                
+                # Adjust batch size based on precision level
+                if analysis_precision == "Maximum":
+                    BATCH_SIZE = max(10, BATCH_SIZE // 2)  # Reduce batch size for maximum precision
+                    st.warning(f"⏱️ **Maximum Precision Mode**: Reduced batch size to {BATCH_SIZE} for detailed analysis")
             
             for batch_start in range(0, len(suitable_elements), BATCH_SIZE):
                 batch_end = min(batch_start + BATCH_SIZE, len(suitable_elements))
@@ -901,13 +917,27 @@ def render_radiation_grid():
                     # Add memory check and yield point every 10 elements
                     if global_i % 10 == 0:
                         import time
-                        time.sleep(0.01)  # Allow Streamlit to refresh UI
+                        if is_deployment:
+                            time.sleep(0.05)  # More frequent yields in deployment
+                        else:
+                            time.sleep(0.01)  # Standard yield for preview
+                    
+                    # DEPLOYMENT EMERGENCY STOP: Check for potential resource exhaustion
+                    if is_deployment and global_i > 50 and global_i % 25 == 0:
+                        # Force intermediate save every 25 elements in deployment
+                        if len(radiation_results) > 0:
+                            st.session_state.temp_radiation_results = radiation_results.copy()
+                            st.info(f"🚀 **Emergency Save**: Secured {len(radiation_results)} results at element {global_i}")
                     
                     # Calculate radiation for this element with robust error protection
                     try:
                         import time
                         element_start_time = time.time()
-                        ELEMENT_TIMEOUT = 120  # Increased to 120 seconds per element
+                        # Deployment-specific timeout optimization
+                        if is_deployment:
+                            ELEMENT_TIMEOUT = 30  # Much shorter timeout for deployment
+                        else:
+                            ELEMENT_TIMEOUT = 120  # Standard timeout for preview
                         
                         annual_irradiance = 0
                         peak_irradiance = 0
@@ -1098,6 +1128,11 @@ def render_radiation_grid():
                         st.info(f"💾 Checkpoint: Saved {len(radiation_results)} element results")
                         # Save intermediate results to session state for recovery
                         st.session_state.temp_radiation_results = radiation_results.copy()
+                
+                # DEPLOYMENT EMERGENCY CHECKPOINT: Force save after every batch in deployment
+                if is_deployment and len(radiation_results) > 0:
+                    st.session_state.temp_radiation_results = radiation_results.copy()
+                    st.info(f"🚀 **Deployment Checkpoint**: Saved {len(radiation_results)} results")
             
             # FAILSAFE: Ensure we have radiation results - create them if missing
             if len(radiation_results) == 0:
