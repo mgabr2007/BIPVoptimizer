@@ -926,6 +926,37 @@ def render_radiation_grid():
             import os
             is_deployment = os.environ.get('REPLIT_DEPLOYMENT') == 'true' or os.environ.get('REPLIT_ENVIRONMENT') == 'production'
             
+            # Get TMY data for radiation calculations
+            weather_data = st.session_state.project_data.get('weather_analysis', {})
+            tmy_data = weather_data.get('tmy_data', weather_data.get('hourly_data', []))
+            
+            if not tmy_data:
+                st.error("❌ No TMY weather data available. Please complete Step 3 (Weather & Environment) first.")
+                return
+            
+            # Convert TMY data to DataFrame if it's not already
+            if isinstance(tmy_data, list):
+                tmy_df = pd.DataFrame(tmy_data)
+            else:
+                tmy_df = tmy_data.copy()
+            
+            # Ensure datetime column exists
+            if 'datetime' not in tmy_df.columns:
+                # Create datetime from month, day, hour if available
+                if all(col in tmy_df.columns for col in ['month', 'day', 'hour']):
+                    tmy_df['datetime'] = pd.to_datetime(
+                        tmy_df[['month', 'day', 'hour']].assign(year=2023)
+                    )
+                else:
+                    # Create hourly data for a full year
+                    from datetime import datetime
+                    base_date = datetime(2023, 1, 1)
+                    tmy_df['datetime'] = pd.date_range(base_date, periods=len(tmy_df), freq='H')
+            
+            tmy_df['datetime'] = pd.to_datetime(tmy_df['datetime'])
+            tmy_df['day_of_year'] = tmy_df['datetime'].dt.dayofyear
+            tmy_df['hour'] = tmy_df['datetime'].dt.hour
+            
             # Ensure walls_data is accessible to radiation calculations
             # (walls_data is defined in the shading configuration section above)
             
