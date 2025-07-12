@@ -1326,15 +1326,61 @@ def render_radiation_grid():
             element_clusters = cluster_elements_by_orientation(suitable_elements)
             level_groups = group_elements_by_level(suitable_elements)
             
+            # Add control buttons for pause/resume/stop
+            control_col1, control_col2, control_col3 = st.columns(3)
+            
+            with control_col1:
+                if st.session_state.radiation_control_state == 'running':
+                    if st.button("⏸️ Pause Analysis", key="pause_radiation"):
+                        st.session_state.radiation_control_state = 'paused'
+                        st.rerun()
+                elif st.session_state.radiation_control_state == 'paused':
+                    if st.button("▶️ Resume Analysis", key="resume_radiation"):
+                        st.session_state.radiation_control_state = 'running'
+                        st.rerun()
+                elif st.session_state.radiation_control_state == 'completed':
+                    st.success("✅ Analysis Complete")
+            
+            with control_col2:
+                if st.session_state.radiation_control_state not in ['completed']:
+                    if st.button("⏹️ Stop Analysis", key="stop_radiation"):
+                        st.session_state.radiation_control_state = 'stopped'
+                        st.rerun()
+            
+            with control_col3:
+                if st.session_state.radiation_control_state in ['paused', 'stopped', 'completed']:
+                    if st.button("🔄 Start New Analysis", key="reset_radiation"):
+                        st.session_state.radiation_control_state = 'running'
+                        st.session_state.radiation_partial_results = []
+                        st.session_state.radiation_start_index = 0
+                        st.rerun()
+            
+            # Display current status
+            if st.session_state.radiation_control_state == 'paused':
+                st.warning(f"⏸️ Analysis paused at element {st.session_state.radiation_start_index + 1}/{len(suitable_elements)}. Click Resume to continue from where you left off.")
+            elif st.session_state.radiation_control_state == 'stopped':
+                st.error("⏹️ Analysis has been stopped. Use 'Start New Analysis' to begin fresh.")
+            elif st.session_state.radiation_control_state == 'completed':
+                st.success("✅ Radiation analysis completed successfully!")
+            
             status_text.text(f"Processing {len(suitable_elements)} elements with optimized {analysis_precision.lower()} calculations...")
             progress_bar.progress(20)
             
             # Initialize caching systems for optimized calculations
             level_height_cache = {}  # Cache height calculations by building level
             
+            # Initialize control state for pause/stop functionality
+            if 'radiation_control_state' not in st.session_state:
+                st.session_state.radiation_control_state = 'running'
+            if 'radiation_partial_results' not in st.session_state:
+                st.session_state.radiation_partial_results = []
+            if 'radiation_start_index' not in st.session_state:
+                st.session_state.radiation_start_index = 0
+            
             # Process each element with detailed progress
-            radiation_results = []
+            radiation_results = st.session_state.radiation_partial_results.copy()
             total_elements = len(suitable_elements)
+            start_index = st.session_state.radiation_start_index
             
             # Convert DataFrame to list of dictionaries if needed
             if hasattr(suitable_elements, 'iterrows'):
@@ -1393,171 +1439,182 @@ def render_radiation_grid():
                 if analysis_precision == "Maximum":
                     BATCH_SIZE = max(10, BATCH_SIZE // 2)  # Reduce batch size for maximum precision
             
-            for batch_start in range(0, len(suitable_elements), BATCH_SIZE):
-                batch_end = min(batch_start + BATCH_SIZE, len(suitable_elements))
-                batch_elements = suitable_elements[batch_start:batch_end]
-                
-                for i, element in enumerate(batch_elements):
-                    global_i = batch_start + i
+            # Only proceed if analysis is not stopped
+            if st.session_state.radiation_control_state != 'stopped':
+                for batch_start in range(start_index, len(suitable_elements), BATCH_SIZE):
+                    batch_end = min(batch_start + BATCH_SIZE, len(suitable_elements))
+                    batch_elements = suitable_elements[batch_start:batch_end]
                     
-                    # Extract element data from BIM upload - preserve actual Element IDs
-                    element_id = element.get('element_id', f'Unknown_Element_{global_i+1}')
-                    azimuth = element.get('azimuth', 180)
-                    tilt = element.get('tilt', 90)
-                    area = element.get('glass_area', 1.5)  # Use actual BIM glass area
-                    orientation = element.get('orientation', 'Unknown')
-                    level = element.get('level', 'Level 1')
-                    width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
-                    height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
-                    
-                    # Progress display
-                    percentage_complete = int(100 * global_i / len(suitable_elements))
-                    element_progress.text(f"Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%)")
-                    progress_bar.progress(percentage_complete)
-                    
-                    # Calculate radiation for this element
-                    try:
+                    for i, element in enumerate(batch_elements):
+                        global_i = batch_start + i
                         
-                        annual_irradiance = 0
-                        peak_irradiance = 0
-                        sample_count = 0
-                        monthly_irradiation = {}
+                        # Check control state before processing each element
+                        if st.session_state.radiation_control_state == 'paused':
+                            st.session_state.radiation_start_index = global_i
+                            st.session_state.radiation_partial_results = radiation_results
+                            st.warning(f"⏸️ Analysis paused at element {global_i+1}/{len(suitable_elements)}")
+                            return
+                        elif st.session_state.radiation_control_state == 'stopped':
+                            st.session_state.radiation_start_index = 0
+                            st.session_state.radiation_partial_results = []
+                            st.error(f"⏹️ Analysis stopped at element {global_i+1}/{len(suitable_elements)}")
+                            return
                         
-                        for month in range(1, 13):
-                            
-                            monthly_total = 0
-                            monthly_samples = 0
-                            
-                            for day in days_sample:
-                                if day < 28 or (day < 32 and month in [1,3,5,7,8,10,12]) or (day < 31 and month in [4,6,9,11]) or (day < 30 and month == 2):
-                                    for hour in sample_hours:
-                                        # Use pre-computed solar lookup key
-                                        lookup_key = f"{day}_{hour}"
-                                        
-                                        if lookup_key in solar_lookup:
-                                            solar_data = solar_lookup[lookup_key]
-                                            solar_pos = solar_data['solar_position']
-                                            
-                                            # Extract radiation values directly from solar_data
-                                            ghi = solar_data.get('ghi', 0)
-                                            dni = solar_data.get('dni', 0)
-                                            dhi = solar_data.get('dhi', 0)
-                                            
-                                            # Skip if sun below horizon (already filtered in pre-computed table)
-                                            if solar_pos['elevation'] <= 0:
-                                                continue
-                                            
-                                            # Use cached height calculations
-                                            if level not in level_height_cache:
-                                                level_height_cache[level] = {
-                                                    'height_from_ground': estimate_height_from_ground(level),
-                                                    'ground_reflectance': {}
-                                                }
-                                            
-                                            height_from_ground = level_height_cache[level]['height_from_ground']
-                                            
-                                            # Cache ground reflectance by tilt for this level
-                                            if tilt not in level_height_cache[level]['ground_reflectance']:
-                                                level_height_cache[level]['ground_reflectance'][tilt] = calculate_ground_reflectance_factor(height_from_ground, tilt)
-                                            
-                                            ground_reflectance = level_height_cache[level]['ground_reflectance'][tilt]
-                                            
-                                            # Apply height-dependent GHI adjustments
-                                            ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, ghi)
-                                            adjusted_ghi = ghi_effects['adjusted_ghi']
-                                            
-                                            # Apply height-dependent solar angle adjustments
-                                            adjusted_solar_pos = calculate_height_dependent_solar_angles(solar_pos, height_from_ground)
-                                            
-                                            # Calculate surface irradiance using height-adjusted values
-                                            surface_irradiance = calculate_irradiance_on_surface(
-                                                adjusted_ghi,
-                                                dni,
-                                                dhi,
-                                                adjusted_solar_pos,
-                                                tilt,
-                                                azimuth
-                                            )
-                                            
-                                            # Add ground reflectance contribution
-                                            ground_contribution = adjusted_ghi * ground_reflectance
-                                            surface_irradiance += ground_contribution
-                                            
-                                            # Apply precise shading calculations if walls data available
-                                            if walls_data is not None and include_shading:
-                                                shading_factor = calculate_combined_shading_factor(element, walls_data, solar_pos)
-                                                surface_irradiance *= shading_factor
-                                            
-                                            annual_irradiance += surface_irradiance
-                                            monthly_total += surface_irradiance
-                                            peak_irradiance = max(peak_irradiance, surface_irradiance)
-                                            sample_count += 1
-                                            monthly_samples += 1
-                            
-                            # Store monthly average
-                            if monthly_samples > 0:
-                                monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
+                        # Extract element data from BIM upload - preserve actual Element IDs
+                        element_id = element.get('element_id', f'Unknown_Element_{global_i+1}')
+                        azimuth = element.get('azimuth', 180)
+                        tilt = element.get('tilt', 90)
+                        area = element.get('glass_area', 1.5)  # Use actual BIM glass area
+                        orientation = element.get('orientation', 'Unknown')
+                        level = element.get('level', 'Level 1')
+                        width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
+                        height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
                         
-                        # Process all elements but only with authentic calculated data
-                        if sample_count > 0:  # Only require some valid samples, not zero timeout
-                            # Scale to annual totals based on computational method
-                            if analysis_precision == "Hourly":
-                                # Hourly analysis: scale from samples to full year
-                                scaling_factor = 8760 / sample_count
-                            elif analysis_precision == "Daily Peak":
-                                # Daily peak: scale from noon samples to daily totals (assume noon = 15% of daily)
-                                scaling_factor = (8760 / 365) / 0.15 / (sample_count/365)
-                            elif analysis_precision == "Monthly Average":
-                                # Monthly average: scale from 12 average days to full year
-                                scaling_factor = 365 / 12 / (sample_count/12)
-                            else:  # Yearly Average
-                                # Yearly average: scale from single day to full year
-                                scaling_factor = 365 / sample_count
+                        # Progress display
+                        percentage_complete = int(100 * global_i / len(suitable_elements))
+                        element_progress.text(f"Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%)")
+                        progress_bar.progress(percentage_complete)
+                        
+                        # Calculate radiation for this element
+                        try:
+                            annual_irradiance = 0
+                            peak_irradiance = 0
+                            sample_count = 0
+                            monthly_irradiation = {}
                             
-                            annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
+                            for month in range(1, 13):
+                                monthly_total = 0
+                                monthly_samples = 0
+                                
+                                for day in days_sample:
+                                    if day < 28 or (day < 32 and month in [1,3,5,7,8,10,12]) or (day < 31 and month in [4,6,9,11]) or (day < 30 and month == 2):
+                                        for hour in sample_hours:
+                                            # Use pre-computed solar lookup key
+                                            lookup_key = f"{day}_{hour}"
+                                            
+                                            if lookup_key in solar_lookup:
+                                                solar_data = solar_lookup[lookup_key]
+                                                solar_pos = solar_data['solar_position']
+                                                
+                                                # Extract radiation values directly from solar_data
+                                                ghi = solar_data.get('ghi', 0)
+                                                dni = solar_data.get('dni', 0)
+                                                dhi = solar_data.get('dhi', 0)
+                                                
+                                                # Skip if sun below horizon (already filtered in pre-computed table)
+                                                if solar_pos['elevation'] <= 0:
+                                                    continue
+                                                
+                                                # Use cached height calculations
+                                                if level not in level_height_cache:
+                                                    level_height_cache[level] = {
+                                                        'height_from_ground': estimate_height_from_ground(level),
+                                                        'ground_reflectance': {}
+                                                    }
+                                                
+                                                height_from_ground = level_height_cache[level]['height_from_ground']
+                                                
+                                                # Cache ground reflectance by tilt for this level
+                                                if tilt not in level_height_cache[level]['ground_reflectance']:
+                                                    level_height_cache[level]['ground_reflectance'][tilt] = calculate_ground_reflectance_factor(height_from_ground, tilt)
+                                                
+                                                ground_reflectance = level_height_cache[level]['ground_reflectance'][tilt]
+                                                
+                                                # Apply height-dependent GHI adjustments
+                                                ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, ghi)
+                                                adjusted_ghi = ghi_effects['adjusted_ghi']
+                                                
+                                                # Apply height-dependent solar angle adjustments
+                                                adjusted_solar_pos = calculate_height_dependent_solar_angles(solar_pos, height_from_ground)
+                                                
+                                                # Calculate surface irradiance using height-adjusted values
+                                                surface_irradiance = calculate_irradiance_on_surface(
+                                                    adjusted_ghi,
+                                                    dni,
+                                                    dhi,
+                                                    adjusted_solar_pos,
+                                                    tilt,
+                                                    azimuth
+                                                )
+                                                
+                                                # Add ground reflectance contribution
+                                                ground_contribution = adjusted_ghi * ground_reflectance
+                                                surface_irradiance += ground_contribution
+                                                
+                                                # Apply precise shading calculations if walls data available
+                                                if walls_data is not None and include_shading:
+                                                    shading_factor = calculate_combined_shading_factor(element, walls_data, solar_pos)
+                                                    surface_irradiance *= shading_factor
+                                                
+                                                annual_irradiance += surface_irradiance
+                                                monthly_total += surface_irradiance
+                                                peak_irradiance = max(peak_irradiance, surface_irradiance)
+                                                sample_count += 1
+                                                monthly_samples += 1
+                                
+                                # Store monthly average
+                                if monthly_samples > 0:
+                                    monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
                             
-                            # Calculate height-related parameters for reporting
-                            height_from_ground = estimate_height_from_ground(level)
-                            avg_ground_reflectance = calculate_ground_reflectance_factor(height_from_ground, tilt)
-                            
-                            # Calculate average height-dependent effects for this element
-                            sample_ghi = 800  # Typical GHI for height effect calculation
-                            ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, sample_ghi)
-                            sample_solar_pos = {'elevation': 45, 'azimuth': 180}  # Sample solar position
-                            angle_effects = calculate_height_dependent_solar_angles(sample_solar_pos, height_from_ground)
-                            
-                            radiation_results.append({
-                                'element_id': element_id,
-                                'element_type': 'Window',
-                                'orientation': orientation,
-                                'azimuth': azimuth,
-                                'tilt': tilt,
-                                'area': area,
-                                'level': level,
-                                'height_from_ground': height_from_ground,
-                                'ground_reflectance_factor': avg_ground_reflectance,
-                                'ghi_height_factor': ghi_effects['height_factor'],
-                                'atmospheric_clarity_factor': ghi_effects['atmospheric_clarity'],
-                                'horizon_factor': ghi_effects['horizon_factor'],
-                                'horizon_depression_deg': angle_effects['horizon_depression'],
-                                'total_height_enhancement': ghi_effects['height_factor'] + avg_ground_reflectance,
-                                'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
-                                'width': width,
-                                'height': height,
-                                'annual_irradiation': annual_irradiance,
-                                'peak_irradiance': peak_irradiance,
-                                'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
-                                'monthly_irradiation': monthly_irradiation,
-                                'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
-                                'annual_energy_potential': annual_irradiance * area,  # kWh per element
-                                'timeout_occurred': timeout_occurred,
-                                'sample_count': sample_count
-                            })
-                        # else: Continue processing silently if no valid samples
-                
-                    except Exception as e:
-                        # Continue processing silently - no fallback values added
-                        pass  # Continue to next element - no data added for failed element
+                            # Process all elements but only with authentic calculated data
+                            if sample_count > 0:  # Only require some valid samples, not zero timeout
+                                # Scale to annual totals based on computational method
+                                if analysis_precision == "Hourly":
+                                    # Hourly analysis: scale from samples to full year
+                                    scaling_factor = 8760 / sample_count
+                                elif analysis_precision == "Daily Peak":
+                                    # Daily peak: scale from noon samples to daily totals (assume noon = 15% of daily)
+                                    scaling_factor = (8760 / 365) / 0.15 / (sample_count/365)
+                                elif analysis_precision == "Monthly Average":
+                                    # Monthly average: scale from 12 average days to full year
+                                    scaling_factor = 365 / 12 / (sample_count/12)
+                                else:  # Yearly Average
+                                    # Yearly average: scale from single day to full year
+                                    scaling_factor = 365 / sample_count
+                                
+                                annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
+                                
+                                # Calculate height-related parameters for reporting
+                                height_from_ground = estimate_height_from_ground(level)
+                                avg_ground_reflectance = calculate_ground_reflectance_factor(height_from_ground, tilt)
+                                
+                                # Calculate average height-dependent effects for this element
+                                sample_ghi = 800  # Typical GHI for height effect calculation
+                                ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, sample_ghi)
+                                sample_solar_pos = {'elevation': 45, 'azimuth': 180}  # Sample solar position
+                                angle_effects = calculate_height_dependent_solar_angles(sample_solar_pos, height_from_ground)
+                                
+                                radiation_results.append({
+                                    'element_id': element_id,
+                                    'element_type': 'Window',
+                                    'orientation': orientation,
+                                    'azimuth': azimuth,
+                                    'tilt': tilt,
+                                    'area': area,
+                                    'level': level,
+                                    'height_from_ground': height_from_ground,
+                                    'ground_reflectance_factor': avg_ground_reflectance,
+                                    'ghi_height_factor': ghi_effects['height_factor'],
+                                    'atmospheric_clarity_factor': ghi_effects['atmospheric_clarity'],
+                                    'horizon_factor': ghi_effects['horizon_factor'],
+                                    'horizon_depression_deg': angle_effects['horizon_depression'],
+                                    'total_height_enhancement': ghi_effects['height_factor'] + avg_ground_reflectance,
+                                    'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
+                                    'width': width,
+                                    'height': height,
+                                    'annual_irradiation': annual_irradiance,
+                                    'peak_irradiance': peak_irradiance,
+                                    'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
+                                    'monthly_irradiation': monthly_irradiation,
+                                    'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
+                                    'annual_energy_potential': annual_irradiance * area,  # kWh per element
+                                    'sample_count': sample_count
+                                })
+                            # else: Continue processing silently if no valid samples
+                        
+                        except Exception as e:
+                            # Continue processing silently - no fallback values added
+                            pass  # Continue to next element - no data added for failed element
                         
 
                 
@@ -1644,10 +1701,15 @@ def render_radiation_grid():
             else:
                 st.info("Analysis results saved to session only (no project ID available)")
             
-            # Complete progress
+            # Complete progress and reset control states
             progress_bar.progress(100)
             status_text.text("Analysis completed successfully!")
             element_progress.text(f"Processed all {total_elements} elements")
+            
+            # Reset control states after successful completion
+            st.session_state.radiation_control_state = 'completed'
+            st.session_state.radiation_partial_results = []
+            st.session_state.radiation_start_index = 0
             
             st.success("✅ Radiation analysis completed successfully!")
             
