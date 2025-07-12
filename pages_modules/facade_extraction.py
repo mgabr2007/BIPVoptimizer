@@ -141,8 +141,13 @@ def render_facade_extraction():
                         st.warning("No processed data found. Please re-upload the CSV file.")
                         return
                 else:
-                    # Process building elements
+                    # Process building elements with progress tracking
                     total_rows = len(data)
+                    
+                    # Create progress indicators
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    element_progress = st.empty()
                 
                     def get_orientation_from_azimuth(azimuth):
                         azimuth = float(azimuth) % 360
@@ -156,8 +161,13 @@ def render_facade_extraction():
                             return "West (225-315°)"
                         return "Unknown"
                 
-                    # Process elements without frequent progress updates
+                    # Process elements with progress tracking
                     for i, row in enumerate(data):
+                        # Update progress indicators
+                        percentage_complete = int(100 * i / total_rows)
+                        progress_bar.progress(percentage_complete)
+                        status_text.text(f"Processing element {i+1} of {total_rows} ({percentage_complete}%)")
+                        
                         if len(row) >= len(headers):
                             try:
                                 element_data = dict(zip(headers, row))
@@ -169,6 +179,9 @@ def render_facade_extraction():
                                 level = element_data.get('Level', '').strip()
                                 azimuth = float(element_data.get('Azimuth (°)', 0))
                                 glass_area = float(element_data.get('Glass Area (m²)', 0))
+                                
+                                # Show current element being processed
+                                element_progress.text(f"Element ID: {element_id} | Category: {category} | Level: {level}")
                             
                                 # Extract window dimensions if available
                                 window_width = element_data.get('Width (m)', element_data.get('Window Width', element_data.get('width', None)))
@@ -245,6 +258,18 @@ def render_facade_extraction():
                                 })
                             except (ValueError, TypeError):
                                 continue
+                    
+                    # Complete progress tracking
+                    progress_bar.progress(100)
+                    status_text.text(f"Processing complete - {len(windows)} elements processed")
+                    element_progress.text("✅ CSV processing completed successfully")
+                    
+                    # Clear progress indicators after a brief pause
+                    import time
+                    time.sleep(1)
+                    progress_bar.empty()
+                    status_text.empty()
+                    element_progress.empty()
             
                     # Store processed data
                     facade_data = {
