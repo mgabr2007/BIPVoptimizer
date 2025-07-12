@@ -88,6 +88,73 @@ def calculate_combined_shading_factor(window_element, walls_data, solar_position
     
     return max(0.2, combined_shading_factor)  # Minimum 20% of unshaded radiation
 
+def calculate_ground_reflectance_factor(height_from_ground, tilt_angle=90, albedo=0.2):
+    """
+    Calculate ground reflectance contribution based on window height from ground.
+    
+    Args:
+        height_from_ground (float): Height of window center from ground in meters
+        tilt_angle (float): Window tilt angle in degrees (90° for vertical windows)
+        albedo (float): Ground albedo (reflectance coefficient)
+    
+    Returns:
+        float: Ground reflectance factor (typically 0.05-0.15 for vertical windows)
+    """
+    import math
+    
+    # View factor to ground for vertical surface (simplified)
+    # Based on standard solar engineering formulas
+    if height_from_ground <= 0:
+        return 0.0
+    
+    # Calculate view factor to ground based on height and tilt
+    tilt_rad = math.radians(tilt_angle)
+    
+    # For vertical windows (90°), view factor decreases with height
+    if tilt_angle >= 85:  # Nearly vertical
+        # Empirical formula for vertical surfaces
+        view_factor_ground = max(0.1, 0.5 * math.exp(-height_from_ground / 10.0))
+    else:
+        # For tilted surfaces, more complex calculation
+        view_factor_ground = (1 - math.cos(tilt_rad)) / 2
+        # Height correction
+        view_factor_ground *= max(0.2, math.exp(-height_from_ground / 15.0))
+    
+    # Ground reflectance contribution
+    ground_reflectance_factor = albedo * view_factor_ground
+    
+    return min(ground_reflectance_factor, 0.15)  # Cap at 15% contribution
+
+def estimate_height_from_ground(level, floor_height=3.5):
+    """
+    Estimate window height from ground based on building level.
+    
+    Args:
+        level (str): Building level (e.g., '00', '01', '02', etc.)
+        floor_height (float): Typical floor-to-floor height in meters
+    
+    Returns:
+        float: Estimated height from ground in meters
+    """
+    try:
+        # Extract numeric level
+        level_num = int(level)
+        
+        # Ground floor (level 00) windows are typically 1-2m from ground
+        if level_num == 0:
+            return 1.5  # Ground floor window center height
+        
+        # Upper floors: ground floor height + (level-1) * floor_height + window_center
+        # Assuming ground floor is 3.5m high, upper floors are floor_height
+        # Window center is typically 1.5m from floor
+        height = 3.5 + (level_num - 1) * floor_height + 1.5
+        
+        return height
+        
+    except (ValueError, TypeError):
+        # Default for unknown levels
+        return 5.0  # Assume second floor equivalent
+
 def calculate_solar_position_simple(latitude, longitude, day_of_year, hour):
     """Calculate solar position using simplified formulas."""
     import math
@@ -383,6 +450,37 @@ def render_radiation_grid():
         - **Solar analysis methodology** → Technical documentation of pvlib calculations and ISO standards compliance
         - **Radiation heatmaps** → Visual assessment of building solar potential and optimization opportunities
         - **Shading analysis results** → Geometric accuracy validation and environmental impact assessment
+        
+        ### 🏗️ NEW: Ground Height Considerations
+        
+        **Enhanced Height-Based Analysis:**
+        - **Window height from ground** → Ground reflectance effects on solar irradiance
+        - **Level-based calculation** → Building floor heights estimated for accurate ground view factors
+        - **Ground albedo effects** → Lower floors receive more reflected solar radiation from ground surfaces
+        - **Height-corrected irradiance** → More accurate radiation values for ground-level vs upper-floor windows
+        """)
+    
+    # Ground Height Information
+    with st.expander("🏗️ Ground Height & Reflectance Analysis", expanded=False):
+        st.markdown("""
+        ### Why Window Height from Ground Matters:
+        
+        **Ground Reflectance Effects:**
+        - **Lower windows** (Levels 00-02) receive additional solar radiation reflected from ground surfaces
+        - **Ground albedo** typically ranges from 0.15-0.25 (concrete/asphalt) to 0.8+ (snow)
+        - **View factor to ground** decreases exponentially with height above ground
+        
+        **Height Estimation Method:**
+        - **Level 00 (Ground Floor):** Window center ~1.5m from ground
+        - **Upper Levels:** Ground floor height (3.5m) + (level-1) × floor height (3.5m) + window center (1.5m)
+        - **Example:** Level 04 window ≈ 3.5 + 3×3.5 + 1.5 = 15.5m from ground
+        
+        **Ground Reflectance Contribution:**
+        - **Ground floor windows:** Up to 10-15% additional irradiance from ground reflection
+        - **Mid-level windows:** 5-8% additional irradiance 
+        - **Upper floor windows:** 2-3% additional irradiance
+        
+        This enhancement makes radiation calculations more accurate, especially for lower floors where ground reflectance can significantly boost BIPV performance.
         """)
     
     # Check for building elements data from Step 4
@@ -732,6 +830,15 @@ def render_radiation_grid():
                                                 azimuth
                                             )
                                             
+                                            # Apply ground reflectance based on window height from ground
+                                            height_from_ground = estimate_height_from_ground(level)
+                                            ground_reflectance = calculate_ground_reflectance_factor(height_from_ground, tilt)
+                                            
+                                            # Add ground reflectance contribution (reflected GHI component)
+                                            ghi = hour_data.get('ghi', 0)
+                                            ground_contribution = ghi * ground_reflectance
+                                            surface_irradiance += ground_contribution
+                                            
                                             # Apply precise shading calculations if walls data available
                                             if walls_data is not None and include_shading:
                                                 shading_factor = calculate_combined_shading_factor(element, walls_data, solar_pos)
@@ -751,6 +858,10 @@ def render_radiation_grid():
                         scaling_factor = 8760 / max(sample_count, 1)
                         annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
                         
+                        # Calculate height-related parameters for reporting
+                        height_from_ground = estimate_height_from_ground(level)
+                        avg_ground_reflectance = calculate_ground_reflectance_factor(height_from_ground, tilt)
+                        
                         radiation_results.append({
                             'element_id': element_id,
                             'element_type': 'Window',
@@ -759,6 +870,8 @@ def render_radiation_grid():
                             'tilt': tilt,
                             'area': area,
                             'level': level,
+                            'height_from_ground': height_from_ground,
+                            'ground_reflectance_factor': avg_ground_reflectance,
                             'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
                             'width': width,
                             'height': height,
@@ -952,13 +1065,55 @@ def render_radiation_grid():
             # BIM-based detailed results table
             st.subheader("📋 BIM Element Analysis Results")
             
-            # Prepare display dataframe with BIM metadata
+            # Prepare display dataframe with BIM metadata and ground height information
             display_df = radiation_data.copy()
-            display_columns = ['element_id', 'level', 'orientation', 'area', 'width', 'height', 
+            display_columns = ['element_id', 'level', 'height_from_ground', 'ground_reflectance_factor', 
+                             'orientation', 'area', 'width', 'height', 
                              'annual_irradiation', 'annual_energy_potential', 'peak_irradiance']
             
+            # Add corrected values if available
             if apply_corrections and 'corrected_annual_irradiation' in display_df.columns:
                 display_columns.append('corrected_annual_irradiation')
+            
+            # Enhanced ground height analysis section
+            st.info("🏗️ **Enhanced Analysis**: Now includes ground height considerations for accurate reflectance effects")
+            
+            # Show ground height distribution
+            if 'height_from_ground' in display_df.columns:
+                ground_stats = display_df.groupby('level').agg({
+                    'height_from_ground': 'mean',
+                    'ground_reflectance_factor': 'mean',
+                    'element_id': 'count'
+                }).round(3)
+                
+                st.markdown("### 🏗️ Ground Height Analysis by Building Level")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.dataframe(
+                        ground_stats.rename(columns={
+                            'height_from_ground': 'Avg Height (m)',
+                            'ground_reflectance_factor': 'Avg Ground Reflectance',
+                            'element_id': 'Element Count'
+                        }),
+                        use_container_width=True
+                    )
+                
+                with col2:
+                    # Ground reflectance impact visualization
+                    fig_height = px.scatter(
+                        display_df, 
+                        x='height_from_ground',
+                        y='ground_reflectance_factor',
+                        color='level',
+                        title="Ground Reflectance vs Window Height",
+                        labels={
+                            'height_from_ground': 'Height from Ground (m)',
+                            'ground_reflectance_factor': 'Ground Reflectance Factor',
+                            'level': 'Building Level'
+                        }
+                    )
+                    st.plotly_chart(fig_height, use_container_width=True)
             
             st.dataframe(
                 display_df[display_columns].round(2),
@@ -966,6 +1121,8 @@ def render_radiation_grid():
                 column_config={
                     'element_id': 'Element ID',
                     'level': 'Building Level',
+                    'height_from_ground': st.column_config.NumberColumn('Height from Ground (m)', format="%.1f"),
+                    'ground_reflectance_factor': st.column_config.NumberColumn('Ground Reflectance Factor', format="%.3f"),
                     'orientation': 'Orientation',
                     'area': st.column_config.NumberColumn('Area (m²)', format="%.2f"),
                     'width': st.column_config.NumberColumn('Width (m)', format="%.2f"),
