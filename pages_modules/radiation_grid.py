@@ -148,30 +148,37 @@ def precompute_solar_tables(tmy_df, latitude, longitude, sample_hours, days_samp
             if day_of_year <= len(tmy_df):
                 tmy_index = min((day_of_year - 1) * 24 + hour, len(tmy_df) - 1)
                 hour_data = tmy_df.iloc[tmy_index].to_dict() if hasattr(tmy_df, 'iloc') else tmy_df[tmy_index]
+                
+                # Ensure radiation data exists - check for actual TMY columns
+                if not any(col in hour_data for col in ['ghi', 'GHI', 'dni', 'DNI', 'dhi', 'DHI']):
+                    # No authentic radiation data available - return None to indicate missing data
+                    hour_data = None
             else:
-                # Fallback data
-                hour_data = {'ghi': 500, 'dni': 600, 'dhi': 200, 'solar_elevation': 30, 'solar_azimuth': 180}
+                # Day outside TMY range - no authentic data available
+                hour_data = None
             
-            # Calculate or extract solar position
-            if 'solar_elevation' in hour_data and hour_data['solar_elevation'] > 0:
-                solar_pos = {
-                    'elevation': hour_data['solar_elevation'],
-                    'azimuth': hour_data['solar_azimuth'],
-                    'zenith': 90 - hour_data['solar_elevation']
-                }
-            else:
-                # Calculate solar position
-                solar_pos = calculate_solar_position_simple(latitude, longitude, day_of_year, hour)
-            
-            # Skip nighttime calculations
-            if solar_pos['elevation'] > 0:
-                lookup_key = f"{day}_{hour}"
-                solar_lookup[lookup_key] = {
-                    'solar_pos': solar_pos,
-                    'hour_data': hour_data,
-                    'day_of_year': day_of_year,
-                    'month': month
-                }
+            # Only proceed if we have authentic TMY data with radiation values
+            if hour_data is not None:
+                # Calculate or extract solar position
+                if 'solar_elevation' in hour_data and hour_data['solar_elevation'] > 0:
+                    solar_pos = {
+                        'elevation': hour_data['solar_elevation'],
+                        'azimuth': hour_data['solar_azimuth'],
+                        'zenith': 90 - hour_data['solar_elevation']
+                    }
+                else:
+                    # Calculate solar position
+                    solar_pos = calculate_solar_position_simple(latitude, longitude, day_of_year, hour)
+                
+                # Skip nighttime calculations
+                if solar_pos['elevation'] > 0:
+                    lookup_key = f"{day}_{hour}"
+                    solar_lookup[lookup_key] = {
+                        'solar_pos': solar_pos,
+                        'hour_data': hour_data,
+                        'day_of_year': day_of_year,
+                        'month': month
+                    }
     
     return solar_lookup
 
@@ -1186,6 +1193,22 @@ def render_radiation_grid():
                 tmy_df = pd.DataFrame(tmy_data)
             else:
                 tmy_df = tmy_data.copy()
+                
+            # Debug TMY data structure
+            st.info(f"📊 TMY Data Info: {len(tmy_df)} records, Columns: {list(tmy_df.columns)}")
+            
+            # Check for required radiation columns
+            required_cols = ['ghi', 'dni', 'dhi']
+            missing_cols = [col for col in required_cols if col not in tmy_df.columns and col.upper() not in tmy_df.columns]
+            
+            if missing_cols:
+                st.warning(f"⚠️ Missing radiation columns in TMY data: {missing_cols}")
+                # Show sample of available data
+                if len(tmy_df) > 0:
+                    st.write("Sample TMY data:")
+                    st.dataframe(tmy_df.head(3))
+            else:
+                st.success("✅ TMY data contains required radiation values (GHI, DNI, DHI)")
             
             # Ensure datetime column exists
             if 'datetime' not in tmy_df.columns:
@@ -1246,7 +1269,14 @@ def render_radiation_grid():
             progress_bar.progress(10)
             
             solar_lookup = precompute_solar_tables(tmy_df, latitude, longitude, sample_hours, days_sample)
-            st.info(f"✅ Pre-computed {len(solar_lookup)} solar position calculations (reduced from {len(suitable_elements) * len(sample_hours) * len(days_sample):,} individual calculations)")
+            
+            if len(solar_lookup) == 0:
+                st.error("⚠️ No radiation data calculated from authentic TMY sources.")
+                st.error("TMY data is missing required solar irradiance columns (GHI, DNI, DHI) for authentic calculations.")
+                st.error("Please ensure Step 3 (Weather & Environment) TMY generation completed successfully with solar irradiance data.")
+                return
+            
+            st.info(f"✅ Pre-computed {len(solar_lookup)} solar position calculations with authentic TMY radiation data")
             
             # 2. GEOMETRIC OPTIMIZATIONS  
             status_text.text("🔧 Applying Geometric Optimizations: Clustering elements...")
