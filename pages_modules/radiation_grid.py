@@ -795,6 +795,10 @@ def render_radiation_grid():
             status_text.text("Initializing radiation analysis...")
             progress_bar.progress(5)
             
+            # DEPLOYMENT OPTIMIZATION: Detect deployment environment and apply optimizations
+            import os
+            is_deployment = os.environ.get('REPLIT_DEPLOYMENT') == 'true' or os.environ.get('REPLIT_ENVIRONMENT') == 'production'
+            
             # Ensure walls_data is accessible to radiation calculations
             # (walls_data is defined in the shading configuration section above)
             
@@ -863,10 +867,6 @@ def render_radiation_grid():
             
             # Dynamic batch processing based on element count and precision
             total_elements_count = len(suitable_elements)
-            
-            # DEPLOYMENT OPTIMIZATION: Detect deployment environment and apply ultra-aggressive optimization
-            import os
-            is_deployment = os.environ.get('REPLIT_DEPLOYMENT') == 'true' or os.environ.get('REPLIT_ENVIRONMENT') == 'production'
             
             if is_deployment:
                 # Ultra-aggressive optimization for deployment
