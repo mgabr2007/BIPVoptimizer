@@ -274,12 +274,10 @@ def render_facade_extraction():
                     # Complete progress tracking with immediate results transition
                     progress_bar.progress(100)
                     progress_percentage.markdown("**100%**")
-                    status_text.text(f"Processing complete - {len(windows)} elements processed")
-                    element_progress.markdown("✅ **Preparing results display...**")
+                    status_text.text(f"✅ Processing complete - {len(windows)} elements processed")
+                    element_progress.markdown("**Ready for display**")
                     
-                    # Quick completion display then clear
-                    import time
-                    time.sleep(0.5)
+                    # Immediate completion and cleanup
                     progress_container.empty()
                     
                     # Store processed data immediately
