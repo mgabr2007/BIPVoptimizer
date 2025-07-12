@@ -378,7 +378,6 @@ def render_perplexity_consultation():
     
     # Initialize agent with API key from environment
     import os
-    import streamlit as st
     
     # Get API key from environment (Replit secrets or Streamlit secrets)
     api_key = None
@@ -445,7 +444,7 @@ def render_perplexity_consultation():
             low_performance = []
             
             # Check AI model performance
-            r_squared = project_data.get('historical_data', {}).get('r_squared', 0)
+            r_squared = comprehensive_project_data.get('historical_data', {}).get('r_squared', 0)
             if r_squared < 0.85:
                 low_performance.append(f"AI model R² score: {r_squared:.3f} (needs improvement)")
             
@@ -479,6 +478,7 @@ def render_perplexity_consultation():
         st.markdown(st.session_state.perplexity_analysis)
         
         # Download option
+        project_name = comprehensive_project_data.get('project_name', 'Current_Project')
         st.download_button(
             label="📄 Download Analysis Report",
             data=st.session_state.perplexity_analysis,
@@ -491,6 +491,7 @@ def render_perplexity_consultation():
         st.markdown(st.session_state.perplexity_recommendations)
         
         # Download option
+        project_name = comprehensive_project_data.get('project_name', 'Current_Project')
         st.download_button(
             label="📄 Download Recommendations",
             data=st.session_state.perplexity_recommendations,
