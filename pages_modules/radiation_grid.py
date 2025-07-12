@@ -235,6 +235,126 @@ def calculate_solar_position_simple(latitude, longitude, day_of_year, hour):
         'zenith': 90 - max(0, elevation)
     }
 
+def estimate_height_from_ground(level):
+    """
+    Estimate height from ground based on building level.
+    Standard floor heights for educational buildings.
+    """
+    if isinstance(level, str):
+        # Extract level number from string
+        import re
+        level_match = re.search(r'(\d+)', level)
+        if level_match:
+            level_num = int(level_match.group(1))
+        else:
+            level_num = 1  # Default to ground level
+    else:
+        level_num = int(level) if level else 1
+    
+    # Educational building standard: 3.5m per floor
+    # Ground floor: 1.75m (half height from ground to window center)
+    # Upper floors: 3.5m * (level - 1) + 1.75m
+    if level_num <= 1:
+        return 1.75  # Ground floor window center height
+    else:
+        return 3.5 * (level_num - 1) + 1.75
+
+def calculate_height_dependent_solar_angles(solar_position, height_from_ground):
+    """
+    Calculate height-dependent adjustments to solar angles.
+    Higher windows have slightly different effective solar angles due to atmospheric effects.
+    """
+    base_elevation = solar_position.get('elevation', 0)
+    base_azimuth = solar_position.get('azimuth', 180)
+    
+    # Horizon depression correction for height
+    # Higher elevations see more sky, effectively lowering the horizon
+    horizon_depression = height_from_ground * 0.01  # ~0.6° per 100m height
+    
+    # Atmospheric refraction effects (minimal at building heights)
+    refraction_correction = height_from_ground * 0.001  # Very small effect
+    
+    # Adjusted solar position
+    adjusted_elevation = base_elevation + horizon_depression + refraction_correction
+    
+    return {
+        'elevation': min(90, max(0, adjusted_elevation)),
+        'azimuth': base_azimuth,
+        'zenith': 90 - min(90, max(0, adjusted_elevation)),
+        'horizon_depression': horizon_depression,
+        'refraction_correction': refraction_correction
+    }
+
+def calculate_irradiance_on_surface(ghi, dni, dhi, solar_position, surface_tilt, surface_azimuth):
+    """
+    Calculate total irradiance on a tilted surface using standard solar radiation models.
+    
+    Args:
+        ghi: Global Horizontal Irradiance (W/m²)
+        dni: Direct Normal Irradiance (W/m²)
+        dhi: Diffuse Horizontal Irradiance (W/m²)
+        solar_position: dict with 'elevation' and 'azimuth' in degrees
+        surface_tilt: Surface tilt angle from horizontal (90° for vertical)
+        surface_azimuth: Surface azimuth angle (degrees from north clockwise)
+    
+    Returns:
+        float: Total irradiance on surface (W/m²)
+    """
+    import math
+    
+    # Solar angles
+    solar_elevation = solar_position.get('elevation', 0)
+    solar_azimuth = solar_position.get('azimuth', 180)
+    
+    # Skip calculations if sun below horizon
+    if solar_elevation <= 0:
+        return 0.0
+    
+    # Convert angles to radians
+    sun_elev_rad = math.radians(solar_elevation)
+    sun_azim_rad = math.radians(solar_azimuth)
+    surf_tilt_rad = math.radians(surface_tilt)
+    surf_azim_rad = math.radians(surface_azimuth)
+    
+    # Solar zenith angle
+    solar_zenith_rad = math.radians(90 - solar_elevation)
+    
+    # Incidence angle calculation using standard solar geometry
+    cos_incidence = (
+        math.sin(sun_elev_rad) * math.cos(surf_tilt_rad) +
+        math.cos(sun_elev_rad) * math.sin(surf_tilt_rad) *
+        math.cos(sun_azim_rad - surf_azim_rad)
+    )
+    
+    # Ensure incidence angle is valid
+    cos_incidence = max(0, min(1, cos_incidence))
+    
+    # Direct component on tilted surface
+    if dni > 0 and cos_incidence > 0:
+        direct_component = dni * cos_incidence
+    else:
+        direct_component = 0
+    
+    # Diffuse component (isotropic sky model)
+    # For vertical surfaces, view factor to sky is approximately 0.5
+    if surface_tilt >= 85:  # Nearly vertical
+        diffuse_component = dhi * 0.5
+    else:
+        # General case: view factor depends on tilt angle
+        diffuse_component = dhi * (1 + math.cos(surf_tilt_rad)) / 2
+    
+    # Ground reflected component (minimal for vertical surfaces)
+    ground_albedo = 0.2  # Typical ground reflectance
+    if surface_tilt >= 85:  # Nearly vertical
+        ground_component = ghi * ground_albedo * 0.1  # Small contribution
+    else:
+        ground_component = ghi * ground_albedo * (1 - math.cos(surf_tilt_rad)) / 2
+    
+    # Total irradiance
+    total_irradiance = direct_component + diffuse_component + ground_component
+    
+    return max(0, total_irradiance)
+
 def group_elements_by_level(elements):
     """
     Group elements by building level for optimized height calculations.
