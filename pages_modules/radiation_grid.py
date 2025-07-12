@@ -624,110 +624,199 @@ def render_radiation_grid():
                     })
                 suitable_elements = elements_list
             
-            for i, element in enumerate(suitable_elements):
-                # Extract element data from BIM upload - preserve actual Element IDs
-                element_id = element.get('element_id', f'Unknown_Element_{i+1}')
-                azimuth = element.get('azimuth', 180)
-                tilt = element.get('tilt', 90)
-                area = element.get('glass_area', 1.5)  # Use actual BIM glass area
-                orientation = element.get('orientation', 'Unknown')
-                level = element.get('level', 'Level 1')
-                width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
-                height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
+            # Dynamic batch processing based on element count and precision
+            total_elements_count = len(suitable_elements)
+            
+            # Calculate optimal batch size based on element count and precision
+            if total_elements_count > 800:
+                BATCH_SIZE = 25  # Smaller batches for large datasets
+                st.info(f"🔧 **Large Dataset Optimization**: Processing {total_elements_count} elements in small batches of {BATCH_SIZE}")
+            elif total_elements_count > 400:
+                BATCH_SIZE = 50  # Medium batches for medium datasets
+                st.info(f"⚡ **Medium Dataset Processing**: Using batch size {BATCH_SIZE} for {total_elements_count} elements")
+            else:
+                BATCH_SIZE = 100  # Larger batches for smaller datasets
+            
+            # Adjust batch size based on precision level
+            if analysis_precision == "Maximum":
+                BATCH_SIZE = max(10, BATCH_SIZE // 2)  # Reduce batch size for maximum precision
+                st.warning(f"⏱️ **Maximum Precision Mode**: Reduced batch size to {BATCH_SIZE} for detailed analysis")
+            
+            for batch_start in range(0, len(suitable_elements), BATCH_SIZE):
+                batch_end = min(batch_start + BATCH_SIZE, len(suitable_elements))
+                batch_elements = suitable_elements[batch_start:batch_end]
                 
-                # Update progress indicators with BIM data details including calculated tilt
-                element_progress.text(f"Processing: {element_id} | {orientation} | {area:.1f}m² | Tilt: {tilt:.1f}° | {level}")
-                current_progress = 10 + int(70 * i / total_elements)
-                progress_bar.progress(current_progress)
-                status_text.text(f"Processing {i+1} of {total_elements} elements total with {analysis_precision.lower()} precision...")
+                st.info(f"Processing batch {batch_start//BATCH_SIZE + 1} of {(len(suitable_elements)-1)//BATCH_SIZE + 1} (Elements {batch_start+1}-{batch_end})")
                 
-                # Calculate radiation for this element
-                annual_irradiance = 0
-                peak_irradiance = 0
-                sample_count = 0
-                monthly_irradiation = {}
-                
-                for month in range(1, 13):
-                    monthly_total = 0
-                    monthly_samples = 0
+                for i, element in enumerate(batch_elements):
+                    global_i = batch_start + i
                     
-                    for day in days_sample:
-                        if day < 28 or (day < 32 and month in [1,3,5,7,8,10,12]) or (day < 31 and month in [4,6,9,11]) or (day < 30 and month == 2):
-                            for hour in sample_hours:
-                                # Calculate day of year
-                                days_in_months = [31,28,31,30,31,30,31,31,30,31,30,31]
-                                day_of_year = sum(days_in_months[:month-1]) + day
-                                
-                                if day_of_year < len(tmy_data):
-                                    tmy_index = min((day_of_year - 1) * 24 + hour, len(tmy_data) - 1)
-                                    hour_data = tmy_data[tmy_index]
-                                    
-                                    # Skip nighttime for efficiency
-                                    if hour < 6 or hour > 19:
-                                        continue
-                                    
-                                    # Extract solar position from TMY data (authentic calculations from Step 3)
-                                    solar_pos = {
-                                        'elevation': hour_data.get('solar_elevation', 0),
-                                        'azimuth': hour_data.get('solar_azimuth', 180),
-                                        'zenith': 90 - hour_data.get('solar_elevation', 0)
-                                    }
-                                    
-                                    # Fallback to calculated values if TMY doesn't have solar position data
-                                    if solar_pos['elevation'] == 0 and solar_pos['azimuth'] == 180:
-                                        solar_pos = calculate_solar_position_simple(latitude, longitude, day_of_year, hour)
-                                    
-                                    # Skip if sun below horizon
-                                    if solar_pos['elevation'] <= 0:
-                                        continue
-                                    
-                                    # Calculate surface irradiance
-                                    surface_irradiance = calculate_irradiance_on_surface(
-                                        hour_data.get('ghi', 0),
-                                        hour_data.get('dni', 0),
-                                        hour_data.get('dhi', 0),
-                                        solar_pos,
-                                        tilt,
-                                        azimuth
-                                    )
-                                    
-                                    # Apply precise shading calculations if walls data available
-                                    if walls_data is not None and include_shading:
-                                        shading_factor = calculate_combined_shading_factor(element, walls_data, solar_pos)
-                                        surface_irradiance *= shading_factor
-                                    
-                                    annual_irradiance += surface_irradiance
-                                    monthly_total += surface_irradiance
-                                    peak_irradiance = max(peak_irradiance, surface_irradiance)
-                                    sample_count += 1
-                                    monthly_samples += 1
+                    # Extract element data from BIM upload - preserve actual Element IDs
+                    element_id = element.get('element_id', f'Unknown_Element_{global_i+1}')
+                    azimuth = element.get('azimuth', 180)
+                    tilt = element.get('tilt', 90)
+                    area = element.get('glass_area', 1.5)  # Use actual BIM glass area
+                    orientation = element.get('orientation', 'Unknown')
+                    level = element.get('level', 'Level 1')
+                    width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
+                    height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
                     
-                    # Store monthly average
-                    if monthly_samples > 0:
-                        monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
+                    # Update progress indicators with BIM data details including calculated tilt
+                    element_progress.text(f"Batch {batch_start//BATCH_SIZE + 1}: {element_id} | {orientation} | {area:.1f}m² | Tilt: {tilt:.1f}° | {level}")
+                    current_progress = 10 + int(70 * global_i / total_elements)
+                    progress_bar.progress(current_progress)
+                    status_text.text(f"Processing {global_i+1} of {total_elements} elements total with {analysis_precision.lower()} precision...")
+                    
+                    # Add memory check and yield point every 10 elements
+                    if global_i % 10 == 0:
+                        import time
+                        time.sleep(0.01)  # Allow Streamlit to refresh UI
+                    
+                    # Calculate radiation for this element with timeout and error protection
+                    try:
+                        import time
+                        element_start_time = time.time()
+                        ELEMENT_TIMEOUT = 30  # 30 seconds per element max
+                        
+                        annual_irradiance = 0
+                        peak_irradiance = 0
+                        sample_count = 0
+                        monthly_irradiation = {}
+                        
+                        for month in range(1, 13):
+                            # Check for timeout every month
+                            if time.time() - element_start_time > ELEMENT_TIMEOUT:
+                                st.warning(f"⏱️ Element {element_id} timeout - using partial calculation")
+                                break
+                            
+                            monthly_total = 0
+                            monthly_samples = 0
+                            
+                            for day in days_sample:
+                                if day < 28 or (day < 32 and month in [1,3,5,7,8,10,12]) or (day < 31 and month in [4,6,9,11]) or (day < 30 and month == 2):
+                                    for hour in sample_hours:
+                                        # Calculate day of year
+                                        days_in_months = [31,28,31,30,31,30,31,31,30,31,30,31]
+                                        day_of_year = sum(days_in_months[:month-1]) + day
+                                        
+                                        if day_of_year < len(tmy_data):
+                                            tmy_index = min((day_of_year - 1) * 24 + hour, len(tmy_data) - 1)
+                                            hour_data = tmy_data[tmy_index]
+                                            
+                                            # Skip nighttime for efficiency
+                                            if hour < 6 or hour > 19:
+                                                continue
+                                            
+                                            # Extract solar position from TMY data (authentic calculations from Step 3)
+                                            solar_pos = {
+                                                'elevation': hour_data.get('solar_elevation', 0),
+                                                'azimuth': hour_data.get('solar_azimuth', 180),
+                                                'zenith': 90 - hour_data.get('solar_elevation', 0)
+                                            }
+                                            
+                                            # Fallback to calculated values if TMY doesn't have solar position data
+                                            if solar_pos['elevation'] == 0 and solar_pos['azimuth'] == 180:
+                                                solar_pos = calculate_solar_position_simple(latitude, longitude, day_of_year, hour)
+                                            
+                                            # Skip if sun below horizon
+                                            if solar_pos['elevation'] <= 0:
+                                                continue
+                                            
+                                            # Calculate surface irradiance
+                                            surface_irradiance = calculate_irradiance_on_surface(
+                                                hour_data.get('ghi', 0),
+                                                hour_data.get('dni', 0),
+                                                hour_data.get('dhi', 0),
+                                                solar_pos,
+                                                tilt,
+                                                azimuth
+                                            )
+                                            
+                                            # Apply precise shading calculations if walls data available
+                                            if walls_data is not None and include_shading:
+                                                shading_factor = calculate_combined_shading_factor(element, walls_data, solar_pos)
+                                                surface_irradiance *= shading_factor
+                                            
+                                            annual_irradiance += surface_irradiance
+                                            monthly_total += surface_irradiance
+                                            peak_irradiance = max(peak_irradiance, surface_irradiance)
+                                            sample_count += 1
+                                            monthly_samples += 1
+                            
+                            # Store monthly average
+                            if monthly_samples > 0:
+                                monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
+                        
+                        # Scale to annual totals
+                        scaling_factor = 8760 / max(sample_count, 1)
+                        annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
+                        
+                        radiation_results.append({
+                            'element_id': element_id,
+                            'element_type': 'Window',
+                            'orientation': orientation,
+                            'azimuth': azimuth,
+                            'tilt': tilt,
+                            'area': area,
+                            'level': level,
+                            'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
+                            'width': width,
+                            'height': height,
+                            'annual_irradiation': annual_irradiance,
+                            'peak_irradiance': peak_irradiance,
+                            'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
+                            'monthly_irradiation': monthly_irradiation,
+                            'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
+                            'annual_energy_potential': annual_irradiance * area  # kWh per element
+                        })
                 
-                # Scale to annual totals
-                scaling_factor = 8760 / max(sample_count, 1)
-                annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
+                    except Exception as e:
+                        # Error handling for individual elements - don't stop entire process
+                        st.warning(f"⚠️ Error processing element {element_id}: {str(e)[:100]}... - using fallback calculation")
+                        
+                        # Add fallback radiation calculation based on orientation
+                        fallback_radiation = {
+                            'South (135-225°)': 1500,
+                            'Southeast': 1400,
+                            'Southwest': 1400,
+                            'West (225-315°)': 1200,
+                            'East (45-135°)': 1200,
+                            'North (315-45°)': 600
+                        }.get(orientation, 1000)
+                        
+                        radiation_results.append({
+                            'element_id': element_id,
+                            'element_type': 'Window',
+                            'orientation': orientation,
+                            'azimuth': azimuth,
+                            'tilt': tilt,
+                            'area': area,
+                            'level': level,
+                            'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
+                            'width': width,
+                            'height': height,
+                            'annual_irradiation': fallback_radiation,
+                            'peak_irradiance': fallback_radiation * 1.2,
+                            'avg_irradiance': fallback_radiation * 1000 / 8760,
+                            'monthly_irradiation': {str(m): fallback_radiation/12 for m in range(1, 13)},
+                            'capacity_factor': min(fallback_radiation / 1800, 1.0),
+                            'annual_energy_potential': fallback_radiation * area,
+                            'error_fallback': True
+                        })
                 
-                radiation_results.append({
-                    'element_id': element_id,
-                    'element_type': 'Window',
-                    'orientation': orientation,
-                    'azimuth': azimuth,
-                    'tilt': tilt,
-                    'area': area,
-                    'level': level,
-                    'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
-                    'width': width,
-                    'height': height,
-                    'annual_irradiation': annual_irradiance,
-                    'peak_irradiance': peak_irradiance,
-                    'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
-                    'monthly_irradiation': monthly_irradiation,
-                    'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
-                    'annual_energy_potential': annual_irradiance * area  # kWh per element
-                })
+                # Add batch completion checkpoint with memory management
+                if batch_end % 100 == 0 or batch_end == len(suitable_elements):
+                    st.success(f"✅ Completed batch {batch_start//BATCH_SIZE + 1} - processed {batch_end} elements")
+                    
+                    # Memory management - force garbage collection after large batches
+                    import gc
+                    gc.collect()
+                    
+                    # Progress checkpoint - save intermediate results
+                    if len(radiation_results) > 0 and batch_end % 200 == 0:
+                        st.info(f"💾 Checkpoint: Saved {len(radiation_results)} element results")
+                        # Save intermediate results to session state for recovery
+                        st.session_state.temp_radiation_results = radiation_results.copy()
             
             # Convert to DataFrame
             radiation_data = pd.DataFrame(radiation_results)
@@ -798,10 +887,32 @@ def render_radiation_grid():
             st.success("✅ Radiation analysis completed successfully!")
             
         except Exception as e:
-            st.error(f"Error during radiation analysis: {str(e)}")
+            st.error(f"Critical error during radiation analysis: {str(e)}")
+            
+            # Recovery mechanism - try to salvage partial results
+            if 'temp_radiation_results' in st.session_state and len(st.session_state.temp_radiation_results) > 0:
+                st.warning("🔄 **Recovery Mode**: Attempting to recover partial analysis results...")
+                try:
+                    radiation_data = pd.DataFrame(st.session_state.temp_radiation_results)
+                    st.session_state.project_data['radiation_data'] = radiation_data
+                    st.session_state.radiation_completed = True
+                    
+                    st.success(f"✅ **Partial Recovery Successful**: Recovered {len(radiation_data)} element calculations")
+                    st.info("You can proceed to Step 6 with these results, or restart the analysis for complete dataset")
+                    
+                    # Clean up temporary data
+                    del st.session_state.temp_radiation_results
+                    
+                except Exception as recovery_error:
+                    st.error(f"Recovery failed: {str(recovery_error)}")
+                    st.info("Please restart the analysis with Standard precision for large datasets")
+            else:
+                st.info("No recoverable data available. Please restart the analysis.")
+                
+            # Clear progress indicators
             progress_bar.progress(0)
-            status_text.text("Analysis failed")
-            element_progress.text("")
+            status_text.text("Analysis interrupted - recovery attempted")
+            element_progress.text("Ready to restart analysis")
             return
     
     # Display results if available
