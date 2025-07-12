@@ -1481,9 +1481,9 @@ def render_radiation_grid():
                         width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
                         height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
                         
-                        # Progress display
+                        # Progress display with larger font
                         percentage_complete = int(100 * global_i / len(suitable_elements))
-                        element_progress.text(f"Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id}")
+                        element_progress.markdown(f"<h4 style='color: #0066cc; margin: 0;'>Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id}</h4>", unsafe_allow_html=True)
                         progress_bar.progress(percentage_complete)
                         
                         # Calculate radiation for this element
