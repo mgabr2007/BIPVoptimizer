@@ -1382,6 +1382,12 @@ def render_radiation_grid():
             total_elements = len(suitable_elements)
             start_index = st.session_state.radiation_start_index
             
+            # Check for existing results to prevent duplication
+            processed_element_ids = set()
+            if radiation_results:
+                processed_element_ids = {result.get('element_id', '') for result in radiation_results}
+                st.info(f"📋 **Continuing from previous analysis**: {len(processed_element_ids)} elements already processed")
+            
             # Convert DataFrame to list of dictionaries if needed
             if hasattr(suitable_elements, 'iterrows'):
                 import math
@@ -1462,6 +1468,11 @@ def render_radiation_grid():
                         
                         # Extract element data from BIM upload - preserve actual Element IDs
                         element_id = element.get('element_id', f'Unknown_Element_{global_i+1}')
+                        
+                        # Skip if element already processed (duplication check)
+                        if element_id in processed_element_ids:
+                            continue
+                        
                         azimuth = element.get('azimuth', 180)
                         tilt = element.get('tilt', 90)
                         area = element.get('glass_area', 1.5)  # Use actual BIM glass area
@@ -1472,7 +1483,7 @@ def render_radiation_grid():
                         
                         # Progress display
                         percentage_complete = int(100 * global_i / len(suitable_elements))
-                        element_progress.text(f"Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%)")
+                        element_progress.text(f"Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id}")
                         progress_bar.progress(percentage_complete)
                         
                         # Calculate radiation for this element
@@ -1610,6 +1621,9 @@ def render_radiation_grid():
                                     'annual_energy_potential': annual_irradiance * area,  # kWh per element
                                     'sample_count': sample_count
                                 })
+                                
+                                # Add to processed set to prevent duplication
+                                processed_element_ids.add(element_id)
                             # else: Continue processing silently if no valid samples
                         
                         except Exception as e:
@@ -1623,9 +1637,10 @@ def render_radiation_grid():
                     import gc
                     gc.collect()
                     
-                    # Save intermediate results for recovery
+                    # Save intermediate results for recovery and update session state
                     if len(radiation_results) > 0:
                         st.session_state.temp_radiation_results = radiation_results.copy()
+                        st.session_state.radiation_partial_results = radiation_results.copy()
             
             # Continue processing regardless of result count - show what was calculated
             if len(radiation_results) == 0:
@@ -1643,7 +1658,19 @@ def render_radiation_grid():
             else:
                 # Convert results to DataFrame
                 radiation_data = pd.DataFrame(radiation_results)
-                st.success(f"✅ Processed {len(suitable_elements)} elements - {len(radiation_results)} with valid radiation data")
+                # Mark analysis as completed
+                st.session_state.radiation_control_state = 'completed'
+                
+                # Show completion summary with duplication info
+                total_processed = len(radiation_results)
+                total_attempted = len(suitable_elements)
+                skipped_count = len(processed_element_ids) - total_processed if len(processed_element_ids) > total_processed else 0
+                
+                if skipped_count > 0:
+                    st.success(f"✅ Analysis completed - {total_processed} elements with valid radiation data")
+                    st.info(f"📋 **Duplication Prevention**: {skipped_count} elements were skipped as already processed")
+                else:
+                    st.success(f"✅ Analysis completed - {total_processed} elements with valid radiation data")
             
             # Apply corrections if requested
             if apply_corrections:
