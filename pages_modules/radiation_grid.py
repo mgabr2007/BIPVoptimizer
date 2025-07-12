@@ -609,22 +609,49 @@ def render_radiation_grid():
     # Load required data
     project_data = st.session_state.get('project_data', {})
     
-    # Use building_elements from session state as primary source
-    suitable_elements = st.session_state.get('building_elements')
-    if suitable_elements is None:
-        suitable_elements = project_data.get('suitable_elements')
+    # Load ALL building elements from session state
+    all_building_elements = st.session_state.get('building_elements')
+    if all_building_elements is None:
+        all_building_elements = project_data.get('building_elements', project_data.get('suitable_elements'))
         
-    # TMY data already validated above
-    coordinates = project_data.get('coordinates', {})
-    
-    if suitable_elements is None or len(suitable_elements) == 0:
-        st.error("No suitable building elements found. Please check Step 4 data.")
+    if all_building_elements is None or len(all_building_elements) == 0:
+        st.error("No building elements found. Please check Step 4 data.")
         return
     
+    # Convert to DataFrame if needed for filtering
+    if isinstance(all_building_elements, list):
+        all_elements_df = pd.DataFrame(all_building_elements)
+    else:
+        all_elements_df = all_building_elements
+    
+    # CRITICAL: Filter to only SUITABLE elements (exclude north-facing windows)
+    if 'pv_suitable' in all_elements_df.columns:
+        suitable_elements = all_elements_df[all_elements_df['pv_suitable'] == True].copy()
+    elif 'suitable' in all_elements_df.columns:
+        suitable_elements = all_elements_df[all_elements_df['suitable'] == True].copy()
+    else:
+        # Fallback: filter by orientation to exclude north-facing
+        suitable_orientations = ["South (135-225°)", "East (45-135°)", "West (225-315°)", "Southeast", "Southwest"]
+        if 'orientation' in all_elements_df.columns:
+            suitable_elements = all_elements_df[all_elements_df['orientation'].isin(suitable_orientations)].copy()
+        else:
+            st.warning("⚠️ Could not determine element suitability. Processing all elements.")
+            suitable_elements = all_elements_df
+    
+    # TMY data already validated above
+    coordinates = project_data.get('coordinates', {})
     latitude = coordinates.get('lat', 52.52)
     longitude = coordinates.get('lng', 13.405)
     
-    st.success(f"Analyzing {len(suitable_elements)} building elements for solar radiation potential")
+    # Display filtering results
+    total_elements = len(all_elements_df)
+    suitable_count = len(suitable_elements)
+    excluded_count = total_elements - suitable_count
+    
+    st.success(f"✅ **BIPV Suitability Filtering Applied**: Analyzing {suitable_count} suitable elements (excluded {excluded_count} north-facing elements from {total_elements} total)")
+    
+    if excluded_count > 0:
+        st.info(f"🧭 **North-facing windows excluded**: {excluded_count} elements with poor solar performance (<600 kWh/m²/year) excluded from BIPV analysis")
     
     # Analysis Precision Selection (prominently displayed)
     col1, col2, col3 = st.columns([2, 2, 2])
