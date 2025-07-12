@@ -1314,29 +1314,22 @@ def render_radiation_grid():
             if is_deployment:
                 # Ultra-aggressive optimization for deployment
                 BATCH_SIZE = min(15, total_elements_count // 5)  # Much smaller batches for deployment
-                st.warning(f"🚀 **Deployment Mode Detected**: Using ultra-optimized batch size {BATCH_SIZE} for {total_elements_count} elements")
-                st.info("⚡ **Performance Mode**: Reduced calculations for deployment resource limits")
             else:
                 # Standard batch sizes for preview/development
                 if total_elements_count > 800:
                     BATCH_SIZE = 50  # Increased from 25 for better throughput
-                    st.info(f"🔧 **Large Dataset Optimization**: Processing {total_elements_count} elements in optimized batches of {BATCH_SIZE}")
                 elif total_elements_count > 400:
                     BATCH_SIZE = 75  # Increased from 50 for better throughput
-                    st.info(f"⚡ **Medium Dataset Processing**: Using optimized batch size {BATCH_SIZE} for {total_elements_count} elements")
                 else:
                     BATCH_SIZE = 150  # Increased from 100 for smaller datasets
                 
                 # Adjust batch size based on precision level
                 if analysis_precision == "Maximum":
                     BATCH_SIZE = max(10, BATCH_SIZE // 2)  # Reduce batch size for maximum precision
-                    st.warning(f"⏱️ **Maximum Precision Mode**: Reduced batch size to {BATCH_SIZE} for detailed analysis")
             
             for batch_start in range(0, len(suitable_elements), BATCH_SIZE):
                 batch_end = min(batch_start + BATCH_SIZE, len(suitable_elements))
                 batch_elements = suitable_elements[batch_start:batch_end]
-                
-                st.info(f"Processing batch {batch_start//BATCH_SIZE + 1} of {(len(suitable_elements)-1)//BATCH_SIZE + 1} (Elements {batch_start+1}-{batch_end})")
                 
                 for i, element in enumerate(batch_elements):
                     global_i = batch_start + i
@@ -1351,11 +1344,11 @@ def render_radiation_grid():
                     width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
                     height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
                     
-                    # Update progress indicators with BIM data details including calculated tilt
-                    element_progress.text(f"Batch {batch_start//BATCH_SIZE + 1}: {element_id} | {orientation} | {area:.1f}m² | Tilt: {tilt:.1f}° | {level}")
-                    current_progress = 10 + int(70 * global_i / total_elements)
-                    progress_bar.progress(current_progress)
-                    status_text.text(f"Processing {global_i+1} of {total_elements} elements total with {analysis_precision.lower()} precision...")
+                    # Clean progress display - only element count and percentage
+                    percentage_complete = int(100 * global_i / len(suitable_elements))
+                    element_progress.text(f"Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%)")
+                    progress_bar.progress(percentage_complete)
+                    status_text.text(f"Element ID: {element_id} | {orientation}")
                     
                     # Add memory check and yield point every 10 elements
                     if global_i % 10 == 0:
@@ -1370,7 +1363,6 @@ def render_radiation_grid():
                         # Force intermediate save every 25 elements in deployment
                         if len(radiation_results) > 0:
                             st.session_state.temp_radiation_results = radiation_results.copy()
-                            st.info(f"🚀 **Emergency Save**: Secured {len(radiation_results)} results at element {global_i}")
                     
                     # Calculate radiation for this element with robust error protection
                     try:
@@ -1392,7 +1384,6 @@ def render_radiation_grid():
                             # Check for timeout - continue processing but mark timeout
                             if time.time() - element_start_time > ELEMENT_TIMEOUT:
                                 timeout_occurred = True
-                                st.warning(f"⚠️ Element {element_id}: Calculation timeout - continuing with available data")
                                 break
                             
                             monthly_total = 0
@@ -1521,37 +1512,22 @@ def render_radiation_grid():
                                 'timeout_occurred': timeout_occurred,
                                 'sample_count': sample_count
                             })
-                        else:
-                            # Continue processing but note insufficient data
-                            st.warning(f"⚠️ Element {element_id}: No valid TMY samples - continuing with next element")
+                        # else: Continue processing silently if no valid samples
                 
                     except Exception as e:
-                        # Continue processing but log error - no fallback values added
-                        error_msg = f"Element {element_id}: Processing error - continuing without data"
-                        st.warning(f"⚠️ {error_msg}: {str(e)[:50]}")
-                        
-                        # Continue to next element - no data added for failed element
+                        # Continue processing silently - no fallback values added
+                        pass  # Continue to next element - no data added for failed element
                         
 
                 
-                # Add batch completion checkpoint with memory management
+                # Memory management - force garbage collection after large batches
                 if batch_end % 100 == 0 or batch_end == len(suitable_elements):
-                    st.success(f"✅ Completed batch {batch_start//BATCH_SIZE + 1} - processed {batch_end} elements")
-                    
-                    # Memory management - force garbage collection after large batches
                     import gc
                     gc.collect()
                     
-                    # Progress checkpoint - save intermediate results
-                    if len(radiation_results) > 0 and batch_end % 200 == 0:
-                        st.info(f"💾 Checkpoint: Saved {len(radiation_results)} element results")
-                        # Save intermediate results to session state for recovery
+                    # Save intermediate results for recovery
+                    if len(radiation_results) > 0:
                         st.session_state.temp_radiation_results = radiation_results.copy()
-                
-                # DEPLOYMENT EMERGENCY CHECKPOINT: Force save after every batch in deployment
-                if is_deployment and len(radiation_results) > 0:
-                    st.session_state.temp_radiation_results = radiation_results.copy()
-                    st.info(f"🚀 **Deployment Checkpoint**: Saved {len(radiation_results)} results")
             
             # Continue processing regardless of result count - show what was calculated
             if len(radiation_results) == 0:
