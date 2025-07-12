@@ -804,10 +804,10 @@ def render_radiation_grid():
             
             # Optimize analysis based on precision setting and deployment environment
             if is_deployment:
-                # Ultra-fast deployment sampling - DAILY ANALYSIS ONLY
-                sample_hours = [12]  # Only noon solar position for daily representative value
-                days_sample = list(range(15, 365, 30))  # Monthly samples (12 days per year)
-                st.info("🚀 **Deployment Optimization**: Using daily analysis (noon only) for maximum efficiency")
+                # Deployment optimization with ALL DAYS but minimal hours
+                sample_hours = [12]  # Only noon for maximum efficiency but full accuracy
+                days_sample = list(range(1, 366))  # ALL DAYS (365 days) for complete analysis
+                st.info("🚀 **Deployment Mode**: Analyzing ALL 365 days with noon solar position for complete accuracy")
             else:
                 # Standard sampling for preview/development
                 if analysis_precision == "Standard":
