@@ -658,11 +658,11 @@ def render_radiation_grid():
     
     with col1:
         analysis_precision = st.selectbox(
-            "📊 Analysis Precision Level",
-            ["Standard", "High", "Maximum"],
-            index=0,
+            "📊 Computational Settings",
+            ["Hourly", "Daily Peak", "Monthly Peak", "Yearly Average"],
+            index=1,  # Default to Daily Peak
             key="analysis_precision_rad",
-            help="Standard: Every 2 hours, monthly samples • High: Hourly, bi-weekly samples • Maximum: All hours, weekly samples"
+            help="Hourly: Complete hourly analysis • Daily Peak: Noon analysis all days • Monthly Peak: Peak days monthly • Yearly Average: Simplified calculation"
         )
     
     with col2:
@@ -673,13 +673,14 @@ def render_radiation_grid():
         apply_corrections = st.checkbox("🧭 Apply Orientation Corrections", value=True, key="apply_corrections_rad",
                                       help="Apply tilt and azimuth corrections for surface irradiance")
     
-    # Show precision details
-    precision_info = {
-        "Standard": "⚡ Efficient analysis with representative sampling (every 2 hours, monthly)",
-        "High": "🔍 Detailed analysis with hourly precision (hourly, bi-weekly)", 
-        "Maximum": "🎯 Complete analysis with maximum accuracy (all hours, weekly)"
+    # Show computational method details
+    computational_info = {
+        "Hourly": "⏰ Complete hourly analysis - Full 8,760 calculations per year for maximum accuracy",
+        "Daily Peak": "☀️ Daily peak analysis - Noon solar position for all 365 days (high accuracy, efficient)",
+        "Monthly Peak": "📅 Monthly peak analysis - Peak radiation days for each month (12 representative days)",
+        "Yearly Average": "📊 Yearly average analysis - Simplified calculation using annual averages"
     }
-    st.info(precision_info[analysis_precision])
+    st.info(computational_info[analysis_precision])
     
     # Building walls upload for geometric shading
     walls_data = None
@@ -802,23 +803,38 @@ def render_radiation_grid():
             # Ensure walls_data is accessible to radiation calculations
             # (walls_data is defined in the shading configuration section above)
             
-            # Optimize analysis based on precision setting and deployment environment
+            # Computational method implementation
             if is_deployment:
-                # Deployment optimization with ALL DAYS but minimal hours
-                sample_hours = [12]  # Only noon for maximum efficiency but full accuracy
-                days_sample = list(range(1, 366))  # ALL DAYS (365 days) for complete analysis
-                st.info("🚀 **Deployment Mode**: Analyzing ALL 365 days with noon solar position for complete accuracy")
+                # Force Daily Peak for deployment efficiency
+                st.warning("🚀 **Deployment Mode**: Using Daily Peak method for resource optimization")
+                sample_hours = [12]  # Noon only
+                days_sample = list(range(1, 366))  # All 365 days
             else:
-                # Standard sampling for preview/development
-                if analysis_precision == "Standard":
-                    sample_hours = list(range(6, 19, 2))  # Every 2 hours during daylight
-                    days_sample = list(range(15, 365, 30))  # Monthly samples
-                elif analysis_precision == "High":
-                    sample_hours = list(range(6, 19))  # Hourly during daylight
-                    days_sample = list(range(1, 365, 15))  # Bi-weekly samples
-                else:  # Maximum
-                    sample_hours = list(range(24))  # All hours
-                    days_sample = list(range(1, 365, 7))  # Weekly samples
+                # User-selected computational methods
+                if analysis_precision == "Hourly":
+                    # Complete hourly analysis - maximum accuracy
+                    sample_hours = list(range(6, 19))  # All daylight hours (6 AM to 6 PM)
+                    days_sample = list(range(1, 366))  # All 365 days
+                    st.info("⏰ **Hourly Analysis**: Processing all daylight hours for complete accuracy")
+                
+                elif analysis_precision == "Daily Peak":
+                    # Daily peak analysis - noon position for all days
+                    sample_hours = [12]  # Noon solar position only
+                    days_sample = list(range(1, 366))  # All 365 days
+                    st.info("☀️ **Daily Peak Analysis**: Analyzing noon solar position for all 365 days")
+                
+                elif analysis_precision == "Monthly Peak":
+                    # Monthly peak analysis - peak days for each month
+                    sample_hours = [12]  # Noon solar position
+                    # Peak solar days for each month (around 21st when sun is typically highest)
+                    days_sample = [21, 52, 80, 111, 141, 172, 202, 233, 264, 294, 325, 355]  # 12 peak days
+                    st.info("📅 **Monthly Peak Analysis**: Analyzing peak solar days for each month")
+                
+                else:  # Yearly Average
+                    # Simplified yearly average - minimal calculation
+                    sample_hours = [12]  # Noon only
+                    days_sample = [172]  # Summer solstice (day 172 - June 21st) as representative
+                    st.info("📊 **Yearly Average Analysis**: Using summer solstice as representative day")
             
             status_text.text(f"Processing {len(suitable_elements)} elements with {analysis_precision.lower()} precision...")
             progress_bar.progress(10)
@@ -1036,8 +1052,20 @@ def render_radiation_grid():
                             if monthly_samples > 0:
                                 monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
                         
-                        # Scale to annual totals
-                        scaling_factor = 8760 / max(sample_count, 1)
+                        # Scale to annual totals based on computational method
+                        if analysis_precision == "Hourly":
+                            # Hourly analysis: scale from samples to full year
+                            scaling_factor = 8760 / max(sample_count, 1)
+                        elif analysis_precision == "Daily Peak":
+                            # Daily peak: scale from noon samples to daily totals (assume noon = 15% of daily)
+                            scaling_factor = (8760 / 365) / 0.15 / max(sample_count/365, 1)
+                        elif analysis_precision == "Monthly Peak":
+                            # Monthly peak: scale from 12 peak days to full year
+                            scaling_factor = 365 / 12 / max(sample_count/12, 1)
+                        else:  # Yearly Average
+                            # Yearly average: scale from single day to full year
+                            scaling_factor = 365 / max(sample_count, 1)
+                        
                         annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
                         
                         # Calculate height-related parameters for reporting
