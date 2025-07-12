@@ -614,6 +614,21 @@ def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sa
     """
     solar_lookup = {}
     
+    # Debug information
+    print(f"DEBUG: TMY data shape: {tmy_data.shape}")
+    print(f"DEBUG: TMY columns: {list(tmy_data.columns)}")
+    print(f"DEBUG: Sample hours: {sample_hours}")
+    print(f"DEBUG: Days sample: {days_sample[:5]}...")  # Show first 5 days
+    
+    # Check if required columns exist
+    if 'day_of_year' not in tmy_data.columns:
+        print("ERROR: 'day_of_year' column missing from TMY data")
+        return {}
+    if 'hour' not in tmy_data.columns:
+        print("ERROR: 'hour' column missing from TMY data")
+        return {}
+    
+    matches_found = 0
     for day in days_sample:
         for hour in sample_hours:
             key = f"{day}_{hour}"
@@ -628,6 +643,7 @@ def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sa
             ]
             
             if not tmy_hour.empty:
+                matches_found += 1
                 hour_data = tmy_hour.iloc[0]
                 
                 # Extract radiation values with TMY format support (GHI_Wm2, DNI_Wm2, DHI_Wm2)
@@ -658,6 +674,9 @@ def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sa
                     'solar_elevation': hour_data.get('solar_elevation', solar_pos['elevation']),
                     'solar_azimuth': hour_data.get('solar_azimuth', solar_pos['azimuth'])
                 }
+    
+    print(f"DEBUG: Found {matches_found} matching time points out of {len(days_sample) * len(sample_hours)} requested")
+    print(f"DEBUG: Final solar_lookup size: {len(solar_lookup)}")
     
     return solar_lookup
 
@@ -1348,10 +1367,18 @@ def render_radiation_grid():
                     days_sample = [80, 172, 266, 355]  # Four seasonal representative days (equinoxes & solstices)
                     st.info("📊 **Yearly Average Analysis**: Average of total solar irradiance in the whole year")
             
+            # Now call precompute_solar_tables with properly processed TMY data
             # 1. ALGORITHMIC OPTIMIZATIONS
             # Pre-computed Solar Tables: Calculate solar positions once and reuse for all elements
             status_text.text("🚀 Applying Algorithmic Optimizations: Pre-computing solar tables...")
             progress_bar.progress(10)
+            
+            # Debug: Show what data is being passed to precompute_solar_tables
+            st.write("🔍 **TMY Data being passed to solar calculations:**")
+            st.write(f"- Records: {len(tmy_df)}")
+            st.write(f"- Columns: {list(tmy_df.columns)}")
+            st.write(f"- Sample data:")
+            st.dataframe(tmy_df.head(2))
             
             solar_lookup = precompute_solar_tables(tmy_df, latitude, longitude, sample_hours, days_sample)
             
@@ -1359,6 +1386,10 @@ def render_radiation_grid():
                 st.error("⚠️ No radiation data calculated from authentic TMY sources.")
                 st.error("TMY data is missing required solar irradiance columns (GHI, DNI, DHI) for authentic calculations.")
                 st.error("Please ensure Step 3 (Weather & Environment) TMY generation completed successfully with solar irradiance data.")
+                st.write("**Debug Information:**")
+                st.write(f"Sample hours: {sample_hours}")
+                st.write(f"Days sample: {days_sample}")
+                st.write(f"TMY data shape: {tmy_df.shape}")
                 return
             
             st.info(f"✅ Pre-computed {len(solar_lookup)} solar position calculations with authentic TMY radiation data")
