@@ -376,9 +376,24 @@ def render_perplexity_consultation():
         - **Future planning** → Scalability assessment and monitoring recommendations for long-term performance
         """)
     
-    # Initialize agent with API key
+    # Initialize agent with API key from environment
     import os
-    api_key = os.getenv("PERPLEXITY_API_KEY", "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")
+    import streamlit as st
+    
+    # Get API key from environment (Replit secrets or Streamlit secrets)
+    api_key = None
+    try:
+        api_key = os.getenv("PERPLEXITY_API_KEY")
+        if not api_key:
+            api_key = st.secrets.get("PERPLEXITY_API_KEY")
+    except:
+        pass
+    
+    if not api_key:
+        st.error("❌ Perplexity API key not found. Please add PERPLEXITY_API_KEY to your environment variables.")
+        st.info("💡 Contact support to configure API access for AI consultation features.")
+        return
+    
     agent = PerplexityBIPVAgent(api_key)
     
     # Determine data source for AI analysis
