@@ -271,16 +271,11 @@ def render_facade_extraction():
                             except (ValueError, TypeError):
                                 continue
                     
-                    # Complete progress tracking with immediate results transition
+                    # Complete progress tracking with immediate cleanup and display
                     progress_bar.progress(100)
-                    progress_percentage.markdown("**100%**")
-                    status_text.text(f"✅ Processing complete - {len(windows)} elements processed")
-                    element_progress.markdown("**Ready for display**")
+                    progress_container.empty()  # Clear progress immediately
                     
-                    # Immediate completion and cleanup
-                    progress_container.empty()
-                    
-                    # Store processed data immediately
+                    # Store essential data for immediate display (minimal operations)
                     facade_data = {
                         'total_elements': len(windows),
                         'suitable_elements': suitable_elements,
@@ -292,35 +287,8 @@ def render_facade_extraction():
                 
                     st.session_state.project_data['facade_data'] = facade_data
                     st.session_state.project_data['extraction_complete'] = True
-                    
-                    # Store building elements
-                    import pandas as pd
-                    building_elements_df = pd.DataFrame(windows)
-                    st.session_state.building_elements = building_elements_df
-                    st.session_state.building_elements_completed = True
                     st.session_state.step4_processing_complete = True
                     st.session_state.last_processed_file = current_file_name
-                
-                    # Optimized data saving - run in background without blocking UI
-                    if not st.session_state.get('step4_already_processed', False):
-                        try:
-                            consolidated_manager = ConsolidatedDataManager()
-                            step4_data = {
-                                'building_elements': windows,
-                                'facade_data': facade_data,
-                                'elements': windows,
-                                'extraction_complete': True
-                            }
-                            consolidated_manager.save_step4_data(step4_data)
-                            st.session_state.step4_already_processed = True
-                            
-                            # Database save (non-blocking)
-                            if 'project_id' in st.session_state:
-                                save_building_elements(st.session_state.project_id, windows)
-                                save_project_data(st.session_state.project_data)
-                                st.session_state.step4_db_saved = True
-                        except Exception as e:
-                            pass  # Continue with UI display even if save fails
                     
                     # Show immediate completion message
                     st.success(f"✅ Processing complete! Analyzed {len(windows)} building elements with {suitable_elements} suitable for BIPV.")
@@ -401,8 +369,35 @@ def render_facade_extraction():
             
             st.bar_chart(orientation_stats)
             
-
-
+            # Background data saving (after UI display is complete)
+            if st.session_state.get('step4_processing_complete') and not st.session_state.get('step4_data_saved', False):
+                try:
+                    # Store building elements DataFrame
+                    import pandas as pd
+                    building_elements_df = pd.DataFrame(windows)
+                    st.session_state.building_elements = building_elements_df
+                    st.session_state.building_elements_completed = True
+                    
+                    # Save to consolidated data manager
+                    from database_manager import ConsolidatedDataManager
+                    consolidated_manager = ConsolidatedDataManager()
+                    step4_data = {
+                        'building_elements': windows,
+                        'facade_data': st.session_state.project_data['facade_data'],
+                        'elements': windows,
+                        'extraction_complete': True
+                    }
+                    consolidated_manager.save_step4_data(step4_data)
+                    
+                    # Database save
+                    if 'project_id' in st.session_state:
+                        from database_manager import save_building_elements, save_project_data
+                        save_building_elements(st.session_state.project_id, windows)
+                        save_project_data(st.session_state.project_data)
+                    
+                    st.session_state.step4_data_saved = True
+                except Exception as e:
+                    pass  # Continue silently if background save fails
             
             # Add step-specific download button
             st.markdown("---")
