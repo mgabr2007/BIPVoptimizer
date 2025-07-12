@@ -125,6 +125,133 @@ def calculate_ground_reflectance_factor(height_from_ground, tilt_angle=90, albed
     
     return min(ground_reflectance_factor, 0.15)  # Cap at 15% contribution
 
+def precompute_solar_tables(tmy_df, latitude, longitude, sample_hours, days_sample):
+    """
+    Pre-compute solar positions and TMY data for all time samples.
+    This dramatically reduces redundant calculations across all elements.
+    """
+    solar_lookup = {}
+    
+    for day in days_sample:
+        for hour in sample_hours:
+            # Calculate day of year once for all elements
+            days_in_months = [31,28,31,30,31,30,31,31,30,31,30,31]
+            month = 1
+            day_remaining = day
+            while day_remaining > days_in_months[month-1]:
+                day_remaining -= days_in_months[month-1]
+                month += 1
+            
+            day_of_year = sum(days_in_months[:month-1]) + day_remaining
+            
+            # Get TMY data for this time point
+            if day_of_year <= len(tmy_df):
+                tmy_index = min((day_of_year - 1) * 24 + hour, len(tmy_df) - 1)
+                hour_data = tmy_df.iloc[tmy_index].to_dict() if hasattr(tmy_df, 'iloc') else tmy_df[tmy_index]
+            else:
+                # Fallback data
+                hour_data = {'ghi': 500, 'dni': 600, 'dhi': 200, 'solar_elevation': 30, 'solar_azimuth': 180}
+            
+            # Calculate or extract solar position
+            if 'solar_elevation' in hour_data and hour_data['solar_elevation'] > 0:
+                solar_pos = {
+                    'elevation': hour_data['solar_elevation'],
+                    'azimuth': hour_data['solar_azimuth'],
+                    'zenith': 90 - hour_data['solar_elevation']
+                }
+            else:
+                # Calculate solar position
+                solar_pos = calculate_solar_position_simple(latitude, longitude, day_of_year, hour)
+            
+            # Skip nighttime calculations
+            if solar_pos['elevation'] > 0:
+                lookup_key = f"{day}_{hour}"
+                solar_lookup[lookup_key] = {
+                    'solar_pos': solar_pos,
+                    'hour_data': hour_data,
+                    'day_of_year': day_of_year,
+                    'month': month
+                }
+    
+    return solar_lookup
+
+def cluster_elements_by_orientation(elements, azimuth_tolerance=5):
+    """
+    Group elements by similar orientation to reduce redundant calculations.
+    Elements with similar azimuth (±5°) are processed together.
+    """
+    clusters = {}
+    
+    for element in elements:
+        azimuth = element.get('azimuth', 180)
+        
+        # Find existing cluster within tolerance
+        cluster_key = None
+        for existing_azimuth in clusters.keys():
+            if abs(azimuth - existing_azimuth) <= azimuth_tolerance:
+                cluster_key = existing_azimuth
+                break
+        
+        # Create new cluster if none found
+        if cluster_key is None:
+            cluster_key = azimuth
+            clusters[cluster_key] = []
+        
+        clusters[cluster_key].append(element)
+    
+    return clusters
+
+def calculate_solar_position_simple(latitude, longitude, day_of_year, hour):
+    """
+    Simple solar position calculation for fallback when TMY data incomplete.
+    """
+    import math
+    
+    # Solar declination (simplified)
+    declination = 23.45 * math.sin(math.radians(360 * (284 + day_of_year) / 365))
+    
+    # Hour angle
+    hour_angle = 15 * (hour - 12)
+    
+    # Solar elevation
+    lat_rad = math.radians(latitude)
+    dec_rad = math.radians(declination)
+    hour_rad = math.radians(hour_angle)
+    
+    elevation = math.degrees(math.asin(
+        math.sin(lat_rad) * math.sin(dec_rad) + 
+        math.cos(lat_rad) * math.cos(dec_rad) * math.cos(hour_rad)
+    ))
+    
+    # Solar azimuth (simplified)
+    azimuth = 180 + math.degrees(math.atan2(
+        math.sin(hour_rad),
+        math.cos(hour_rad) * math.sin(lat_rad) - math.tan(dec_rad) * math.cos(lat_rad)
+    ))
+    
+    return {
+        'elevation': max(0, elevation),
+        'azimuth': azimuth % 360,
+        'zenith': 90 - max(0, elevation)
+    }
+
+def group_elements_by_level(elements):
+    """
+    Group elements by building level for optimized height calculations.
+    All elements on same level share height parameters.
+    """
+    level_groups = {}
+    
+    for element in elements:
+        level = element.get('level', 'Level 1')
+        
+        if level not in level_groups:
+            level_groups[level] = []
+        
+        level_groups[level].append(element)
+    
+    return level_groups
+
 def calculate_height_dependent_ghi_effects(height_from_ground, base_ghi):
     """
     Calculate height-dependent effects on Global Horizontal Irradiance (GHI).
@@ -1016,6 +1143,9 @@ def render_radiation_grid():
             status_text.text(f"Processing {len(suitable_elements)} elements with optimized {analysis_precision.lower()} calculations...")
             progress_bar.progress(20)
             
+            # Initialize caching systems for optimized calculations
+            level_height_cache = {}  # Cache height calculations by building level
+            
             # Process each element with detailed progress
             radiation_results = []
             total_elements = len(suitable_elements)
@@ -1159,35 +1289,33 @@ def render_radiation_grid():
                             for day in days_sample:
                                 if day < 28 or (day < 32 and month in [1,3,5,7,8,10,12]) or (day < 31 and month in [4,6,9,11]) or (day < 30 and month == 2):
                                     for hour in sample_hours:
-                                        # Calculate day of year
-                                        days_in_months = [31,28,31,30,31,30,31,31,30,31,30,31]
-                                        day_of_year = sum(days_in_months[:month-1]) + day
+                                        # Use pre-computed solar lookup key
+                                        lookup_key = f"{day}_{hour}"
                                         
-                                        if day_of_year < len(tmy_data):
-                                            tmy_index = min((day_of_year - 1) * 24 + hour, len(tmy_data) - 1)
-                                            hour_data = tmy_data[tmy_index]
+                                        if lookup_key in solar_lookup:
+                                            solar_data = solar_lookup[lookup_key]
+                                            solar_pos = solar_data['solar_pos']
+                                            hour_data = solar_data['hour_data']
                                             
-                                            # Skip nighttime for efficiency
-                                            if hour < 6 or hour > 19:
-                                                continue
-                                            
-                                            # Extract solar position from TMY data (authentic calculations from Step 3)
-                                            solar_pos = {
-                                                'elevation': hour_data.get('solar_elevation', 0),
-                                                'azimuth': hour_data.get('solar_azimuth', 180),
-                                                'zenith': 90 - hour_data.get('solar_elevation', 0)
-                                            }
-                                            
-                                            # Fallback to calculated values if TMY doesn't have solar position data
-                                            if solar_pos['elevation'] == 0 and solar_pos['azimuth'] == 180:
-                                                solar_pos = calculate_solar_position_simple(latitude, longitude, day_of_year, hour)
-                                            
-                                            # Skip if sun below horizon
+                                            # Skip if sun below horizon (already filtered in pre-computed table)
                                             if solar_pos['elevation'] <= 0:
                                                 continue
                                             
-                                            # Calculate height-dependent effects on GHI and solar angles
-                                            height_from_ground = estimate_height_from_ground(level)
+                                            # Use cached height calculations
+                                            if level not in level_height_cache:
+                                                level_height_cache[level] = {
+                                                    'height_from_ground': estimate_height_from_ground(level),
+                                                    'ground_reflectance': {}
+                                                }
+                                            
+                                            height_from_ground = level_height_cache[level]['height_from_ground']
+                                            
+                                            # Cache ground reflectance by tilt for this level
+                                            if tilt not in level_height_cache[level]['ground_reflectance']:
+                                                level_height_cache[level]['ground_reflectance'][tilt] = calculate_ground_reflectance_factor(height_from_ground, tilt)
+                                            
+                                            ground_reflectance = level_height_cache[level]['ground_reflectance'][tilt]
+                                            
                                             base_ghi = hour_data.get('ghi', 0)
                                             
                                             # Apply height-dependent GHI adjustments
@@ -1207,10 +1335,7 @@ def render_radiation_grid():
                                                 azimuth
                                             )
                                             
-                                            # Apply ground reflectance based on window height from ground
-                                            ground_reflectance = calculate_ground_reflectance_factor(height_from_ground, tilt)
-                                            
-                                            # Add ground reflectance contribution (reflected adjusted GHI component)
+                                            # Add ground reflectance contribution (cached value)
                                             ground_contribution = adjusted_ghi * ground_reflectance
                                             surface_irradiance += ground_contribution
                                             
