@@ -607,28 +607,14 @@ def group_elements_by_level(elements):
 
 def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sample):
     """
-    1. ALGORITHMIC OPTIMIZATIONS - Pre-computed Solar Tables
-    Calculate solar positions once per day/hour and reuse for all elements
-    Store seasonal solar patterns in lookup tables
-    Reduce solar calculations from 18M to ~365 operations
+    Pre-computed Solar Tables - Calculate solar positions once per day/hour and reuse for all elements
     """
     solar_lookup = {}
     
-    # Debug information
-    print(f"DEBUG: TMY data shape: {tmy_data.shape}")
-    print(f"DEBUG: TMY columns: {list(tmy_data.columns)}")
-    print(f"DEBUG: Sample hours: {sample_hours}")
-    print(f"DEBUG: Days sample: {days_sample[:5]}...")  # Show first 5 days
-    
     # Check if required columns exist
-    if 'day_of_year' not in tmy_data.columns:
-        print("ERROR: 'day_of_year' column missing from TMY data")
-        return {}
-    if 'hour' not in tmy_data.columns:
-        print("ERROR: 'hour' column missing from TMY data")
+    if 'day_of_year' not in tmy_data.columns or 'hour' not in tmy_data.columns:
         return {}
     
-    matches_found = 0
     for day in days_sample:
         for hour in sample_hours:
             key = f"{day}_{hour}"
@@ -643,10 +629,9 @@ def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sa
             ]
             
             if not tmy_hour.empty:
-                matches_found += 1
                 hour_data = tmy_hour.iloc[0]
                 
-                # Extract radiation values with TMY format support (GHI_Wm2, DNI_Wm2, DHI_Wm2)
+                # Extract radiation values with TMY format support
                 ghi_value = (hour_data.get('ghi', 0) or 
                            hour_data.get('GHI', 0) or 
                            hour_data.get('GHI_Wm2', 0) or
@@ -665,7 +650,6 @@ def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sa
                            hour_data.get('solar_dhi', 0) or
                            hour_data.get('dhi_irradiance', 0))
                 
-                # Add to lookup with any available radiation data (even if some values are zero)
                 solar_lookup[key] = {
                     'solar_position': solar_pos,
                     'ghi': float(ghi_value) if ghi_value is not None else 0.0,
@@ -674,9 +658,6 @@ def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sa
                     'solar_elevation': hour_data.get('solar_elevation', solar_pos['elevation']),
                     'solar_azimuth': hour_data.get('solar_azimuth', solar_pos['azimuth'])
                 }
-    
-    print(f"DEBUG: Found {matches_found} matching time points out of {len(days_sample) * len(sample_hours)} requested")
-    print(f"DEBUG: Final solar_lookup size: {len(solar_lookup)}")
     
     return solar_lookup
 
@@ -1234,94 +1215,53 @@ def render_radiation_grid():
             else:
                 tmy_df = tmy_data.copy()
                 
-            # Debug TMY data structure with detailed column analysis
-            st.info(f"📊 TMY Data Info: {len(tmy_df)} records, Columns: {list(tmy_df.columns)}")
-            
-            # Check for required radiation columns with comprehensive pattern matching
+            # Check for required radiation columns
             required_cols = ['ghi', 'dni', 'dhi']
-            available_cols = [col.lower() for col in tmy_df.columns]
             found_cols = {}
             
-            # More comprehensive column matching patterns
+            # Find radiation columns with flexible matching
             for req_col in required_cols:
-                column_found = False
                 for actual_col in tmy_df.columns:
                     actual_lower = actual_col.lower()
-                    # Check multiple patterns including TMY-specific formats like GHI_Wm2
                     if (actual_lower == req_col or 
                         actual_lower == req_col.upper() or
-                        actual_lower.endswith(f'_{req_col}') or
-                        actual_lower.endswith(f'{req_col}_wm2') or  # TMY format: GHI_Wm2
-                        actual_lower.endswith(f'{req_col}_irradiance') or
-                        actual_lower.startswith(f'{req_col}_') or
-                        actual_lower.startswith(f'solar_{req_col}') or
-                        actual_col == f'{req_col.upper()}_Wm2' or  # Exact TMY format
+                        actual_lower.endswith(f'{req_col}_wm2') or
+                        actual_col == f'{req_col.upper()}_Wm2' or
                         req_col in actual_lower):
                         found_cols[req_col] = actual_col
-                        column_found = True
                         break
-                
-                if not column_found:
-                    # Check if any radiation-related columns exist at all
-                    radiation_cols = [col for col in tmy_df.columns if any(term in col.lower() for term in ['ghi', 'dni', 'dhi', 'irrad', 'solar'])]
-                    if radiation_cols:
-                        st.warning(f"⚠️ Could not find exact match for '{req_col}' but found radiation columns: {radiation_cols}")
-                        # Use first matching radiation column as fallback
-                        for rad_col in radiation_cols:
-                            if req_col in rad_col.lower():
-                                found_cols[req_col] = rad_col
-                                st.info(f"Using '{rad_col}' for {req_col}")
-                                break
-            
-            # Show detailed analysis
-            missing_cols = [col for col in required_cols if col not in found_cols]
-            
-            st.write("🔍 **Column Analysis:**")
-            st.write(f"- Required: {required_cols}")
-            st.write(f"- Found: {found_cols}")
-            st.write(f"- Missing: {missing_cols}")
-            st.write(f"- Available columns: {list(tmy_df.columns)}")
             
             if len(found_cols) == 0:
                 st.error("❌ No radiation columns found in TMY data")
-                st.write("Sample TMY data:")
-                st.dataframe(tmy_df.head(3))
                 return
-            elif len(found_cols) < 3:
-                st.warning(f"⚠️ Only found {len(found_cols)} of 3 required radiation columns: {list(found_cols.keys())}")
-                # Continue with available columns
-            else:
-                st.success("✅ TMY data contains required radiation values")
             
             # Standardize column names for processing
             for standard_name, actual_name in found_cols.items():
                 if actual_name != standard_name:
                     tmy_df[standard_name] = tmy_df[actual_name]
-                    st.info(f"Mapped '{actual_name}' → '{standard_name}'")
             
-            # Ensure datetime column exists - handle TMY format with DateTime column
-            datetime_col = None
-            for col in tmy_df.columns:
-                if col.lower() in ['datetime', 'date_time', 'timestamp']:
-                    datetime_col = col
-                    break
-            
-            if datetime_col:
-                tmy_df['datetime'] = pd.to_datetime(tmy_df[datetime_col])
-                st.info(f"Using datetime column: '{datetime_col}'")
-            elif 'datetime' not in tmy_df.columns:
-                # Create datetime from month, day, hour if available
-                if all(col in tmy_df.columns for col in ['month', 'day', 'hour']):
+            # Ensure datetime column exists
+            if 'datetime' not in tmy_df.columns:
+                # Find datetime column
+                datetime_col = None
+                for col in tmy_df.columns:
+                    if col.lower() in ['datetime', 'date_time', 'timestamp']:
+                        datetime_col = col
+                        break
+                
+                if datetime_col:
+                    tmy_df['datetime'] = pd.to_datetime(tmy_df[datetime_col])
+                elif all(col in tmy_df.columns for col in ['month', 'day', 'hour']):
                     tmy_df['datetime'] = pd.to_datetime(
                         tmy_df[['month', 'day', 'hour']].assign(year=2023)
                     )
                 else:
-                    # Create hourly data for a full year
+                    # Create hourly sequence
                     from datetime import datetime
                     base_date = datetime(2023, 1, 1)
                     tmy_df['datetime'] = pd.date_range(base_date, periods=len(tmy_df), freq='H')
-                    st.info("Created datetime column from hourly sequence")
-            else:
+            
+            if 'datetime' in tmy_df.columns:
                 tmy_df['datetime'] = pd.to_datetime(tmy_df['datetime'])
             
             tmy_df['day_of_year'] = tmy_df['datetime'].dt.dayofyear
@@ -1373,38 +1313,18 @@ def render_radiation_grid():
             status_text.text("🚀 Applying Algorithmic Optimizations: Pre-computing solar tables...")
             progress_bar.progress(10)
             
-            # Debug: Show what data is being passed to precompute_solar_tables
-            st.write("🔍 **TMY Data being passed to solar calculations:**")
-            st.write(f"- Records: {len(tmy_df)}")
-            st.write(f"- Columns: {list(tmy_df.columns)}")
-            st.write(f"- Sample data:")
-            st.dataframe(tmy_df.head(2))
-            
             solar_lookup = precompute_solar_tables(tmy_df, latitude, longitude, sample_hours, days_sample)
             
             if len(solar_lookup) == 0:
-                st.error("⚠️ No radiation data calculated from authentic TMY sources.")
-                st.error("TMY data is missing required solar irradiance columns (GHI, DNI, DHI) for authentic calculations.")
-                st.error("Please ensure Step 3 (Weather & Environment) TMY generation completed successfully with solar irradiance data.")
-                st.write("**Debug Information:**")
-                st.write(f"Sample hours: {sample_hours}")
-                st.write(f"Days sample: {days_sample}")
-                st.write(f"TMY data shape: {tmy_df.shape}")
+                st.error("❌ No radiation data calculated from TMY sources. Please ensure Step 3 TMY generation completed successfully.")
                 return
             
-            st.info(f"✅ Pre-computed {len(solar_lookup)} solar position calculations with authentic TMY radiation data")
-            
-            # 2. GEOMETRIC OPTIMIZATIONS  
-            status_text.text("🔧 Applying Geometric Optimizations: Clustering elements...")
+            # Optimize element grouping for faster processing
+            status_text.text("Grouping elements for efficient processing...")
             progress_bar.progress(15)
             
-            # Element Clustering: Group by similar orientation (±5° azimuth tolerance)
             element_clusters = cluster_elements_by_orientation(suitable_elements)
-            st.info(f"✅ Grouped {len(suitable_elements)} elements into {len(element_clusters)} orientation clusters (60-80% calculation reduction)")
-            
-            # Level-based Processing: Process by building floor level (same height effects)
             level_groups = group_elements_by_level(suitable_elements)
-            st.info(f"✅ Organized elements into {len(level_groups)} building levels for optimized height calculations")
             
             status_text.text(f"Processing {len(suitable_elements)} elements with optimized {analysis_precision.lower()} calculations...")
             progress_bar.progress(20)
@@ -1490,47 +1410,20 @@ def render_radiation_grid():
                     width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
                     height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
                     
-                    # Clean progress display - only element count and percentage
+                    # Progress display
                     percentage_complete = int(100 * global_i / len(suitable_elements))
                     element_progress.text(f"Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%)")
                     progress_bar.progress(percentage_complete)
-                    status_text.text(f"Element ID: {element_id} | {orientation}")
                     
-                    # Add memory check and yield point every 10 elements
-                    if global_i % 10 == 0:
-                        import time
-                        if is_deployment:
-                            time.sleep(0.05)  # More frequent yields in deployment
-                        else:
-                            time.sleep(0.01)  # Standard yield for preview
-                    
-                    # DEPLOYMENT EMERGENCY STOP: Check for potential resource exhaustion
-                    if is_deployment and global_i > 50 and global_i % 25 == 0:
-                        # Force intermediate save every 25 elements in deployment
-                        if len(radiation_results) > 0:
-                            st.session_state.temp_radiation_results = radiation_results.copy()
-                    
-                    # Calculate radiation for this element with robust error protection
+                    # Calculate radiation for this element
                     try:
-                        import time
-                        element_start_time = time.time()
-                        # Deployment-specific timeout optimization
-                        if is_deployment:
-                            ELEMENT_TIMEOUT = 30  # Much shorter timeout for deployment
-                        else:
-                            ELEMENT_TIMEOUT = 120  # Standard timeout for preview
                         
                         annual_irradiance = 0
                         peak_irradiance = 0
                         sample_count = 0
                         monthly_irradiation = {}
-                        timeout_occurred = False
                         
                         for month in range(1, 13):
-                            # Check for timeout - continue processing but mark timeout
-                            if time.time() - element_start_time > ELEMENT_TIMEOUT:
-                                timeout_occurred = True
-                                break
                             
                             monthly_total = 0
                             monthly_samples = 0
@@ -1543,8 +1436,12 @@ def render_radiation_grid():
                                         
                                         if lookup_key in solar_lookup:
                                             solar_data = solar_lookup[lookup_key]
-                                            solar_pos = solar_data['solar_pos']
-                                            hour_data = solar_data['hour_data']
+                                            solar_pos = solar_data['solar_position']
+                                            
+                                            # Extract radiation values directly from solar_data
+                                            ghi = solar_data.get('ghi', 0)
+                                            dni = solar_data.get('dni', 0)
+                                            dhi = solar_data.get('dhi', 0)
                                             
                                             # Skip if sun below horizon (already filtered in pre-computed table)
                                             if solar_pos['elevation'] <= 0:
@@ -1565,10 +1462,8 @@ def render_radiation_grid():
                                             
                                             ground_reflectance = level_height_cache[level]['ground_reflectance'][tilt]
                                             
-                                            base_ghi = hour_data.get('ghi', 0)
-                                            
                                             # Apply height-dependent GHI adjustments
-                                            ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, base_ghi)
+                                            ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, ghi)
                                             adjusted_ghi = ghi_effects['adjusted_ghi']
                                             
                                             # Apply height-dependent solar angle adjustments
@@ -1577,14 +1472,14 @@ def render_radiation_grid():
                                             # Calculate surface irradiance using height-adjusted values
                                             surface_irradiance = calculate_irradiance_on_surface(
                                                 adjusted_ghi,
-                                                hour_data.get('dni', 0),
-                                                hour_data.get('dhi', 0),
+                                                dni,
+                                                dhi,
                                                 adjusted_solar_pos,
                                                 tilt,
                                                 azimuth
                                             )
                                             
-                                            # Add ground reflectance contribution (cached value)
+                                            # Add ground reflectance contribution
                                             ground_contribution = adjusted_ghi * ground_reflectance
                                             surface_irradiance += ground_contribution
                                             
