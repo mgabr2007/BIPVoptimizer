@@ -32,50 +32,84 @@ BIPV Optimizer is a cutting-edge platform developed as part of PhD research at *
 
 ### Prerequisites
 
-- Python 3.11+
-- PostgreSQL database
-- OpenWeatherMap API key
-- Replit environment (recommended)
+- **Python**: 3.11+ with essential packages (streamlit, pandas, plotly, scikit-learn, pvlib, deap)
+- **Database**: PostgreSQL 16+ for project data persistence
+- **API Keys**: 
+  - OpenWeatherMap API key (global weather data)
+  - Perplexity API key (AI research consultation)
+- **Environment**: Replit platform (recommended) or local Python environment
 
-### Installation
+### Quick Deployment on Replit
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/bipv-optimizer.git
-cd bipv-optimizer
-```
+1. **Fork this repository** on Replit platform
+2. **Set required secrets** in Replit environment:
+   ```
+   OPENWEATHER_API_KEY = "your_openweather_api_key"
+   PERPLEXITY_API_KEY = "your_perplexity_api_key"
+   DATABASE_URL = "automatically_provided_by_replit_postgresql"
+   ```
+3. **Install dependencies** (automatic on Replit):
+   ```bash
+   # Dependencies auto-installed from pyproject.toml
+   streamlit, pandas, numpy, plotly, scikit-learn, pvlib, deap, 
+   psycopg2-binary, requests, folium, streamlit-folium, beautifulsoup4
+   ```
+4. **Run the application**:
+   ```bash
+   streamlit run app.py --server.port 5000
+   ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+### Local Installation
 
-3. Set environment variables:
-```bash
-export OPENWEATHER_API_KEY="your_api_key_here"
-export DATABASE_URL="postgresql://user:password@host:port/database"
-```
+1. **Clone and setup**:
+   ```bash
+   git clone https://github.com/yourusername/bipv-optimizer.git
+   cd bipv-optimizer
+   pip install -r requirements.txt
+   ```
 
-4. Run the application:
-```bash
-streamlit run app.py --server.port 5000
-```
+2. **Database setup**:
+   ```bash
+   # Install PostgreSQL locally or use cloud service
+   createdb bipv_optimizer
+   export DATABASE_URL="postgresql://user:password@localhost:5432/bipv_optimizer"
+   ```
+
+3. **Environment configuration**:
+   ```bash
+   export OPENWEATHER_API_KEY="your_api_key_here"
+   export PERPLEXITY_API_KEY="your_perplexity_key"
+   export DATABASE_URL="postgresql://user:password@host:port/database"
+   ```
+
+4. **Launch application**:
+   ```bash
+   streamlit run app.py --server.port 5000
+   # Access at http://localhost:5000
+   ```
+
+### Required API Keys Setup
+
+1. **OpenWeatherMap**: Register at [openweathermap.org](https://openweathermap.org/api) for weather data access
+2. **Perplexity AI**: Get API key from [perplexity.ai](https://www.perplexity.ai/) for research consultation features
+3. **PostgreSQL**: Database automatically provided on Replit, or setup locally/cloud
 
 ## 🏗️ Architecture
 
-### 11-Step Workflow
+### 11-Step Complete Workflow
 
-1. **Welcome & Introduction** - Platform overview and methodology
-2. **Project Setup** - Location selection with weather station integration
-3. **Historical Data Analysis** - AI model training for demand prediction
-4. **Weather Integration** - TMY generation with ISO standards
-5. **Facade Extraction** - BIM data processing for building elements
-6. **Radiation Analysis** - Solar modeling with shading calculations
-7. **PV Specification** - BIPV glass technology parameters
-8. **Yield vs Demand** - Energy balance analysis
-9. **Optimization** - Multi-objective genetic algorithms
-10. **Financial Analysis** - Economic viability assessment
-11. **Comprehensive Reporting** - Scientific reports with real calculated values
+1. **🌞 Welcome & Introduction** - Platform overview, standards implementation, methodology
+2. **📍 Project Setup** - Interactive map location selection, weather station integration, real-time electricity rates
+3. **📊 Historical Data Analysis** - AI model training (R² tracking), educational building patterns, demand forecasting
+4. **🌤️ Weather Integration** - ISO 15927-4 TMY generation, dual API support (TU Berlin/OpenWeatherMap)
+5. **🏢 BIM Extraction** - CSV upload processing, BIPV suitability assessment, orientation analysis
+6. **☀️ Radiation Analysis** - Height-dependent effects, ground reflectance, atmospheric modeling
+7. **⚡ PV Specification** - BIPV glass technology (2-25% efficiency), suitable elements only
+8. **🔋 Yield vs Demand** - Monthly energy balance, seasonal patterns, cost savings analysis
+9. **🎯 Optimization** - NSGA-II genetic algorithms, weighted multi-objective (cost/yield/ROI)
+10. **💰 Financial Analysis** - NPV/IRR/payback, real electricity rates, grid CO₂ factors
+11. **📄 Reporting** - Step-by-step reports, comprehensive master analysis
+12. **🤖 AI Consultation** - Perplexity-powered research consultation with project data
 
 ### Technology Stack
 
@@ -92,30 +126,59 @@ streamlit run app.py --server.port 5000
 
 ```
 bipv-optimizer/
-├── app.py                      # Main application entry point
-├── core/                       # Core mathematical functions
-│   ├── solar_math.py          # Solar calculations & utilities
-│   └── carbon_factors.py      # Grid CO₂ intensity database
-├── pages_modules/              # Workflow step implementations
-│   ├── project_setup.py       # Location & configuration
-│   ├── historical_data.py     # AI model training
-│   ├── weather_environment.py # TMY generation
-│   ├── facade_extraction.py   # BIM data processing
-│   ├── radiation_grid.py      # Solar radiation analysis
-│   ├── pv_specification.py    # BIPV system design
-│   ├── yield_demand.py        # Energy balance calculations
-│   ├── optimization.py        # Genetic algorithm optimization
-│   ├── financial_analysis.py  # Economic assessment
-│   └── reporting.py           # Comprehensive report generation
-├── utils/                      # Utility functions
-│   ├── consolidated_data_manager.py # Centralized data management
-│   ├── comprehensive_report_fixed.py # Report generation engine
-│   └── color_schemes.py       # UI styling utilities
-├── components/                 # UI components
-│   └── workflow_visualization.py # Progress tracking
-├── database_manager.py         # PostgreSQL operations
-└── attached_assets/           # Images and resources
+├── app.py                          # Main application entry point with 11-step routing
+├── database_manager.py             # PostgreSQL operations and schema management
+├── test_messages.py                # Message validation test environment
+│
+├── core/                           # Core mathematical functions
+│   ├── solar_math.py              # Solar calculations, coordinates, currency utils
+│   └── carbon_factors.py          # Official grid CO₂ intensity database (20+ countries)
+│
+├── pages_modules/                  # Complete workflow step implementations
+│   ├── welcome.py                 # Introduction, standards overview, sample files
+│   ├── project_setup.py           # Interactive map, weather stations, electricity rates
+│   ├── historical_data.py         # AI training, R² tracking, educational building patterns
+│   ├── weather_environment.py     # ISO TMY generation, dual API support
+│   ├── facade_extraction.py       # BIM CSV processing, suitability assessment
+│   ├── radiation_grid.py          # Height-dependent radiation, ground effects
+│   ├── pv_specification.py        # BIPV glass technology, suitable filtering
+│   ├── yield_demand.py            # Energy balance, seasonal patterns, financial flows
+│   ├── optimization.py            # NSGA-II algorithms, weighted objectives
+│   ├── financial_analysis.py      # NPV/IRR, real rates, environmental impact
+│   ├── reporting.py               # Individual step reports, master analysis
+│   └── detailed_report_generator.py # Scientific documentation engine
+│
+├── services/                       # External service integrations
+│   ├── io.py                      # File operations, API clients
+│   ├── weather_api_manager.py     # TU Berlin + OpenWeatherMap integration
+│   └── perplexity_agent.py        # AI consultation with research integration
+│
+├── utils/                          # Utility functions and managers
+│   ├── consolidated_data_manager.py # Centralized data flow system
+│   ├── individual_step_reports.py  # Step-by-step report generation
+│   ├── comprehensive_report_generator.py # Master report compilation
+│   ├── color_schemes.py           # UI styling and chart themes
+│   └── wmo_station_parser.py      # Weather station database management
+│
+├── components/                     # UI components
+│   └── workflow_visualization.py  # Dynamic progress tracking, milestones
+│
+└── attached_assets/               # Resources and sample files
+    ├── BIPV_Specifications_*.csv  # Sample BIPV technology data
+    ├── TMY_Data_*.csv             # Sample weather datasets
+    ├── TUB_H_Building_*.csv       # Sample building energy data
+    ├── *.dyn                      # Dynamo scripts for BIM extraction
+    ├── *.png                      # UI images, logos, step graphics
+    └── *.html                     # Generated analysis reports
 ```
+
+### Key Architecture Features
+- **Modular Design**: Separate modules for each workflow step with clear dependencies
+- **Centralized Data Management**: ConsolidatedDataManager ensures data consistency
+- **Database Integration**: PostgreSQL for reliable project persistence
+- **API Abstraction**: WeatherAPIManager handles multiple weather data sources
+- **Report Generation**: Multiple report formats with authentic calculated values
+- **Error Handling**: Comprehensive validation and fallback mechanisms
 
 ## 🔬 Scientific Methodology
 
@@ -138,22 +201,36 @@ The platform implements comprehensive equations for:
 - Financial modeling (NPV, IRR, payback period)
 - Environmental impact (CO₂ emissions, lifecycle assessment)
 
-## 📊 Data Sources
+## 📊 Data Sources & APIs
 
-### Weather Data
-- **Primary**: WMO CLIMAT stations (40+ global locations)
-- **API**: OpenWeatherMap for current/historical data
-- **Standards**: ISO 15927-4 compliant TMY generation
+### Weather Data Integration
+- **Primary Source**: WMO CLIMAT stations (40+ global locations with authentic metadata)
+- **TU Berlin Climate Portal**: Academic-grade meteorological data for Berlin/Germany
+- **OpenWeatherMap API**: Global coverage for international projects
+- **Standards Compliance**: ISO 15927-4 TMY generation with astronomical algorithms
+- **Quality Assurance**: Air mass corrections, climate zone modeling, elevation adjustments
 
-### Economic Data
-- **Electricity Rates**: Real-time APIs (SMARD, Ofgem, EIA, Eurostat)
-- **Currency**: Standardized EUR calculations with exchange rates
-- **CO₂ Factors**: Official sources (IEA, EEA, national TSOs)
+### Economic Data Sources  
+- **Live Electricity Rates**: Real-time API integration
+  - **Germany**: SMARD (Federal Network Agency)
+  - **UK**: Ofgem official rates
+  - **USA**: EIA (Energy Information Administration)
+  - **EU**: Eurostat regional averages
+- **Currency System**: Standardized EUR calculations with real-time exchange rates
+- **CO₂ Grid Factors**: Official sources (IEA World Energy Outlook 2023, EEA, national TSOs)
 
-### Building Data
-- **BIM Integration**: Revit/CAD model extraction
-- **Element Types**: Windows, curtain walls, glazing systems
-- **Properties**: Dimensions, orientations, glass areas, levels
+### Building Data Processing
+- **BIM Integration**: CSV extraction from Revit/CAD models via Dynamo scripts
+- **Element Types**: Windows, curtain walls, glazing systems with complete metadata
+- **Authentic Properties**: Element IDs, dimensions, orientations, glass areas, building levels
+- **Suitability Assessment**: Automated filtering for South/East/West orientations (excludes north-facing)
+- **Quality Control**: Zero fallback values - only authentic BIM data used
+
+### AI & Optimization
+- **Machine Learning**: RandomForestRegressor for demand prediction with R² score tracking
+- **Genetic Algorithms**: NSGA-II multi-objective optimization (cost/yield/ROI)
+- **Research Integration**: Perplexity AI for literature-based recommendations
+- **Performance Metrics**: Real-time model performance monitoring and improvement guidance
 
 ## 🎯 Use Cases
 
@@ -171,6 +248,14 @@ The platform implements comprehensive equations for:
 
 ## 🔄 Recent Improvements
 
+### Complete Platform Enhancement (July 2025)
+- **11-Step Complete Workflow**: Fully functional analysis pipeline from welcome through AI consultation
+- **Height-Dependent Radiation Analysis**: 5-20% radiation enhancement factors for ground floors vs upper levels
+- **BIPV Suitability Filtering**: Intelligent exclusion of 191 north-facing windows from 950 total elements
+- **Perplexity AI Integration**: Research-based consultation using actual project data
+- **Multi-Source Data Integration**: TU Berlin API for Germany, OpenWeatherMap globally
+- **Real-Time Electricity Rates**: Live API integration for authentic financial calculations
+
 ### Consolidated Data Management System (January 2025)
 - **Centralized Data Flow**: Implemented ConsolidatedDataManager for unified data collection across all workflow steps
 - **Real Value Reporting**: Eliminated placeholder zeros in comprehensive reports with authentic calculated values
@@ -182,23 +267,43 @@ The platform implements comprehensive equations for:
 - **Real-time Data Capture**: Automatic data collection as each workflow step completes
 - **Enhanced Debugging**: Comprehensive logging system for data flow tracking
 - **Improved User Experience**: Accurate reports with actual project-specific calculations
+- **PostgreSQL Integration**: Reliable project data persistence and retrieval
+- **Height-Based Solar Modeling**: Ground reflectance, GHI adjustments, atmospheric effects
+- **Authentic Data Requirements**: Zero fallback values - only real TMY and BIM data used
 
 ## 🤝 Contributing
 
 This project is developed as part of PhD research at Technische Universität Berlin. Contributions are welcome through:
 
-1. **Issue Reports**: Bug reports and feature requests
-2. **Code Contributions**: Pull requests for improvements
-3. **Academic Collaboration**: Research partnerships
-4. **Data Validation**: Verification of calculations and standards
+1. **Issue Reports**: Bug reports and feature requests via GitHub Issues
+2. **Code Contributions**: Pull requests for improvements and new features
+3. **Academic Collaboration**: Research partnerships and methodology validation
+4. **Data Validation**: Verification of calculations, standards implementation, and results
+5. **Documentation**: Improvements to technical documentation and user guides
 
 ### Development Guidelines
 
-- Follow PEP 8 Python style guidelines
-- Maintain comprehensive docstrings
-- Include unit tests for new functionality
-- Update documentation for API changes
-- Preserve academic attribution and references
+- **Code Style**: Follow PEP 8 Python style guidelines with comprehensive docstrings
+- **Testing**: Include unit tests for new functionality, validate against known benchmarks
+- **Documentation**: Update technical docs for API changes, maintain academic references
+- **Data Integrity**: Preserve authentic data requirements - no fallback/synthetic values
+- **Academic Attribution**: Maintain proper citation to TU Berlin research and sources
+- **Modular Design**: Follow existing architecture patterns in pages_modules/ structure
+
+### Research Collaboration
+
+- **Academic Partnerships**: Welcome collaboration on BIPV methodology and validation
+- **Standards Implementation**: Assistance with ISO, EN, ASHRAE standards verification
+- **Performance Validation**: Real-world project testing and results comparison
+- **Publication Support**: Co-authorship opportunities for peer-reviewed publications
+
+### Technical Contributions Priority
+
+1. **Enhanced BIM Integration**: Additional CAD/BIM format support beyond CSV
+2. **Advanced Optimization**: Multi-criteria decision analysis, sensitivity analysis
+3. **Regional Expansion**: Additional weather APIs, local electricity rate sources
+4. **Validation Tools**: Comparison with commercial BIPV analysis software
+5. **Performance Optimization**: Large-scale building analysis (1000+ elements)
 
 ## 📜 License
 

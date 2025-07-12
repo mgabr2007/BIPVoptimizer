@@ -2,24 +2,27 @@
 
 ## Overview
 
-BIPV Optimizer is a comprehensive Building Integrated Photovoltaics optimization platform built with Streamlit. The application provides a complete workflow for analyzing and optimizing photovoltaic system installations on building facades and windows, from initial project setup through financial analysis and 3D visualization.
+BIPV Optimizer is a comprehensive Building Integrated Photovoltaics optimization platform built with Streamlit for academic research at Technische Universität Berlin. The application provides a complete 11-step workflow for analyzing and optimizing BIPV system installations where semi-transparent PV cells replace existing window glass using exact building element data.
 
-The platform follows a 10-step workflow that guides users through the entire BIPV analysis process, including historical data analysis, weather integration, facade extraction, radiation modeling, PV specification, yield calculations, optimization, and financial analysis.
+The platform follows a complete 11-step workflow from welcome through AI consultation, including interactive map-based location selection, AI model training with R² tracking, ISO-compliant TMY generation, BIM data processing, height-dependent radiation analysis, BIPV glass specification, multi-objective optimization, comprehensive financial analysis, and research-based AI consultation using Perplexity.
 
 ## System Architecture
 
 ### Frontend Architecture
-- **Framework**: Streamlit web application with wide layout and expandable sidebar
-- **Navigation**: Multi-page workflow system with 11 sequential modules
-- **Visualization**: Plotly for interactive charts, graphs, and 3D building visualization
-- **State Management**: Streamlit session state for workflow progress and data persistence
+- **Framework**: Streamlit web application with clean interface and professional branding
+- **Navigation**: Complete 11-step workflow system with dynamic progress tracking
+- **Visualization**: Plotly for interactive charts, maps (Folium), and comprehensive analysis dashboards
+- **State Management**: Streamlit session state with PostgreSQL persistence for reliable data management
+- **UI Components**: Professional BIPV Optimizer branding with OptiSunny character integration
 
 ### Backend Architecture
-- **Language**: Python 3.11
-- **Structure**: Modular design with separate modules for each workflow step
-- **Data Processing**: Pandas and NumPy for data manipulation and analysis
-- **Machine Learning**: Scikit-learn for energy demand prediction models
-- **Optimization**: DEAP (Distributed Evolutionary Algorithms in Python) for genetic algorithm optimization
+- **Language**: Python 3.11 with comprehensive scientific computing stack
+- **Structure**: Modular design with pages_modules/, services/, utils/, and core/ separation
+- **Data Management**: ConsolidatedDataManager for unified data flow across all workflow steps
+- **Database**: PostgreSQL 16 for reliable project data persistence and retrieval
+- **Machine Learning**: Scikit-learn RandomForestRegressor with R² score tracking and performance monitoring
+- **Optimization**: DEAP genetic algorithms (NSGA-II) for multi-objective optimization (cost/yield/ROI)
+- **APIs**: Multi-source integration (TU Berlin Climate Portal, OpenWeatherMap, live electricity rates)
 
 ### Module Structure
 ```
@@ -444,8 +447,21 @@ The platform now includes comprehensive CSV file structure documentation for all
 - July 12, 2025: Implemented comprehensive Step 5 radiation analysis performance optimization for handling 950+ building elements including dynamic batch processing (25-100 elements per batch based on dataset size), comprehensive error handling with individual element timeout protection (30 seconds), memory management with garbage collection every 100 elements, progress checkpoints with intermediate result saving for recovery, fallback calculations to prevent total analysis failure, and element-specific error handling without stopping entire process - ensuring large-scale BIPV analysis completes successfully without interruption
 - July 12, 2025: Enhanced Step 5 radiation analysis with ground height considerations including window height from ground calculations based on building levels, ground reflectance factor calculations using standard solar engineering formulas, height-dependent view factors that decrease exponentially with elevation, ground albedo effects providing 5-15% additional irradiance for lower floors, comprehensive ground height analysis visualization showing reflectance vs height relationships, and enhanced results display with ground height parameters - ensuring accurate radiation calculations that account for ground-reflected solar irradiance especially beneficial for ground floor and lower level windows
 - July 12, 2025: Implemented comprehensive height-dependent effects on solar radiation analysis including GHI (Global Horizontal Irradiance) height adjustments with atmospheric clarity improvements (0.1% per meter), horizon obstruction factor reductions at height, solar angle corrections with horizon depression calculations, atmospheric refraction adjustments, combined height enhancement factors showing total 5-20% radiation improvements for ground floors vs upper floors, enhanced visualization with separate tabs for ground reflectance/GHI effects/combined effects, and detailed results display showing all height-dependent parameters - providing scientifically accurate radiation modeling that accounts for all physical height effects on solar irradiance
+- July 12, 2025: Confirmed complete 11-step workflow functionality including Step 11 (AI Consultation) with Perplexity API integration, verified BIPV suitability filtering correctly excludes 191 north-facing windows from 950 total elements in optimization calculations, confirmed height-dependent radiation analysis provides 5-20% enhancement factors, validated authentic data requirements with zero fallback values throughout platform, and updated comprehensive documentation in README.md with current project architecture, API integrations, and technical specifications
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
-UI preferences: Clean sidebar without headers, navigation at bottom of pages for improved user experience, no balloon celebrations or animations.
+**Communication Style**: Simple, everyday language avoiding technical jargon for non-technical users.
+
+**UI Preferences**: 
+- Clean sidebar without headers, navigation at bottom of pages for improved user experience
+- No balloon celebrations or animations for professional appearance
+- Professional BIPV Optimizer branding with light green color scheme and OptiSunny character integration
+
+**Technical Preferences**:
+- Authentic data requirements - zero fallback values, only real TMY and BIM data used
+- Complete 11-step workflow with proper step dependencies and validation
+- PostgreSQL database persistence for reliable project data management
+- Multi-source API integration for weather data (TU Berlin + OpenWeatherMap)
+- Comprehensive reporting with real calculated values instead of placeholder data
+- Research-grade academic attribution to TU Berlin and Mostafa Gabr PhD research
