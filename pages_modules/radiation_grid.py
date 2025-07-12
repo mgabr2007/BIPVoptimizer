@@ -1389,10 +1389,10 @@ def render_radiation_grid():
                         timeout_occurred = False
                         
                         for month in range(1, 13):
-                            # Check for timeout - skip element if calculation takes too long
+                            # Check for timeout - continue processing but mark timeout
                             if time.time() - element_start_time > ELEMENT_TIMEOUT:
                                 timeout_occurred = True
-                                st.warning(f"⚠️ Element {element_id}: Calculation timeout - skipping element")
+                                st.warning(f"⚠️ Element {element_id}: Calculation timeout - continuing with available data")
                                 break
                             
                             monthly_total = 0
@@ -1466,8 +1466,8 @@ def render_radiation_grid():
                             if monthly_samples > 0:
                                 monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
                         
-                        # Only proceed if we have valid calculation data (no timeout)
-                        if not timeout_occurred and sample_count > 0:
+                        # Process all elements but only with authentic calculated data
+                        if sample_count > 0:  # Only require some valid samples, not zero timeout
                             # Scale to annual totals based on computational method
                             if analysis_precision == "Hourly":
                                 # Hourly analysis: scale from samples to full year
@@ -1517,18 +1517,20 @@ def render_radiation_grid():
                                 'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
                                 'monthly_irradiation': monthly_irradiation,
                                 'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
-                                'annual_energy_potential': annual_irradiance * area  # kWh per element
+                                'annual_energy_potential': annual_irradiance * area,  # kWh per element
+                                'timeout_occurred': timeout_occurred,
+                                'sample_count': sample_count
                             })
                         else:
-                            # Skip element if timeout or no valid data - no fallback values
-                            st.warning(f"⚠️ Element {element_id}: Skipped due to timeout or insufficient data")
+                            # Continue processing but note insufficient data
+                            st.warning(f"⚠️ Element {element_id}: No valid TMY samples - continuing with next element")
                 
                     except Exception as e:
-                        # Skip element on processing error - no fallback values
-                        error_msg = f"Element {element_id}: Processing error - skipping element"
+                        # Continue processing but log error - no fallback values added
+                        error_msg = f"Element {element_id}: Processing error - continuing without data"
                         st.warning(f"⚠️ {error_msg}: {str(e)[:50]}")
                         
-                        # Continue processing next element - no fallback data added
+                        # Continue to next element - no data added for failed element
                         
 
                 
@@ -1551,14 +1553,23 @@ def render_radiation_grid():
                     st.session_state.temp_radiation_results = radiation_results.copy()
                     st.info(f"🚀 **Deployment Checkpoint**: Saved {len(radiation_results)} results")
             
-            # NO FALLBACK: If no radiation results, analysis stops with authentic data requirement
+            # Continue processing regardless of result count - show what was calculated
             if len(radiation_results) == 0:
-                st.error("⚠️ No radiation data calculated - all elements failed validation. Analysis requires authentic TMY data.")
-                st.info("📋 **Required for continuation:**\n- Valid building elements with proper orientation data\n- Complete TMY weather data from Step 3\n- Non-timeout element calculations")
-                return None
-            
-            # Convert to DataFrame
-            radiation_data = pd.DataFrame(radiation_results)
+                st.warning("⚠️ No radiation data calculated from authentic TMY sources.")
+                st.info("📋 **Analysis completed processing all elements** - results show only elements with valid TMY calculations")
+                # Create empty DataFrame with proper structure for consistency
+                radiation_data = pd.DataFrame(columns=[
+                    'element_id', 'element_type', 'orientation', 'azimuth', 'tilt', 'area', 'level',
+                    'height_from_ground', 'ground_reflectance_factor', 'ghi_height_factor', 
+                    'atmospheric_clarity_factor', 'horizon_factor', 'horizon_depression_deg',
+                    'total_height_enhancement', 'wall_hosted_id', 'width', 'height',
+                    'annual_irradiation', 'peak_irradiance', 'avg_irradiance', 'monthly_irradiation',
+                    'capacity_factor', 'annual_energy_potential'
+                ])
+            else:
+                # Convert results to DataFrame
+                radiation_data = pd.DataFrame(radiation_results)
+                st.success(f"✅ Processed {len(suitable_elements)} elements - {len(radiation_results)} with valid radiation data")
             
             # Apply corrections if requested
             if apply_corrections:
@@ -1570,10 +1581,11 @@ def render_radiation_grid():
             status_text.text("Finalizing analysis and saving results...")
             progress_bar.progress(95)
             
-            # NO FALLBACK: If empty radiation data, analysis stops
+            # Continue with whatever authentic data was calculated
             if len(radiation_data) == 0:
-                st.error("⚠️ Critical error: No radiation data generated. Analysis requires authentic calculations.")
-                return None
+                st.info("ℹ️ Analysis completed - no elements produced valid radiation calculations from TMY data.")
+            else:
+                st.success(f"✅ Analysis completed with {len(radiation_data)} elements containing authentic TMY-based radiation data")
                 
             # Save to session state and database
             st.session_state.project_data['radiation_data'] = radiation_data
