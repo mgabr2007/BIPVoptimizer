@@ -629,14 +629,33 @@ def precompute_solar_tables(tmy_data, latitude, longitude, sample_hours, days_sa
             
             if not tmy_hour.empty:
                 hour_data = tmy_hour.iloc[0]
-                solar_lookup[key] = {
-                    'solar_position': solar_pos,
-                    'ghi': hour_data.get('ghi', 0),
-                    'dni': hour_data.get('dni', 0),
-                    'dhi': hour_data.get('dhi', 0),
-                    'solar_elevation': hour_data.get('solar_elevation', solar_pos['elevation']),
-                    'solar_azimuth': hour_data.get('solar_azimuth', solar_pos['azimuth'])
-                }
+                
+                # Extract radiation values with flexible column name support
+                ghi_value = (hour_data.get('ghi', 0) or 
+                           hour_data.get('GHI', 0) or 
+                           hour_data.get('solar_ghi', 0) or
+                           hour_data.get('ghi_irradiance', 0))
+                           
+                dni_value = (hour_data.get('dni', 0) or 
+                           hour_data.get('DNI', 0) or 
+                           hour_data.get('solar_dni', 0) or
+                           hour_data.get('dni_irradiance', 0))
+                           
+                dhi_value = (hour_data.get('dhi', 0) or 
+                           hour_data.get('DHI', 0) or 
+                           hour_data.get('solar_dhi', 0) or
+                           hour_data.get('dhi_irradiance', 0))
+                
+                # Only add to lookup if we have valid radiation data
+                if ghi_value > 0 or dni_value > 0 or dhi_value > 0:
+                    solar_lookup[key] = {
+                        'solar_position': solar_pos,
+                        'ghi': float(ghi_value),
+                        'dni': float(dni_value),
+                        'dhi': float(dhi_value),
+                        'solar_elevation': hour_data.get('solar_elevation', solar_pos['elevation']),
+                        'solar_azimuth': hour_data.get('solar_azimuth', solar_pos['azimuth'])
+                    }
     
     return solar_lookup
 
@@ -1197,18 +1216,41 @@ def render_radiation_grid():
             # Debug TMY data structure
             st.info(f"📊 TMY Data Info: {len(tmy_df)} records, Columns: {list(tmy_df.columns)}")
             
-            # Check for required radiation columns
+            # Check for required radiation columns with flexible column name matching
             required_cols = ['ghi', 'dni', 'dhi']
-            missing_cols = [col for col in required_cols if col not in tmy_df.columns and col.upper() not in tmy_df.columns]
+            available_cols = [col.lower() for col in tmy_df.columns]
+            missing_cols = []
+            found_cols = {}
+            
+            for req_col in required_cols:
+                # Check for exact match, uppercase, or variations
+                if req_col in available_cols:
+                    found_cols[req_col] = req_col
+                elif req_col.upper() in tmy_df.columns:
+                    found_cols[req_col] = req_col.upper()
+                elif f'solar_{req_col}' in available_cols:
+                    found_cols[req_col] = f'solar_{req_col}'
+                elif f'{req_col}_irradiance' in available_cols:
+                    found_cols[req_col] = f'{req_col}_irradiance'
+                else:
+                    missing_cols.append(req_col)
             
             if missing_cols:
                 st.warning(f"⚠️ Missing radiation columns in TMY data: {missing_cols}")
+                st.write("📊 Available columns in TMY data:")
+                st.write(list(tmy_df.columns))
                 # Show sample of available data
                 if len(tmy_df) > 0:
                     st.write("Sample TMY data:")
                     st.dataframe(tmy_df.head(3))
             else:
                 st.success("✅ TMY data contains required radiation values (GHI, DNI, DHI)")
+                st.info(f"Found columns: {found_cols}")
+                
+                # Standardize column names for processing
+                for standard_name, actual_name in found_cols.items():
+                    if actual_name != standard_name:
+                        tmy_df[standard_name] = tmy_df[actual_name]
             
             # Ensure datetime column exists
             if 'datetime' not in tmy_df.columns:

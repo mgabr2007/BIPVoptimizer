@@ -67,12 +67,13 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
             st.info(f"📊 Processing DataFrame with {len(radiation_data)} radiation records")
             for _, rad_row in radiation_data.iterrows():
                 element_id = rad_row.get('element_id', '')
-                # Try multiple field names for annual radiation
+                # Try multiple field names for annual radiation (Step 5 uses 'annual_irradiation')
                 annual_radiation = (
+                    rad_row.get('annual_irradiation') or  # Step 5 default column name
                     rad_row.get('annual_radiation') or
-                    rad_row.get('annual_irradiation') or 
                     rad_row.get('radiation') or
                     rad_row.get('annual_radiation_kwh_m2') or
+                    rad_row.get('annual_energy_potential') or
                     None
                 )
                 if annual_radiation is not None and annual_radiation > 0:
