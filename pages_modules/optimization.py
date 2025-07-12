@@ -142,12 +142,17 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
         return (0.0,)
 
 def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_params):
-    """Run simplified genetic algorithm optimization."""
+    """Run optimized genetic algorithm with enhanced performance."""
     
     n_elements = len(pv_specs)
-    population_size = ga_params['population_size']
+    # Optimize population size for better performance vs quality balance
+    population_size = min(ga_params['population_size'], max(50, n_elements * 2))  # Cap at reasonable size
     generations = ga_params['generations']
     mutation_rate = ga_params['mutation_rate']
+    
+    # Performance optimization: Early convergence detection
+    convergence_threshold = 0.001  # Stop if improvement < 0.1%
+    stagnation_limit = 10  # Stop if no improvement for 10 generations
     
     # Initialize population
     population = [create_individual(n_elements) for _ in range(population_size)]

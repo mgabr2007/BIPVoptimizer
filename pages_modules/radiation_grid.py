@@ -831,14 +831,15 @@ def render_radiation_grid():
             total_elements_count = len(suitable_elements)
             
             # Calculate optimal batch size based on element count and precision
+            # Increase batch sizes for better performance on larger datasets
             if total_elements_count > 800:
-                BATCH_SIZE = 25  # Smaller batches for large datasets
-                st.info(f"🔧 **Large Dataset Optimization**: Processing {total_elements_count} elements in small batches of {BATCH_SIZE}")
+                BATCH_SIZE = 50  # Increased from 25 for better throughput
+                st.info(f"🔧 **Large Dataset Optimization**: Processing {total_elements_count} elements in optimized batches of {BATCH_SIZE}")
             elif total_elements_count > 400:
-                BATCH_SIZE = 50  # Medium batches for medium datasets
-                st.info(f"⚡ **Medium Dataset Processing**: Using batch size {BATCH_SIZE} for {total_elements_count} elements")
+                BATCH_SIZE = 75  # Increased from 50 for better throughput
+                st.info(f"⚡ **Medium Dataset Processing**: Using optimized batch size {BATCH_SIZE} for {total_elements_count} elements")
             else:
-                BATCH_SIZE = 100  # Larger batches for smaller datasets
+                BATCH_SIZE = 150  # Increased from 100 for smaller datasets
             
             # Adjust batch size based on precision level
             if analysis_precision == "Maximum":
