@@ -1388,6 +1388,13 @@ def render_radiation_grid():
                 processed_element_ids = {result.get('element_id', '') for result in radiation_results}
                 st.info(f"📋 **Continuing from previous analysis**: {len(processed_element_ids)} elements already processed")
             
+            # Initialize timeout tracking
+            import time
+            analysis_start_time = time.time()
+            last_progress_time = analysis_start_time
+            elements_processed_this_session = 0
+            consecutive_skips = 0  # Track consecutive skipped elements
+            
             # Convert DataFrame to list of dictionaries if needed
             if hasattr(suitable_elements, 'iterrows'):
                 import math
@@ -1471,7 +1478,20 @@ def render_radiation_grid():
                         
                         # Skip if element already processed (duplication check)
                         if element_id in processed_element_ids:
+                            consecutive_skips += 1
+                            # Update progress display for skipped elements
+                            percentage_complete = int(100 * global_i / len(suitable_elements))
+                            element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} (already processed)</h4>", unsafe_allow_html=True)
+                            progress_bar.progress(percentage_complete)
+                            
+                            # Check for too many consecutive skips (possible infinite loop)
+                            if consecutive_skips > 50:
+                                st.error(f"🚫 Too many consecutive skips ({consecutive_skips}). Analysis may be stuck.")
+                                st.info("💡 Try using 'Start New Analysis' to reset the duplication tracking.")
+                                return
                             continue
+                        else:
+                            consecutive_skips = 0  # Reset skip counter when processing an element
                         
                         azimuth = element.get('azimuth', 180)
                         tilt = element.get('tilt', 90)
@@ -1481,10 +1501,21 @@ def render_radiation_grid():
                         width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
                         height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
                         
-                        # Progress display with larger font
+                        # Progress display with larger font and timeout tracking
                         percentage_complete = int(100 * global_i / len(suitable_elements))
                         element_progress.markdown(f"<h4 style='color: #0066cc; margin: 0;'>Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id}</h4>", unsafe_allow_html=True)
                         progress_bar.progress(percentage_complete)
+                        
+                        # Update progress tracking
+                        current_time = time.time()
+                        elements_processed_this_session += 1
+                        last_progress_time = current_time
+                        
+                        # Check for timeout (10 minutes per session)
+                        if current_time - analysis_start_time > 600:  # 10 minutes
+                            st.warning(f"⏱️ Analysis timeout reached. Processed {elements_processed_this_session} elements in this session.")
+                            st.info("💡 Use the Pause/Resume functionality to continue processing in manageable chunks.")
+                            break
                         
                         # Calculate radiation for this element
                         try:
@@ -1627,7 +1658,17 @@ def render_radiation_grid():
                             # else: Continue processing silently if no valid samples
                         
                         except Exception as e:
-                            # Continue processing silently - no fallback values added
+                            # Log error but continue processing - no fallback values added
+                            if 'radiation_error_count' not in st.session_state:
+                                st.session_state.radiation_error_count = 0
+                            st.session_state.radiation_error_count += 1
+                            
+                            # Show occasional error info without overwhelming the interface
+                            if st.session_state.radiation_error_count <= 3:
+                                st.warning(f"⚠️ Element {element_id} processing error (continuing): {str(e)[:100]}")
+                            elif st.session_state.radiation_error_count == 4:
+                                st.info("ℹ️ Additional processing errors will not be displayed to avoid clutter.")
+                            
                             pass  # Continue to next element - no data added for failed element
                         
 
