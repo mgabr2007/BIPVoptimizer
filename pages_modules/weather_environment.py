@@ -9,6 +9,7 @@ import calendar
 from datetime import datetime, timedelta
 from core.solar_math import calculate_solar_position_iso, classify_solar_resource_iso, SimpleMath
 from services.io import get_weather_data_from_coordinates, fetch_openweather_forecast_data, find_nearest_wmo_station, save_project_data
+from utils.database_helper import db_helper
 
 
 
@@ -526,9 +527,20 @@ def render_weather_environment():
                         # Save to database
                         if 'project_id' in st.session_state:
                             try:
+                                # Save weather data using helper
+                                db_helper.save_step_data("weather_analysis", {
+                                    'tmy_data': tmy_data,
+                                    'weather_data': st.session_state.project_data.get('weather_analysis', {}),
+                                    'annual_ghi': annual_ghi,
+                                    'monthly_profiles': monthly_profiles
+                                })
+                                
+                                # Legacy save method for compatibility
                                 from database_manager import BIPVDatabaseManager
                                 db_manager = BIPVDatabaseManager()
-                                db_manager.save_weather_data(
+                                project_id = db_helper.get_project_id()
+                                if project_id:
+                                    db_manager.save_weather_data(
                                     st.session_state.project_data['project_id'],
                                     weather_analysis
                                 )

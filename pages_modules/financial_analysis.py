@@ -9,6 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 from database_manager import db_manager
+from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from core.carbon_factors import get_grid_carbon_factor, display_carbon_factor_info
 from utils.consolidated_data_manager import ConsolidatedDataManager
@@ -488,7 +489,13 @@ def render_financial_analysis():
                 project_id = st.session_state.get('project_id') or st.session_state.project_data.get('project_id')
                 if project_id:
                     try:
-                        db_manager.save_financial_analysis(
+                        # Save using database helper
+                        db_helper.save_step_data("financial_analysis", financial_results)
+                        
+                        # Legacy save method for compatibility
+                        project_id = db_helper.get_project_id()
+                        if project_id:
+                            db_manager.save_financial_analysis(
                             project_id,
                             financial_analysis_results
                         )

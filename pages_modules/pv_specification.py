@@ -9,6 +9,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from database_manager import db_manager
+from utils.database_helper import db_helper
 from datetime import datetime
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
@@ -416,7 +417,19 @@ def render_pv_specification():
                 # Save to database
                 project_name = st.session_state.get('project_name', 'Unnamed Project')
                 try:
-                    project_id = db_manager.save_project({'project_name': project_name})
+                    # Save using database helper
+                    db_helper.save_step_data("pv_specifications", {
+                        'panel_type': selected_panel['name'],
+                        'efficiency': selected_panel['efficiency'],
+                        'transparency': selected_panel.get('transparency', 0),
+                        'cost_per_m2': selected_panel['cost_per_m2'],
+                        'power_density': selected_panel['power_density'],
+                        'installation_factor': selected_panel.get('installation_factor', 1.2),
+                        'systems': systems
+                    })
+                    
+                    # Legacy save method for compatibility
+                    project_id = db_helper.get_project_id(project_name)
                     if project_id:
                         db_manager.save_pv_specifications(int(project_id), {
                             'panel_specs': final_panel_specs,

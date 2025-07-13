@@ -3,6 +3,7 @@ Facade and Window Extraction page for BIPV Optimizer
 """
 import streamlit as st
 from services.io import parse_csv_content, save_building_elements, save_project_data
+from utils.database_helper import db_helper
 from utils.consolidated_data_manager import ConsolidatedDataManager
 
 
@@ -389,7 +390,10 @@ def render_facade_extraction():
                     }
                     consolidated_manager.save_step4_data(step4_data)
                     
-                    # Database save
+                    # Database save using helper
+                    db_helper.save_step_data("building_elements", windows)
+                    
+                    # Legacy database save for compatibility
                     if 'project_id' in st.session_state:
                         from database_manager import save_building_elements, save_project_data
                         save_building_elements(st.session_state.project_id, windows)

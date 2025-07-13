@@ -10,6 +10,7 @@ import pandas as pd
 import requests
 from core.solar_math import get_location_solar_parameters, get_location_electricity_rates, determine_timezone_from_coordinates, get_currency_symbol
 from services.io import get_weather_data_from_coordinates, save_project_data
+from utils.database_helper import db_helper
 from services.weather_stations import find_nearest_stations, get_station_summary, format_station_display
 from services.electricity_rates import get_real_time_electricity_rates, display_rate_source_info, enhance_project_setup_with_live_rates
 from services.api_integrations import implement_live_rate_fetching, get_live_electricity_rates
@@ -825,6 +826,10 @@ def render_project_setup():
         
         # Save to database
         project_id = save_project_data(project_data)
+        # Also save to session state for consistent access
+        if project_id:
+            st.session_state.project_id = project_id
+            st.session_state.project_data = project_data
         if project_id:
             st.session_state.project_id = project_id
             

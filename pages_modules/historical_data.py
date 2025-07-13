@@ -4,6 +4,7 @@ Historical Data Analysis page for BIPV Optimizer
 import streamlit as st
 from core.solar_math import SimpleMath
 from services.io import parse_csv_content, save_project_data
+from utils.database_helper import db_helper
 from datetime import datetime, timedelta
 import pandas as pd
 
@@ -663,6 +664,12 @@ def render_historical_data():
             # Save to database
             if 'project_id' in st.session_state:
                 save_project_data(st.session_state.project_data)
+                # Save historical data using helper
+                db_helper.save_step_data("historical_data", {
+                    'consumption_data': st.session_state.project_data.get('historical_data', {}),
+                    'ai_model_data': st.session_state.project_data.get('ai_model', {}),
+                    'forecast_data': st.session_state.project_data.get('forecast_data', {})
+                })
         
         # Display analysis results
         st.success("Historical data processed and AI model trained successfully!")

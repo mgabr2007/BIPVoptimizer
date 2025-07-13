@@ -9,6 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 from database_manager import db_manager, BIPVDatabaseManager
+from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
 
@@ -1188,31 +1189,13 @@ def render_radiation_grid():
             st.info("No walls data available - shading analysis will be skipped")
     
     # Database-backed progress tracking for deployment compatibility
-    db_manager = BIPVDatabaseManager()
     project_name = st.session_state.get('project_name', 'Default Project')
     
     # Check for existing radiation analysis in database using direct query
     try:
-        # Get project ID first
-        conn = db_manager.get_connection()
-        project_id = None
-        existing_count = 0
-        
-        if conn:
-            with conn.cursor() as cursor:
-                # Get project ID
-                cursor.execute("SELECT project_id FROM projects WHERE project_name = %s", (project_name,))
-                project_row = cursor.fetchone()
-                
-                if project_row:
-                    project_id = project_row[0]
-                    
-                    # Count existing radiation analysis results
-                    cursor.execute("SELECT COUNT(*) FROM element_radiation WHERE project_id = %s", (project_id,))
-                    count_row = cursor.fetchone()
-                    existing_count = count_row[0] if count_row else 0
-            
-            conn.close()
+        # Use database helper for consistent access
+        project_id = db_helper.get_project_id(project_name)
+        existing_count = db_helper.count_step_records("radiation_analysis", project_name)
         
         total_elements = len(st.session_state.get('building_elements', []))
         
@@ -1227,14 +1210,19 @@ def render_radiation_grid():
                 restart_analysis = st.button("🔄 Start Fresh Analysis", key="restart_radiation_fresh")
                 
             if restart_analysis:
-                # Clear database radiation data
-                if project_id and conn:
-                    conn = db_manager.get_connection()
-                    with conn.cursor() as cursor:
-                        cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
-                        cursor.execute("DELETE FROM radiation_analysis WHERE project_id = %s", (project_id,))
-                        conn.commit()
-                    conn.close()
+                # Clear database radiation data using helper
+                if project_id:
+                    try:
+                        db_manager = BIPVDatabaseManager()
+                        conn = db_manager.get_connection()
+                        if conn:
+                            with conn.cursor() as cursor:
+                                cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
+                                cursor.execute("DELETE FROM radiation_analysis WHERE project_id = %s", (project_id,))
+                                conn.commit()
+                            conn.close()
+                    except Exception as e:
+                        st.warning(f"Could not clear database: {str(e)}")
                 
                 st.session_state.radiation_start_index = 0
                 st.session_state.radiation_partial_results = []
@@ -1864,6 +1852,15 @@ def render_radiation_grid():
             # Save to database if project_id exists
             if 'project_id' in st.session_state and st.session_state.project_id:
                 try:
+                    # Save using database helper
+                    db_helper.save_step_data("radiation_analysis", {
+                        'results': radiation_results,
+                        'analysis_complete': True,
+                        'total_elements': len(suitable_elements),
+                        'processed_elements': len(radiation_results)
+                    })
+                    
+                    # Legacy save method for compatibility
                     db_manager.save_radiation_analysis(
                         st.session_state.project_id,
                         {

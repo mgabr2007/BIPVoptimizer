@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from datetime import datetime as dt, timedelta
 import pickle
 from database_manager import db_manager
+from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
 
@@ -967,7 +968,19 @@ def render_yield_demand():
                 # Save to database with error handling
                 if 'project_id' in st.session_state and st.session_state.project_id:
                     try:
-                        db_manager.save_yield_demand_data(
+                        # Save using database helper
+                        db_helper.save_step_data("yield_demand", {
+                            'energy_balance': energy_balance,
+                            'analysis_config': analysis_config,
+                            'yield_analysis': yield_analysis_results,
+                            'demand_data': monthly_demand_data,
+                            'pv_data': monthly_pv_generation
+                        })
+                        
+                        # Legacy save method for compatibility
+                        project_id = db_helper.get_project_id()
+                        if project_id:
+                            db_manager.save_yield_demand_data(
                             st.session_state.project_id,
                             st.session_state.project_data['yield_demand_analysis']
                         )

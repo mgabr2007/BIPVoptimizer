@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 import random
 from database_manager import db_manager
+from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from utils.color_schemes import CHART_COLORS, get_chart_color
 from utils.consolidated_data_manager import ConsolidatedDataManager
@@ -667,7 +668,18 @@ def render_optimization():
                 # Save to database with validation
                 if 'project_id' in st.session_state.project_data and st.session_state.project_data['project_id']:
                     try:
-                        db_manager.save_optimization_results(
+                        # Save using database helper
+                        db_helper.save_step_data("optimization", {
+                            'results': optimization_results,
+                            'pareto_solutions': pareto_solutions,
+                            'algorithm_config': algorithm_config,
+                            'optimization_complete': True
+                        })
+                        
+                        # Legacy save method for compatibility
+                        project_id = db_helper.get_project_id()
+                        if project_id:
+                            db_manager.save_optimization_results(
                             st.session_state.project_data['project_id'],
                             optimization_results
                         )
