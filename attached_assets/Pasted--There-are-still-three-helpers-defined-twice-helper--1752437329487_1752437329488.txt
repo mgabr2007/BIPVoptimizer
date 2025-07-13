@@ -1,0 +1,91 @@
+### There are **still three helpers defined twice**
+
+| helper                                    | 1st copy (approx. line)                 | 2nd copy (approx. line)            |
+| ----------------------------------------- | --------------------------------------- | ---------------------------------- |
+| `calculate_height_dependent_solar_angles` | **\~140** (arg name = `solar_position`) | **\~240** (arg name = `solar_pos`) |
+| `cluster_elements_by_orientation`         | **\~70** (works on a *list* of dicts)   | **\~270** (expects a *DataFrame*)  |
+| `group_elements_by_level`                 | **\~110** (works on a *list*)           | **\~300** (expects a *DataFrame*)  |
+
+Python keeps only the *last* definition it reads, so:
+
+```text
+┌ first version loaded
+│   (silently forgotten)
+└ second “wins” and is what runs
+```
+
+That means:
+
+* Every kilobyte of the first copy is dead weight.
+* Call-sites that were written for the first signature (`solar_position` vs `solar_pos`) might silently get the wrong keyword and still run (because Python ignores unknown keywords unless you pass `**kwargs`).  Easy source of subtle bugs.
+
+---
+
+#### Quick proof
+
+```bash
+grep -n "def calculate_height_dependent_solar_angles" radiation_grid.py
+grep -n "def cluster_elements_by_orientation"        radiation_grid.py
+grep -n "def group_elements_by_level"                radiation_grid.py
+```
+
+You’ll see two line numbers for each.
+
+---
+
+### What to do
+
+1. **Pick one implementation per helper** (I’d keep the later DataFrame-aware versions).
+2. Delete the earlier copies completely.
+3. Make sure every call site imports/uses the canonical version (they already do, because the 2nd copy overwrote the first).
+
+<details>
+<summary>Example patch for one duplicate</summary>
+
+```diff
+- def cluster_elements_by_orientation(elements, azimuth_tolerance=5):
+-     """
+-     Group elements by similar orientation to reduce redundant calculations.
+-     Elements with similar azimuth (±5°) are processed together.
+-     """
+-     clusters = {}
+-     ...
+-     return clusters
+```
+
+*(delete the block above – keep the later DataFrame version)*
+
+</details>
+
+---
+
+### Side-note on logging duplication
+
+You purged the element-level double logging (good ✔), but you still call `radiation_logger.*` once at the very end:
+
+```python
+radiation_logger.log_analysis_summary(...)
+```
+
+If `unified_logger` already produces a summary, consider:
+
+* Keeping **only** the unified logger, **or**
+* Disabling UI output inside `radiation_logger` and letting it do DB work only.
+
+That will guarantee each message appears exactly once in the Streamlit UI.
+
+---
+
+After removing the three leftovers, run:
+
+```bash
+pytest       # or your test suite
+streamlit run radiation_grid.py
+```
+
+and verify:
+
+* `grep -n "def .*_by_orientation"` returns a single line.
+* The app’s live log lists each processing event once.
+
+Now the file is lean, easier to maintain, and immune to the silent-overwrite trap.

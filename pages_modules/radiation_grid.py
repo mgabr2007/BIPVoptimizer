@@ -140,31 +140,7 @@ def calculate_ground_reflectance_factor(height_from_ground, tilt_angle=90, albed
 
 # REMOVED: Duplicate function - using better-documented version below
 
-def cluster_elements_by_orientation(elements, azimuth_tolerance=5):
-    """
-    Group elements by similar orientation to reduce redundant calculations.
-    Elements with similar azimuth (±5°) are processed together.
-    """
-    clusters = {}
-    
-    for element in elements:
-        azimuth = element.get('azimuth', 180)
-        
-        # Find existing cluster within tolerance
-        cluster_key = None
-        for existing_azimuth in clusters.keys():
-            if abs(azimuth - existing_azimuth) <= azimuth_tolerance:
-                cluster_key = existing_azimuth
-                break
-        
-        # Create new cluster if none found
-        if cluster_key is None:
-            cluster_key = azimuth
-            clusters[cluster_key] = []
-        
-        clusters[cluster_key].append(element)
-    
-    return clusters
+# REMOVED: Duplicate function - using DataFrame-aware version below
 
 # REMOVED: Duplicate function - using better-documented version below
 
@@ -2010,11 +1986,7 @@ def render_radiation_grid():
                 failed_count = st.session_state.get('radiation_error_count', 0)
                 skipped_count = len(processed_element_ids) - processed_count if len(processed_element_ids) > processed_count else 0
                 
-                radiation_logger.log_analysis_summary(
-                    st.session_state.project_id,
-                    total_elements, processed_count, failed_count, skipped_count,
-                    'completed', f"Analysis completed with {processed_count} valid elements"
-                )
+                # REMOVED: Dual logging call - unified logger handles all summary output
             
             # Complete progress and reset control states
             progress_bar.progress(100)
