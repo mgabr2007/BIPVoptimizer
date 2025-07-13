@@ -815,6 +815,10 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
         hourly_irradiance = []
         
         for _, hour_data in tmy_df.iterrows():
+            # Ensure hour_data is a proper pandas Series, not a string
+            if isinstance(hour_data, str):
+                continue  # Skip if hour_data is somehow a string
+            
             solar_pos = calculate_solar_position_simple(
                 latitude, longitude, 
                 hour_data['day_of_year'], 
@@ -830,11 +834,21 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
                 ghi, dni, dhi, solar_pos, tilt, azimuth
             )
             
-            # Apply shading if available
-            if shading_factors is not None and isinstance(shading_factors, dict):
-                shading_factor = shading_factors.get(str(hour_data['hour']), {}).get('shading_factor', 1.0)
-                if shading_factor is not None:
-                    surface_irradiance = surface_irradiance * shading_factor
+            # Apply shading if available - comprehensive type checking and error handling
+            if shading_factors is not None:
+                try:
+                    # Ensure shading_factors is a dictionary
+                    if isinstance(shading_factors, dict):
+                        hour_key = str(hour_data['hour'])
+                        if hour_key in shading_factors:
+                            shading_entry = shading_factors[hour_key]
+                            if isinstance(shading_entry, dict) and 'shading_factor' in shading_entry:
+                                shading_factor = shading_entry['shading_factor']
+                                if isinstance(shading_factor, (int, float)) and shading_factor > 0:
+                                    surface_irradiance = surface_irradiance * shading_factor
+                except (KeyError, TypeError, AttributeError) as e:
+                    # Log error but continue processing without shading
+                    pass
             
             hourly_irradiance.append(surface_irradiance)
         
@@ -1097,7 +1111,7 @@ def render_radiation_grid():
     
     # Building walls upload for geometric shading
     walls_data = None
-    shading_factors = None
+    shading_factors = {}  # Initialize as empty dict instead of None
     if include_shading:
         st.subheader("🏢 Building Walls for Geometric Self-Shading")
         
@@ -1294,7 +1308,7 @@ def render_radiation_grid():
                         # Store in session state for continuation
                         st.session_state.radiation_partial_results = [
                             {
-                                'element_id': row[0],
+                                'element_id': str(row[0]),
                                 'annual_radiation': float(row[1]),
                                 'azimuth': float(row[2]),
                                 'tilt_angle': float(row[3])
@@ -1699,6 +1713,11 @@ def render_radiation_grid():
                                 st.session_state.project_id, element_id, orientation, area
                             )
                         
+                        # Ensure element data is properly formatted
+                        if isinstance(element, str):
+                            st.error(f"Element data corrupted for {element_id} - skipping")
+                            continue
+                        
                         annual_irradiance = 0
                         peak_irradiance = 0
                         sample_count = 0
@@ -1994,7 +2013,7 @@ def render_radiation_grid():
                     'include_shading': include_shading,
                     'apply_corrections': apply_corrections,
                     'precision': analysis_precision,
-                    'shading_factors': shading_factors
+                    'shading_factors': shading_factors if isinstance(shading_factors, dict) else {}
                 },
                 'radiation_complete': True
             }
@@ -2020,7 +2039,7 @@ def render_radiation_grid():
                                 'include_shading': include_shading,
                                 'apply_corrections': apply_corrections,
                                 'precision': analysis_precision,
-                                'shading_factors': shading_factors
+                                'shading_factors': shading_factors if isinstance(shading_factors, dict) else {}
                             },
                             'location': {'latitude': latitude, 'longitude': longitude}
                         }
