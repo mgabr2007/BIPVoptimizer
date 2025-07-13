@@ -1190,28 +1190,28 @@ def render_radiation_grid():
     
     # Database-backed progress tracking for deployment compatibility
     project_name = st.session_state.get('project_name', 'Default Project')
+    continue_analysis = False
+    restart_analysis = False
     
-    # Check for existing radiation analysis in database using direct query
+    # Check for existing radiation analysis in database
     try:
-        # Use database helper for consistent access
         project_id = db_helper.get_project_id(project_name)
         existing_count = db_helper.count_step_records("radiation_analysis", project_name)
         
-        total_elements = len(st.session_state.get('building_elements', []))
+        # Get building elements count for comparison
+        building_elements = st.session_state.get('building_elements', [])
+        if hasattr(building_elements, '__len__'):
+            total_elements = len(building_elements)
+        else:
+            total_elements = 0
         
-        if existing_count > 0 and existing_count < total_elements:
-            remaining = total_elements - existing_count
-            st.info(f"📊 **Found Previous Analysis**: {existing_count} elements completed. {remaining} elements remaining to process.")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                continue_analysis = st.button("▶️ Continue from Database", key="continue_radiation_db")
-            with col2:
-                restart_analysis = st.button("🔄 Start Fresh Analysis", key="restart_radiation_fresh")
+        # Show database status
+        if existing_count > 0:
+            if existing_count >= total_elements:
+                st.success(f"✅ **Radiation Analysis Complete**: All {existing_count} elements processed in database.")
                 
-            if restart_analysis:
-                # Clear database radiation data using helper
-                if project_id:
+                # Option to restart analysis
+                if st.button("🔄 Restart Analysis", key="restart_completed_analysis"):
                     try:
                         db_manager = BIPVDatabaseManager()
                         conn = db_manager.get_connection()
@@ -1221,31 +1221,83 @@ def render_radiation_grid():
                                 cursor.execute("DELETE FROM radiation_analysis WHERE project_id = %s", (project_id,))
                                 conn.commit()
                             conn.close()
+                        st.session_state.radiation_start_index = 0
+                        st.session_state.radiation_partial_results = []
+                        st.success("Analysis reset - ready to restart")
+                        st.rerun()
                     except Exception as e:
-                        st.warning(f"Could not clear database: {str(e)}")
+                        st.error(f"Could not clear database: {str(e)}")
+            else:
+                remaining = total_elements - existing_count
+                st.info(f"📊 **Found Previous Analysis**: {existing_count} elements completed. {remaining} elements remaining to process.")
                 
+                col1, col2 = st.columns(2)
+                with col1:
+                    continue_analysis = st.button("▶️ Continue from Database", key="continue_radiation_db")
+                with col2:
+                    restart_analysis = st.button("🔄 Start Fresh Analysis", key="restart_radiation_fresh")
+        
+        # Handle user choices
+        if restart_analysis:
+            try:
+                db_manager = BIPVDatabaseManager()
+                conn = db_manager.get_connection()
+                if conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
+                        cursor.execute("DELETE FROM radiation_analysis WHERE project_id = %s", (project_id,))
+                        conn.commit()
+                    conn.close()
                 st.session_state.radiation_start_index = 0
                 st.session_state.radiation_partial_results = []
                 st.session_state.excluded_elements_diagnostic = []
                 st.success("Analysis reset - starting fresh")
                 st.rerun()
-                
-            # Set continuation parameters
-            if continue_analysis:
-                st.session_state.radiation_start_index = existing_count
-                st.info(f"✅ Continuing from element {existing_count + 1}...")
-                st.rerun()
-        else:
-            continue_analysis = False
-            restart_analysis = False
+            except Exception as e:
+                st.error(f"Could not clear database: {str(e)}")
+        
+        if continue_analysis:
+            st.session_state.radiation_start_index = existing_count
+            st.info(f"✅ Continuing from element {existing_count + 1}...")
+            # Load existing results from database
+            try:
+                db_manager = BIPVDatabaseManager()
+                conn = db_manager.get_connection()
+                if conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT element_id, annual_radiation, azimuth, tilt_angle 
+                            FROM element_radiation 
+                            WHERE project_id = %s
+                        """, (project_id,))
+                        db_results = cursor.fetchall()
+                        
+                        # Store in session state for continuation
+                        st.session_state.radiation_partial_results = [
+                            {
+                                'element_id': row[0],
+                                'annual_radiation': float(row[1]),
+                                'azimuth': float(row[2]),
+                                'tilt_angle': float(row[3])
+                            }
+                            for row in db_results
+                        ]
+                    conn.close()
+                    st.success(f"Loaded {len(st.session_state.radiation_partial_results)} existing results from database")
+            except Exception as e:
+                st.warning(f"Could not load existing results: {str(e)}")
             
     except Exception as e:
         st.warning(f"Could not check database for previous analysis: {str(e)}")
-        continue_analysis = False
-        restart_analysis = False
+        existing_count = 0
     
-    # Analysis execution
-    if st.button("🚀 Run Radiation Analysis", key="run_radiation_analysis") or continue_analysis:
+    # Analysis execution - always show button unless analysis is complete
+    show_run_button = True
+    if 'existing_count' in locals() and 'total_elements' in locals():
+        if existing_count >= total_elements and existing_count > 0:
+            show_run_button = False
+    
+    if (show_run_button and st.button("🚀 Run Radiation Analysis", key="run_radiation_analysis")) or continue_analysis:
         # Create progress tracking containers
         progress_container = st.container()
         with progress_container:
@@ -1764,6 +1816,52 @@ def render_radiation_grid():
                     if len(radiation_results) > 0:
                         st.session_state.temp_radiation_results = radiation_results.copy()
                         st.session_state.radiation_partial_results = radiation_results.copy()
+                        
+                        # Progressive database saving for deployment compatibility
+                        project_id = db_helper.get_project_id()
+                        if project_id:
+                            try:
+                                db_manager = BIPVDatabaseManager()
+                                conn = db_manager.get_connection()
+                                if conn:
+                                    with conn.cursor() as cursor:
+                                        # Clear previous results for this project
+                                        cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
+                                        
+                                        # Insert current results
+                                        for result in radiation_results:
+                                            cursor.execute("""
+                                                INSERT INTO element_radiation 
+                                                (project_id, element_id, annual_radiation, azimuth, tilt_angle, 
+                                                 element_type, orientation, area_m2, level, height_from_ground)
+                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                                ON CONFLICT (project_id, element_id) DO UPDATE SET
+                                                annual_radiation = EXCLUDED.annual_radiation,
+                                                azimuth = EXCLUDED.azimuth,
+                                                tilt_angle = EXCLUDED.tilt_angle,
+                                                element_type = EXCLUDED.element_type,
+                                                orientation = EXCLUDED.orientation,
+                                                area_m2 = EXCLUDED.area_m2,
+                                                level = EXCLUDED.level,
+                                                height_from_ground = EXCLUDED.height_from_ground
+                                            """, (
+                                                project_id,
+                                                result['element_id'],
+                                                result['annual_irradiation'],
+                                                result['azimuth'],
+                                                result['tilt'],
+                                                result['element_type'],
+                                                result['orientation'],
+                                                result['area'],
+                                                result['level'],
+                                                result['height_from_ground']
+                                            ))
+                                        conn.commit()
+                                    conn.close()
+                                    status_text.text(f"💾 Saved {len(radiation_results)} results to database...")
+                            except Exception as e:
+                                st.warning(f"Could not save progress to database: {str(e)}")
+                                pass  # Continue processing even if database save fails
             
             # Continue processing regardless of result count - show what was calculated
             if len(radiation_results) == 0:
