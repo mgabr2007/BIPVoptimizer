@@ -1728,6 +1728,9 @@ def render_radiation_grid():
                         analysis_start_time = time.time()
                         elements_processed_this_session = 0
                         
+                        # CRITICAL: Clean up current processing element before continue
+                        st.session_state.current_processing_elements.discard(element_id)
+                        
                         # Continue processing without breaking
                         continue
                         
@@ -1744,6 +1747,8 @@ def render_radiation_grid():
                         # Ensure element data is properly formatted
                         if isinstance(element, str):
                             st.error(f"Element data corrupted for {element_id} - skipping")
+                            # Clean up current processing element before continue
+                            st.session_state.current_processing_elements.discard(element_id)
                             continue
                         
                         annual_irradiance = 0
