@@ -15,6 +15,8 @@ class AnalysisMonitor:
         self.success_count = 0
         self.error_count = 0
         self.skip_count = 0
+        # Add deduplication tracking for log messages
+        self._last_logged = {"id": None, "status": None, "timestamp": 0}
         
     def create_monitor_display(self):
         """Create the monitoring dashboard"""
@@ -49,8 +51,25 @@ class AnalysisMonitor:
         self.error_metric.metric("Errors", self.error_count)
         self.skip_metric.metric("Skipped", self.skip_count)
     
+    def _should_log_message(self, element_id, status):
+        """Check if message should be logged (prevents duplicate console output)"""
+        now = time.time()
+        last = self._last_logged
+        
+        # Skip if same element and status within 1 second (prevents duplicate logger output)
+        if (element_id, status) == (last["id"], last["status"]) and now - last["timestamp"] < 1:
+            return False
+        
+        # Update tracking
+        self._last_logged = {"id": element_id, "status": status, "timestamp": now}
+        return True
+
     def log_element_start(self, element_id, orientation, area):
         """Log element processing start with comprehensive duplication prevention"""
+        # Check for duplicate message (prevents multiple logger output)
+        if not self._should_log_message(element_id, "processing"):
+            return False
+            
         # Use global registry for comprehensive deduplication
         registry = get_global_registry()
         
@@ -92,6 +111,10 @@ class AnalysisMonitor:
     
     def log_element_success(self, element_id, annual_radiation, processing_time):
         """Log successful element processing"""
+        # Check for duplicate message (prevents multiple logger output)
+        if not self._should_log_message(element_id, "completed"):
+            return False
+            
         # Use global registry for comprehensive state management
         registry = get_global_registry()
         

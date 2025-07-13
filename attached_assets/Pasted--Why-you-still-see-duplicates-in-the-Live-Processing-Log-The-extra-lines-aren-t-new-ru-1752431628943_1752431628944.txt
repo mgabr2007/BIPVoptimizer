@@ -1,0 +1,74 @@
+### Why you still see “duplicates” in the **Live Processing Log**
+
+The extra lines aren’t **new runs of the algorithm**—they’re the *same* run being echoed by two different loggers:
+
+| Call chain                         | What it does                                                                                                   | Where it prints                                                                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `analysis_monitor.log_element_*()` | Updates the on-screen “Monitor” widget and appends a line to the live log.                                     | Streamlit container you named **“Live Processing Log”**.                                            |
+| `radiation_logger.log_element_*()` | Writes the same event into Postgres **and** (in the current implementation) *also* prints to stdout/`st.text`. | Same container (because `radiation_logger` uses the global logger that your monitor also captures). |
+
+So every event is emitted twice (sometimes three-times if the low-level DB helper prints a confirmation).
+That’s why you see:
+
+```
+🔄 Processing 367277 …
+🔄 Processing 367277 …   ← same timestamp, second logger
+✅ 367277 completed …
+✅ 367277 completed …     ← second logger again
+```
+
+The element itself is only processed **once**—you can confirm by checking:
+
+* the registry (`processed_element_ids`) → each ID is inserted just one time;
+* the DB table `element_radiation` → only one row per `element_id`.
+
+---
+
+## One-line fixes (pick **either** approach)
+
+### 1. Quiet the database logger
+
+```python
+# utils/radiation_logger.py  (or wherever log_element_start is)
+def _console(msg: str):
+    """Comment this out or guard it with a flag."""
+    # print(msg)        # ← remove or wrap
+    pass
+```
+
+Add a module-level flag like `EMIT_CONSOLE = False` and check it before printing.
+
+### 2. Tell the monitor to ignore DB messages
+
+If you want to keep console printing for debugging, have `analysis_monitor` ignore messages that already contain the same `element_id` & status within the last second:
+
+```python
+# utils/analysis_monitor.py
+_last = {"id": None, "status": None, "t": 0}
+
+def _emit(line: str, eid: str, status: str):
+    global _last
+    now = time.time()
+    if (eid, status) == (_last["id"], _last["status"]) and now - _last["t"] < 1:
+        return          # duplicate within 1 s → skip
+    _last = {"id": eid, "status": status, "t": now}
+    st.text(line)
+```
+
+---
+
+## Quick verification
+
+1. Restart the app (or hit **Force Stop Legacy Session**).
+2. Run a 3-element test file.
+3. The log should now show exactly one *Processing* and one *completed* line per element:
+
+```
+[18:47:56] 🔄 Processing 123456 …
+[18:47:59] ✅ 123456 completed …
+[18:48:00] 🔄 Processing 123457 …
+[18:48:03] ✅ 123457 completed …
+…
+```
+
+No more echoing. Your duplicate-prevention code is working; we just silenced the second megaphone.
