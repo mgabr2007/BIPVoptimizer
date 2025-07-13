@@ -1132,9 +1132,13 @@ def render_radiation_grid():
             help="CSV file containing building wall geometry data extracted from BIM model. Must include ElementId, Level, Length, Area, OriX, OriY, OriZ, and Azimuth columns."
         )
         
+        # Initialize walls_data variable
+        walls_data = None
+        
         if walls_file is not None:
             try:
                 # Read and process walls CSV
+                import pandas as pd
                 walls_df = pd.read_csv(walls_file)
                 
                 # Validate required columns
@@ -1732,7 +1736,6 @@ def render_radiation_grid():
                     st.warning(f"⚠️ **Data Analysis**: {excluded_count} elements excluded due to missing TMY radiation data")
                     
                     with st.expander(f"📊 View Excluded Elements Details ({excluded_count} elements)", expanded=False):
-                        import pandas as pd
                         excluded_df = pd.DataFrame(st.session_state.excluded_elements_diagnostic)
                         st.dataframe(excluded_df, use_container_width=True)
                         
