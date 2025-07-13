@@ -30,7 +30,7 @@ def calculate_precise_shading_factor(wall_element, window_element, solar_positio
     try:
         # Get wall properties
         wall_azimuth = float(wall_element.get('Azimuth (°)', 180))
-        wall_length = float(wall_element.get('Length (m)', 1.0))
+        # wall_length = float(wall_element.get('Length (m)', 1.0))  # Reserved for future shading calculations
         wall_height = float(wall_element.get('Height (m)', 3.0))
         wall_level = wall_element.get('Level', 'Level 1')
         
@@ -138,19 +138,7 @@ def calculate_ground_reflectance_factor(height_from_ground, tilt_angle=90, albed
     
     return min(ground_reflectance_factor, 0.15)  # Cap at 15% contribution
 
-# REMOVED: Duplicate function - using better-documented version below
 
-# REMOVED: Duplicate function - using DataFrame-aware version below
-
-# REMOVED: Duplicate function - using better-documented version below
-
-# REMOVED: Duplicate function - using better-documented version below
-
-# REMOVED: Duplicate function - using better-documented version below
-
-# REMOVED: Duplicate function - using better-documented version below
-
-# REMOVED: Duplicate function - using better-documented version below
 
 def calculate_height_dependent_ghi_effects(height_from_ground, base_ghi):
     """
@@ -1426,7 +1414,7 @@ def render_radiation_grid():
             st.info(f"📊 **Processing Plan**: {len(all_element_ids)} unique elements to process, {len(processed_element_ids)} already done")
             
             # Initialize timeout tracking
-            import time
+            # time module already imported at top of file
             analysis_start_time = time.time()
             last_progress_time = analysis_start_time
             elements_processed_this_session = 0
@@ -2096,16 +2084,8 @@ def render_radiation_grid():
                 st.metric("Avg Annual Irradiation", f"{avg_annual:.0f} kWh/m²")
             
             with col4:
-                total_energy_potential = radiation_data['annual_energy_potential'].sum()
-                st.metric("Total Energy Potential", f"{total_energy_potential:.0f} kWh/year")
-            
-            with col3:
                 avg_peak = radiation_data['peak_irradiance'].mean()
                 st.metric("Average Peak Irradiance", f"{avg_peak:.0f} W/m²")
-            
-            with col4:
-                total_area = radiation_data['area'].sum()
-                st.metric("Total Analyzed Area", f"{total_area:.1f} m²")
             
             # BIM-based detailed results table
             st.subheader("📋 BIM Element Analysis Results")

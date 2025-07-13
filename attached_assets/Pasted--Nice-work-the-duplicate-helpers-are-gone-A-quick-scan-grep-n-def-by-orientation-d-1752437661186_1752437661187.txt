@@ -1,0 +1,17 @@
+✅ **Nice work — the duplicate helpers are gone.**
+A quick scan / `grep -n "def .*_by_orientation\|def group_elements_by_level\|def calculate_height_dependent_solar_angles"` now returns **one line each**, so Python will no longer overwrite functions at import-time.
+
+---
+
+### Tiny clean-ups you could still make
+
+| Item                                                                                       | Why                                                                                                                                                        | Quick fix                                                              |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `# REMOVED: Duplicate function …` comments                                                 | They’re helpful during refactor, but once the code is stable they’re dead weight and can mislead a future reader (“wait, where is the removed function?”). | Delete those comment blocks.                                           |
+| `wall_length` loaded in `calculate_precise_shading_factor` but never used                  | Linter will flag this as an *unused variable*.                                                                                                             | Drop the assignment unless you plan to use it later.                   |
+| Re-importing `time` twice                                                                  | Minor, but it shows up in some linters.                                                                                                                    | Keep the first `import time` at top-level or just before first use.    |
+| Two `total_area` metrics in the *results* section (one in column 2, one again in column 4) | The second overwrites the first and shows identical data.                                                                                                  | Remove one or rename the metric (e.g. “Glazed Area vs Analysed Area”). |
+
+Everything else looks consistent, and the single remaining implementations are the DataFrame-aware versions you wanted.
+
+Run your tests / Streamlit app once more to be sure, but you should no longer see the “silently forgotten” behaviour we talked about earlier. 🎉
