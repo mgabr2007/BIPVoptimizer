@@ -1,0 +1,73 @@
+📊 Progress: 424 elements completed, 188 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 436 elements in this session.
+
+📊 Progress: 424 elements completed, 173 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 437 elements in this session.
+
+📊 Progress: 424 elements completed, 158 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 438 elements in this session.
+
+📊 Progress: 424 elements completed, 143 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 439 elements in this session.
+
+📊 Progress: 424 elements completed, 128 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 440 elements in this session.
+
+📊 Progress: 424 elements completed, 113 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 441 elements in this session.
+
+📊 Progress: 424 elements completed, 98 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 442 elements in this session.
+
+📊 Progress: 424 elements completed, 83 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 443 elements in this session.
+
+📊 Progress: 424 elements completed, 68 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 444 elements in this session.
+
+📊 Progress: 424 elements completed, 53 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 445 elements in this session.
+
+📊 Progress: 424 elements completed, 38 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 446 elements in this session.
+
+📊 Progress: 424 elements completed, 23 remaining
+
+💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.
+
+⏱️ Analysis timeout reached (15 min). Processed 447 elements in this session.
+
+📊 Progress: 424 elements completed, 8 remaining

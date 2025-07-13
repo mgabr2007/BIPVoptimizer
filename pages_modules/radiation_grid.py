@@ -1582,6 +1582,13 @@ def render_radiation_grid():
             
             # Only proceed if analysis is not stopped
             if st.session_state.radiation_control_state != 'stopped':
+                # Check if we're very close to completion (less than 10 elements remaining)
+                elements_remaining = len(suitable_elements) - len(processed_element_ids)
+                if elements_remaining <= 10 and elements_remaining > 0:
+                    st.info(f"🏁 Final sprint: {elements_remaining} elements remaining - completing analysis automatically")
+                    # Use smaller batch size for final elements
+                    BATCH_SIZE = min(BATCH_SIZE, 5)
+                
                 for batch_start in range(start_index, len(suitable_elements), BATCH_SIZE):
                     batch_end = min(batch_start + BATCH_SIZE, len(suitable_elements))
                     batch_elements = suitable_elements[batch_start:batch_end]
@@ -1612,11 +1619,10 @@ def render_radiation_grid():
                             element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} (already processed)</h4>", unsafe_allow_html=True)
                             progress_bar.progress(percentage_complete)
                             
-                            # Check for too many consecutive skips (possible infinite loop)
-                            if consecutive_skips > 50:
-                                st.error(f"🚫 Too many consecutive skips ({consecutive_skips}). Analysis may be stuck.")
-                                st.info("💡 Try using 'Start New Analysis' to reset the duplication tracking.")
-                                return
+                            # Check for too many consecutive skips but continue to completion
+                            if consecutive_skips > 100:
+                                st.warning(f"⚠️ Many consecutive skips ({consecutive_skips}) - nearing completion.")
+                                # Don't return, let it complete normally
                             continue
                         else:
                             consecutive_skips = 0  # Reset skip counter when processing an element
@@ -1639,20 +1645,26 @@ def render_radiation_grid():
                         elements_processed_this_session += 1
                         last_progress_time = current_time
                         
-                        # Check for timeout (15 minutes per session for large datasets)
+                        # Smart timeout with automatic continuation for small remaining sets
                         timeout_minutes = 15 if total_elements_count > 500 else 10
                         timeout_seconds = timeout_minutes * 60
+                        remaining_elements = len(suitable_elements) - global_i - 1
                         
-                        if current_time - analysis_start_time > timeout_seconds:
-                            remaining_elements = len(suitable_elements) - global_i - 1
-                            st.warning(f"⏱️ Analysis timeout reached ({timeout_minutes} min). Processed {elements_processed_this_session} elements in this session.")
+                        # Auto-continue if close to completion (less than 20 elements remaining)
+                        if current_time - analysis_start_time > timeout_seconds and remaining_elements > 20:
+                            st.warning(f"⏱️ Session timeout ({timeout_minutes} min) - Auto-continuing analysis...")
                             st.info(f"📊 **Progress**: {len(radiation_results)} elements completed, {remaining_elements} remaining")
-                            st.info("💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.")
                             
-                            # Save current progress for resume
+                            # Save current progress but continue processing
                             st.session_state.radiation_start_index = global_i + 1
                             st.session_state.radiation_partial_results = radiation_results.copy()
-                            break
+                            
+                            # Reset timer for next session
+                            analysis_start_time = time.time()
+                            elements_processed_this_session = 0
+                            
+                            # Continue processing without breaking
+                            continue
                         
                         # Calculate radiation for this element
                         try:
@@ -1832,51 +1844,20 @@ def render_radiation_grid():
                         st.session_state.temp_radiation_results = radiation_results.copy()
                         st.session_state.radiation_partial_results = radiation_results.copy()
                         
-                        # Progressive database saving for deployment compatibility
-                        project_id = db_helper.get_project_id()
-                        if project_id:
-                            try:
-                                db_manager = BIPVDatabaseManager()
-                                conn = db_manager.get_connection()
-                                if conn:
-                                    with conn.cursor() as cursor:
-                                        # Clear previous results for this project
-                                        cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
-                                        
-                                        # Insert current results
-                                        for result in radiation_results:
-                                            cursor.execute("""
-                                                INSERT INTO element_radiation 
-                                                (project_id, element_id, annual_radiation, azimuth, tilt_angle, 
-                                                 element_type, orientation, area_m2, level, height_from_ground)
-                                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                                ON CONFLICT (project_id, element_id) DO UPDATE SET
-                                                annual_radiation = EXCLUDED.annual_radiation,
-                                                azimuth = EXCLUDED.azimuth,
-                                                tilt_angle = EXCLUDED.tilt_angle,
-                                                element_type = EXCLUDED.element_type,
-                                                orientation = EXCLUDED.orientation,
-                                                area_m2 = EXCLUDED.area_m2,
-                                                level = EXCLUDED.level,
-                                                height_from_ground = EXCLUDED.height_from_ground
-                                            """, (
-                                                project_id,
-                                                result['element_id'],
-                                                result['annual_irradiation'],
-                                                result['azimuth'],
-                                                result['tilt'],
-                                                result['element_type'],
-                                                result['orientation'],
-                                                result['area'],
-                                                result['level'],
-                                                result['height_from_ground']
-                                            ))
-                                        conn.commit()
-                                    conn.close()
-                                    status_text.text(f"💾 Saved {len(radiation_results)} results to database...")
-                            except Exception as e:
-                                st.warning(f"Could not save progress to database: {str(e)}")
-                                pass  # Continue processing even if database save fails
+                        # Progressive database saving for deployment compatibility - simplified
+                        try:
+                            project_id = db_helper.get_project_id()
+                            if project_id:
+                                db_helper.save_step_data("radiation_analysis", {
+                                    'results': radiation_results,
+                                    'analysis_partial': True,
+                                    'total_elements': len(suitable_elements),
+                                    'processed_elements': len(radiation_results)
+                                })
+                                status_text.text(f"💾 Auto-saved {len(radiation_results)} results...")
+                        except Exception as e:
+                            # Continue silently on database errors
+                            pass
             
             # Continue processing regardless of result count - show what was calculated
             if len(radiation_results) == 0:
