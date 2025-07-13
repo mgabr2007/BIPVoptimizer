@@ -1191,42 +1191,62 @@ def render_radiation_grid():
     db_manager = BIPVDatabaseManager()
     project_name = st.session_state.get('project_name', 'Default Project')
     
-    # Check for existing radiation analysis in database
+    # Check for existing radiation analysis in database using direct query
     try:
-        project_data = db_manager.get_project_report_data(project_name)
-        existing_radiation = project_data.get('radiation_analysis', {})
+        # Get project ID first
+        conn = db_manager.get_connection()
+        project_id = None
+        existing_count = 0
         
-        if existing_radiation and 'results' in existing_radiation:
-            existing_count = len(existing_radiation['results'])
-            total_elements = len(st.session_state.get('building_elements', []))
-            
-            if existing_count > 0 and existing_count < total_elements:
-                remaining = total_elements - existing_count
-                st.info(f"📊 **Found Previous Analysis**: {existing_count} elements completed. {remaining} elements remaining to process.")
+        if conn:
+            with conn.cursor() as cursor:
+                # Get project ID
+                cursor.execute("SELECT project_id FROM projects WHERE project_name = %s", (project_name,))
+                project_row = cursor.fetchone()
                 
-                col1, col2 = st.columns(2)
-                with col1:
-                    continue_analysis = st.button("▶️ Continue from Database", key="continue_radiation_db")
-                with col2:
-                    restart_analysis = st.button("🔄 Start Fresh Analysis", key="restart_radiation_fresh")
+                if project_row:
+                    project_id = project_row[0]
                     
-                if restart_analysis:
-                    # Clear database radiation data
-                    st.session_state.radiation_start_index = 0
-                    st.session_state.radiation_partial_results = []
-                    st.session_state.excluded_elements_diagnostic = []
-                    st.success("Analysis reset - starting fresh")
-                    st.rerun()
-                    
-                # Set continuation parameters from database
-                if continue_analysis:
-                    st.session_state.radiation_start_index = existing_count
-                    st.session_state.radiation_partial_results = existing_radiation['results']
-                    st.info(f"✅ Loaded {existing_count} results from database. Continuing analysis...")
-                    st.rerun()
-            else:
-                continue_analysis = False
-                restart_analysis = False
+                    # Count existing radiation analysis results
+                    cursor.execute("SELECT COUNT(*) FROM element_radiation WHERE project_id = %s", (project_id,))
+                    count_row = cursor.fetchone()
+                    existing_count = count_row[0] if count_row else 0
+            
+            conn.close()
+        
+        total_elements = len(st.session_state.get('building_elements', []))
+        
+        if existing_count > 0 and existing_count < total_elements:
+            remaining = total_elements - existing_count
+            st.info(f"📊 **Found Previous Analysis**: {existing_count} elements completed. {remaining} elements remaining to process.")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                continue_analysis = st.button("▶️ Continue from Database", key="continue_radiation_db")
+            with col2:
+                restart_analysis = st.button("🔄 Start Fresh Analysis", key="restart_radiation_fresh")
+                
+            if restart_analysis:
+                # Clear database radiation data
+                if project_id and conn:
+                    conn = db_manager.get_connection()
+                    with conn.cursor() as cursor:
+                        cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
+                        cursor.execute("DELETE FROM radiation_analysis WHERE project_id = %s", (project_id,))
+                        conn.commit()
+                    conn.close()
+                
+                st.session_state.radiation_start_index = 0
+                st.session_state.radiation_partial_results = []
+                st.session_state.excluded_elements_diagnostic = []
+                st.success("Analysis reset - starting fresh")
+                st.rerun()
+                
+            # Set continuation parameters
+            if continue_analysis:
+                st.session_state.radiation_start_index = existing_count
+                st.info(f"✅ Continuing from element {existing_count + 1}...")
+                st.rerun()
         else:
             continue_analysis = False
             restart_analysis = False
