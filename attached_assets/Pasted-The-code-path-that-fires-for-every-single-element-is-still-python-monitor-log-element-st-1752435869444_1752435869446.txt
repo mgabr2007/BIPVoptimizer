@@ -1,0 +1,66 @@
+The code path that fires **for every single element** is still:
+
+```python
+monitor.log_element_start(...)        # ① on-screen “live log”
+radiation_logger.log_element_start(...)# ② DB + console echo
+```
+
+…and again on success / skip / error:
+
+```python
+monitor.log_element_success(...)
+radiation_logger.log_element_success(...)
+```
+
+Because **both** helpers write to the same Streamlit container (they each call `st.text()` or `st.write()`), every event is printed twice. If the low-level `database_helper` also prints a “saved” confirmation you’ll see three lines; with `logging`’s root handler enabled it can become four. Nothing in the big loop after that deduplicates the messages.
+
+---
+
+## Two-minute fix - just silence the DB logger
+
+Add one global flag in `utils/radiation_logger.py`:
+
+```python
+# utils/radiation_logger.py
+EMIT_CONSOLE = False   # ← add this
+
+def _out(msg: str):
+    if EMIT_CONSOLE:        # guard the print
+        st.text(msg)        # or print(msg)
+```
+
+and make every internal call use `_out()` instead of `st.text()` / `print()`.
+
+---
+
+## “Keep both, but avoid echoes”
+
+If you want live feedback **and** a DB audit trail, keep both calls but de-bounce duplicates in the Streamlit layer. Minimal change inside `utils/analysis_monitor.py`:
+
+```python
+# utils/analysis_monitor.py
+_last = {"id": None, "status": None}
+
+def _emit(line:str, eid:str, status:str):
+    if (eid, status) == (_last["id"], _last["status"]):
+        return              # already printed this state
+    _last.update(id=eid, status=status)
+    st.text(line)
+```
+
+Now the monitor prints one line per `(element_id, status)` pair, no matter how many other loggers spit out the same thing.
+
+---
+
+## Where to patch in your long script
+
+You don’t have to touch the 900-line analysis function; just patch **one** of the helpers above. Afterwards restart the Streamlit app (or hit your *Force Stop Legacy Session* button) and the log will look like:
+
+```
+[18:57:12] 🔄 Processing 367277 …
+[18:57:15] ✅ 367277 completed …
+[18:57:16] 🔄 Processing 367278 …
+[18:57:18] ✅ 367278 completed …
+```
+
+— one entry per action, no more screen-filling duplicates.

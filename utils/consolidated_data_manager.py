@@ -47,7 +47,8 @@ class ConsolidatedDataManager:
             'coordinates': project_data.get('coordinates', {})
         }
         consolidated['last_updated'] = datetime.now().isoformat()
-        print(f"ConsolidatedDataManager: Saved Step 1 data")
+        # Silenced console output to prevent duplicate logging
+        # print(f"ConsolidatedDataManager: Saved Step 1 data")
     
     def save_step2_data(self, historical_data):
         """Save Step 2: Historical Data & AI Model"""
@@ -63,7 +64,8 @@ class ConsolidatedDataManager:
             'data_analysis_complete': historical_data.get('data_analysis_complete', False)
         }
         consolidated['last_updated'] = datetime.now().isoformat()
-        print(f"ConsolidatedDataManager: Saved Step 2 data")
+        # Silenced console output to prevent duplicate logging
+        # print(f"ConsolidatedDataManager: Saved Step 2 data")
     
     def save_step3_data(self, weather_data):
         """Save Step 3: Weather & Environment"""
@@ -76,7 +78,8 @@ class ConsolidatedDataManager:
             'weather_complete': weather_data.get('weather_complete', False)
         }
         consolidated['last_updated'] = datetime.now().isoformat()
-        print(f"ConsolidatedDataManager: Saved Step 3 data")
+        # Silenced console output to prevent duplicate logging
+        # print(f"ConsolidatedDataManager: Saved Step 3 data")
     
     def save_step4_data(self, facade_data):
         """Save Step 4: Facade & Window Extraction"""
@@ -97,7 +100,8 @@ class ConsolidatedDataManager:
             'extraction_complete': facade_data.get('extraction_complete', False)
         }
         consolidated['last_updated'] = datetime.now().isoformat()
-        print(f"ConsolidatedDataManager: Saved Step 4 data - {len(building_elements)} elements")
+        # Silenced console output to prevent duplicate logging
+        # print(f"ConsolidatedDataManager: Saved Step 4 data - {len(building_elements)} elements")
     
     def save_step5_data(self, radiation_data):
         """Save Step 5: Radiation & Shading Analysis"""
@@ -110,7 +114,8 @@ class ConsolidatedDataManager:
             'radiation_complete': radiation_data.get('radiation_complete', False)
         }
         consolidated['last_updated'] = datetime.now().isoformat()
-        print(f"ConsolidatedDataManager: Saved Step 5 data")
+        # Silenced console output to prevent duplicate logging
+        # print(f"ConsolidatedDataManager: Saved Step 5 data")
     
     def save_step6_data(self, pv_specs):
         """Save Step 6: PV Specification"""
@@ -131,7 +136,8 @@ class ConsolidatedDataManager:
             'specifications_complete': pv_specs.get('specifications_complete', False)
         }
         consolidated['last_updated'] = datetime.now().isoformat()
-        print(f"ConsolidatedDataManager: Saved Step 6 data - {len(individual_systems)} systems")
+        # Silenced console output to prevent duplicate logging
+        # print(f"ConsolidatedDataManager: Saved Step 6 data - {len(individual_systems)} systems")
     
     def save_step7_data(self, yield_demand_data):
         """Save Step 7: Yield vs Demand Analysis"""
@@ -144,7 +150,8 @@ class ConsolidatedDataManager:
             'yield_complete': yield_demand_data.get('yield_complete', False)
         }
         consolidated['last_updated'] = datetime.now().isoformat()
-        print(f"ConsolidatedDataManager: Saved Step 7 data")
+        # Silenced console output to prevent duplicate logging
+        # print(f"ConsolidatedDataManager: Saved Step 7 data")
     
     def save_step8_data(self, optimization_data):
         """Save Step 8: Optimization Results"""
@@ -165,7 +172,8 @@ class ConsolidatedDataManager:
             'optimization_complete': optimization_data.get('optimization_complete', False)
         }
         consolidated['last_updated'] = datetime.now().isoformat()
-        print(f"ConsolidatedDataManager: Saved Step 8 data - {len(solutions)} solutions")
+        # Silenced console output to prevent duplicate logging
+        # print(f"ConsolidatedDataManager: Saved Step 8 data - {len(solutions)} solutions")
     
     def save_step9_data(self, financial_data):
         """Save Step 9: Financial Analysis"""
@@ -178,7 +186,8 @@ class ConsolidatedDataManager:
             'financial_complete': financial_data.get('financial_complete', False)
         }
         consolidated['last_updated'] = datetime.now().isoformat()
-        print(f"ConsolidatedDataManager: Saved Step 9 data")
+        # Silenced console output to prevent duplicate logging
+        # print(f"ConsolidatedDataManager: Saved Step 9 data")
     
     def get_consolidated_data(self):
         """Get all consolidated analysis data"""
@@ -311,15 +320,17 @@ class ConsolidatedDataManager:
             return 0
     
     def print_summary(self):
-        """Print summary of consolidated data"""
-        consolidated = st.session_state.consolidated_analysis_data
-        print("\n=== Consolidated Data Summary ===")
-        for step_key, step_data in consolidated.items():
-            if step_key.startswith('step') and isinstance(step_data, dict):
-                print(f"{step_key}: {len(step_data)} fields")
-                if 'building_elements' in step_data:
-                    print(f"  - Building elements: {len(step_data['building_elements'])}")
-                if 'individual_systems' in step_data:
-                    print(f"  - Individual systems: {len(step_data['individual_systems'])}")
-                if 'solutions' in step_data:
-                    print(f"  - Solutions: {len(step_data['solutions'])}")
+        """Print summary of consolidated data (silenced to prevent duplicate logging)"""
+        # Silenced console output to prevent duplicate logging
+        # consolidated = st.session_state.consolidated_analysis_data
+        # print("\n=== Consolidated Data Summary ===")
+        # for step_key, step_data in consolidated.items():
+        #     if step_key.startswith('step') and isinstance(step_data, dict):
+        #         print(f"{step_key}: {len(step_data)} fields")
+        #         if 'building_elements' in step_data:
+        #             print(f"  - Building elements: {len(step_data['building_elements'])}")
+        #         if 'individual_systems' in step_data:
+        #             print(f"  - Individual systems: {len(step_data['individual_systems'])}")
+        #         if 'solutions' in step_data:
+        #             print(f"  - Solutions: {len(step_data['solutions'])}")
+        pass
