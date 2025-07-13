@@ -1128,17 +1128,39 @@ def render_radiation_grid():
     # Import time for timestamp checking
     import time
     
-    # Add timestamp-based lock with timeout (30 minutes)
-    current_time = time.time()
-    lock_timeout = 30 * 60  # 30 minutes
+    # Heartbeat watchdog system for auto-recovery
+    HEARTBEAT_TIMEOUT = 120        # seconds without a beat => treat run as dead
+    LOCK_TIMEOUT      = 30 * 60    # keep existing 30-minute hard timeout
     
+    # Initialize session state variables
     if 'radiation_analysis_start_time' not in st.session_state:
         st.session_state.radiation_analysis_start_time = 0
+    if 'radiation_last_beat' not in st.session_state:
+        st.session_state.radiation_last_beat = 0
     
-    # Check if lock is active and not timed out
+    # Get current state
+    current_time = time.time()
+    lock_is_set = st.session_state.get("radiation_analysis_running", False)
+    lock_start  = st.session_state.get("radiation_analysis_start_time", 0)
+    beat_stamp  = st.session_state.get("radiation_last_beat", 0)
+    
+    # ---------- NEW auto-recovery logic ----------------------
+    if lock_is_set:
+        stale_lock = (current_time - lock_start) > LOCK_TIMEOUT
+        stale_beat = (current_time - beat_stamp) > HEARTBEAT_TIMEOUT
+        if stale_lock or stale_beat:
+            reason = "timeout" if stale_lock else "heartbeat lost"
+            st.warning(f"⛑️ Previous run {reason}. Auto-resetting lock...")
+            st.session_state["radiation_analysis_running"] = False
+            st.session_state["radiation_last_beat"] = 0
+            st.session_state["radiation_control_state"] = "running"
+            st.rerun()   # start a clean run automatically
+    # ---------------------------------------------------------
+    
+    # Check if lock is active and not timed out (legacy compatibility)
     if st.session_state.radiation_analysis_running:
         time_since_start = current_time - st.session_state.radiation_analysis_start_time
-        if time_since_start < lock_timeout:
+        if time_since_start < LOCK_TIMEOUT:
             st.warning(f"⚠️ Radiation analysis is already running. Please wait for it to complete. (Running for {int(time_since_start/60)} minutes)")
             return
         else:
@@ -1580,6 +1602,10 @@ def render_radiation_grid():
                     percentage_complete = int(100 * global_i / len(suitable_elements))
                     element_progress.markdown(f"<h4 style='color: #0066cc; margin: 0;'>Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id}</h4>", unsafe_allow_html=True)
                     progress_bar.progress(percentage_complete)
+                    
+                    # ---- heartbeat update -----------------------------------------
+                    st.session_state["radiation_last_beat"] = time.time()
+                    # ---------------------------------------------------------
                     
                     # Update progress tracking
                     current_time = time.time()
@@ -2060,6 +2086,9 @@ def render_radiation_grid():
             # Clear execution lock on any error
             st.session_state.radiation_analysis_running = False
             raise
+        finally:
+            # Always clear the lock, even on uncaught exceptions
+            st.session_state["radiation_analysis_running"] = False
     
     # Display results if available
     if st.session_state.get('radiation_completed', False):

@@ -1,0 +1,64 @@
+Add this once inside your main element loop, e.g. right after you update the progress bar:
+
+python
+Copy
+Edit
+# ---- heartbeat -----------------------------------------
+st.session_state["radiation_last_beat"] = time.time()
+# ---------------------------------------------------------
+2. Auto-reset the lock if the heartbeat is stale
+Insert this just before the “DUPLICATE LOGGING” check:
+
+python
+Copy
+Edit
+import time
+
+HEARTBEAT_TIMEOUT = 120        # seconds without a beat ⇒ treat run as dead
+LOCK_TIMEOUT      = 30 * 60    # keep your original 30-minute hard timeout
+
+# hard-coded lock handling you already have
+lock_is_set = st.session_state.get("radiation_analysis_running", False)
+lock_start  = st.session_state.get("radiation_analysis_start_time", 0)
+beat_stamp  = st.session_state.get("radiation_last_beat", 0)
+
+# ---------- NEW auto-recovery logic ----------------------
+if lock_is_set:
+    stale_lock = (time.time() - lock_start) > LOCK_TIMEOUT
+    stale_beat = (time.time() - beat_stamp) > HEARTBEAT_TIMEOUT
+    if stale_lock or stale_beat:
+        st.warning("⛑️ Previous run lost its heartbeat. Auto-resetting lock…")
+        st.session_state["radiation_analysis_running"] = False
+        st.session_state["radiation_last_beat"]        = 0
+        st.session_state["radiation_control_state"]    = "running"
+        st.experimental_rerun()   # start a clean run automatically
+# ---------------------------------------------------------
+What it does
+
+Heartbeat watchdog – if no loop updated radiation_last_beat for HEARTBEAT_TIMEOUT seconds, the UI decides the worker is gone and clears the lock.
+
+Fallback to your existing 30-minute hard timeout.
+
+Calls st.experimental_rerun() to launch a brand-new computation without showing the scary banner or requiring you to click anything.
+
+A couple of practical tweaks
+Short jobs, long timeouts:
+If each element finishes in < 1 s, a 120-s heartbeat is plenty.
+If you process very large batches, increase HEARTBEAT_TIMEOUT so the watchdog doesn’t fire while the loop is busy on a single batch.
+
+Always clear the lock in finally:
+Around your long loop wrap
+
+python
+Copy
+Edit
+try:
+    …
+finally:
+    st.session_state["radiation_analysis_running"] = False
+to guarantee the flag is cleared even on uncaught exceptions.
+(Right now you do this in most places, but a defensive finally makes it bullet-proof.)
+
+Avoid multiple browser tabs – each tab has its own rerun cycle and increases the chance of a stale-beat reset.
+
+Implementing those two snippets will let the app self-heal: if the back-end run vanishes for any reason, the next front-end rerun notices, releases the lock, and immediately relaunches the calculation – no manual clicks required. Let me know how it works!
