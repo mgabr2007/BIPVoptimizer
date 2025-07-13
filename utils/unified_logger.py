@@ -88,33 +88,32 @@ class UnifiedAnalysisLogger:
         if not hasattr(self, 'log_display'):
             return
             
-        # Find new messages that haven't been displayed yet
-        new_messages = [
-            msg for msg in self.log_messages[-8:]  # Show last 8 messages
-            if msg['uuid'] not in st.session_state.displayed_log_ids
-        ]
-        
-        # If we have new messages, update the entire display with recent messages
-        if new_messages:
-            # Get all recent messages (including already displayed ones for context)
-            recent_messages = self.log_messages[-8:]
+        # 🔻 SURGICAL PATCH: Prevent echo messages ——————————————————————————————————————————————
+        if "displayed_log_uuids" not in st.session_state:
+            st.session_state.displayed_log_uuids = set()
+        if "accumulated_log_text" not in st.session_state:
+            st.session_state.accumulated_log_text = ""
+
+        new_rows = [row for row in self.log_messages if row["uuid"] not in st.session_state.displayed_log_uuids]
+        if new_rows:
+            # Add new messages to accumulated text
+            for row in new_rows:
+                st.session_state.accumulated_log_text += row["formatted"] + "\n"
+                st.session_state.displayed_log_uuids.add(row["uuid"])
             
-            # Format for display
-            display_text = "\n".join([msg['formatted'] for msg in recent_messages])
-            
-            # Update the single display area
-            self.log_display.text(display_text)
-            
-            # Mark new messages as displayed
-            for msg in new_messages:
-                st.session_state.displayed_log_ids.add(msg['uuid'])
+            # Display accumulated text in single container (last 8 lines for readability)
+            recent_lines = st.session_state.accumulated_log_text.strip().split('\n')[-8:]
+            self.log_display.text('\n'.join(recent_lines))
+        # 🔺 END SURGICAL PATCH ——————————————————————————————————————————————————————————————————————
         
         self.update_metrics()
         
     def clear_display(self):
         """Clear the display and reset displayed IDs"""
-        if 'displayed_log_ids' in st.session_state:
-            st.session_state.displayed_log_ids.clear()
+        if 'displayed_log_uuids' in st.session_state:
+            st.session_state.displayed_log_uuids.clear()
+        if 'accumulated_log_text' in st.session_state:
+            st.session_state.accumulated_log_text = ""
         if hasattr(self, 'log_display'):
             self.log_display.empty()
     
