@@ -831,7 +831,7 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
             )
             
             # Apply shading if available
-            if shading_factors is not None:
+            if shading_factors is not None and isinstance(shading_factors, dict):
                 shading_factor = shading_factors.get(str(hour_data['hour']), {}).get('shading_factor', 1.0)
                 if shading_factor is not None:
                     surface_irradiance = surface_irradiance * shading_factor
