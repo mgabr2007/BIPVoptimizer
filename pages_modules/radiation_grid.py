@@ -1187,8 +1187,30 @@ def render_radiation_grid():
         else:
             st.info("No walls data available - shading analysis will be skipped")
     
+    # Show progress status if partial analysis exists
+    if 'radiation_start_index' in st.session_state and st.session_state.radiation_start_index > 0:
+        start_idx = st.session_state.radiation_start_index
+        remaining = len(st.session_state.get('building_elements', [])) - start_idx
+        st.info(f"📊 **Previous Analysis**: Processed {start_idx} elements. {remaining} elements remaining to process.")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            continue_analysis = st.button("▶️ Continue Analysis", key="continue_radiation_analysis")
+        with col2:
+            restart_analysis = st.button("🔄 Start New Analysis", key="restart_radiation_analysis")
+            
+        if restart_analysis:
+            # Reset analysis state
+            st.session_state.radiation_start_index = 0
+            st.session_state.radiation_partial_results = []
+            st.session_state.excluded_elements_diagnostic = []
+            st.rerun()
+    else:
+        continue_analysis = False
+        restart_analysis = False
+    
     # Analysis execution
-    if st.button("🚀 Run Radiation Analysis", key="run_radiation_analysis"):
+    if st.button("🚀 Run Radiation Analysis", key="run_radiation_analysis") or continue_analysis:
         # Create progress tracking containers
         progress_container = st.container()
         with progress_container:
@@ -1515,10 +1537,19 @@ def render_radiation_grid():
                         elements_processed_this_session += 1
                         last_progress_time = current_time
                         
-                        # Check for timeout (10 minutes per session)
-                        if current_time - analysis_start_time > 600:  # 10 minutes
-                            st.warning(f"⏱️ Analysis timeout reached. Processed {elements_processed_this_session} elements in this session.")
-                            st.info("💡 Use the Pause/Resume functionality to continue processing in manageable chunks.")
+                        # Check for timeout (15 minutes per session for large datasets)
+                        timeout_minutes = 15 if total_elements_count > 500 else 10
+                        timeout_seconds = timeout_minutes * 60
+                        
+                        if current_time - analysis_start_time > timeout_seconds:
+                            remaining_elements = len(suitable_elements) - global_i - 1
+                            st.warning(f"⏱️ Analysis timeout reached ({timeout_minutes} min). Processed {elements_processed_this_session} elements in this session.")
+                            st.info(f"📊 **Progress**: {len(radiation_results)} elements completed, {remaining_elements} remaining")
+                            st.info("💡 Click 'Run Radiation Analysis' again to continue processing the remaining elements.")
+                            
+                            # Save current progress for resume
+                            st.session_state.radiation_start_index = global_i + 1
+                            st.session_state.radiation_partial_results = radiation_results.copy()
                             break
                         
                         # Calculate radiation for this element
