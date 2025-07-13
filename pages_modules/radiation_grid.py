@@ -22,7 +22,7 @@ except ImportError:
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
 from utils.radiation_logger import radiation_logger
-from utils.analysis_monitor import analysis_monitor
+# from utils.analysis_monitor import analysis_monitor  # REPLACED with unified_logger
 from utils.element_registry import get_global_registry, clear_global_registry
 
 def calculate_precise_shading_factor(wall_element, window_element, solar_position):
@@ -955,14 +955,35 @@ def render_radiation_grid():
     
     # CRITICAL: Force stop any legacy running analysis to apply fixes
     if 'radiation_analysis_running' in st.session_state and st.session_state.radiation_analysis_running:
-        st.error("⚠️ **IMPORTANT**: An old analysis session is running with outdated code. Click 'Force Stop Legacy Session' to apply the latest duplication prevention fixes.")
-        if st.button("🛑 Force Stop Legacy Session", type="primary"):
-            st.session_state.radiation_analysis_running = False
-            st.session_state.radiation_analysis_start_time = 0
-            st.session_state.processed_element_ids = set()  # Reset processed cache
-            clear_global_registry()  # Clear registry
-            st.success("✅ Legacy session stopped. The analysis will now use the enhanced duplication prevention system.")
-            st.rerun()
+        st.error("⚠️ **DUPLICATE LOGGING DETECTED**: An old analysis session is running with outdated code. Click 'Force Stop Legacy Session' to apply the latest logging fixes.")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🛑 Force Stop Legacy Session", type="primary"):
+                # Complete reset of all analysis state
+                st.session_state.radiation_analysis_running = False
+                st.session_state.radiation_analysis_start_time = 0
+                st.session_state.processed_element_ids = set()
+                st.session_state.temp_radiation_results = []
+                if hasattr(st.session_state, 'analysis_monitor'):
+                    del st.session_state.analysis_monitor
+                clear_global_registry()
+                st.success("✅ Legacy session completely stopped. Enhanced logging system is now active.")
+                st.rerun()
+        with col2:
+            if st.button("🔄 Force Complete Restart", type="secondary"):
+                # Nuclear option - clear all radiation analysis state
+                keys_to_clear = [
+                    'radiation_analysis_running', 'radiation_analysis_start_time', 
+                    'processed_element_ids', 'temp_radiation_results',
+                    'analysis_monitor', 'radiation_completed', 'step5_completed'
+                ]
+                for key in keys_to_clear:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                clear_global_registry()
+                st.success("✅ Complete restart performed. All logging duplicates eliminated.")
+                st.rerun()
+        st.stop()  # Don't show the rest of the page until fixed
     
     # Data Usage Information
     with st.expander("📊 How This Data Will Be Used", expanded=False):
@@ -1393,8 +1414,9 @@ def render_radiation_grid():
                 status_text = st.empty()
                 element_progress = st.empty()
         
-            # Create live analysis monitor
-            monitor = analysis_monitor.create_monitor_display()
+            # Create unified analysis logger (prevents all duplicate logging)
+            from utils.unified_logger import unified_logger
+            monitor = unified_logger.create_display()
             # Initialize progress
             status_text.text("Initializing radiation analysis...")
             progress_bar.progress(5)
@@ -1850,8 +1872,11 @@ def render_radiation_grid():
                     # Calculate radiation for this element
                     element_start_time = time.time()
                     try:
-                        # Log element processing start
-                        monitor.log_element_start(element_id, orientation, area)
+                        # UNIFIED LOGGING: Single source prevents duplicates
+                        from utils.unified_logger import unified_logger
+                        unified_logger.log_element_start(element_id, orientation, area)
+                        
+                        # Database logging only (no console output)
                         if 'project_id' in st.session_state and st.session_state.project_id:
                             radiation_logger.log_element_start(
                                 st.session_state.project_id, element_id, orientation, area
@@ -2014,7 +2039,8 @@ def render_radiation_grid():
                             
                             # Log successful processing to monitor
                             element_processing_time = time.time() - element_start_time
-                            monitor.log_element_success(element_id, annual_irradiance, element_processing_time)
+                            # UNIFIED LOGGING: Single source prevents duplicates
+                            unified_logger.log_element_success(element_id, annual_irradiance, element_processing_time)
                             
                             # CRITICAL: Add to processed set and remove from current processing set
                             processed_element_ids.add(element_id)
@@ -2036,7 +2062,8 @@ def render_radiation_grid():
                         
                         # Log error to monitoring and database
                         element_processing_time = time.time() - element_start_time
-                        monitor.log_element_error(element_id, str(e), element_processing_time)
+                        # UNIFIED LOGGING: Single source prevents duplicates
+                        unified_logger.log_element_error(element_id, str(e), element_processing_time)
                         if 'project_id' in st.session_state and st.session_state.project_id:
                             radiation_logger.log_element_failure(
                                 st.session_state.project_id, element_id, 
