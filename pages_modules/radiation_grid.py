@@ -1340,18 +1340,28 @@ def render_radiation_grid():
     
     # Always show the run button for user access
     
+    # CRITICAL: Add execution lock to prevent multiple simultaneous runs
+    if 'radiation_analysis_running' not in st.session_state:
+        st.session_state.radiation_analysis_running = False
+    
+    if st.session_state.radiation_analysis_running:
+        st.warning("⚠️ Radiation analysis is already running. Please wait for it to complete.")
+        return
+    
     if (show_run_button and st.button("🚀 Run Radiation Analysis", key="run_radiation_analysis")) or continue_analysis:
-        # Create progress tracking containers
-        progress_container = st.container()
-        with progress_container:
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            element_progress = st.empty()
-        
-        # Create live analysis monitor
-        monitor = analysis_monitor.create_monitor_display()
+        # Set execution lock immediately
+        st.session_state.radiation_analysis_running = True
         
         try:
+            # Create progress tracking containers
+            progress_container = st.container()
+            with progress_container:
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                element_progress = st.empty()
+        
+            # Create live analysis monitor
+            monitor = analysis_monitor.create_monitor_display()
             # Initialize progress
             status_text.text("Initializing radiation analysis...")
             progress_bar.progress(5)
@@ -1366,6 +1376,8 @@ def render_radiation_grid():
             
             if not tmy_data:
                 st.error("❌ No TMY weather data available. Please complete Step 3 (Weather & Environment) first.")
+                # Clear execution lock on error
+                st.session_state.radiation_analysis_running = False
                 return
             
             # Convert TMY data to DataFrame if it's not already
@@ -1392,6 +1404,8 @@ def render_radiation_grid():
             
             if len(found_cols) == 0:
                 st.error("❌ No radiation columns found in TMY data")
+                # Clear execution lock on error
+                st.session_state.radiation_analysis_running = False
                 return
             
             # Standardize column names for processing
@@ -1476,6 +1490,8 @@ def render_radiation_grid():
             
             if len(solar_lookup) == 0:
                 st.error("❌ No radiation data calculated from TMY sources. Please ensure Step 3 TMY generation completed successfully.")
+                # Clear execution lock on error
+                st.session_state.radiation_analysis_running = False
                 return
             
             # Optimize element grouping for faster processing
@@ -1654,11 +1670,15 @@ def render_radiation_grid():
                         st.session_state.radiation_start_index = global_i
                         st.session_state.radiation_partial_results = radiation_results
                         st.warning(f"⏸️ Analysis paused at element {global_i+1}/{len(suitable_elements)}")
+                        # Clear execution lock on pause
+                        st.session_state.radiation_analysis_running = False
                         return
                     elif st.session_state.radiation_control_state == 'stopped':
                         st.session_state.radiation_start_index = 0
                         st.session_state.radiation_partial_results = []
                         st.error(f"⏹️ Analysis stopped at element {global_i+1}/{len(suitable_elements)}")
+                        # Clear execution lock on stop
+                        st.session_state.radiation_analysis_running = False
                         return
                         
                     # Extract element data from BIM upload - preserve actual Element IDs
@@ -2035,6 +2055,9 @@ def render_radiation_grid():
             st.session_state.radiation_completed = True
             progress_bar.progress(100)
             status_text.text("✅ Step 5 completed successfully - you can proceed to Step 6")
+            
+            # CRITICAL: Clear execution lock on successful completion
+            st.session_state.radiation_analysis_running = False
                 
             # Save to session state and database
             st.session_state.project_data['radiation_data'] = radiation_data
@@ -2172,7 +2195,15 @@ def render_radiation_grid():
             progress_bar.progress(100)
             status_text.text("✅ Step 5 completed (with recovery) - you can proceed to Step 6")
             element_progress.text("Analysis completed - proceed to next step")
+            # Clear execution lock on completion
+            st.session_state.radiation_analysis_running = False
             return
+        
+        except Exception as e:
+            st.error(f"❌ Unexpected error during radiation analysis: {str(e)}")
+            # Clear execution lock on any error
+            st.session_state.radiation_analysis_running = False
+            raise
     
     # Display results if available
     if st.session_state.get('radiation_completed', False):
