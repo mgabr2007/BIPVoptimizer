@@ -1547,6 +1547,13 @@ def render_radiation_grid():
                 processed_element_ids = {result.get('element_id', '') for result in radiation_results}
                 st.info(f"📋 **Continuing from previous analysis**: {len(processed_element_ids)} elements already processed")
             
+            # Initialize session state tracking for processed elements to prevent concurrent processing
+            if 'current_processing_elements' not in st.session_state:
+                st.session_state.current_processing_elements = set()
+            else:
+                # Clear any stale processing elements from previous runs
+                st.session_state.current_processing_elements.clear()
+            
             # CRITICAL: Add all element IDs that are about to be processed to prevent batch overlap
             all_element_ids = set()
             if isinstance(suitable_elements, pd.DataFrame):
@@ -1657,20 +1664,21 @@ def render_radiation_grid():
                     # Extract element data from BIM upload - preserve actual Element IDs
                     element_id = element.get('element_id', f'Unknown_Element_{global_i+1}')
                     
-                    # CRITICAL: Skip if element already processed (duplication check)
-                    if element_id in processed_element_ids:
+                    # CRITICAL: Skip if element already processed or currently being processed (duplication check)
+                    if element_id in processed_element_ids or element_id in st.session_state.current_processing_elements:
                         consecutive_skips += 1
                         
                         # Log skip to monitoring and database
-                        monitor.log_element_skip(element_id, "Already processed")
+                        skip_reason = "Already processed" if element_id in processed_element_ids else "Currently being processed"
+                        monitor.log_element_skip(element_id, skip_reason)
                         if 'project_id' in st.session_state and st.session_state.project_id:
                             radiation_logger.log_element_skip(
-                                st.session_state.project_id, element_id, "Already processed"
+                                st.session_state.project_id, element_id, skip_reason
                             )
                         
                         # Update progress display for skipped elements
                         percentage_complete = int(100 * global_i / len(suitable_elements))
-                        element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} (already processed)</h4>", unsafe_allow_html=True)
+                        element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} ({skip_reason})</h4>", unsafe_allow_html=True)
                         progress_bar.progress(percentage_complete)
                         
                         # Check for too many consecutive skips but continue to completion
@@ -1678,8 +1686,10 @@ def render_radiation_grid():
                             st.warning(f"⚠️ Many consecutive skips ({consecutive_skips}) - nearing completion.")
                             # Don't return, let it complete normally
                         continue
-                    else:
-                        consecutive_skips = 0  # Reset skip counter when processing an element
+                    
+                    # CRITICAL: Add element_id to currently processing set IMMEDIATELY to prevent concurrent processing
+                    st.session_state.current_processing_elements.add(element_id)
+                    consecutive_skips = 0  # Reset skip counter when processing an element
                     
                     azimuth = element.get('azimuth', 180)
                     tilt = element.get('tilt', 90)
@@ -1888,11 +1898,13 @@ def render_radiation_grid():
                             element_processing_time = time.time() - element_start_time
                             monitor.log_element_success(element_id, annual_irradiance, element_processing_time)
                             
-                            # CRITICAL: Add to processed set immediately to prevent duplication
+                            # CRITICAL: Add to processed set and remove from current processing set
                             processed_element_ids.add(element_id)
+                            st.session_state.current_processing_elements.discard(element_id)
                         else:
                             # Still add to processed set even if no samples to prevent reprocessing
                             processed_element_ids.add(element_id)
+                            st.session_state.current_processing_elements.discard(element_id)
                         
                     except Exception as e:
                         # Log error but continue processing - no fallback values added
@@ -1917,6 +1929,7 @@ def render_radiation_grid():
                         
                         # CRITICAL: Add to processed set even on failure to prevent reprocessing
                         processed_element_ids.add(element_id)
+                        st.session_state.current_processing_elements.discard(element_id)
                         pass  # Continue to next element - no data added for failed element
                         
 
