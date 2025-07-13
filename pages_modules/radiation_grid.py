@@ -953,6 +953,17 @@ def render_radiation_grid():
     
     st.header("☀️ Step 5: Solar Radiation & Shading Analysis")
     
+    # CRITICAL: Force stop any legacy running analysis to apply fixes
+    if 'radiation_analysis_running' in st.session_state and st.session_state.radiation_analysis_running:
+        st.error("⚠️ **IMPORTANT**: An old analysis session is running with outdated code. Click 'Force Stop Legacy Session' to apply the latest duplication prevention fixes.")
+        if st.button("🛑 Force Stop Legacy Session", type="primary"):
+            st.session_state.radiation_analysis_running = False
+            st.session_state.radiation_analysis_start_time = 0
+            st.session_state.processed_element_ids = set()  # Reset processed cache
+            clear_global_registry()  # Clear registry
+            st.success("✅ Legacy session stopped. The analysis will now use the enhanced duplication prevention system.")
+            st.rerun()
+    
     # Data Usage Information
     with st.expander("📊 How This Data Will Be Used", expanded=False):
         st.markdown("""
@@ -1341,17 +1352,35 @@ def render_radiation_grid():
     
     # Always show the run button for user access
     
-    # CRITICAL: Add execution lock to prevent multiple simultaneous runs
+    # CRITICAL: Strong execution lock to prevent multiple simultaneous runs
     if 'radiation_analysis_running' not in st.session_state:
         st.session_state.radiation_analysis_running = False
     
+    # Import time for timestamp checking
+    import time
+    
+    # Add timestamp-based lock with timeout (30 minutes)
+    current_time = time.time()
+    lock_timeout = 30 * 60  # 30 minutes
+    
+    if 'radiation_analysis_start_time' not in st.session_state:
+        st.session_state.radiation_analysis_start_time = 0
+    
+    # Check if lock is active and not timed out
     if st.session_state.radiation_analysis_running:
-        st.warning("⚠️ Radiation analysis is already running. Please wait for it to complete.")
-        return
+        time_since_start = current_time - st.session_state.radiation_analysis_start_time
+        if time_since_start < lock_timeout:
+            st.warning(f"⚠️ Radiation analysis is already running. Please wait for it to complete. (Running for {int(time_since_start/60)} minutes)")
+            return
+        else:
+            # Lock timed out, reset it
+            st.warning("⚠️ Previous analysis timed out. Resetting lock.")
+            st.session_state.radiation_analysis_running = False
     
     if (show_run_button and st.button("🚀 Run Radiation Analysis", key="run_radiation_analysis")) or continue_analysis:
-        # Set execution lock immediately
+        # Set execution lock immediately with timestamp
         st.session_state.radiation_analysis_running = True
+        st.session_state.radiation_analysis_start_time = time.time()
         
         # CRITICAL: Clear global registry for new analysis
         clear_global_registry()
