@@ -21,6 +21,8 @@ except ImportError:
     db_helper = SimpleDBHelper()
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
+from utils.radiation_logger import radiation_logger
+from utils.analysis_monitor import analysis_monitor
 
 def calculate_precise_shading_factor(wall_element, window_element, solar_position):
     """Calculate precise shading factor for a window from a specific wall at given solar position."""
@@ -1211,6 +1213,10 @@ def render_radiation_grid():
         if existing_count > 0:
             st.info(f"📊 Found {existing_count} radiation analysis records in database for this project")
         
+        # Show detailed analysis status dashboard
+        if project_id:
+            radiation_logger.display_analysis_status(project_id)
+        
         # Get building elements count for comparison
         building_elements = st.session_state.get('building_elements', [])
         if hasattr(building_elements, '__len__'):
@@ -1319,6 +1325,9 @@ def render_radiation_grid():
             progress_bar = st.progress(0)
             status_text = st.empty()
             element_progress = st.empty()
+        
+        # Create live analysis monitor
+        monitor = analysis_monitor.create_monitor_display()
         
         try:
             # Initialize progress
@@ -1614,6 +1623,14 @@ def render_radiation_grid():
                         # Skip if element already processed (duplication check)
                         if element_id in processed_element_ids:
                             consecutive_skips += 1
+                            
+                            # Log skip to monitoring and database
+                            monitor.log_element_skip(element_id, "Already processed")
+                            if 'project_id' in st.session_state and st.session_state.project_id:
+                                radiation_logger.log_element_skip(
+                                    st.session_state.project_id, element_id, "Already processed"
+                                )
+                            
                             # Update progress display for skipped elements
                             percentage_complete = int(100 * global_i / len(suitable_elements))
                             element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} (already processed)</h4>", unsafe_allow_html=True)
@@ -1667,7 +1684,15 @@ def render_radiation_grid():
                             continue
                         
                         # Calculate radiation for this element
+                        element_start_time = time.time()
                         try:
+                            # Log element processing start
+                            monitor.log_element_start(element_id, orientation, area)
+                            if 'project_id' in st.session_state and st.session_state.project_id:
+                                radiation_logger.log_element_start(
+                                    st.session_state.project_id, element_id, orientation, area
+                                )
+                            
                             annual_irradiance = 0
                             peak_irradiance = 0
                             sample_count = 0
@@ -1787,7 +1812,7 @@ def render_radiation_grid():
                                 sample_solar_pos = {'elevation': 45, 'azimuth': 180}  # Sample solar position
                                 angle_effects = calculate_height_dependent_solar_angles(sample_solar_pos, height_from_ground)
                                 
-                                radiation_results.append({
+                                result_data = {
                                     'element_id': element_id,
                                     'element_type': 'Window',
                                     'orientation': orientation,
@@ -1812,7 +1837,13 @@ def render_radiation_grid():
                                     'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
                                     'annual_energy_potential': annual_irradiance * area,  # kWh per element
                                     'sample_count': sample_count
-                                })
+                                }
+                                
+                                radiation_results.append(result_data)
+                                
+                                # Log successful processing to monitor
+                                element_processing_time = time.time() - element_start_time
+                                monitor.log_element_success(element_id, annual_irradiance, element_processing_time)
                                 
                                 # Add to processed set to prevent duplication
                                 processed_element_ids.add(element_id)
@@ -1824,11 +1855,20 @@ def render_radiation_grid():
                                 st.session_state.radiation_error_count = 0
                             st.session_state.radiation_error_count += 1
                             
+                            # Log error to monitoring and database
+                            element_processing_time = time.time() - element_start_time
+                            monitor.log_element_error(element_id, str(e), element_processing_time)
+                            if 'project_id' in st.session_state and st.session_state.project_id:
+                                radiation_logger.log_element_failure(
+                                    st.session_state.project_id, element_id, 
+                                    str(e), element_processing_time
+                                )
+                            
                             # Show limited error info without overwhelming interface
                             if st.session_state.radiation_error_count <= 5:
                                 st.warning(f"⚠️ Element {element_id} processing error: {str(e)[:100]}")
                             elif st.session_state.radiation_error_count == 6:
-                                st.info("ℹ️ Additional processing errors will be logged silently.")
+                                st.info("ℹ️ Additional processing errors will be logged to database.")
                             
                             pass  # Continue to next element - no data added for failed element
                         
@@ -1979,6 +2019,18 @@ def render_radiation_grid():
                     st.warning(f"Could not save to database: {str(db_error)}")
             else:
                 st.info("Analysis results saved to session only (no project ID available)")
+            
+            # Log final analysis summary
+            if 'project_id' in st.session_state and st.session_state.project_id:
+                processed_count = len(radiation_results)
+                failed_count = st.session_state.get('radiation_error_count', 0)
+                skipped_count = len(processed_element_ids) - processed_count if len(processed_element_ids) > processed_count else 0
+                
+                radiation_logger.log_analysis_summary(
+                    st.session_state.project_id,
+                    total_elements, processed_count, failed_count, skipped_count,
+                    'completed', f"Analysis completed with {processed_count} valid elements"
+                )
             
             # Complete progress and reset control states
             progress_bar.progress(100)
