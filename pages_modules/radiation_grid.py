@@ -1598,6 +1598,18 @@ def render_radiation_grid():
                                 if monthly_samples > 0:
                                     monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
                             
+                            # Diagnostic: Track why elements are excluded
+                            if sample_count == 0:
+                                if 'excluded_elements_diagnostic' not in st.session_state:
+                                    st.session_state.excluded_elements_diagnostic = []
+                                st.session_state.excluded_elements_diagnostic.append({
+                                    'element_id': element_id,
+                                    'orientation': orientation,
+                                    'azimuth': azimuth,
+                                    'level': level,
+                                    'reason': 'No valid TMY samples found'
+                                })
+                            
                             # Process all elements but only with authentic calculated data
                             if sample_count > 0:  # Only require some valid samples, not zero timeout
                                 # Scale to annual totals based on computational method
@@ -1712,6 +1724,26 @@ def render_radiation_grid():
                     st.info(f"📋 **Duplication Prevention**: {skipped_count} elements were skipped as already processed")
                 else:
                     st.success(f"✅ Analysis completed - {total_processed} elements with valid radiation data")
+                
+                # Show diagnostic information about excluded elements
+                if 'excluded_elements_diagnostic' in st.session_state and st.session_state.excluded_elements_diagnostic:
+                    excluded_count = len(st.session_state.excluded_elements_diagnostic)
+                    excluded_total = total_attempted - total_processed
+                    st.warning(f"⚠️ **Data Analysis**: {excluded_count} elements excluded due to missing TMY radiation data")
+                    
+                    with st.expander(f"📊 View Excluded Elements Details ({excluded_count} elements)", expanded=False):
+                        import pandas as pd
+                        excluded_df = pd.DataFrame(st.session_state.excluded_elements_diagnostic)
+                        st.dataframe(excluded_df, use_container_width=True)
+                        
+                        # Summary by orientation
+                        if 'orientation' in excluded_df.columns:
+                            orientation_summary = excluded_df['orientation'].value_counts()
+                            st.write("**Excluded Elements by Orientation:**")
+                            for orientation, count in orientation_summary.items():
+                                st.write(f"- {orientation}: {count} elements")
+                        
+                        st.info("💡 **Possible causes**: TMY data gaps, solar position calculation issues, or orientation-specific validation failures")
             
             # Apply corrections if requested
             if apply_corrections:
