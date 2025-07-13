@@ -183,6 +183,20 @@ class UnifiedAnalysisLogger:
         message = f"⏭️ {element_id} skipped ({reason})"
         return self._add_log_message(message, element_id, "skip")
     
+    def log_timeout(self, element_id: str, timeout_duration: float) -> bool:
+        """Log element timeout - guaranteed single entry"""
+        # Check if already timed out
+        if self.element_status.get(element_id) == "timeout":
+            return False  # Already logged
+        
+        # Update status
+        self.element_status[element_id] = "timeout"
+        self.failed += 1
+        
+        # Add log message
+        message = f"⏰ {element_id} timed out ({timeout_duration:.1f}s)"
+        return self._add_log_message(message, element_id, "timeout")
+    
     def get_summary(self) -> dict:
         """Get analysis summary"""
         elapsed_time = time.time() - self.start_time
