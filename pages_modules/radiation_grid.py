@@ -775,6 +775,14 @@ def generate_radiation_grid(suitable_elements, tmy_data, latitude, longitude, sh
     
     radiation_grid = []
     
+    # Ensure suitable_elements is a DataFrame for consistent processing
+    if not isinstance(suitable_elements, pd.DataFrame):
+        if isinstance(suitable_elements, list):
+            suitable_elements = pd.DataFrame(suitable_elements)
+        else:
+            st.error("suitable_elements must be a DataFrame or list of dictionaries")
+            return pd.DataFrame()
+    
     for _, element in suitable_elements.iterrows():
         # Verify element is actually suitable (double-check filtering)
         is_suitable = element.get('pv_suitable', element.get('suitable', True))
@@ -1541,9 +1549,15 @@ def render_radiation_grid():
             
             # CRITICAL: Add all element IDs that are about to be processed to prevent batch overlap
             all_element_ids = set()
-            for element in suitable_elements:
-                element_id = element.get('element_id', f'Unknown_Element_{len(all_element_ids)+1}')
-                all_element_ids.add(element_id)
+            if isinstance(suitable_elements, pd.DataFrame):
+                for _, element in suitable_elements.iterrows():
+                    element_id = element.get('element_id', f'Unknown_Element_{len(all_element_ids)+1}')
+                    all_element_ids.add(element_id)
+            else:
+                for element in suitable_elements:
+                    if isinstance(element, dict):
+                        element_id = element.get('element_id', f'Unknown_Element_{len(all_element_ids)+1}')
+                        all_element_ids.add(element_id)
             
             st.info(f"📊 **Processing Plan**: {len(all_element_ids)} unique elements to process, {len(processed_element_ids)} already done")
             
@@ -1590,7 +1604,7 @@ def render_radiation_grid():
                         'height': row.get('window_height', row.get('height', row.get('Height', 1.5))),
                         'ori_z': ori_z  # Store original OriZ for debugging
                     })
-                suitable_elements = elements_list
+                suitable_elements = pd.DataFrame(elements_list)
             
             # Dynamic batch processing based on element count and precision
             total_elements_count = len(suitable_elements)
@@ -1621,8 +1635,12 @@ def render_radiation_grid():
                     BATCH_SIZE = min(BATCH_SIZE, 5)
                 
                 # Process elements sequentially without confusing batch logic
+                # Ensure suitable_elements is a DataFrame for consistent processing
+                if not isinstance(suitable_elements, pd.DataFrame):
+                    suitable_elements = pd.DataFrame(suitable_elements)
+                
                 for global_i in range(start_index, len(suitable_elements)):
-                    element = suitable_elements[global_i]
+                    element = suitable_elements.iloc[global_i]
                     
                     # Check control state before processing each element
                     if st.session_state.radiation_control_state == 'paused':
