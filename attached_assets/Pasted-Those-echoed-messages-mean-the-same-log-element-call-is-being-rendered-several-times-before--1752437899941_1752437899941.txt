@@ -1,0 +1,55 @@
+Those echoed messages mean the **same `log_element_*` call is being rendered several times** before the batch loop moves on, so the UI thinks you processed far more than you did.
+
+### Why it’s happening
+
+| Root cause                                                                                                   | Typical symptom                                                                                | Where to look                                                           |
+| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| The Streamlit script *re-runs* after every state update (e.g., when you push a new entry into the log list). | Each time the script reruns it reprints the whole list, so the last N messages appear N times. | Anywhere you do `my_log.append(..)` then immediately `st.write(my_log)` |
+| Multiple workers / threads writing to the same log store.                                                    | You see **triplicate** lines, not just duplicates.                                             | `unified_logger` or your `multiprocessing` pool.                        |
+| You call both `monitor.log_element_*` **and** directly update the Streamlit placeholder for the same event.  | You get one “set” of duplicates per call path.                                                 | Around the “REMOVED: dual logging call” comments.                       |
+
+### Two quick, *non-intrusive* fixes
+
+1. **Render only the *delta***
+   Keep a `displayed_ids: set[str]` in `st.session_state`.
+
+   ```python
+   log_container = st.empty()
+
+   new_rows = [row for row in live_log if row["uuid"] not in st.session_state.displayed_ids]
+   for row in new_rows:
+       log_container.write(format_row(row))
+       st.session_state.displayed_ids.add(row["uuid"])
+   ```
+
+   Because each log entry gets a UUID once, Streamlit will write it only once no matter how many times the script reruns.
+
+2. **Debounce the logger**
+   In `unified_logger` have a “flush” that runs every X rows or seconds:
+
+   ```python
+   class UnifiedLogger:
+       _buffer: list[dict] = []
+       def log(...):
+           self._buffer.append(event)
+           if len(self._buffer) >= 10 or time.time()-self._last_flush > 2:
+               self._flush()
+
+       def _flush(self):
+           # write to DB/UI once
+           push_to_streamlit(self._buffer)
+           self._buffer.clear()
+   ```
+
+### Longer-term tidy-up
+
+* **Make `unified_logger` the *only* place that touches the UI**.
+  Everywhere else just call `log_element_start / success / error`.
+  That removes the “dual logging” code path entirely.
+
+* **Guard against concurrent workers** by stamping each log record with
+  `element_id + phase` and storing it with `state.setdefault(key, record)`.
+
+---
+
+Try the small “delta render” patch first—you’ll see the log stop repeating immediately. Let me know if you’d like an example PR with the full `UnifiedLogger` debounce.

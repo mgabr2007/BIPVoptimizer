@@ -5,16 +5,21 @@ Single source of truth for all radiation analysis logging to prevent duplicates
 
 import streamlit as st
 import time
+import uuid
 from datetime import datetime
-from typing import Set, Dict, Optional
+from typing import Set, Dict, Optional, List
 
 class UnifiedAnalysisLogger:
     def __init__(self):
         self.start_time = time.time()
         self.logged_events: Set[str] = set()  # Track unique events
-        self.log_messages = []
+        self.log_messages: List[Dict] = []  # Store messages with UUIDs
         self.element_status: Dict[str, str] = {}  # Track element status
         self.container: Optional[st.container] = None
+        
+        # Initialize session state for delta rendering
+        if 'displayed_log_ids' not in st.session_state:
+            st.session_state.displayed_log_ids = set()
         
         # Metrics
         self.total_processed = 0
@@ -37,8 +42,8 @@ class UnifiedAnalysisLogger:
         with col4:
             self.skip_metric = st.empty()
         
-        # Create log container
-        self.container = st.container()
+        # Create single log display area for delta rendering
+        self.log_display = st.empty()
         self.update_metrics()
         return self
     
@@ -47,7 +52,7 @@ class UnifiedAnalysisLogger:
         return f"{element_id}_{event_type}_{timestamp}"
     
     def _add_log_message(self, message: str, element_id: str, event_type: str):
-        """Add message with strict deduplication"""
+        """Add message with strict deduplication and delta rendering"""
         timestamp = datetime.now().strftime("%H:%M:%S")
         event_key = self._generate_event_key(element_id, event_type, timestamp)
         
@@ -58,26 +63,60 @@ class UnifiedAnalysisLogger:
         # Add to logged events
         self.logged_events.add(event_key)
         
-        # Add timestamped message
-        timestamped_message = f"[{timestamp}] {message}"
-        self.log_messages.append(timestamped_message)
+        # Create message with UUID for delta rendering
+        message_entry = {
+            'uuid': str(uuid.uuid4()),
+            'timestamp': timestamp,
+            'message': message,
+            'element_id': element_id,
+            'event_type': event_type,
+            'formatted': f"[{timestamp}] {message}"
+        }
         
-        # Keep only last 10 messages
-        if len(self.log_messages) > 10:
+        self.log_messages.append(message_entry)
+        
+        # Keep only last 15 messages
+        if len(self.log_messages) > 15:
             self.log_messages.pop(0)
         
-        # Update display
-        self._update_display()
+        # Update display with delta rendering
+        self._update_display_delta()
         return True
     
-    def _update_display(self):
-        """Update the log display"""
-        if self.container:
-            with self.container:
-                # Clear and show latest messages
-                for msg in self.log_messages[-5:]:  # Show last 5 messages
-                    st.text(msg)
+    def _update_display_delta(self):
+        """Update the log display using delta rendering to prevent echoes"""
+        if not hasattr(self, 'log_display'):
+            return
+            
+        # Find new messages that haven't been displayed yet
+        new_messages = [
+            msg for msg in self.log_messages[-8:]  # Show last 8 messages
+            if msg['uuid'] not in st.session_state.displayed_log_ids
+        ]
+        
+        # If we have new messages, update the entire display with recent messages
+        if new_messages:
+            # Get all recent messages (including already displayed ones for context)
+            recent_messages = self.log_messages[-8:]
+            
+            # Format for display
+            display_text = "\n".join([msg['formatted'] for msg in recent_messages])
+            
+            # Update the single display area
+            self.log_display.text(display_text)
+            
+            # Mark new messages as displayed
+            for msg in new_messages:
+                st.session_state.displayed_log_ids.add(msg['uuid'])
+        
         self.update_metrics()
+        
+    def clear_display(self):
+        """Clear the display and reset displayed IDs"""
+        if 'displayed_log_ids' in st.session_state:
+            st.session_state.displayed_log_ids.clear()
+        if hasattr(self, 'log_display'):
+            self.log_display.empty()
     
     def update_metrics(self):
         """Update metrics display"""
