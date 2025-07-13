@@ -335,10 +335,16 @@ class BIPVDatabaseManager:
                     cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
                     
                     for element in element_radiation:
+                        # Use INSERT ON CONFLICT to handle unique constraint
                         cursor.execute("""
                             INSERT INTO element_radiation 
                             (project_id, element_id, annual_radiation, irradiance, orientation_multiplier)
                             VALUES (%s, %s, %s, %s, %s)
+                            ON CONFLICT (project_id, element_id) 
+                            DO UPDATE SET
+                                annual_radiation = EXCLUDED.annual_radiation,
+                                irradiance = EXCLUDED.irradiance,
+                                orientation_multiplier = EXCLUDED.orientation_multiplier
                         """, (
                             project_id,
                             element.get('element_id'),

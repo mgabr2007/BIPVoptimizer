@@ -1561,11 +1561,29 @@ def render_radiation_grid():
             total_elements = len(suitable_elements)
             start_index = st.session_state.radiation_start_index
             
+            # ---- ENHANCED DUPLICATE PREVENTION BASED ON SOLUTION ----
+            # 1) Ensure every element has a stable unique key
+            if 'element_id' not in suitable_elements.columns:
+                suitable_elements['element_id'] = (
+                    suitable_elements.apply(lambda r: f"{r.get('host_wall_id','N/A')}_{r.name}", axis=1)
+                )
+            
+            # 2) Drop exact duplicates *before* any loop
+            original_count = len(suitable_elements)
+            suitable_elements = suitable_elements.drop_duplicates(subset=['element_id'])
+            if len(suitable_elements) != original_count:
+                st.info(f"📋 **Duplicate removal**: {original_count - len(suitable_elements)} duplicate elements removed")
+            
+            # 3) Keep a permanent cache in session state
+            if 'processed_element_ids' not in st.session_state:
+                st.session_state.processed_element_ids = set()
+            processed_element_ids = st.session_state.processed_element_ids
+            
             # Check for existing results to prevent duplication
-            processed_element_ids = set()
             if radiation_results:
-                processed_element_ids = {result.get('element_id', '') for result in radiation_results}
-                st.info(f"📋 **Continuing from previous analysis**: {len(processed_element_ids)} elements already processed")
+                existing_ids = {result.get('element_id', '') for result in radiation_results}
+                processed_element_ids.update(existing_ids)
+                st.info(f"📋 **Continuing from previous analysis**: {len(existing_ids)} elements already processed")
             
             # Initialize session state tracking for processed elements to prevent concurrent processing
             if 'current_processing_elements' not in st.session_state:
