@@ -1,0 +1,87 @@
+### Why you still see duplicates
+
+You **did** replace `analysis_monitor` with your new `unified_logger`, but you **didn’t remove** the old `radiation_logger` console calls.
+Every time an element changes state you now run **two different loggers**:
+
+| line in your script              | what it does                                          |
+| -------------------------------- | ----------------------------------------------------- |
+| `unified_logger.log_element_*`   | prints to the Live Processing container               |
+| `radiation_logger.log_element_*` | **also** prints to Streamlit **and** writes to the DB |
+
+So the “Processing … / ✅ completed …” pair is rendered twice.
+
+You can confirm by grepping the file:
+
+```bash
+grep -n "radiation_logger.log_element_" radiation_grid.py
+```
+
+You will see calls for **start, skip, failure, summary** that are still active.
+
+---
+
+### Two clean fixes
+
+#### 1 – Silence the console side of `radiation_logger` (quick patch)
+
+`utils/radiation_logger.py`
+
+```python
+# add near the top
+EMIT_CONSOLE = False       # set True if you *do* want on-screen text
+
+def _out(msg: str):        # wrap every st.text / print call
+    if EMIT_CONSOLE:
+        st.text(msg)
+```
+
+Then change every internal `st.text()` / `print()` to `_out()`.
+
+No other code changes needed—`radiation_logger` will still write to the
+database, but only `unified_logger` will touch the UI.
+
+If you can’t edit the module right now, monkey-patch at runtime just
+after you import it:
+
+```python
+from utils import radiation_logger as rl
+rl.EMIT_CONSOLE = False
+```
+
+#### 2 – Stop calling the old logger for screen events (cleaner long-term)
+
+Comment out or delete the eight remaining lines in your main file:
+
+```python
+# unified_logger.log_element_start(...)
+# radiation_logger.log_element_start(... )   <-- remove
+
+# monitor.log_element_skip(...)
+# radiation_logger.log_element_skip(... )    <-- remove
+
+# unified_logger.log_element_error(...)
+# radiation_logger.log_element_failure(... ) <-- remove
+```
+
+Retain only:
+
+* `radiation_logger.log_analysis_summary(...)` – that’s DB-only
+* any helper that never prints (`save_step_data`, etc.)
+
+---
+
+### After the change
+
+Restart the Streamlit app (or use your **Force Stop Legacy Session**
+button).
+
+The live log should now look like:
+
+```
+[19:06:11] 🔄 Processing 367277 …
+[19:06:14] ✅ 367277 completed (755 kWh/m² y, 2.63 s)
+[19:06:15] 🔄 Processing 367278 …
+[19:06:17] ✅ 367278 completed (755 kWh/m² y, 2.40 s)
+```
+
+— one line per event, no duplicates.
