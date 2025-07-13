@@ -1525,6 +1525,14 @@ def render_radiation_grid():
                 processed_element_ids = {result.get('element_id', '') for result in radiation_results}
                 st.info(f"📋 **Continuing from previous analysis**: {len(processed_element_ids)} elements already processed")
             
+            # CRITICAL: Add all element IDs that are about to be processed to prevent batch overlap
+            all_element_ids = set()
+            for element in suitable_elements:
+                element_id = element.get('element_id', f'Unknown_Element_{len(all_element_ids)+1}')
+                all_element_ids.add(element_id)
+            
+            st.info(f"📊 **Processing Plan**: {len(all_element_ids)} unique elements to process, {len(processed_element_ids)} already done")
+            
             # Initialize timeout tracking
             import time
             analysis_start_time = time.time()
@@ -1598,306 +1606,308 @@ def render_radiation_grid():
                     # Use smaller batch size for final elements
                     BATCH_SIZE = min(BATCH_SIZE, 5)
                 
-                for batch_start in range(start_index, len(suitable_elements), BATCH_SIZE):
-                    batch_end = min(batch_start + BATCH_SIZE, len(suitable_elements))
-                    batch_elements = suitable_elements[batch_start:batch_end]
+                # Process elements sequentially without confusing batch logic
+                for global_i in range(start_index, len(suitable_elements)):
+                    element = suitable_elements[global_i]
                     
-                    for i, element in enumerate(batch_elements):
-                        global_i = batch_start + i
+                    # Check control state before processing each element
+                    if st.session_state.radiation_control_state == 'paused':
+                        st.session_state.radiation_start_index = global_i
+                        st.session_state.radiation_partial_results = radiation_results
+                        st.warning(f"⏸️ Analysis paused at element {global_i+1}/{len(suitable_elements)}")
+                        return
+                    elif st.session_state.radiation_control_state == 'stopped':
+                        st.session_state.radiation_start_index = 0
+                        st.session_state.radiation_partial_results = []
+                        st.error(f"⏹️ Analysis stopped at element {global_i+1}/{len(suitable_elements)}")
+                        return
                         
-                        # Check control state before processing each element
-                        if st.session_state.radiation_control_state == 'paused':
-                            st.session_state.radiation_start_index = global_i
-                            st.session_state.radiation_partial_results = radiation_results
-                            st.warning(f"⏸️ Analysis paused at element {global_i+1}/{len(suitable_elements)}")
-                            return
-                        elif st.session_state.radiation_control_state == 'stopped':
-                            st.session_state.radiation_start_index = 0
-                            st.session_state.radiation_partial_results = []
-                            st.error(f"⏹️ Analysis stopped at element {global_i+1}/{len(suitable_elements)}")
-                            return
+                    # Extract element data from BIM upload - preserve actual Element IDs
+                    element_id = element.get('element_id', f'Unknown_Element_{global_i+1}')
+                    
+                    # CRITICAL: Skip if element already processed (duplication check)
+                    if element_id in processed_element_ids:
+                        consecutive_skips += 1
                         
-                        # Extract element data from BIM upload - preserve actual Element IDs
-                        element_id = element.get('element_id', f'Unknown_Element_{global_i+1}')
+                        # Log skip to monitoring and database
+                        monitor.log_element_skip(element_id, "Already processed")
+                        if 'project_id' in st.session_state and st.session_state.project_id:
+                            radiation_logger.log_element_skip(
+                                st.session_state.project_id, element_id, "Already processed"
+                            )
                         
-                        # Skip if element already processed (duplication check)
-                        if element_id in processed_element_ids:
-                            consecutive_skips += 1
-                            
-                            # Log skip to monitoring and database
-                            monitor.log_element_skip(element_id, "Already processed")
-                            if 'project_id' in st.session_state and st.session_state.project_id:
-                                radiation_logger.log_element_skip(
-                                    st.session_state.project_id, element_id, "Already processed"
-                                )
-                            
-                            # Update progress display for skipped elements
-                            percentage_complete = int(100 * global_i / len(suitable_elements))
-                            element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} (already processed)</h4>", unsafe_allow_html=True)
-                            progress_bar.progress(percentage_complete)
-                            
-                            # Check for too many consecutive skips but continue to completion
-                            if consecutive_skips > 100:
-                                st.warning(f"⚠️ Many consecutive skips ({consecutive_skips}) - nearing completion.")
-                                # Don't return, let it complete normally
-                            continue
-                        else:
-                            consecutive_skips = 0  # Reset skip counter when processing an element
-                        
-                        azimuth = element.get('azimuth', 180)
-                        tilt = element.get('tilt', 90)
-                        area = element.get('glass_area', 1.5)  # Use actual BIM glass area
-                        orientation = element.get('orientation', 'Unknown')
-                        level = element.get('level', 'Level 1')
-                        width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
-                        height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
-                        
-                        # Progress display with larger font and timeout tracking
+                        # Update progress display for skipped elements
                         percentage_complete = int(100 * global_i / len(suitable_elements))
-                        element_progress.markdown(f"<h4 style='color: #0066cc; margin: 0;'>Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id}</h4>", unsafe_allow_html=True)
+                        element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} (already processed)</h4>", unsafe_allow_html=True)
                         progress_bar.progress(percentage_complete)
                         
-                        # Update progress tracking
-                        current_time = time.time()
-                        elements_processed_this_session += 1
-                        last_progress_time = current_time
+                        # Check for too many consecutive skips but continue to completion
+                        if consecutive_skips > 100:
+                            st.warning(f"⚠️ Many consecutive skips ({consecutive_skips}) - nearing completion.")
+                            # Don't return, let it complete normally
+                        continue
+                    else:
+                        consecutive_skips = 0  # Reset skip counter when processing an element
+                    
+                    azimuth = element.get('azimuth', 180)
+                    tilt = element.get('tilt', 90)
+                    area = element.get('glass_area', 1.5)  # Use actual BIM glass area
+                    orientation = element.get('orientation', 'Unknown')
+                    level = element.get('level', 'Level 1')
+                    width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
+                    height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
+                    
+                    # Progress display with larger font and timeout tracking
+                    percentage_complete = int(100 * global_i / len(suitable_elements))
+                    element_progress.markdown(f"<h4 style='color: #0066cc; margin: 0;'>Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id}</h4>", unsafe_allow_html=True)
+                    progress_bar.progress(percentage_complete)
+                    
+                    # Update progress tracking
+                    current_time = time.time()
+                    elements_processed_this_session += 1
+                    last_progress_time = current_time
+                    
+                    # Smart timeout with automatic continuation for small remaining sets
+                    timeout_minutes = 15 if total_elements_count > 500 else 10
+                    timeout_seconds = timeout_minutes * 60
+                    remaining_elements = len(suitable_elements) - global_i - 1
+                    
+                    # Auto-continue if close to completion (less than 20 elements remaining)
+                    if current_time - analysis_start_time > timeout_seconds and remaining_elements > 20:
+                        monitor.log_timeout(remaining_elements)
+                        st.warning(f"⏱️ Session timeout ({timeout_minutes} min) - Auto-continuing analysis...")
+                        st.info(f"📊 **Progress**: {len(radiation_results)} elements completed, {remaining_elements} remaining")
                         
-                        # Smart timeout with automatic continuation for small remaining sets
-                        timeout_minutes = 15 if total_elements_count > 500 else 10
-                        timeout_seconds = timeout_minutes * 60
-                        remaining_elements = len(suitable_elements) - global_i - 1
+                        # Save current progress but continue processing
+                        st.session_state.radiation_start_index = global_i + 1
+                        st.session_state.radiation_partial_results = radiation_results.copy()
                         
-                        # Auto-continue if close to completion (less than 20 elements remaining)
-                        if current_time - analysis_start_time > timeout_seconds and remaining_elements > 20:
-                            st.warning(f"⏱️ Session timeout ({timeout_minutes} min) - Auto-continuing analysis...")
-                            st.info(f"📊 **Progress**: {len(radiation_results)} elements completed, {remaining_elements} remaining")
-                            
-                            # Save current progress but continue processing
-                            st.session_state.radiation_start_index = global_i + 1
-                            st.session_state.radiation_partial_results = radiation_results.copy()
-                            
-                            # Reset timer for next session
-                            analysis_start_time = time.time()
-                            elements_processed_this_session = 0
-                            
-                            # Continue processing without breaking
-                            continue
+                        # Reset timer for next session
+                        analysis_start_time = time.time()
+                        elements_processed_this_session = 0
                         
-                        # Calculate radiation for this element
-                        element_start_time = time.time()
-                        try:
-                            # Log element processing start
-                            monitor.log_element_start(element_id, orientation, area)
-                            if 'project_id' in st.session_state and st.session_state.project_id:
-                                radiation_logger.log_element_start(
-                                    st.session_state.project_id, element_id, orientation, area
-                                )
+                        # Continue processing without breaking
+                        continue
+                        
+                    # Calculate radiation for this element
+                    element_start_time = time.time()
+                    try:
+                        # Log element processing start
+                        monitor.log_element_start(element_id, orientation, area)
+                        if 'project_id' in st.session_state and st.session_state.project_id:
+                            radiation_logger.log_element_start(
+                                st.session_state.project_id, element_id, orientation, area
+                            )
+                        
+                        annual_irradiance = 0
+                        peak_irradiance = 0
+                        sample_count = 0
+                        monthly_irradiation = {}
+                        
+                        for month in range(1, 13):
+                            monthly_total = 0
+                            monthly_samples = 0
                             
-                            annual_irradiance = 0
-                            peak_irradiance = 0
-                            sample_count = 0
-                            monthly_irradiation = {}
-                            
-                            for month in range(1, 13):
-                                monthly_total = 0
-                                monthly_samples = 0
-                                
-                                for day in days_sample:
-                                    if day < 28 or (day < 32 and month in [1,3,5,7,8,10,12]) or (day < 31 and month in [4,6,9,11]) or (day < 30 and month == 2):
-                                        for hour in sample_hours:
-                                            # Use pre-computed solar lookup key
-                                            lookup_key = f"{day}_{hour}"
+                            for day in days_sample:
+                                if day < 28 or (day < 32 and month in [1,3,5,7,8,10,12]) or (day < 31 and month in [4,6,9,11]) or (day < 30 and month == 2):
+                                    for hour in sample_hours:
+                                        # Use pre-computed solar lookup key
+                                        lookup_key = f"{day}_{hour}"
+                                        
+                                        if lookup_key in solar_lookup:
+                                            solar_data = solar_lookup[lookup_key]
+                                            solar_pos = solar_data['solar_position']
                                             
-                                            if lookup_key in solar_lookup:
-                                                solar_data = solar_lookup[lookup_key]
-                                                solar_pos = solar_data['solar_position']
-                                                
-                                                # Extract radiation values directly from solar_data
-                                                ghi = solar_data.get('ghi', 0)
-                                                dni = solar_data.get('dni', 0)
-                                                dhi = solar_data.get('dhi', 0)
-                                                
-                                                # Skip if sun below horizon (already filtered in pre-computed table)
-                                                if solar_pos['elevation'] <= 0:
-                                                    continue
-                                                
-                                                # Use cached height calculations
-                                                if level not in level_height_cache:
-                                                    level_height_cache[level] = {
-                                                        'height_from_ground': estimate_height_from_ground(level),
-                                                        'ground_reflectance': {}
-                                                    }
-                                                
-                                                height_from_ground = level_height_cache[level]['height_from_ground']
-                                                
-                                                # Cache ground reflectance by tilt for this level
-                                                if tilt not in level_height_cache[level]['ground_reflectance']:
-                                                    level_height_cache[level]['ground_reflectance'][tilt] = calculate_ground_reflectance_factor(height_from_ground, tilt)
-                                                
-                                                ground_reflectance = level_height_cache[level]['ground_reflectance'][tilt]
-                                                
-                                                # Apply height-dependent GHI adjustments
-                                                ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, ghi)
-                                                adjusted_ghi = ghi_effects['adjusted_ghi']
-                                                
-                                                # Apply height-dependent solar angle adjustments
-                                                adjusted_solar_pos = calculate_height_dependent_solar_angles(solar_pos, height_from_ground)
-                                                
-                                                # Calculate surface irradiance using height-adjusted values
-                                                surface_irradiance = calculate_irradiance_on_surface(
-                                                    adjusted_ghi,
-                                                    dni,
-                                                    dhi,
-                                                    adjusted_solar_pos,
-                                                    tilt,
-                                                    azimuth
-                                                )
-                                                
-                                                # Add ground reflectance contribution
-                                                ground_contribution = adjusted_ghi * ground_reflectance
-                                                surface_irradiance += ground_contribution
-                                                
-                                                # Apply precise shading calculations if walls data available
-                                                if walls_data is not None and include_shading:
-                                                    shading_factor = calculate_combined_shading_factor(element, walls_data, solar_pos)
-                                                    surface_irradiance *= shading_factor
-                                                
-                                                annual_irradiance += surface_irradiance
-                                                monthly_total += surface_irradiance
-                                                peak_irradiance = max(peak_irradiance, surface_irradiance)
-                                                sample_count += 1
-                                                monthly_samples += 1
-                                
-                                # Store monthly average
-                                if monthly_samples > 0:
-                                    monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
+                                            # Extract radiation values directly from solar_data
+                                            ghi = solar_data.get('ghi', 0)
+                                            dni = solar_data.get('dni', 0)
+                                            dhi = solar_data.get('dhi', 0)
+                                            
+                                            # Skip if sun below horizon (already filtered in pre-computed table)
+                                            if solar_pos['elevation'] <= 0:
+                                                continue
+                                            
+                                            # Use cached height calculations
+                                            if level not in level_height_cache:
+                                                level_height_cache[level] = {
+                                                    'height_from_ground': estimate_height_from_ground(level),
+                                                    'ground_reflectance': {}
+                                                }
+                                            
+                                            height_from_ground = level_height_cache[level]['height_from_ground']
+                                            
+                                            # Cache ground reflectance by tilt for this level
+                                            if tilt not in level_height_cache[level]['ground_reflectance']:
+                                                level_height_cache[level]['ground_reflectance'][tilt] = calculate_ground_reflectance_factor(height_from_ground, tilt)
+                                            
+                                            ground_reflectance = level_height_cache[level]['ground_reflectance'][tilt]
+                                            
+                                            # Apply height-dependent GHI adjustments
+                                            ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, ghi)
+                                            adjusted_ghi = ghi_effects['adjusted_ghi']
+                                            
+                                            # Apply height-dependent solar angle adjustments
+                                            adjusted_solar_pos = calculate_height_dependent_solar_angles(solar_pos, height_from_ground)
+                                            
+                                            # Calculate surface irradiance using height-adjusted values
+                                            surface_irradiance = calculate_irradiance_on_surface(
+                                                adjusted_ghi,
+                                                dni,
+                                                dhi,
+                                                adjusted_solar_pos,
+                                                tilt,
+                                                azimuth
+                                            )
+                                            
+                                            # Add ground reflectance contribution
+                                            ground_contribution = adjusted_ghi * ground_reflectance
+                                            surface_irradiance += ground_contribution
+                                            
+                                            # Apply precise shading calculations if walls data available
+                                            if walls_data is not None and include_shading:
+                                                shading_factor = calculate_combined_shading_factor(element, walls_data, solar_pos)
+                                                surface_irradiance *= shading_factor
+                                            
+                                            annual_irradiance += surface_irradiance
+                                            monthly_total += surface_irradiance
+                                            peak_irradiance = max(peak_irradiance, surface_irradiance)
+                                            sample_count += 1
+                                            monthly_samples += 1
                             
-                            # Diagnostic: Track why elements are excluded
-                            if sample_count == 0:
-                                if 'excluded_elements_diagnostic' not in st.session_state:
-                                    st.session_state.excluded_elements_diagnostic = []
-                                st.session_state.excluded_elements_diagnostic.append({
-                                    'element_id': element_id,
-                                    'orientation': orientation,
-                                    'azimuth': azimuth,
-                                    'level': level,
-                                    'reason': 'No valid TMY samples found'
-                                })
-                            
-                            # Process all elements but only with authentic calculated data
-                            if sample_count > 0:  # Only require some valid samples, not zero timeout
-                                # Scale to annual totals based on computational method
-                                if analysis_precision == "Hourly":
-                                    # Hourly analysis: scale from samples to full year
-                                    scaling_factor = 8760 / sample_count
-                                elif analysis_precision == "Daily Peak":
-                                    # Daily peak: scale from noon samples to daily totals (assume noon = 15% of daily)
-                                    scaling_factor = (8760 / 365) / 0.15 / (sample_count/365)
-                                elif analysis_precision == "Monthly Average":
-                                    # Monthly average: scale from 12 average days to full year
-                                    scaling_factor = 365 / 12 / (sample_count/12)
-                                else:  # Yearly Average
-                                    # Yearly average: scale from single day to full year
-                                    scaling_factor = 365 / sample_count
-                                
-                                annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
-                                
-                                # Calculate height-related parameters for reporting
-                                height_from_ground = estimate_height_from_ground(level)
-                                avg_ground_reflectance = calculate_ground_reflectance_factor(height_from_ground, tilt)
-                                
-                                # Calculate average height-dependent effects for this element
-                                sample_ghi = 800  # Typical GHI for height effect calculation
-                                ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, sample_ghi)
-                                sample_solar_pos = {'elevation': 45, 'azimuth': 180}  # Sample solar position
-                                angle_effects = calculate_height_dependent_solar_angles(sample_solar_pos, height_from_ground)
-                                
-                                result_data = {
-                                    'element_id': element_id,
-                                    'element_type': 'Window',
-                                    'orientation': orientation,
-                                    'azimuth': azimuth,
-                                    'tilt': tilt,
-                                    'area': area,
-                                    'level': level,
-                                    'height_from_ground': height_from_ground,
-                                    'ground_reflectance_factor': avg_ground_reflectance,
-                                    'ghi_height_factor': ghi_effects['height_factor'],
-                                    'atmospheric_clarity_factor': ghi_effects['atmospheric_clarity'],
-                                    'horizon_factor': ghi_effects['horizon_factor'],
-                                    'horizon_depression_deg': angle_effects['horizon_depression'],
-                                    'total_height_enhancement': ghi_effects['height_factor'] + avg_ground_reflectance,
-                                    'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
-                                    'width': width,
-                                    'height': height,
-                                    'annual_irradiation': annual_irradiance,
-                                    'peak_irradiance': peak_irradiance,
-                                    'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
-                                    'monthly_irradiation': monthly_irradiation,
-                                    'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
-                                    'annual_energy_potential': annual_irradiance * area,  # kWh per element
-                                    'sample_count': sample_count
-                                }
-                                
-                                radiation_results.append(result_data)
-                                
-                                # Log successful processing to monitor
-                                element_processing_time = time.time() - element_start_time
-                                monitor.log_element_success(element_id, annual_irradiance, element_processing_time)
-                                
-                                # Add to processed set to prevent duplication
-                                processed_element_ids.add(element_id)
-                            # else: Continue processing silently if no valid samples
+                            # Store monthly average
+                            if monthly_samples > 0:
+                                monthly_irradiation[str(month)] = monthly_total / monthly_samples * 730  # Scale to monthly total
                         
-                        except Exception as e:
-                            # Log error but continue processing - no fallback values added
-                            if 'radiation_error_count' not in st.session_state:
-                                st.session_state.radiation_error_count = 0
-                            st.session_state.radiation_error_count += 1
+                        # Diagnostic: Track why elements are excluded
+                        if sample_count == 0:
+                            if 'excluded_elements_diagnostic' not in st.session_state:
+                                st.session_state.excluded_elements_diagnostic = []
+                            st.session_state.excluded_elements_diagnostic.append({
+                                'element_id': element_id,
+                                'orientation': orientation,
+                                'azimuth': azimuth,
+                                'level': level,
+                                'reason': 'No valid TMY samples found'
+                            })
+                        
+                        # Process all elements but only with authentic calculated data
+                        if sample_count > 0:  # Only require some valid samples, not zero timeout
+                            # Scale to annual totals based on computational method
+                            if analysis_precision == "Hourly":
+                                # Hourly analysis: scale from samples to full year
+                                scaling_factor = 8760 / sample_count
+                            elif analysis_precision == "Daily Peak":
+                                # Daily peak: scale from noon samples to daily totals (assume noon = 15% of daily)
+                                scaling_factor = (8760 / 365) / 0.15 / (sample_count/365)
+                            elif analysis_precision == "Monthly Average":
+                                # Monthly average: scale from 12 average days to full year
+                                scaling_factor = 365 / 12 / (sample_count/12)
+                            else:  # Yearly Average
+                                # Yearly average: scale from single day to full year
+                                scaling_factor = 365 / sample_count
                             
-                            # Log error to monitoring and database
+                            annual_irradiance = annual_irradiance * scaling_factor / 1000  # Convert to kWh/m²
+                            
+                            # Calculate height-related parameters for reporting
+                            height_from_ground = estimate_height_from_ground(level)
+                            avg_ground_reflectance = calculate_ground_reflectance_factor(height_from_ground, tilt)
+                            
+                            # Calculate average height-dependent effects for this element
+                            sample_ghi = 800  # Typical GHI for height effect calculation
+                            ghi_effects = calculate_height_dependent_ghi_effects(height_from_ground, sample_ghi)
+                            sample_solar_pos = {'elevation': 45, 'azimuth': 180}  # Sample solar position
+                            angle_effects = calculate_height_dependent_solar_angles(sample_solar_pos, height_from_ground)
+                            
+                            result_data = {
+                                'element_id': element_id,
+                                'element_type': 'Window',
+                                'orientation': orientation,
+                                'azimuth': azimuth,
+                                'tilt': tilt,
+                                'area': area,
+                                'level': level,
+                                'height_from_ground': height_from_ground,
+                                'ground_reflectance_factor': avg_ground_reflectance,
+                                'ghi_height_factor': ghi_effects['height_factor'],
+                                'atmospheric_clarity_factor': ghi_effects['atmospheric_clarity'],
+                                'horizon_factor': ghi_effects['horizon_factor'],
+                                'horizon_depression_deg': angle_effects['horizon_depression'],
+                                'total_height_enhancement': ghi_effects['height_factor'] + avg_ground_reflectance,
+                                'wall_hosted_id': element.get('wall_hosted_id', 'N/A'),
+                                'width': width,
+                                'height': height,
+                                'annual_irradiation': annual_irradiance,
+                                'peak_irradiance': peak_irradiance,
+                                'avg_irradiance': annual_irradiance * 1000 / 8760,  # Average W/m²
+                                'monthly_irradiation': monthly_irradiation,
+                                'capacity_factor': min(annual_irradiance / 1800, 1.0),  # Theoretical max ~1800 kWh/m²
+                                'annual_energy_potential': annual_irradiance * area,  # kWh per element
+                                'sample_count': sample_count
+                            }
+                            
+                            radiation_results.append(result_data)
+                            
+                            # Log successful processing to monitor
                             element_processing_time = time.time() - element_start_time
-                            monitor.log_element_error(element_id, str(e), element_processing_time)
-                            if 'project_id' in st.session_state and st.session_state.project_id:
-                                radiation_logger.log_element_failure(
-                                    st.session_state.project_id, element_id, 
-                                    str(e), element_processing_time
-                                )
+                            monitor.log_element_success(element_id, annual_irradiance, element_processing_time)
                             
-                            # Show limited error info without overwhelming interface
-                            if st.session_state.radiation_error_count <= 5:
-                                st.warning(f"⚠️ Element {element_id} processing error: {str(e)[:100]}")
-                            elif st.session_state.radiation_error_count == 6:
-                                st.info("ℹ️ Additional processing errors will be logged to database.")
-                            
-                            pass  # Continue to next element - no data added for failed element
+                            # CRITICAL: Add to processed set immediately to prevent duplication
+                            processed_element_ids.add(element_id)
+                        else:
+                            # Still add to processed set even if no samples to prevent reprocessing
+                            processed_element_ids.add(element_id)
+                        
+                    except Exception as e:
+                        # Log error but continue processing - no fallback values added
+                        if 'radiation_error_count' not in st.session_state:
+                            st.session_state.radiation_error_count = 0
+                        st.session_state.radiation_error_count += 1
+                        
+                        # Log error to monitoring and database
+                        element_processing_time = time.time() - element_start_time
+                        monitor.log_element_error(element_id, str(e), element_processing_time)
+                        if 'project_id' in st.session_state and st.session_state.project_id:
+                            radiation_logger.log_element_failure(
+                                st.session_state.project_id, element_id, 
+                                str(e), element_processing_time
+                            )
+                        
+                        # Show limited error info without overwhelming interface
+                        if st.session_state.radiation_error_count <= 5:
+                            st.warning(f"⚠️ Element {element_id} processing error: {str(e)[:100]}")
+                        elif st.session_state.radiation_error_count == 6:
+                            st.info("ℹ️ Additional processing errors will be logged to database.")
+                        
+                        # CRITICAL: Add to processed set even on failure to prevent reprocessing
+                        processed_element_ids.add(element_id)
+                        pass  # Continue to next element - no data added for failed element
                         
 
                 
-                # Memory management - force garbage collection after large batches
-                if batch_end % 100 == 0 or batch_end == len(suitable_elements):
-                    import gc
-                    gc.collect()
-                    
-                    # Save intermediate results for recovery and update session state
-                    if len(radiation_results) > 0:
-                        st.session_state.temp_radiation_results = radiation_results.copy()
-                        st.session_state.radiation_partial_results = radiation_results.copy()
+                    # Memory management - force garbage collection after every 100 elements
+                    if (global_i + 1) % 100 == 0 or (global_i + 1) == len(suitable_elements):
+                        import gc
+                        gc.collect()
                         
-                        # Progressive database saving for deployment compatibility - simplified
-                        try:
-                            project_id = db_helper.get_project_id()
-                            if project_id:
-                                db_helper.save_step_data("radiation_analysis", {
-                                    'results': radiation_results,
-                                    'analysis_partial': True,
-                                    'total_elements': len(suitable_elements),
-                                    'processed_elements': len(radiation_results)
-                                })
-                                status_text.text(f"💾 Auto-saved {len(radiation_results)} results...")
-                        except Exception as e:
-                            # Continue silently on database errors
-                            pass
+                        # Save intermediate results for recovery and update session state
+                        if len(radiation_results) > 0:
+                            st.session_state.temp_radiation_results = radiation_results.copy()
+                            st.session_state.radiation_partial_results = radiation_results.copy()
+                            
+                            # Progressive database saving for deployment compatibility - simplified
+                            try:
+                                project_id = db_helper.get_project_id()
+                                if project_id:
+                                    db_helper.save_step_data("radiation_analysis", {
+                                        'results': radiation_results,
+                                        'analysis_partial': True,
+                                        'total_elements': len(suitable_elements),
+                                        'processed_elements': len(radiation_results)
+                                    })
+                                    status_text.text(f"💾 Auto-saved {len(radiation_results)} results...")
+                            except Exception as e:
+                                # Continue silently on database errors
+                                pass
             
             # Continue processing regardless of result count - show what was calculated
             if len(radiation_results) == 0:
