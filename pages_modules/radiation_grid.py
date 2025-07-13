@@ -23,6 +23,7 @@ from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
 from utils.radiation_logger import radiation_logger
 from utils.analysis_monitor import analysis_monitor
+from utils.element_registry import get_global_registry, clear_global_registry
 
 def calculate_precise_shading_factor(wall_element, window_element, solar_position):
     """Calculate precise shading factor for a window from a specific wall at given solar position."""
@@ -1352,6 +1353,9 @@ def render_radiation_grid():
         # Set execution lock immediately
         st.session_state.radiation_analysis_running = True
         
+        # CRITICAL: Clear global registry for new analysis
+        clear_global_registry()
+        
         try:
             # Create progress tracking containers
             progress_container = st.container()
@@ -1684,8 +1688,40 @@ def render_radiation_grid():
                     # Extract element data from BIM upload - preserve actual Element IDs
                     element_id = element.get('element_id', f'Unknown_Element_{global_i+1}')
                     
-                    # CRITICAL: Skip if element already processed or currently being processed (duplication check)
-                    if element_id in processed_element_ids or element_id in st.session_state.current_processing_elements:
+                    # CRITICAL: Comprehensive duplication prevention using global registry
+                    registry = get_global_registry()
+                    
+                    # Check global registry first
+                    if registry.get_status(element_id) != "not_started":
+                        consecutive_skips += 1
+                        
+                        # Log skip to monitoring and database
+                        skip_reason = f"Already {registry.get_status(element_id)}"
+                        monitor.log_element_skip(element_id, skip_reason)
+                        if 'project_id' in st.session_state and st.session_state.project_id:
+                            radiation_logger.log_element_skip(
+                                st.session_state.project_id, element_id, skip_reason
+                            )
+                        
+                        # Update progress display for skipped elements
+                        percentage_complete = int(100 * global_i / len(suitable_elements))
+                        element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} ({skip_reason})</h4>", unsafe_allow_html=True)
+                        progress_bar.progress(percentage_complete)
+                        
+                        # Check for too many consecutive skips but continue to completion
+                        if consecutive_skips > 100:
+                            st.warning(f"⚠️ Many consecutive skips ({consecutive_skips}) - nearing completion.")
+                            # Don't return, let it complete normally
+                        continue
+                    
+                    # CRITICAL: Enhanced duplication prevention with multiple checks
+                    # Create a unique processing key for this element
+                    processing_key = f"processing_{element_id}"
+                    
+                    # Check session state for additional safety
+                    if (element_id in processed_element_ids or 
+                        element_id in st.session_state.current_processing_elements or
+                        st.session_state.get(processing_key, False)):
                         consecutive_skips += 1
                         
                         # Log skip to monitoring and database
@@ -1707,8 +1743,10 @@ def render_radiation_grid():
                             # Don't return, let it complete normally
                         continue
                     
-                    # CRITICAL: Add element_id to currently processing set IMMEDIATELY to prevent concurrent processing
+                    # CRITICAL: Atomic operation to claim this element for processing
+                    # Set all protection flags immediately to prevent race conditions
                     st.session_state.current_processing_elements.add(element_id)
+                    st.session_state[processing_key] = True
                     consecutive_skips = 0  # Reset skip counter when processing an element
                     
                     azimuth = element.get('azimuth', 180)
@@ -1926,10 +1964,14 @@ def render_radiation_grid():
                             # CRITICAL: Add to processed set and remove from current processing set
                             processed_element_ids.add(element_id)
                             st.session_state.current_processing_elements.discard(element_id)
+                            # Clean up processing key
+                            st.session_state.pop(processing_key, None)
                         else:
                             # Still add to processed set even if no samples to prevent reprocessing
                             processed_element_ids.add(element_id)
                             st.session_state.current_processing_elements.discard(element_id)
+                            # Clean up processing key
+                            st.session_state.pop(processing_key, None)
                         
                     except Exception as e:
                         # Log error but continue processing - no fallback values added
@@ -1955,6 +1997,8 @@ def render_radiation_grid():
                         # CRITICAL: Add to processed set even on failure to prevent reprocessing
                         processed_element_ids.add(element_id)
                         st.session_state.current_processing_elements.discard(element_id)
+                        # Clean up processing key
+                        st.session_state.pop(processing_key, None)
                         pass  # Continue to next element - no data added for failed element
                         
 

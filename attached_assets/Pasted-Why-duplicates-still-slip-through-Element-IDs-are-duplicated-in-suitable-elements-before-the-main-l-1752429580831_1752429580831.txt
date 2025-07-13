@@ -1,0 +1,55 @@
+Why duplicates still slip through
+
+Element IDs are duplicated in suitable_elements before the main loop.
+The conversion block that builds elements_list uses Unknown_Element_{…} placeholders whenever an ID is missing, so different rows without IDs collapse to the same placeholder and then look “already processed”.
+
+The processed‐element cache is kept only in memory. If the page is rerun (e.g., user scrolls), processed_element_ids is re-created, so the same elements are analysed again until the in-database check finishes.
+
+No hard constraint in the database. Even with the in-code checks, an accidental second INSERT will be accepted if the table lacks a UNIQUE index.
+
+Minimal fixes inside the script
+python
+Copy
+Edit
+# ---- just after suitable_elements is defined ----
+# 1) ensure every row has a stable unique key
+if 'element_id' not in suitable_elements.columns:
+    suitable_elements['element_id'] = (
+        suitable_elements.apply(lambda r: f"{r.get('host_wall_id','N/A')}_{r.name}", axis=1)
+)
+
+# 2) drop exact duplicates *before* any loop
+suitable_elements = suitable_elements.drop_duplicates(subset=['element_id'])
+
+# 3) keep a permanent cache in session state
+if 'processed_element_ids' not in st.session_state:
+    st.session_state.processed_element_ids = set()
+processed_element_ids = st.session_state.processed_element_ids
+Inside the processing loop add exactly one line when an element finishes (even on error):
+
+python
+Copy
+Edit
+processed_element_ids.add(element_id)
+Because the set lives in st.session_state, a simple re-run will not clear it.
+
+Harden the database layer
+sql
+Copy
+Edit
+ALTER TABLE element_radiation
+ADD CONSTRAINT uniq_proj_elem UNIQUE (project_id, element_id);
+Now any duplicate insert raises an exception that you can treat as “already done” rather than as a failure.
+
+Optional: single-pass batching
+If the dataset fits in memory, replace the row-by-row loop with a grouped transform:
+
+python
+Copy
+Edit
+results_df = suitable_elements.groupby('element_id').apply(
+    lambda g: calculate_element_radiation(g.iloc[0], solar_lookup, ...)
+).reset_index(drop=True)
+Each element_id is evaluated exactly once, eliminating logical duplicates without repeated set checks.
+
+These three layers—(1) pre-loop de-dupe, (2) stateful cache, (3) DB uniqueness—remove the repeated analysis while keeping your pause/resume logic unchanged.
