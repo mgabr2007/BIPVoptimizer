@@ -8,7 +8,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
-from database_manager import db_manager
+from database_manager import db_manager, BIPVDatabaseManager
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
 
@@ -1187,25 +1187,52 @@ def render_radiation_grid():
         else:
             st.info("No walls data available - shading analysis will be skipped")
     
-    # Show progress status if partial analysis exists
-    if 'radiation_start_index' in st.session_state and st.session_state.radiation_start_index > 0:
-        start_idx = st.session_state.radiation_start_index
-        remaining = len(st.session_state.get('building_elements', [])) - start_idx
-        st.info(f"📊 **Previous Analysis**: Processed {start_idx} elements. {remaining} elements remaining to process.")
+    # Database-backed progress tracking for deployment compatibility
+    db_manager = BIPVDatabaseManager()
+    project_name = st.session_state.get('project_name', 'Default Project')
+    
+    # Check for existing radiation analysis in database
+    try:
+        project_data = db_manager.get_project_report_data(project_name)
+        existing_radiation = project_data.get('radiation_analysis', {})
         
-        col1, col2 = st.columns(2)
-        with col1:
-            continue_analysis = st.button("▶️ Continue Analysis", key="continue_radiation_analysis")
-        with col2:
-            restart_analysis = st.button("🔄 Start New Analysis", key="restart_radiation_analysis")
+        if existing_radiation and 'results' in existing_radiation:
+            existing_count = len(existing_radiation['results'])
+            total_elements = len(st.session_state.get('building_elements', []))
             
-        if restart_analysis:
-            # Reset analysis state
-            st.session_state.radiation_start_index = 0
-            st.session_state.radiation_partial_results = []
-            st.session_state.excluded_elements_diagnostic = []
-            st.rerun()
-    else:
+            if existing_count > 0 and existing_count < total_elements:
+                remaining = total_elements - existing_count
+                st.info(f"📊 **Found Previous Analysis**: {existing_count} elements completed. {remaining} elements remaining to process.")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    continue_analysis = st.button("▶️ Continue from Database", key="continue_radiation_db")
+                with col2:
+                    restart_analysis = st.button("🔄 Start Fresh Analysis", key="restart_radiation_fresh")
+                    
+                if restart_analysis:
+                    # Clear database radiation data
+                    st.session_state.radiation_start_index = 0
+                    st.session_state.radiation_partial_results = []
+                    st.session_state.excluded_elements_diagnostic = []
+                    st.success("Analysis reset - starting fresh")
+                    st.rerun()
+                    
+                # Set continuation parameters from database
+                if continue_analysis:
+                    st.session_state.radiation_start_index = existing_count
+                    st.session_state.radiation_partial_results = existing_radiation['results']
+                    st.info(f"✅ Loaded {existing_count} results from database. Continuing analysis...")
+                    st.rerun()
+            else:
+                continue_analysis = False
+                restart_analysis = False
+        else:
+            continue_analysis = False
+            restart_analysis = False
+            
+    except Exception as e:
+        st.warning(f"Could not check database for previous analysis: {str(e)}")
         continue_analysis = False
         restart_analysis = False
     
