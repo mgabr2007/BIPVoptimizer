@@ -1,0 +1,87 @@
+## What’s actually duplicated in this file
+
+I skim-scanned the whole script and found **two different kinds of duplication**:
+
+| kind                             | where it appears                                                                                                                                                                                                                        | why it matters                                                                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Function bodies copied twice** | `calculate_solar_position_simple`, `calculate_irradiance_on_surface`, `cluster_elements_by_orientation`, `group_elements_by_level`, `precompute_solar_tables`, `estimate_height_from_ground`, `calculate_height_dependent_solar_angles` | Python overwrites the first copy with the second, so it “works”, but you pay the cost of extra code to load & maintain and it makes the file hard to read. |
+| **Dual logging calls**           | still calling **both** `unified_logger.*` **and** `radiation_logger.*` in the main loop (`log_element_start`, `log_element_skip`, `log_element_failure`, `log_analysis_summary`)                                                        | Everything each logger writes to the Streamlit UI gets rendered, so every event appears twice.                                                             |
+
+Below are the exact line-number ranges (use your editor’s “fold”/“outline” view to jump quickly):
+
+| function duplicated                       | first definition (approx.) | second definition (approx.) |
+| ----------------------------------------- | -------------------------- | --------------------------- |
+| `calculate_solar_position_simple`         | \~200                      | \~480                       |
+| `estimate_height_from_ground`             | \~240                      | \~520                       |
+| `calculate_height_dependent_solar_angles` | \~270                      | \~560                       |
+| `calculate_irradiance_on_surface`         | \~300                      | \~600                       |
+| `cluster_elements_by_orientation`         | \~330                      | \~640                       |
+| `group_elements_by_level`                 | \~360                      | \~680                       |
+| `precompute_solar_tables`                 | \~390                      | \~720                       |
+
+> **Tip**
+> Run `grep -n "def calculate_solar_position_simple" radiation_grid.py` (etc.) to see the duplicates quickly.
+
+---
+
+## How to fix
+
+### 1. Keep one canonical copy of each helper
+
+1. Pick the version you prefer (they are almost identical—keep the longer / better-documented one if in doubt).
+2. Delete the other copy.
+3. Make sure every later call still imports the right symbol (they will—Python already uses the **last** copy, so after deletion references stay valid).
+
+### 2. Silence or remove the extra logger
+
+Option A – **Stop emitting to the UI** from `radiation_logger`:
+
+```python
+# utils/radiation_logger.py
+EMIT_STREAMLIT = False        # add this global flag
+
+def _out(msg: str):
+    if EMIT_STREAMLIT:
+        st.text(msg)
+```
+
+Wrap every `st.text` / `st.markdown` / `st.info` with `_out`.
+
+Option B – **Quit calling the UI methods**:
+
+In the big processing loop comment out the lines in bold:
+
+```python
+unified_logger.log_element_start(element_id, orientation, area)
+# radiation_logger.log_element_start(project_id, ...)   <-- remove
+
+monitor.log_element_skip(element_id, skip_reason)
+# radiation_logger.log_element_skip(project_id, ...)    <-- remove
+
+unified_logger.log_element_error(element_id, err, t)
+# radiation_logger.log_element_failure(project_id, ...) <-- remove
+```
+
+Leave the **database-only** helpers (`save_step_data`, `log_analysis_summary`, etc.) if you still need them.
+
+---
+
+## Quick smoke-test after cleanup
+
+1. `streamlit run radiation_grid.py`
+2. Trigger a short analysis (small input file).
+   The live log container should now show **one** line per event:
+
+```
+🔄 Processing 367277 …
+✅ 367277 completed (755 kWh/m² y, 2.63 s)
+```
+
+3. Grep again:
+
+```bash
+grep -n "def calculate_solar_position_simple" radiation_grid.py  # should return ONE line
+grep -n "radiation_logger.log_element_" radiation_grid.py        # only summary calls remain
+```
+
+No duplicates found ➜ problem solved.
