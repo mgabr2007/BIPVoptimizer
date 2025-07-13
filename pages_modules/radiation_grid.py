@@ -1562,15 +1562,23 @@ def render_radiation_grid():
             start_index = st.session_state.radiation_start_index
             
             # ---- ENHANCED DUPLICATE PREVENTION BASED ON SOLUTION ----
-            # 1) Ensure every element has a stable unique key
+            # 1) Canonicalize Element ID column naming first
+            if 'element_id' not in suitable_elements.columns and 'Element ID' in suitable_elements.columns:
+                suitable_elements = suitable_elements.rename(columns={'Element ID': 'element_id'})
+            
+            # Then ensure every element has a stable unique key
             if 'element_id' not in suitable_elements.columns:
                 suitable_elements['element_id'] = (
                     suitable_elements.apply(lambda r: f"{r.get('host_wall_id','N/A')}_{r.name}", axis=1)
                 )
             
-            # 2) Drop exact duplicates *before* any loop
+            # 2) Drop exact duplicates *before* any loop and reset index
             original_count = len(suitable_elements)
-            suitable_elements = suitable_elements.drop_duplicates(subset=['element_id'])
+            suitable_elements = (
+                suitable_elements
+                .drop_duplicates(subset=['element_id'])
+                .reset_index(drop=True)
+            )
             if len(suitable_elements) != original_count:
                 st.info(f"📋 **Duplicate removal**: {original_count - len(suitable_elements)} duplicate elements removed")
             
