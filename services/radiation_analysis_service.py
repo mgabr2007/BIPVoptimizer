@@ -25,6 +25,26 @@ class DatabaseRadiationAnalyzer:
         
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # First check if any building elements exist for this project
+                cursor.execute("""
+                    SELECT COUNT(*) as total_elements,
+                           COUNT(CASE WHEN pv_suitable = TRUE THEN 1 END) as suitable_elements
+                    FROM building_elements 
+                    WHERE project_id = %s
+                """, (self.project_id,))
+                
+                counts = cursor.fetchone()
+                st.write(f"**Debug Info**: Project {self.project_id} has {counts['total_elements']} total elements, {counts['suitable_elements']} suitable")
+                
+                if counts['total_elements'] == 0:
+                    st.warning(f"⚠️ No building elements found for project {self.project_id}. Please complete Step 4 (BIM Upload) first.")
+                    return []
+                
+                if counts['suitable_elements'] == 0:
+                    st.warning(f"⚠️ No PV-suitable elements found for project {self.project_id}. All elements may be north-facing or filtered out.")
+                    return []
+                
+                # Get the suitable elements
                 cursor.execute("""
                     SELECT element_id, element_type, orientation, azimuth, 
                            glass_area, building_level, family, pv_suitable
