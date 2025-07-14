@@ -347,7 +347,7 @@ def display_existing_results(project_id):
             xaxis_title="Annual Radiation (kWh/m²/year)",
             yaxis_title="Number of Elements"
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key="radiation_distribution_chart")
         
         # Top performing elements
         st.subheader("🏆 Top Performing Elements")
@@ -369,7 +369,7 @@ def display_existing_results(project_id):
         
         # Navigation
         st.markdown("---")
-        if st.button("Continue to Step 6: PV Specification", key="continue_pv_spec"):
+        if st.button("Continue to Step 6: PV Specification", key="continue_pv_spec_radiation"):
             st.session_state.current_step = 'pv_specification'
             st.session_state.scroll_to_top = True
             st.rerun()
