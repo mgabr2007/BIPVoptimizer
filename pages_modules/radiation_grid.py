@@ -904,13 +904,13 @@ def render_radiation_grid():
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Hourly", "4,015 samples", "Baseline")
+            st.metric("Hourly", "4,015 samples", delta="Baseline")
         with col2:
-            st.metric("Daily Peak", "365 samples", "~11x faster")
+            st.metric("Daily Peak", "365 samples", delta="~11x faster")
         with col3:
-            st.metric("Monthly Average", "12 samples", "~334x faster")
+            st.metric("Monthly Average", "12 samples", delta="~334x faster")
         
-        st.metric("Yearly Average", "4 samples", "~1,000x faster", delta="Fastest")
+        st.metric("Yearly Average", "4 samples", delta="~1,000x faster")
         
         st.info("💡 **Speed improvements come from reducing sample calculations per element while maintaining accuracy through intelligent scaling.**")
     
