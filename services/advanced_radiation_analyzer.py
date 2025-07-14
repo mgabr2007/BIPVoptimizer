@@ -300,12 +300,12 @@ class AdvancedRadiationAnalyzer:
                 if progress_callback:
                     progress_callback(f"Wall data retrieval failed: {str(e)}", 0, 0)
         
-        # Configure precision settings
+        # Configure precision settings with proper scaling for annual totals
         precision_settings = {
             "Hourly": {"hours": list(range(7, 18)), "days": list(range(1, 366)), "scaling": 1.0},
-            "Daily Peak": {"hours": [12], "days": list(range(1, 366)), "scaling": 24.0},
-            "Monthly Average": {"hours": [12], "days": [15, 46, 74, 105, 135, 166, 196, 227, 258, 288, 319, 349], "scaling": 365.0/12.0},
-            "Yearly Average": {"hours": [12], "days": [80, 173, 266, 356], "scaling": 365.0/4.0}
+            "Daily Peak": {"hours": [12], "days": list(range(1, 366)), "scaling": 11.0},  # 11 daylight hours average
+            "Monthly Average": {"hours": [12], "days": [15, 46, 74, 105, 135, 166, 196, 227, 258, 288, 319, 349], "scaling": 365.0 * 11.0 / 12.0},  # Scale to full year with daylight hours
+            "Yearly Average": {"hours": [12], "days": [80, 173, 266, 356], "scaling": 365.0 * 11.0 / 4.0}  # Scale to full year with daylight hours
         }
         
         settings = precision_settings.get(precision, precision_settings["Daily Peak"])
@@ -423,14 +423,12 @@ class AdvancedRadiationAnalyzer:
         # Scale to annual values
         annual_irradiation = (total_irradiance * scaling_factor) / 1000  # Convert to kWh/m²/year
         
-        # Debug: Log calculation details
-        if annual_irradiation < 200:
-            st.write(f"Debug: Low radiation for {element_id}: {annual_irradiation:.2f} kWh/m²/year")
-            st.write(f"Debug: Total irradiance: {total_irradiance:.2f}, Scaling: {scaling_factor:.2f}")
+        # Debug: Log first few elements to check calculation
+        if element_id.endswith(('1', '2', '3')) or total_irradiance <= 10:
+            st.write(f"Debug {element_id}: Total irradiance: {total_irradiance:.2f} W/m², Annual: {annual_irradiation:.2f} kWh/m²/year")
+            st.write(f"Debug {element_id}: Orientation: {orientation}, Scaling: {scaling_factor:.2f}")
         
-        # Ensure realistic minimum values only if calculation fails completely
-        if annual_irradiation <= 0:
-            annual_irradiation = 200  # Fallback only for zero/negative values
+        # Return actual calculated values without any fallback minimums
         
         return {
             'element_id': element_id,
