@@ -658,39 +658,7 @@ def render_project_setup():
                         'station_type': 'api_station'
                     }
         
-        # Weather validation with unified success system
-        if st.button("🌤️ Validate Weather Data Access", key="validate_weather_hybrid"):
-            with st.spinner(f"Testing {selected_api.replace('_', ' ').title()} API..."):
-                try:
-                    # Validate coordinates
-                    if not (-90 <= selected_lat <= 90) or not (-180 <= selected_lon <= 180):
-                        st.error("Invalid coordinates. Please select a valid location on the map.")
-                        return
-                    
-                    # Use the weather API manager for validation
-                    import asyncio
-                    weather_data = asyncio.run(weather_api_manager.fetch_weather_data(selected_lat, selected_lon, selected_api))
-                    
-                    if 'error' in weather_data:
-                        st.error(f"❌ {weather_data['error']}")
-                    else:
-                        api_source = weather_data.get('api_source', selected_api)
-                        station_name = weather_data.get('station_info', {}).get('site', {}).get('name', 'Weather Station')
-                        distance = weather_data.get('distance_km', 0)
-                        
-                        # Store validation
-                        st.session_state.weather_validated = True
-                        st.session_state.project_data['weather_validation'] = weather_data
-                        st.session_state.project_data['weather_complete'] = True
-                        
-                        # Show unified validation success
-                        st.success(f"✅ Weather API validation successful")
-                        st.info(f"📡 Station: {station_name} ({distance:.1f} km)")
-                        st.info(f"🔧 Using: {api_source.replace('_', ' ').title()}")
-                        
-                except Exception as e:
-                    st.error(f"❌ Weather API validation failed: {str(e)}")
-                    st.info("Please try selecting a different location or check your internet connection.")
+
                 
     except ImportError:
         st.error("❌ Weather API manager not available. Using OpenWeatherMap fallback.")
@@ -701,22 +669,7 @@ def render_project_setup():
             'recommended_api': 'openweathermap'
         }
         
-        # Fallback to original OpenWeatherMap only
-        api_key = os.environ.get('OPENWEATHER_API_KEY')
-        if api_key:
-            if st.button("🌤️ Validate Weather Access (OpenWeatherMap)", key="validate_weather_fallback"):
-                with st.spinner("Validating OpenWeatherMap access..."):
-                    try:
-                        weather_data = get_weather_data_from_coordinates(selected_lat, selected_lon, api_key)
-                        if weather_data and weather_data.get('api_success'):
-                            st.success("✅ OpenWeatherMap API accessible")
-                            st.session_state.weather_validated = True
-                        else:
-                            st.error("❌ Failed to retrieve weather data")
-                    except Exception as e:
-                        st.error(f"❌ Validation failed: {str(e)}")
-        else:
-            st.warning("⚠️ OpenWeather API key not configured")
+
     
     # STEP 1.4: Data Integration & Configuration
     st.subheader("4️⃣ Data Integration & Configuration")
