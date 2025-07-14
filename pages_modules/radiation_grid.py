@@ -1202,6 +1202,8 @@ def render_radiation_grid():
         
             # Create unified analysis logger (prevents all duplicate logging)
             from utils.unified_logger import unified_logger
+            # Reset logger for new session to show only current analysis progress
+            unified_logger.reset_for_new_session()
             monitor = unified_logger.create_display()
             # Initialize progress
             status_text.text("Initializing radiation analysis...")

@@ -117,6 +117,28 @@ class UnifiedAnalysisLogger:
         if hasattr(self, 'log_display'):
             self.log_display.empty()
     
+    def reset_for_new_session(self):
+        """Reset all counters and logs for a new analysis session"""
+        # Reset metrics counters
+        self.total_processed = 0
+        self.successful = 0
+        self.failed = 0
+        self.skipped = 0
+        
+        # Reset tracking data
+        self.logged_events.clear()
+        self.log_messages.clear()
+        self.element_status.clear()
+        
+        # Clear session state for clean start
+        if 'displayed_log_uuids' in st.session_state:
+            st.session_state.displayed_log_uuids.clear()
+        if 'accumulated_log_text' in st.session_state:
+            st.session_state.accumulated_log_text = ""
+        
+        # Update display to show reset metrics
+        self.update_metrics()
+    
     def update_metrics(self):
         """Update metrics display"""
         if hasattr(self, 'processed_metric'):
