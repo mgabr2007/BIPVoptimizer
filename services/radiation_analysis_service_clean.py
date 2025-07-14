@@ -1,7 +1,6 @@
 """
 Database-driven radiation analysis service
 Replaces pandas-based processing with direct database operations
-DEPRECATED: Use radiation_analysis_service_clean.py instead
 """
 
 import streamlit as st
@@ -42,22 +41,22 @@ class DatabaseRadiationAnalyzer:
                     return []
                 
                 if counts['suitable_elements'] == 0:
-                    st.warning(f"⚠️ No PV-suitable elements found for project {self.project_id}. All elements may be north-facing or filtered out.")
+                    st.warning(f"⚠️ No suitable elements found for project {self.project_id}. All elements may be North-facing or unsuitable for PV.")
                     return []
                 
-                # Get the suitable elements
+                # Get suitable elements
                 cursor.execute("""
-                    SELECT element_id, element_type, orientation, azimuth, 
-                           glass_area, building_level, family, pv_suitable
+                    SELECT element_id, orientation, azimuth, glass_area, building_level, family
                     FROM building_elements 
                     WHERE project_id = %s AND pv_suitable = TRUE
-                    ORDER BY element_id
+                    ORDER BY orientation, azimuth
                 """, (self.project_id,))
                 
-                return [dict(row) for row in cursor.fetchall()]
-        
+                elements = cursor.fetchall()
+                return [dict(row) for row in elements]
+                
         except Exception as e:
-            st.error(f"Error fetching suitable elements: {str(e)}")
+            st.error(f"Error getting suitable elements: {str(e)}")
             return []
         finally:
             conn.close()
@@ -171,67 +170,6 @@ class DatabaseRadiationAnalyzer:
             return False
         finally:
             conn.close()
-                    
-                    # Apply orientation correction
-                    orientation_factor = self._get_orientation_factor(orientation)
-                    corrected_irradiance = surface_irradiance * orientation_factor
-                    
-                    annual_radiation += corrected_irradiance
-                    peak_irradiance = max(peak_irradiance, corrected_irradiance)
-                    
-                    # Monthly aggregation
-                    month = hour_data.get('month', 1) - 1  # 0-based indexing
-                    monthly_totals[month] += corrected_irradiance
-                    
-            except Exception as e:
-                continue  # Skip problematic hours
-        
-        # Convert to kWh/m²/year
-        annual_radiation_kwh = annual_radiation / 1000
-        
-        return {
-            'element_id': element_id,
-            'annual_radiation': annual_radiation_kwh,
-            'irradiance': peak_irradiance,
-            'orientation_multiplier': self._get_orientation_factor(orientation),
-            'glass_area': glass_area,
-            'monthly_radiation': monthly_totals
-        }
-    
-    def save_element_radiation(self, element_id, radiation_data):
-        """Save single element radiation data directly to database"""
-        conn = self.db_manager.get_connection()
-        if not conn:
-            return False
-        
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("""
-                    INSERT INTO element_radiation 
-                    (project_id, element_id, annual_radiation, irradiance, orientation_multiplier)
-                    VALUES (%s, %s, %s, %s, %s)
-                    ON CONFLICT (project_id, element_id) 
-                    DO UPDATE SET
-                        annual_radiation = EXCLUDED.annual_radiation,
-                        irradiance = EXCLUDED.irradiance,
-                        orientation_multiplier = EXCLUDED.orientation_multiplier
-                """, (
-                    self.project_id,
-                    element_id,
-                    radiation_data['annual_radiation'],
-                    radiation_data['irradiance'],
-                    radiation_data['orientation_multiplier']
-                ))
-                
-                conn.commit()
-                return True
-                
-        except Exception as e:
-            conn.rollback()
-            st.error(f"Error saving element radiation: {str(e)}")
-            return False
-        finally:
-            conn.close()
     
     def get_analysis_summary(self):
         """Get radiation analysis summary from database"""
@@ -247,9 +185,8 @@ class DatabaseRadiationAnalyzer:
                         COUNT(*) as total_elements,
                         AVG(annual_radiation) as avg_annual_radiation,
                         MAX(irradiance) as peak_irradiance,
-                        SUM(annual_radiation * (SELECT glass_area FROM building_elements be 
-                                               WHERE be.element_id = er.element_id AND be.project_id = er.project_id)) as total_potential
-                    FROM element_radiation er
+                        SUM(annual_radiation) as total_potential
+                    FROM element_radiation 
                     WHERE project_id = %s
                 """, (self.project_id,))
                 
@@ -280,145 +217,78 @@ class DatabaseRadiationAnalyzer:
     
     def _calculate_solar_position(self, latitude, longitude, day_of_year, hour):
         """Calculate solar position using astronomical algorithms"""
-        # Simplified solar position calculation
+        # Convert to radians
         lat_rad = math.radians(latitude)
         
         # Solar declination
-        declination = math.radians(23.45) * math.sin(math.radians(360 * (284 + day_of_year) / 365))
+        declination = 23.45 * math.sin(math.radians(360 * (284 + day_of_year) / 365))
+        decl_rad = math.radians(declination)
         
         # Hour angle
-        hour_angle = math.radians(15 * (hour - 12))
+        hour_angle = 15 * (hour - 12)  # degrees
+        hour_angle_rad = math.radians(hour_angle)
         
-        # Solar elevation
-        elevation = math.asin(
-            math.sin(lat_rad) * math.sin(declination) + 
-            math.cos(lat_rad) * math.cos(declination) * math.cos(hour_angle)
-        )
+        # Solar elevation angle
+        sin_elevation = (math.sin(lat_rad) * math.sin(decl_rad) + 
+                        math.cos(lat_rad) * math.cos(decl_rad) * math.cos(hour_angle_rad))
+        elevation = math.degrees(math.asin(max(-1, min(1, sin_elevation))))
         
-        # Solar azimuth
-        azimuth = math.atan2(
-            math.sin(hour_angle),
-            math.cos(hour_angle) * math.sin(lat_rad) - math.tan(declination) * math.cos(lat_rad)
-        )
+        # Solar azimuth angle
+        cos_azimuth = ((math.sin(decl_rad) * math.cos(lat_rad) - 
+                       math.cos(decl_rad) * math.sin(lat_rad) * math.cos(hour_angle_rad)) /
+                      math.cos(math.radians(elevation)))
+        
+        azimuth = math.degrees(math.acos(max(-1, min(1, cos_azimuth))))
+        
+        # Adjust azimuth for afternoon hours
+        if hour > 12:
+            azimuth = 360 - azimuth
         
         return {
-            'elevation': math.degrees(elevation),
-            'azimuth': math.degrees(azimuth) + 180  # Convert to 0-360 range
+            'elevation': max(0, elevation),
+            'azimuth': azimuth
         }
     
     def _calculate_surface_irradiance(self, ghi, dni, dhi, solar_pos, surface_azimuth, surface_tilt):
         """Calculate irradiance on tilted surface"""
-        sun_elevation = math.radians(solar_pos['elevation'])
-        sun_azimuth = math.radians(solar_pos['azimuth'])
-        surf_azimuth = math.radians(surface_azimuth)
-        surf_tilt = math.radians(surface_tilt)
+        solar_elevation = solar_pos['elevation']
+        solar_azimuth = solar_pos['azimuth']
         
-        # Angle of incidence
-        cos_incidence = (
-            math.sin(sun_elevation) * math.cos(surf_tilt) +
-            math.cos(sun_elevation) * math.sin(surf_tilt) * math.cos(sun_azimuth - surf_azimuth)
-        )
+        if solar_elevation <= 0:
+            return 0
         
-        # Direct component
-        direct_component = dni * max(0, cos_incidence)
+        # Convert angles to radians
+        surf_tilt_rad = math.radians(surface_tilt)
+        surf_azimuth_rad = math.radians(surface_azimuth)
+        sol_elevation_rad = math.radians(solar_elevation)
+        sol_azimuth_rad = math.radians(solar_azimuth)
         
-        # Diffuse component (isotropic sky model)
-        diffuse_component = dhi * (1 + math.cos(surf_tilt)) / 2
+        # Calculate angle of incidence
+        cos_incidence = (math.sin(sol_elevation_rad) * math.cos(surf_tilt_rad) +
+                        math.cos(sol_elevation_rad) * math.sin(surf_tilt_rad) *
+                        math.cos(sol_azimuth_rad - surf_azimuth_rad))
         
-        # Ground reflected component
-        ground_reflected = ghi * 0.2 * (1 - math.cos(surf_tilt)) / 2  # Assuming 20% ground reflectance
+        # Direct normal irradiance on surface
+        direct_surface = dni * max(0, cos_incidence)
         
-        return direct_component + diffuse_component + ground_reflected
+        # Diffuse irradiance (simplified model)
+        diffuse_surface = dhi * (1 + math.cos(surf_tilt_rad)) / 2
+        
+        # Ground reflected irradiance
+        ground_reflected = ghi * 0.2 * (1 - math.cos(surf_tilt_rad)) / 2
+        
+        return direct_surface + diffuse_surface + ground_reflected
     
-    def _get_orientation_factor(self, orientation):
-        """Get orientation correction factor"""
+    def _get_orientation_multiplier(self, orientation):
+        """Get orientation correction multiplier"""
         orientation_factors = {
             'South': 1.0,
-            'South (135-225°)': 1.0,
-            'Southwest': 0.95,
-            'Southeast': 0.95,
-            'West': 0.85,
-            'West (225-315°)': 0.85,
+            'Southeast': 0.9,
+            'Southwest': 0.9,
             'East': 0.85,
-            'East (45-135°)': 0.85,
-            'Northwest': 0.70,
-            'Northeast': 0.70,
-            'North': 0.50,
-            'North (315-45°)': 0.50
+            'West': 0.85,
+            'Northeast': 0.7,
+            'Northwest': 0.7,
+            'North': 0.3
         }
         return orientation_factors.get(orientation, 0.8)
-    
-    def run_full_analysis(self, tmy_data, latitude, longitude, progress_callback=None):
-        """Run complete radiation analysis - database-driven with live progress"""
-        suitable_elements = self.get_suitable_elements()
-        
-        if not suitable_elements:
-            if progress_callback:
-                progress_callback("❌ No suitable building elements found", 0)
-            st.warning("No suitable building elements found for radiation analysis")
-            return False
-        
-        total_elements = len(suitable_elements)
-        if progress_callback:
-            progress_callback(f"Found {total_elements} suitable elements for analysis", 5)
-        
-        # Process each element and save directly to database
-        processed_count = 0
-        
-        for i, element in enumerate(suitable_elements):
-            element_id = element['element_id']
-            orientation = element.get('orientation', 'Unknown')
-            glass_area = element.get('glass_area', 0)
-            
-            if progress_callback:
-                progress_callback(
-                    f"Processing element {i+1}/{total_elements}: {element_id} ({orientation})",
-                    int(10 + (i / total_elements) * 80),  # Progress from 10% to 90%
-                    f"Element {element_id} - {orientation} - {glass_area:.1f}m²"
-                )
-            
-            # Calculate radiation for this element
-            radiation_data = self.calculate_element_radiation(
-                element, tmy_data, latitude, longitude
-            )
-            
-            # Save directly to database
-            if self.save_element_radiation(element['element_id'], radiation_data):
-                processed_count += 1
-                if progress_callback:
-                    annual_rad = radiation_data.get('annual_radiation', 0)
-                    progress_callback(
-                        f"✅ Completed element {element_id}: {annual_rad:.0f} kWh/m²/year",
-                        int(10 + ((i+1) / total_elements) * 80),
-                        f"Saved: {element_id} - {annual_rad:.0f} kWh/m²/year"
-                    )
-            else:
-                if progress_callback:
-                    progress_callback(f"❌ Failed to save element {element_id}", None, None)
-        
-        # Update analysis summary
-        if progress_callback:
-            progress_callback("Updating analysis summary...", 95)
-        
-        self._update_analysis_summary(processed_count)
-        
-        if progress_callback:
-            progress_callback(f"✅ Analysis completed: {processed_count} elements processed", 100)
-        
-        return True
-    
-    def _update_analysis_summary(self, processed_count):
-        """Update radiation analysis summary in database"""
-        summary_data = self.get_analysis_summary()
-        if summary_data:
-            summary = summary_data['summary']
-            
-            radiation_data = {
-                'avg_irradiance': summary.get('avg_annual_radiation', 0),
-                'peak_irradiance': summary.get('peak_irradiance', 0),
-                'shading_factor': 0.9,  # Default shading factor
-                'grid_points': processed_count,
-                'analysis_complete': True
-            }
-            
-            self.db_manager.save_radiation_analysis(self.project_id, radiation_data)
