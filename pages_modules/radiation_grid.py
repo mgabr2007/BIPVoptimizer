@@ -1219,62 +1219,72 @@ def render_radiation_grid():
             
             analyzer = DatabaseRadiationAnalyzer(project_id)
             
-            # Create live progress log container
-            st.subheader("🚀 Live Processing Log")
-            progress_log_container = st.container()
+            # Create unified analysis logger display (match pandas UI)
+            st.subheader("📋 Live Processing Log")
             
-            with progress_log_container:
-                # Initialize progress display
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                current_element_text = st.empty()
+            # Create metrics display matching pandas layout
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                processed_metric = st.empty()
+            with col2:
+                success_metric = st.empty()
+            with col3:
+                error_metric = st.empty()
+            with col4:
+                skip_metric = st.empty()
+            
+            # Create progress bar and log display
+            progress_bar = st.progress(0)
+            log_display = st.empty()
+            
+            # Initialize tracking variables
+            total_processed = 0
+            successful = 0
+            failed = 0
+            skipped = 0
+            
+            # Initialize accumulated log text
+            if 'db_accumulated_log_text' not in st.session_state:
+                st.session_state.db_accumulated_log_text = ""
+            
+            def update_progress_log(message, progress=None, element_id=None):
+                """Update the live progress log matching pandas UI"""
+                nonlocal total_processed, successful, failed, skipped
                 
-                # Create scrollable log area
-                log_placeholder = st.empty()
+                from datetime import datetime as dt
+                timestamp = dt.now().strftime("%H:%M:%S")
+                log_entry = f"[{timestamp}] {message}"
                 
-                # Initialize log display
-                if 'analysis_log_messages' not in st.session_state:
-                    st.session_state.analysis_log_messages = []
+                # Add to accumulated log text
+                st.session_state.db_accumulated_log_text += log_entry + "\n"
                 
-                def update_progress_log(message, progress=None, current_element=None):
-                    """Update the live progress log"""
-                    from datetime import datetime as dt
-                    timestamp = dt.now().strftime("%H:%M:%S")
-                    log_entry = f"{timestamp} - {message}"
-                    
-                    # Add to session state log
-                    st.session_state.analysis_log_messages.append(log_entry)
-                    
-                    # Keep only last 20 messages for display
-                    if len(st.session_state.analysis_log_messages) > 20:
-                        st.session_state.analysis_log_messages.pop(0)
-                    
-                    # Update progress bar if provided
-                    if progress is not None:
-                        progress_bar.progress(progress)
-                    
-                    # Update status text
-                    status_text.text(message)
-                    
-                    # Update current element if provided
-                    if current_element:
-                        current_element_text.text(f"Current: {current_element}")
-                    
-                    # Update log display with session-unique key
-                    if 'log_display_key' not in st.session_state:
-                        import time
-                        st.session_state.log_display_key = f"log_display_db_{int(time.time())}"
-                    
-                    log_display = "\n".join(st.session_state.analysis_log_messages)
-                    log_placeholder.text_area(
-                        "Processing Log (Last 20 entries):", 
-                        value=log_display, 
-                        height=200, 
-                        key=st.session_state.log_display_key
-                    )
+                # Keep only last 8 lines for readability (matching pandas)
+                recent_lines = st.session_state.db_accumulated_log_text.strip().split('\n')[-8:]
+                log_display.text('\n'.join(recent_lines))
                 
-                # Clear previous log
-                st.session_state.analysis_log_messages = []
+                # Update metrics based on message content
+                if "completed" in message.lower() or "✅" in message:
+                    successful += 1
+                elif "error" in message.lower() or "❌" in message or "failed" in message.lower():
+                    failed += 1
+                elif "skip" in message.lower():
+                    skipped += 1
+                
+                if element_id or "processing" in message.lower() or "completed" in message.lower():
+                    total_processed = max(total_processed, successful + failed + skipped)
+                
+                # Update metrics display
+                processed_metric.metric("Processed", total_processed)
+                success_metric.metric("Success", successful)
+                error_metric.metric("Errors", failed)
+                skip_metric.metric("Skipped", skipped)
+                
+                # Update progress bar if provided
+                if progress is not None:
+                    progress_bar.progress(progress / 100.0 if progress > 1 else progress)
+                
+                # Clear previous log for new analysis
+                st.session_state.db_accumulated_log_text = ""
                 update_progress_log("Starting database-driven radiation analysis...", 0)
                 
                 # Add progress callback to analyzer
