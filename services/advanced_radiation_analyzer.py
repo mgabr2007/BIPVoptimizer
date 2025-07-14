@@ -27,7 +27,7 @@ class AdvancedRadiationAnalyzer:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute("""
                     SELECT element_id, orientation, azimuth, glass_area, building_level, 
-                           family, wall_element_id, oriz
+                           family, wall_element_id
                     FROM building_elements 
                     WHERE project_id = %s AND pv_suitable = TRUE
                     ORDER BY orientation, azimuth
@@ -244,15 +244,29 @@ class AdvancedRadiationAnalyzer:
                 
                 if cursor.fetchone():
                     cursor.execute("""
-                        SELECT wall_id, azimuth, height, level, area
-                        FROM building_walls 
-                        WHERE project_id = %s
+                        SELECT element_id as wall_id, azimuth, 
+                               COALESCE(height, 3.0) as height, 
+                               building_level as level, 
+                               glass_area as area
+                        FROM building_elements 
+                        WHERE project_id = %s AND element_type = 'Wall'
                     """, (self.project_id,))
                     
                     walls = cursor.fetchall()
                     return [dict(row) for row in walls]
                 else:
-                    return []  # No walls table - skip shading calculations
+                    # Try to get wall data from building_elements table
+                    cursor.execute("""
+                        SELECT element_id as wall_id, azimuth, 
+                               3.0 as height, 
+                               building_level as level, 
+                               glass_area as area
+                        FROM building_elements 
+                        WHERE project_id = %s AND element_type LIKE '%Wall%'
+                    """, (self.project_id,))
+                    
+                    walls = cursor.fetchall()
+                    return [dict(row) for row in walls]
                     
         except Exception as e:
             st.info(f"Walls data not available for shading calculations: {str(e)}")
@@ -323,19 +337,10 @@ class AdvancedRadiationAnalyzer:
         orientation = element['orientation']
         azimuth = float(element['azimuth'])
         glass_area = float(element['glass_area'])
-        building_level = element.get('building_level', 'Level 1')
+        building_level = element.get('building_level', element.get('level', 'Level 1'))
         
-        # Calculate actual tilt angle from BIM orientation vectors
-        ori_z = element.get('oriz')
-        if ori_z is not None:
-            try:
-                ori_z_float = float(ori_z)
-                ori_z_clamped = max(-1.0, min(1.0, ori_z_float))
-                tilt = math.degrees(math.acos(abs(ori_z_clamped)))
-            except (ValueError, TypeError):
-                tilt = 90.0  # Default to vertical
-        else:
-            tilt = 90.0  # Default to vertical
+        # Calculate tilt angle - default to vertical for windows
+        tilt = 90.0  # Default to vertical for window elements
         
         # Estimate height from ground
         height_from_ground = self.estimate_height_from_ground(building_level)
