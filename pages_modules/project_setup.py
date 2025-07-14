@@ -323,8 +323,9 @@ def render_project_setup():
             with st.container():
                 st.info("📍 Click on the map to select your project location")
                 
-                # Create a unique key to prevent unnecessary re-renders
-                map_key = f"location_map_{st.session_state.get('location_method', 'interactive')}"
+                # Create a stable key based on coordinates to prevent unnecessary re-renders
+                coord_key = f"{st.session_state.map_coordinates['lat']:.3f}_{st.session_state.map_coordinates['lng']:.3f}"
+                map_key = f"location_map_{coord_key}"
                 
                 map_data = st_folium(
                     m, 
@@ -356,7 +357,7 @@ def render_project_setup():
             lon_diff = abs(new_coords['lng'] - current_lon)
             
             # Only process significant coordinate changes that represent intentional clicks
-            if lat_diff > 0.02 or lon_diff > 0.02:  # Very high threshold to prevent pan interference
+            if lat_diff > 0.005 or lon_diff > 0.005:  # Balanced threshold to prevent pan interference
                 # Set processing flag to prevent concurrent updates
                 st.session_state.map_processing = True
                 
@@ -375,8 +376,8 @@ def render_project_setup():
                     # Clear processing flag
                     st.session_state.map_processing = False
                     
-                    # Force a single rerun for the location change
-                    st.rerun()
+                    # Provide immediate user feedback without forcing rerun
+                    st.success(f"📍 Location updated: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
                     
                 except Exception as e:
                     st.session_state.map_processing = False
@@ -479,6 +480,8 @@ def render_project_setup():
             if previous_api != selected_api:
                 st.session_state.pop('dynamic_stations', None)
                 st.session_state.pop('selected_weather_station', None)
+                # Mark that data needs refresh
+                st.session_state.needs_station_refresh = True
         
         # Weather service comparison
         with st.expander("📊 Weather Service Comparison", expanded=False):
@@ -567,7 +570,7 @@ def render_project_setup():
                         st.session_state.last_api_used = selected_api
                         # Show unified success message for station loading
                         st.success(f"✅ Loaded {api_to_use.replace('_', ' ').title()} station")
-                        st.rerun()
+                        # Let Streamlit handle the state change naturally
                     else:
                         st.error(f"❌ {station_data['error']}")
                         
@@ -769,7 +772,10 @@ def render_project_setup():
     
 
     
-    if st.button("💾 Save Project Configuration", key="save_project", type="primary"):
+    # Only enable save button if key data is available
+    save_disabled = not (project_name and location_name and selected_lat and selected_lon)
+    
+    if st.button("💾 Save Project Configuration", key="save_project", type="primary", disabled=save_disabled):
         # Prepare enhanced project data with weather station information
         project_data = {
             'project_name': project_name,
