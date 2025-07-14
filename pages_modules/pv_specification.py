@@ -31,7 +31,7 @@ def get_orientation_from_azimuth(azimuth):
     except (ValueError, TypeError):
         return "Unknown"
 
-# BIPV Glass Types with Heliatek HeliaSol Preset
+# BIPV Glass Types with Commercial Presets
 BIPV_GLASS_TYPES = {
     "Heliatek HeliaSol 436-2000": {
         "efficiency": 0.089,  # 8.9% efficiency
@@ -40,6 +40,38 @@ BIPV_GLASS_TYPES = {
         "power_density": 85,  # 85 W/m² as specified
         "description": "Ultra-light OPV film by Heliatek",
         "contact": "Treidlerstraße 3, 01139 Dresden • +49 351 2130 3430"
+    },
+    "SUNOVATION eFORM clear": {
+        "efficiency": 0.11,   # 11% average (10-12% range)
+        "transparency": 0.35,  # 35% average (10-65% selectable)
+        "cost_per_m2": 400,   # €400/m² typical for eFORM
+        "power_density": 110,  # W/m² calculated from efficiency
+        "description": "Glass-glass Si BIPV with selectable transparency",
+        "contact": "Glanzstoffstraße 21, 63820 Elsenfeld • +49 6022 26573-0"
+    },
+    "Solarnova SOL_GT Translucent": {
+        "efficiency": 0.132,  # 13.2% module efficiency
+        "transparency": 0.22,  # 22% average (11% and 33% variants)
+        "cost_per_m2": 185,   # €185/m² average (120-250 range)
+        "power_density": 132,  # W/m² calculated from efficiency
+        "description": "Custom glass-glass Si with translucent options",
+        "contact": "Am Marienhof 6, 22880 Wedel • +49 4103 91208-0"
+    },
+    "Solarwatt Panel Vision AM 4.5": {
+        "efficiency": 0.219,  # 21.9% average (21.5-22.3% range)
+        "transparency": 0.20,  # 20% via widened inter-cell gaps
+        "cost_per_m2": 87,    # €87/m² calculated from €169 per 1.95 m²
+        "power_density": 219,  # W/m² calculated from efficiency
+        "description": "Glass-glass TOPCon with Style design",
+        "contact": "Maria-Reiche-Str. 2a, 01109 Dresden • +49 351 8895-0"
+    },
+    "AVANCIS SKALA 105-110W": {
+        "efficiency": 0.102,  # 10.2% average (10.0-10.4% range)
+        "transparency": 0.0,   # 0% opaque with matt finishes
+        "cost_per_m2": 244,   # €244/m² calculated from 6,294 Kč per 1.05 m²
+        "power_density": 102,  # W/m² calculated from efficiency
+        "description": "CIGS thin-film façade panel with color finishes",
+        "contact": "Solarstraße 3, 04860 Torgau • +49 3421 7388-0"
     },
     "Custom": {
         "efficiency": 0.16,
@@ -334,27 +366,27 @@ def render_pv_specification():
             value=float(base_specs['efficiency']*100),
             step=0.5,
             key="panel_efficiency",
-            help="BIPV glass efficiency: 2-8% (basic), 10-15% (standard), 18-25% (high-performance)"
+            help="BIPV glass efficiency: 8.9% (OPV), 10-13% (standard Si), 21-22% (high-performance TOPCon)"
         ) / 100
         
     with col2:
         transparency = st.slider(
             "Transparency (%)",
-            min_value=0.0, max_value=40.0,
+            min_value=0.0, max_value=65.0,
             value=float(base_specs['transparency']*100),
             step=5.0,
             key="transparency",
-            help="Light transmission through BIPV glass (0% = opaque, 10-40% = semi-transparent)"
+            help="Light transmission through BIPV glass (0% = opaque, 10-65% = semi-transparent)"
         ) / 100
         
     with col3:
         cost_per_m2 = st.number_input(
             "Cost (EUR/m²)",
-            min_value=100.0, max_value=1000.0,
+            min_value=50.0, max_value=500.0,
             value=float(base_specs['cost_per_m2']),
             step=25.0,
             key="cost_per_m2",
-            help="BIPV glass cost per square meter (flexible range for various technologies)"
+            help="BIPV glass cost: €87 (Solarwatt), €183 (Heliatek), €400 (SUNOVATION)"
         )
     
     # Calculate derived specifications - BIPV glass power density
