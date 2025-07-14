@@ -49,6 +49,101 @@ def render_radiation_grid():
             help="Calculate precise shadows from building walls"
         )
     
+    # Wall data upload for precise geometric shading
+    st.subheader("🏗️ Building Walls Data Upload (Optional)")
+    
+    with st.expander("📤 Upload Wall Data for Precise Self-Shading Calculations", expanded=False):
+        st.markdown("""
+        **Upload building walls CSV data to enable precise geometric self-shading calculations based on actual BIM wall data.**
+        
+        **Required CSV Columns:**
+        - `ElementId`: Unique wall identifier
+        - `WallType`: Wall type/family
+        - `Orientation`: Wall orientation (North/South/East/West)
+        - `Azimuth`: Wall azimuth angle (0-360°)
+        - `Height`: Wall height in meters
+        - `Level`: Building level (Level 1, Level 2, etc.)
+        - `Area`: Wall area in m²
+        
+        **Benefits of Wall Data Upload:**
+        - Precise multi-story building geometry analysis
+        - Accurate shadow calculations based on wall dimensions
+        - Height-dependent shading effects
+        - Orientation-based wall-window relationships
+        """)
+        
+        walls_csv = st.file_uploader(
+            "Upload Building Walls CSV",
+            type=['csv'],
+            key='walls_csv_upload',
+            help="CSV file extracted from BIM model containing wall geometry data"
+        )
+        
+        if walls_csv is not None:
+            try:
+                import pandas as pd
+                import io
+                
+                # Read CSV with progress
+                with st.spinner("Processing wall data..."):
+                    walls_df = pd.read_csv(walls_csv)
+                    
+                    # Display preview
+                    st.subheader("📋 Walls Data Preview")
+                    st.dataframe(walls_df.head(10))
+                    
+                    # Summary statistics
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Total Walls", len(walls_df))
+                    with col2:
+                        if 'Orientation' in walls_df.columns:
+                            orientations = walls_df['Orientation'].value_counts()
+                            st.metric("Orientations", len(orientations))
+                    with col3:
+                        if 'Level' in walls_df.columns:
+                            levels = walls_df['Level'].value_counts()
+                            st.metric("Building Levels", len(levels))
+                    
+                    # Save to database
+                    if st.button("💾 Save Wall Data", key="save_walls_data"):
+                        save_walls_data_to_database(project_id, walls_df)
+                        st.success("✅ Wall data saved successfully!")
+                        
+            except Exception as e:
+                st.error(f"Error processing walls CSV: {str(e)}")
+        
+        # Manual shading factors as fallback
+        st.subheader("🌳 Manual Shading Factors (Fallback)")
+        st.markdown("**Use these manual factors if wall data is not available:**")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            morning_shading = st.slider(
+                "Morning Shading Factor",
+                0.0, 1.0, 0.85,
+                help="Reduction factor for morning solar radiation (0.85 = 15% reduction)"
+            )
+        with col2:
+            midday_shading = st.slider(
+                "Midday Shading Factor", 
+                0.0, 1.0, 0.90,
+                help="Reduction factor for midday solar radiation (0.90 = 10% reduction)"
+            )
+        with col3:
+            evening_shading = st.slider(
+                "Evening Shading Factor",
+                0.0, 1.0, 0.85,
+                help="Reduction factor for evening solar radiation (0.85 = 15% reduction)"
+            )
+        
+        # Store shading factors in session state
+        st.session_state.manual_shading_factors = {
+            'morning': morning_shading,
+            'midday': midday_shading,
+            'evening': evening_shading
+        }
+    
     # Show calculation details based on precision
     calculation_details = {
         "Hourly": "⏰ **4,015 calculations per element** (11 hours × 365 days)",

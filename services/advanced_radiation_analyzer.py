@@ -250,19 +250,17 @@ class AdvancedRadiationAnalyzer:
                 """)
                 
                 if cursor.fetchone():
+                    # Use dedicated building_walls table if available
                     cursor.execute("""
-                        SELECT element_id as wall_id, azimuth, 
-                               COALESCE(height, 3.0) as height, 
-                               building_level as level, 
-                               glass_area as area
-                        FROM building_elements 
-                        WHERE project_id = %s AND element_type = 'Wall'
+                        SELECT element_id as wall_id, azimuth, height, level, area
+                        FROM building_walls 
+                        WHERE project_id = %s
                     """, (self.project_id,))
                     
                     walls = cursor.fetchall()
                     return [dict(row) for row in walls]
                 else:
-                    # Try to get wall data from building_elements table
+                    # Fallback to building_elements table
                     cursor.execute("""
                         SELECT element_id as wall_id, azimuth, 
                                3.0 as height, 
