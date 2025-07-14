@@ -393,11 +393,38 @@ def render_facade_extraction():
                     # Database save using helper
                     db_helper.save_step_data("building_elements", windows)
                     
-                    # Legacy database save for compatibility
+                    # Database save for building elements with detailed debugging
                     if 'project_id' in st.session_state:
-                        from database_manager import save_building_elements, save_project_data
-                        save_building_elements(st.session_state.project_id, windows)
-                        save_project_data(st.session_state.project_data)
+                        from database_manager import db_manager
+                        project_id = st.session_state.project_id
+                        
+                        st.write(f"**Debug**: Attempting to save {len(windows)} elements to database for project {project_id}")
+                        st.write(f"**Debug**: Sample element data: {windows[0] if windows else 'No elements'}")
+                        
+                        success = db_manager.save_building_elements(project_id, windows)
+                        if success:
+                            st.success(f"✅ Successfully saved {len(windows)} building elements to database for project {project_id}")
+                            
+                            # Verify the save worked
+                            from psycopg2.extras import RealDictCursor
+                            conn = db_manager.get_connection()
+                            if conn:
+                                try:
+                                    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                                        cursor.execute("SELECT COUNT(*) as count FROM building_elements WHERE project_id = %s", (project_id,))
+                                        result = cursor.fetchone()
+                                        st.write(f"**Verification**: Database now contains {result['count']} elements for project {project_id}")
+                                except Exception as e:
+                                    st.error(f"Verification failed: {e}")
+                                finally:
+                                    conn.close()
+                        else:
+                            st.error("❌ Failed to save building elements to database")
+                        
+                        # Save project data
+                        db_manager.save_project(st.session_state.project_data)
+                    else:
+                        st.warning("⚠️ No project_id found in session state - cannot save to database")
                     
                     st.session_state.step4_data_saved = True
                 except Exception as e:

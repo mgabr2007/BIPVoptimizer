@@ -236,7 +236,7 @@ class BIPVDatabaseManager:
             conn.close()
     
     def save_building_elements(self, project_id, building_elements):
-        """Save BIM building elements data"""
+        """Save BIM building elements data with enhanced field name handling"""
         conn = self.get_connection()
         if not conn:
             return False
@@ -258,17 +258,17 @@ class BIPVDatabaseManager:
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             project_id,
-                            element.get('Element_ID', element.get('element_id', '')),
-                            element.get('Wall_Element_ID', element.get('wall_element_id', '')),
+                            element.get('ElementId', element.get('Element_ID', element.get('element_id', ''))),
+                            element.get('HostWallId', element.get('Wall_Element_ID', element.get('wall_element_id', ''))),
                             element.get('element_type', 'Window'),
                             element.get('orientation', ''),
                             element.get('azimuth', 0),
-                            element.get('Glass_Area', element.get('glass_area', element.get('window_area', 0))),
+                            element.get('glass_area', element.get('Glass_Area', element.get('window_area', 0))),
                             element.get('window_width', 0),
                             element.get('window_height', 0),
                             element.get('Level', element.get('level', '')),
                             element.get('Family', element.get('family', '')),
-                            element.get('PV_Suitable', element.get('pv_suitable', element.get('suitable', False)))
+                            element.get('pv_suitable', element.get('PV_Suitable', element.get('suitable', False)))
                         ))
                 else:
                     # List or dict format
@@ -281,17 +281,17 @@ class BIPVDatabaseManager:
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             project_id,
-                            element.get('Element_ID', element.get('element_id', '')),
-                            element.get('Wall_Element_ID', element.get('wall_element_id', '')),
+                            element.get('ElementId', element.get('Element_ID', element.get('element_id', ''))),
+                            element.get('HostWallId', element.get('Wall_Element_ID', element.get('wall_element_id', ''))),
                             element.get('element_type', 'Window'),
                             element.get('orientation', ''),
                             element.get('azimuth', 0),
-                            element.get('Glass_Area', element.get('glass_area', element.get('window_area', 0))),
+                            element.get('glass_area', element.get('Glass_Area', element.get('window_area', 0))),
                             element.get('window_width', 0),
                             element.get('window_height', 0),
                             element.get('Level', element.get('level', '')),
                             element.get('Family', element.get('family', '')),
-                            element.get('PV_Suitable', element.get('pv_suitable', element.get('suitable', False)))
+                            element.get('pv_suitable', element.get('PV_Suitable', element.get('suitable', False)))
                         ))
                 
                 conn.commit()
