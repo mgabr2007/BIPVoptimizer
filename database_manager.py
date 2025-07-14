@@ -305,7 +305,7 @@ class BIPVDatabaseManager:
             conn.close()
     
     def save_radiation_analysis(self, project_id, radiation_data):
-        """Save radiation analysis results"""
+        """Save radiation analysis results - fully database-driven"""
         conn = self.get_connection()
         if not conn:
             return False
@@ -359,6 +359,89 @@ class BIPVDatabaseManager:
         except Exception as e:
             conn.rollback()
             st.error(f"Error saving radiation analysis: {str(e)}")
+            return False
+        finally:
+            conn.close()
+    
+    def get_radiation_analysis_data(self, project_id):
+        """Get radiation analysis data from database - fully database-driven"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Get radiation analysis summary
+                cursor.execute("""
+                    SELECT * FROM radiation_analysis 
+                    WHERE project_id = %s AND analysis_complete = TRUE
+                    ORDER BY created_at DESC LIMIT 1
+                """, (project_id,))
+                
+                radiation_summary = cursor.fetchone()
+                
+                # Get detailed element radiation data
+                cursor.execute("""
+                    SELECT er.*, be.element_type, be.orientation, be.azimuth, 
+                           be.glass_area, be.building_level, be.family
+                    FROM element_radiation er
+                    JOIN building_elements be ON er.element_id = be.element_id 
+                    WHERE er.project_id = %s
+                    ORDER BY er.annual_radiation DESC
+                """, (project_id,))
+                
+                element_radiation = cursor.fetchall()
+                
+                return {
+                    'radiation_summary': dict(radiation_summary) if radiation_summary else None,
+                    'element_radiation': [dict(row) for row in element_radiation],
+                    'total_elements': len(element_radiation)
+                }
+                
+        except Exception as e:
+            st.error(f"Error retrieving radiation analysis: {str(e)}")
+            return None
+        finally:
+            conn.close()
+    
+    def save_element_radiation_batch(self, project_id, element_radiation_list):
+        """Save radiation data for multiple elements - optimized for large datasets"""
+        conn = self.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            with conn.cursor() as cursor:
+                # Prepare batch insert
+                insert_data = []
+                for element in element_radiation_list:
+                    insert_data.append((
+                        project_id,
+                        element.get('element_id'),
+                        element.get('annual_radiation'),
+                        element.get('irradiance'),
+                        element.get('orientation_multiplier', 1.0)
+                    ))
+                
+                # Use execute_batch for efficient bulk insert
+                from psycopg2.extras import execute_batch
+                execute_batch(cursor, """
+                    INSERT INTO element_radiation 
+                    (project_id, element_id, annual_radiation, irradiance, orientation_multiplier)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (project_id, element_id) 
+                    DO UPDATE SET
+                        annual_radiation = EXCLUDED.annual_radiation,
+                        irradiance = EXCLUDED.irradiance,
+                        orientation_multiplier = EXCLUDED.orientation_multiplier
+                """, insert_data)
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            st.error(f"Error saving element radiation batch: {str(e)}")
             return False
         finally:
             conn.close()

@@ -1184,7 +1184,78 @@ def render_radiation_grid():
             st.warning("⚠️ Previous analysis timed out. Resetting lock.")
             st.session_state.radiation_analysis_running = False
     
-    if (show_run_button and st.button("🚀 Run Radiation Analysis", key="run_radiation_analysis")) or continue_analysis:
+    # Database-driven approach section
+    st.subheader("🔄 Analysis Options")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        database_analysis = st.button("🚀 Database-Driven Analysis", key="db_radiation_analysis", type="primary")
+    
+    with col2:
+        legacy_analysis = st.button("⚠️ Legacy Pandas Analysis", key="legacy_radiation_analysis", type="secondary")
+    
+    if database_analysis:
+        st.info("🔄 **Using Database-Driven Approach** - No pandas DataFrames, direct database operations")
+        
+        # Get TMY data
+        tmy_data = st.session_state.project_data.get('weather_analysis', {}).get('tmy_data', [])
+        if not tmy_data:
+            st.error("❌ TMY data not found. Please complete Step 3 first.")
+            return
+        
+        # Get project coordinates
+        latitude = st.session_state.project_data.get('latitude', 52.5200)
+        longitude = st.session_state.project_data.get('longitude', 13.4050)
+        
+        # Use database-driven radiation analyzer
+        from services.radiation_analysis_service import DatabaseRadiationAnalyzer
+        
+        try:
+            project_id = st.session_state.get('project_id')
+            if not project_id:
+                st.error("❌ Project ID not found. Please save project first.")
+                return
+            
+            analyzer = DatabaseRadiationAnalyzer(project_id)
+            
+            with st.spinner("Running database-driven radiation analysis..."):
+                success = analyzer.run_full_analysis(tmy_data, latitude, longitude)
+            
+            if success:
+                st.success("✅ Database-driven analysis completed successfully!")
+                
+                # Get analysis summary from database
+                summary = analyzer.get_analysis_summary()
+                if summary:
+                    st.write("### Analysis Summary")
+                    st.write(f"**Total Elements:** {summary['summary'].get('total_elements', 0)}")
+                    st.write(f"**Average Annual Radiation:** {summary['summary'].get('avg_annual_radiation', 0):.2f} kWh/m²/year")
+                    st.write(f"**Peak Irradiance:** {summary['summary'].get('peak_irradiance', 0):.2f} W/m²")
+                    
+                    # Show orientation distribution
+                    if summary['orientation_distribution']:
+                        st.write("### Orientation Distribution")
+                        for orientation_data in summary['orientation_distribution']:
+                            st.write(f"- **{orientation_data['orientation']}:** {orientation_data['count']} elements, {orientation_data['avg_radiation']:.2f} kWh/m²/year")
+                
+                # Mark step as completed
+                st.session_state.radiation_completed = True
+                st.session_state.step5_completed = True
+                return
+                
+            else:
+                st.error("❌ Database-driven analysis failed. Please try again.")
+                return
+                
+        except Exception as e:
+            st.error(f"❌ Database analysis error: {str(e)}")
+            st.info("This is the new database-driven approach - no pandas DataFrames used!")
+            return
+    
+    if (show_run_button and legacy_analysis) or continue_analysis:
+        if legacy_analysis:
+            st.warning("⚠️ **Using Legacy Pandas Approach** - This will be replaced with database-driven method")
         # Set execution lock immediately with timestamp
         st.session_state.radiation_analysis_running = True
         st.session_state.radiation_analysis_start_time = time.time()
@@ -1910,18 +1981,11 @@ def render_radiation_grid():
             if len(radiation_results) == 0:
                 st.warning("⚠️ No radiation data calculated from authentic TMY sources.")
                 st.info("📋 **Analysis completed processing all elements** - results show only elements with valid TMY calculations")
-                # Create empty DataFrame with proper structure for consistency
-                radiation_data = pd.DataFrame(columns=[
-                    'element_id', 'element_type', 'orientation', 'azimuth', 'tilt', 'area', 'level',
-                    'height_from_ground', 'ground_reflectance_factor', 'ghi_height_factor', 
-                    'atmospheric_clarity_factor', 'horizon_factor', 'horizon_depression_deg',
-                    'total_height_enhancement', 'wall_hosted_id', 'width', 'height',
-                    'annual_irradiation', 'peak_irradiance', 'avg_irradiance', 'monthly_irradiation',
-                    'capacity_factor', 'annual_energy_potential'
-                ])
+                # No data calculated - use database-driven approach
+                radiation_data = []
             else:
-                # Convert results to DataFrame
-                radiation_data = pd.DataFrame(radiation_results)
+                # Use database-driven results - no pandas DataFrame
+                radiation_data = radiation_results
                 # Mark analysis as completed
                 st.session_state.radiation_control_state = 'completed'
                 
@@ -1990,11 +2054,11 @@ def render_radiation_grid():
             st.session_state.project_data['radiation_data'] = radiation_data
             st.session_state.radiation_completed = True
             
-            # Save to consolidated data manager
+            # Save to consolidated data manager - database-driven approach
             consolidated_manager = ConsolidatedDataManager()
             step5_data = {
-                'radiation_data': radiation_data.to_dict('records'),
-                'element_radiation': radiation_data.to_dict('records'),
+                'radiation_data': radiation_data if isinstance(radiation_data, list) else [],
+                'element_radiation': radiation_data if isinstance(radiation_data, list) else [],
                 'analysis_parameters': {
                     'include_shading': include_shading,
                     'apply_corrections': apply_corrections,
