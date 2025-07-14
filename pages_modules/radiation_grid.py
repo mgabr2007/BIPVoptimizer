@@ -1219,10 +1219,67 @@ def render_radiation_grid():
             
             analyzer = DatabaseRadiationAnalyzer(project_id)
             
-            with st.spinner("Running database-driven radiation analysis..."):
-                success = analyzer.run_full_analysis(tmy_data, latitude, longitude)
+            # Create live progress log container
+            st.subheader("🚀 Live Processing Log")
+            progress_log_container = st.container()
+            
+            with progress_log_container:
+                # Initialize progress display
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                current_element_text = st.empty()
+                
+                # Create scrollable log area
+                log_placeholder = st.empty()
+                
+                # Initialize log display
+                if 'analysis_log_messages' not in st.session_state:
+                    st.session_state.analysis_log_messages = []
+                
+                def update_progress_log(message, progress=None, current_element=None):
+                    """Update the live progress log"""
+                    timestamp = datetime.now().strftime("%H:%M:%S")
+                    log_entry = f"{timestamp} - {message}"
+                    
+                    # Add to session state log
+                    st.session_state.analysis_log_messages.append(log_entry)
+                    
+                    # Keep only last 20 messages for display
+                    if len(st.session_state.analysis_log_messages) > 20:
+                        st.session_state.analysis_log_messages.pop(0)
+                    
+                    # Update progress bar if provided
+                    if progress is not None:
+                        progress_bar.progress(progress)
+                    
+                    # Update status text
+                    status_text.text(message)
+                    
+                    # Update current element if provided
+                    if current_element:
+                        current_element_text.text(f"Current: {current_element}")
+                    
+                    # Update log display
+                    log_display = "\n".join(st.session_state.analysis_log_messages)
+                    log_placeholder.text_area(
+                        "Processing Log (Last 20 entries):", 
+                        value=log_display, 
+                        height=200, 
+                        key=f"log_display_{len(st.session_state.analysis_log_messages)}"
+                    )
+                
+                # Clear previous log
+                st.session_state.analysis_log_messages = []
+                update_progress_log("Starting database-driven radiation analysis...", 0)
+                
+                # Add progress callback to analyzer
+                def progress_callback(message, progress=None, element_id=None):
+                    update_progress_log(message, progress, element_id)
+                
+                success = analyzer.run_full_analysis(tmy_data, latitude, longitude, progress_callback)
             
             if success:
+                update_progress_log("✅ Analysis completed successfully!", 100)
                 st.success("✅ Database-driven analysis completed successfully!")
                 
                 # Get analysis summary from database
@@ -1245,6 +1302,7 @@ def render_radiation_grid():
                 return
                 
             else:
+                update_progress_log("❌ Analysis failed", 0)
                 st.error("❌ Database-driven analysis failed. Please try again.")
                 return
                 

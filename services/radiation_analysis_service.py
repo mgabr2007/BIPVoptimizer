@@ -249,21 +249,35 @@ class DatabaseRadiationAnalyzer:
         }
         return orientation_factors.get(orientation, 0.8)
     
-    def run_full_analysis(self, tmy_data, latitude, longitude):
-        """Run complete radiation analysis - database-driven"""
+    def run_full_analysis(self, tmy_data, latitude, longitude, progress_callback=None):
+        """Run complete radiation analysis - database-driven with live progress"""
         suitable_elements = self.get_suitable_elements()
         
         if not suitable_elements:
+            if progress_callback:
+                progress_callback("❌ No suitable building elements found", 0)
             st.warning("No suitable building elements found for radiation analysis")
             return False
         
-        st.info(f"Running database-driven radiation analysis for {len(suitable_elements)} elements")
+        total_elements = len(suitable_elements)
+        if progress_callback:
+            progress_callback(f"Found {total_elements} suitable elements for analysis", 5)
         
         # Process each element and save directly to database
-        progress_bar = st.progress(0)
         processed_count = 0
         
         for i, element in enumerate(suitable_elements):
+            element_id = element['element_id']
+            orientation = element.get('orientation', 'Unknown')
+            glass_area = element.get('glass_area', 0)
+            
+            if progress_callback:
+                progress_callback(
+                    f"Processing element {i+1}/{total_elements}: {element_id} ({orientation})",
+                    int(10 + (i / total_elements) * 80),  # Progress from 10% to 90%
+                    f"Element {element_id} - {orientation} - {glass_area:.1f}m²"
+                )
+            
             # Calculate radiation for this element
             radiation_data = self.calculate_element_radiation(
                 element, tmy_data, latitude, longitude
@@ -272,14 +286,26 @@ class DatabaseRadiationAnalyzer:
             # Save directly to database
             if self.save_element_radiation(element['element_id'], radiation_data):
                 processed_count += 1
-            
-            # Update progress
-            progress_bar.progress((i + 1) / len(suitable_elements))
+                if progress_callback:
+                    annual_rad = radiation_data.get('annual_radiation', 0)
+                    progress_callback(
+                        f"✅ Completed element {element_id}: {annual_rad:.0f} kWh/m²/year",
+                        int(10 + ((i+1) / total_elements) * 80),
+                        f"Saved: {element_id} - {annual_rad:.0f} kWh/m²/year"
+                    )
+            else:
+                if progress_callback:
+                    progress_callback(f"❌ Failed to save element {element_id}", None, None)
         
         # Update analysis summary
+        if progress_callback:
+            progress_callback("Updating analysis summary...", 95)
+        
         self._update_analysis_summary(processed_count)
         
-        st.success(f"✅ Database-driven analysis completed: {processed_count} elements processed")
+        if progress_callback:
+            progress_callback(f"✅ Analysis completed: {processed_count} elements processed", 100)
+        
         return True
     
     def _update_analysis_summary(self, processed_count):
