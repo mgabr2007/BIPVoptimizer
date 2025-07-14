@@ -1283,15 +1283,15 @@ def render_radiation_grid():
                 if progress is not None:
                     progress_bar.progress(progress / 100.0 if progress > 1 else progress)
                 
-                # Clear previous log for new analysis
-                st.session_state.db_accumulated_log_text = ""
-                update_progress_log("Starting database-driven radiation analysis...", 0)
-                
-                # Add progress callback to analyzer
-                def progress_callback(message, progress=None, element_id=None):
-                    update_progress_log(message, progress, element_id)
-                
-                success = analyzer.run_full_analysis(tmy_data, latitude, longitude, progress_callback)
+            # Clear previous log for new analysis
+            st.session_state.db_accumulated_log_text = ""
+            update_progress_log("Starting database-driven radiation analysis...", 0)
+            
+            # Add progress callback to analyzer
+            def progress_callback(message, progress=None, element_id=None):
+                update_progress_log(message, progress, element_id)
+            
+            success = analyzer.run_full_analysis(tmy_data, latitude, longitude, progress_callback)
             
             if success:
                 update_progress_log("✅ Analysis completed successfully!", 100)
