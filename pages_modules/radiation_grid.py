@@ -1,6 +1,6 @@
 """
 Radiation & Shading Grid Analysis page for BIPV Optimizer
-DATABASE-DRIVEN ONLY - No pandas DataFrames
+ADVANCED DATABASE-DRIVEN ANALYSIS - Sophisticated calculations without pandas
 """
 
 import streamlit as st
@@ -9,14 +9,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 from database_manager import db_manager, BIPVDatabaseManager
-from services.radiation_analysis_service_clean import DatabaseRadiationAnalyzer
+from services.advanced_radiation_analyzer import AdvancedRadiationAnalyzer
 import time
 
 def render_radiation_grid():
     """Render the radiation and shading grid analysis module - DATABASE-DRIVEN ONLY."""
     
     st.header("☀️ Step 5: Solar Radiation & Shading Analysis")
-    st.markdown("**Database-Driven Analysis** - Direct database operations for optimal performance")
+    st.markdown("**Advanced Database-Driven Analysis** - Sophisticated calculations with database persistence")
     
     # Data validation
     if 'project_id' not in st.session_state:
@@ -29,15 +29,48 @@ def render_radiation_grid():
     if not check_dependencies():
         return
     
-    # Method Selection - DATABASE ONLY
-    st.subheader("📊 Analysis Method")
-    st.info("**Database-Driven Analysis**: Direct database operations for element processing, radiation calculations, and data storage. No pandas DataFrames used.")
+    # Analysis precision selection - based on user's calculation details
+    st.subheader("📊 Analysis Configuration")
     
-    # Database-driven analysis interface
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        precision = st.selectbox(
+            "Calculation Precision",
+            ["Hourly", "Daily Peak", "Monthly Average", "Yearly Average"],
+            index=1,  # Default to Daily Peak
+            help="Hourly: 4,015 calculations per element | Daily Peak: 365 calculations | Monthly: 12 calculations | Yearly: 4 calculations"
+        )
+    
+    with col2:
+        include_shading = st.checkbox(
+            "Include Geometric Shading",
+            value=True,
+            help="Calculate precise shadows from building walls"
+        )
+    
+    # Show calculation details based on precision
+    calculation_details = {
+        "Hourly": "⏰ **4,015 calculations per element** (11 hours × 365 days)",
+        "Daily Peak": "☀️ **365 calculations per element** (noon × 365 days)",
+        "Monthly Average": "📅 **12 calculations per element** (monthly representatives)",
+        "Yearly Average": "📊 **4 calculations per element** (seasonal representatives)"
+    }
+    
+    st.info(calculation_details[precision])
+    
+    # Advanced analysis options
+    apply_corrections = st.checkbox(
+        "Apply Orientation Corrections",
+        value=True,
+        help="Apply physics-based orientation corrections for realistic radiation values"
+    )
+    
+    # Analysis interface
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("▶️ Run Database Analysis", type="primary", key="run_database_analysis"):
-            run_database_analysis(project_id)
+        if st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis"):
+            run_advanced_analysis(project_id, precision, include_shading, apply_corrections)
     
     with col2:
         if st.button("🔄 Reset Analysis", key="reset_analysis"):
@@ -64,14 +97,14 @@ def check_dependencies():
     
     return True
 
-def run_database_analysis(project_id):
-    """Run database-driven radiation analysis."""
+def run_advanced_analysis(project_id, precision, include_shading, apply_corrections):
+    """Run advanced database-driven radiation analysis with sophisticated calculations."""
     
     try:
-        st.subheader("🔄 Database-Driven Radiation Analysis")
+        st.subheader("🔄 Advanced Radiation Analysis")
         
-        # Initialize database analyzer
-        analyzer = DatabaseRadiationAnalyzer(project_id)
+        # Initialize advanced analyzer
+        analyzer = AdvancedRadiationAnalyzer(project_id)
         
         # Get suitable elements
         suitable_elements = analyzer.get_suitable_elements()
@@ -86,110 +119,52 @@ def run_database_analysis(project_id):
         weather_data = st.session_state.project_data.get('weather_analysis', {})
         tmy_data = weather_data.get('tmy_data', weather_data.get('hourly_data', []))
         
-        project_data = st.session_state.project_data
-        latitude = project_data.get('latitude', 52.5)
-        longitude = project_data.get('longitude', 13.4)
+        if not tmy_data:
+            st.error("No TMY data available for analysis")
+            return
+        
+        # Get project coordinates
+        coordinates = st.session_state.project_data.get('coordinates', {})
+        latitude = coordinates.get('lat', 52.52)
+        longitude = coordinates.get('lng', 13.405)
         
         # Create progress tracking
-        progress_container = st.container()
-        with progress_container:
-            col1, col2, col3, col4 = st.columns(4)
-            with col1:
-                processed_metric = st.metric("Processed", "0")
-            with col2:
-                success_metric = st.metric("Success", "0")
-            with col3:
-                errors_metric = st.metric("Errors", "0")
-            with col4:
-                skipped_metric = st.metric("Skipped", "0")
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        # Progress callback function
+        def update_progress(message, current, total):
+            progress = int((current / total) * 100) if total > 0 else 0
+            progress_bar.progress(progress)
+            status_text.text(f"{message} ({current}/{total})")
+        
+        # Show calculation details
+        st.info(f"🔬 **Analysis Details**: {precision} precision with {len(suitable_elements)} elements")
+        
+        # Run advanced analysis with all sophisticated calculations
+        success = analyzer.run_advanced_analysis(
+            tmy_data=tmy_data,
+            latitude=latitude,
+            longitude=longitude,
+            precision=precision,
+            include_shading=include_shading,
+            apply_corrections=apply_corrections,
+            progress_callback=update_progress
+        )
+        
+        if success:
+            st.success("✅ Advanced analysis completed successfully!")
+            progress_bar.progress(100)
+            status_text.text("Analysis complete")
             
-            progress_bar = st.progress(0)
-            log_container = st.container()
-        
-        # Progress tracking variables
-        processed_count = 0
-        success_count = 0
-        error_count = 0
-        skipped_count = 0
-        
-        # Process elements
-        total_elements = len(suitable_elements)
-        radiation_results = []
-        
-        with log_container:
-            log_area = st.empty()
-            log_messages = []
+            # Update session state
+            st.session_state.radiation_completed = True
+            st.session_state.step5_completed = True
             
-            def update_progress_log(message, current_count):
-                timestamp = datetime.now().strftime("%H:%M:%S")
-                log_messages.append(f"[{timestamp}] {message}")
-                
-                # Keep only last 8 messages
-                if len(log_messages) > 8:
-                    log_messages.pop(0)
-                
-                # Update progress display
-                progress_bar.progress(current_count / total_elements)
-                processed_metric.metric("Processed", str(current_count))
-                success_metric.metric("Success", str(success_count))
-                errors_metric.metric("Errors", str(error_count))
-                skipped_metric.metric("Skipped", str(skipped_count))
-                
-                # Update log display
-                log_area.text("\n".join(log_messages))
-        
-        # Start analysis
-        update_progress_log("Starting database-driven radiation analysis...", 0)
-        
-        for i, element in enumerate(suitable_elements):
-            try:
-                element_id = element['element_id']
-                orientation = element['orientation']
-                glass_area = element['glass_area']
-                
-                update_progress_log(f"Processing {element_id} ({orientation}, {glass_area}m²)", i)
-                
-                # Calculate radiation for this element
-                radiation_data = analyzer.calculate_element_radiation(element, tmy_data, latitude, longitude)
-                
-                if radiation_data:
-                    radiation_results.append({
-                        'element_id': element_id,
-                        'annual_radiation': radiation_data['annual_radiation'],
-                        'peak_irradiance': radiation_data['peak_irradiance'],
-                        'orientation_multiplier': radiation_data.get('orientation_multiplier', 1.0)
-                    })
-                    success_count += 1
-                    update_progress_log(f"✅ {element_id}: {radiation_data['annual_radiation']:.0f} kWh/m²/year", i + 1)
-                else:
-                    skipped_count += 1
-                    update_progress_log(f"⚠️ {element_id}: Skipped (no radiation data)", i + 1)
-                
-                processed_count += 1
-                
-            except Exception as e:
-                error_count += 1
-                update_progress_log(f"❌ {element_id}: Error - {str(e)[:50]}", i + 1)
-                processed_count += 1
-        
-        # Save results to database
-        if radiation_results:
-            update_progress_log("Saving results to database...", total_elements)
-            
-            success = analyzer.save_radiation_results(radiation_results)
-            
-            if success:
-                update_progress_log(f"✅ Successfully saved {len(radiation_results)} radiation results", total_elements)
-                st.success(f"✅ Analysis completed! Processed {processed_count} elements, {success_count} successful calculations")
-                
-                # Update session state
-                st.session_state.radiation_completed = True
-                st.session_state.step5_completed = True
-                
-            else:
-                st.error("❌ Failed to save radiation results to database")
+            # Display results immediately
+            display_existing_results(project_id)
         else:
-            st.error("❌ No radiation results to save")
+            st.error("❌ Analysis failed. Please check the logs.")
         
         # Clear progress after completion
         progress_container.empty()

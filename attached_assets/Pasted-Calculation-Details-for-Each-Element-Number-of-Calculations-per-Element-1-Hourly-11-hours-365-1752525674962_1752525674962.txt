@@ -1,0 +1,50 @@
+Calculation Details for Each Element
+Number of Calculations per Element:
+1.	Hourly: 11 hours × 365 days = 4,015 calculations
+•	Hours: 7 AM - 5 PM (11 hours with meaningful sun irradiance)
+•	Days: All 365 days of the year
+2.	Daily Peak: 1 hour × 365 days = 365 calculations
+•	Hours: 12 PM (noon as mid of daily sun irradiance)
+•	Days: All 365 days of the year
+3.	Monthly Average: 1 hour × 12 days = 12 calculations
+•	Hours: 12 PM (noon position)
+•	Days: 15th of each month (12 average days for seasonal representation)
+4.	Yearly Average: 1 hour × 4 days = 4 calculations
+•	Hours: 12 PM (noon position)
+•	Days: 4 seasonal representative days (equinoxes & solstices)
+Main Calculation Equation:
+For each time step, the system calculates:
+Surface_Irradiance = calculate_irradiance_on_surface(GHI, DNI, DHI, solar_position, tilt, azimuth)
+                   + ground_contribution 
+                   × shading_factor
+Where:
+•	GHI = Global Horizontal Irradiance (from TMY data)
+•	DNI = Direct Normal Irradiance (from TMY data)
+•	DHI = Diffuse Horizontal Irradiance (from TMY data)
+•	Ground Contribution = GHI × ground_reflectance_factor
+•	Shading Factor = Combined shading from building walls (if available)
+Surface Irradiance Calculation:
+POA_Global = DNI × cos(incidence_angle) 
+           + DHI × (1 + cos(tilt))/2
+           + GHI × albedo × (1 - cos(tilt))/2
+Where:
+•	cos(incidence_angle) = cos(tilt) × cos(zenith) + sin(tilt) × sin(zenith) × cos(azimuth_diff)
+•	albedo = 0.2 (ground reflectance)
+•	tilt = Window tilt angle (typically 90° for vertical)
+•	azimuth_diff = |solar_azimuth - surface_azimuth|
+Final Annual Calculation:
+Annual_Irradiance = Σ(Surface_Irradiance) × scaling_factor / 1000
+Scaling Factors:
+•	Hourly: 8760 / sample_count
+•	Daily Peak: (8760/365) / 0.15 / (sample_count/365)
+•	Monthly Average: 365 / 12 / (sample_count/12)
+•	Yearly Average: 365 / sample_count
+Result: Annual solar irradiance in kWh/m²/year for each building element.
+No, it's not exactly 3 equations per element.
+Looking at the calculation structure, there are multiple equations applied sequentially for each time step:
+Per Time Step (not per element):
+1.	Solar Position Calculation - determines sun angle
+2.	Surface Irradiance Calculation (the main POA equation)
+3.	Ground Reflectance Addition
+4.	Shading Factor Multiplication (if walls data available)
+5.	Height-dependent Adjustments
