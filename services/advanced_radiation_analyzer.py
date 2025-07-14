@@ -423,8 +423,14 @@ class AdvancedRadiationAnalyzer:
         # Scale to annual values
         annual_irradiation = (total_irradiance * scaling_factor) / 1000  # Convert to kWh/m²/year
         
-        # Ensure realistic minimum values
-        annual_irradiation = max(annual_irradiation, 200)  # Minimum 200 kWh/m²/year
+        # Debug: Log calculation details
+        if annual_irradiation < 200:
+            st.write(f"Debug: Low radiation for {element_id}: {annual_irradiation:.2f} kWh/m²/year")
+            st.write(f"Debug: Total irradiance: {total_irradiance:.2f}, Scaling: {scaling_factor:.2f}")
+        
+        # Ensure realistic minimum values only if calculation fails completely
+        if annual_irradiation <= 0:
+            annual_irradiation = 200  # Fallback only for zero/negative values
         
         return {
             'element_id': element_id,
