@@ -581,12 +581,18 @@ def render_project_setup():
                         station_data = asyncio.run(weather_api_manager.fetch_openweathermap_data(selected_lat, selected_lon))
                     
                     if 'error' not in station_data:
-                        # Store the station data
-                        st.session_state.dynamic_stations = [station_data]
+                        # Check if multiple stations are available
+                        if 'all_nearby_stations' in station_data and station_data['all_nearby_stations']:
+                            # Store all nearby stations for selection
+                            all_stations = station_data['all_nearby_stations']
+                            st.session_state.dynamic_stations = all_stations
+                            st.success(f"✅ Loaded {len(all_stations)} {api_to_use.replace('_', ' ').title()} stations")
+                        else:
+                            # Store single station data
+                            st.session_state.dynamic_stations = [station_data]
+                            st.success(f"✅ Loaded {api_to_use.replace('_', ' ').title()} station")
+                        
                         st.session_state.last_api_used = selected_api
-                        # Show unified success message for station loading
-                        st.success(f"✅ Loaded {api_to_use.replace('_', ' ').title()} station")
-                        # Let Streamlit handle the state change naturally
                     else:
                         st.error(f"❌ {station_data['error']}")
                         

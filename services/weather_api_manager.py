@@ -192,9 +192,8 @@ class WeatherAPIManager:
             if not isinstance(stations_data, list):
                 return {'error': 'Unexpected API response format', 'fallback_recommended': 'openweathermap'}
             
-            # Find nearest station
-            nearest_station = None
-            min_distance = float('inf')
+            # Find nearest 5 stations
+            station_distances = []
             
             # Convert target coordinates to WGS84 (lat/lon) for distance calculation
             target_lat, target_lon = lat, lon
@@ -222,39 +221,59 @@ class WeatherAPIManager:
                             # Calculate distance using Haversine formula for accurate great-circle distance
                             distance_km = self._calculate_haversine_distance(target_lat, target_lon, station_lat, station_lon)
                             
-                            if distance_km < min_distance:
-                                min_distance = distance_km
-                                nearest_station = station
+                            station_distances.append({
+                                'station': station,
+                                'distance_km': distance_km
+                            })
                                 
                     except (json.JSONDecodeError, ValueError, IndexError) as e:
                         continue
             
-            if nearest_station:
-                # Get datasets for this station
-                dataset_url = f"{self.tu_berlin_base_url}/dpbase/dataset/"
-                site_id = nearest_station.get('site', {}).get('id')
+            # Sort by distance and get nearest 5 stations
+            station_distances.sort(key=lambda x: x['distance_km'])
+            nearest_stations = station_distances[:5]
+            
+            if nearest_stations:
+                # Return all 5 nearest stations for selection
+                stations_list = []
                 
-                if site_id:
-                    # Query for temperature data
-                    temp_params = {
-                        'geolocation__site__id': site_id,
-                        'variable__standard_name__icontains': 'temperature',
-                        'limit': 10
-                    }
+                for station_data in nearest_stations:
+                    station = station_data['station']
+                    distance_km = station_data['distance_km']
                     
-                    temp_response = requests.get(dataset_url, params=temp_params, headers=headers, timeout=10)
+                    # Get datasets for this station
+                    dataset_url = f"{self.tu_berlin_base_url}/dpbase/dataset/"
+                    site_id = station.get('site', {}).get('id')
                     
-                    weather_data = {
-                        'station_info': nearest_station,
-                        'distance_km': min_distance,  # Already in km from Haversine calculation
-                        'temperature_datasets': temp_response.json() if temp_response.status_code == 200 else None,
+                    station_info = {
+                        'station_info': station,
+                        'distance_km': distance_km,
                         'api_source': 'tu_berlin',
                         'data_quality': 'academic_grade'
                     }
                     
-                    return weather_data
-                else:
-                    return {'error': 'Station site ID not available', 'fallback_recommended': 'openweathermap'}
+                    if site_id:
+                        # Query for temperature data
+                        temp_params = {
+                            'geolocation__site__id': site_id,
+                            'variable__standard_name__icontains': 'temperature',
+                            'limit': 10
+                        }
+                        
+                        temp_response = requests.get(dataset_url, params=temp_params, headers=headers, timeout=10)
+                        station_info['temperature_datasets'] = temp_response.json() if temp_response.status_code == 200 else None
+                    
+                    stations_list.append(station_info)
+                
+                # Return the closest station as primary, but include all 5 for selection
+                return {
+                    'station_info': nearest_stations[0]['station'],
+                    'distance_km': nearest_stations[0]['distance_km'],
+                    'temperature_datasets': stations_list[0].get('temperature_datasets'),
+                    'api_source': 'tu_berlin',
+                    'data_quality': 'academic_grade',
+                    'all_nearby_stations': stations_list  # Include all 5 stations
+                }
             else:
                 return {'error': 'No nearby stations found', 'fallback_recommended': 'openweathermap'}
                 
