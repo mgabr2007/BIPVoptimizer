@@ -198,15 +198,26 @@ class WeatherAPIManager:
             # Convert target coordinates to WGS84 (lat/lon) for distance calculation
             target_lat, target_lon = lat, lon
             
+            # Track unique stations by site ID to avoid duplicates
+            processed_stations = set()
+            
             for station in stations_data:
                 if not isinstance(station, dict):
+                    continue
+                
+                # Get station identifier to ensure uniqueness
+                site_id = station.get('site', {}).get('id')
+                station_name = station.get('site', {}).get('name', 'Unknown')
+                
+                # Skip if we've already processed this station
+                if site_id in processed_stations:
                     continue
                     
                 # The coordinates are in EPSG:25833 format as a string like "[[x, y]]"
                 coord_str = station.get('coordinates', '')
                 epsg = station.get('epsg', 25833)
                 
-                if coord_str and epsg == 25833:
+                if coord_str and epsg == 25833 and site_id:
                     try:
                         # Parse the coordinate string "[[x, y]]" 
                         import json
@@ -223,8 +234,13 @@ class WeatherAPIManager:
                             
                             station_distances.append({
                                 'station': station,
-                                'distance_km': distance_km
+                                'distance_km': distance_km,
+                                'site_id': site_id,
+                                'station_name': station_name
                             })
+                            
+                            # Mark this station as processed
+                            processed_stations.add(site_id)
                                 
                     except (json.JSONDecodeError, ValueError, IndexError) as e:
                         continue

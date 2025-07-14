@@ -379,6 +379,11 @@ def render_project_setup():
                     # Update coordinates immediately
                     st.session_state.map_coordinates = new_coords
                     
+                    # Clear any existing station data when location changes
+                    st.session_state.pop('dynamic_stations', None)
+                    st.session_state.pop('selected_weather_station', None)
+                    st.session_state.pop('weather_validated', None)
+                    
                     # Get location name with error handling
                     try:
                         new_location = get_location_from_coordinates(new_coords['lat'], new_coords['lng'])
@@ -607,13 +612,15 @@ def render_project_setup():
             station_options = []
             station_details = {}
             
-            for station_data in dynamic_stations:
+            for i, station_data in enumerate(dynamic_stations):
                 station_info = station_data.get('station_info', {})
                 site_info = station_info.get('site', {})
                 station_name = site_info.get('name', 'Unknown Station')
+                site_id = site_info.get('id', 'no_id')
                 distance = station_data.get('distance_km', 0)
                 
-                display_name = f"{station_name} - {distance:.1f} km"
+                # Include site ID to ensure uniqueness is visible
+                display_name = f"{station_name} (ID: {site_id}) - {distance:.1f} km"
                 station_options.append(display_name)
                 
                 # Create station details in format similar to WMO stations
