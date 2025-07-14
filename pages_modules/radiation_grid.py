@@ -1260,13 +1260,17 @@ def render_radiation_grid():
                     if current_element:
                         current_element_text.text(f"Current: {current_element}")
                     
-                    # Update log display
+                    # Update log display with session-unique key
+                    if 'log_display_key' not in st.session_state:
+                        import time
+                        st.session_state.log_display_key = f"log_display_db_{int(time.time())}"
+                    
                     log_display = "\n".join(st.session_state.analysis_log_messages)
                     log_placeholder.text_area(
                         "Processing Log (Last 20 entries):", 
                         value=log_display, 
                         height=200, 
-                        key=f"log_display_{len(st.session_state.analysis_log_messages)}"
+                        key=st.session_state.log_display_key
                     )
                 
                 # Clear previous log
