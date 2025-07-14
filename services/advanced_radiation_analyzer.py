@@ -184,9 +184,16 @@ class AdvancedRadiationAnalyzer:
             window_azimuth = float(window_element.get('azimuth', 180))
             window_level = window_element.get('building_level', 'Level 1')
             
-            # Get solar position
-            sun_elevation = solar_position.get('elevation', 0)
-            sun_azimuth = solar_position.get('azimuth', 180)
+            # Get solar position - handle both dict and tuple formats
+            if isinstance(solar_position, dict):
+                sun_elevation = solar_position.get('elevation', 0)
+                sun_azimuth = solar_position.get('azimuth', 180)
+            elif isinstance(solar_position, (list, tuple)) and len(solar_position) >= 2:
+                sun_elevation = solar_position[0]
+                sun_azimuth = solar_position[1]
+            else:
+                sun_elevation = 45
+                sun_azimuth = 180
             
             # Skip if sun below horizon
             if sun_elevation <= 0:
@@ -269,7 +276,8 @@ class AdvancedRadiationAnalyzer:
                     return [dict(row) for row in walls]
                     
         except Exception as e:
-            st.info(f"Walls data not available for shading calculations: {str(e)}")
+            # Return empty list if no walls data available
+            print(f"Walls data not available for shading calculations: {str(e)}")
             return []
         finally:
             conn.close()
@@ -284,7 +292,12 @@ class AdvancedRadiationAnalyzer:
             return False
         
         # Get walls data for shading
-        walls_data = self.get_walls_data() if include_shading else []
+        try:
+            walls_data = self.get_walls_data() if include_shading else []
+        except Exception as e:
+            if progress_callback:
+                progress_callback(f"Walls data not available for shading calculations: {str(e)}", 0, 0)
+            walls_data = []
         
         # Configure precision settings
         precision_settings = {
@@ -452,12 +465,17 @@ class AdvancedRadiationAnalyzer:
                 # Clear existing radiation data
                 cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (self.project_id,))
                 
-                # Insert new radiation data
+                # Insert new radiation data with duplicate handling
                 for result in radiation_results:
                     cursor.execute("""
                         INSERT INTO element_radiation 
                         (project_id, element_id, annual_radiation, irradiance, orientation_multiplier)
                         VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (project_id, element_id) 
+                        DO UPDATE SET 
+                            annual_radiation = EXCLUDED.annual_radiation,
+                            irradiance = EXCLUDED.irradiance,
+                            orientation_multiplier = EXCLUDED.orientation_multiplier
                     """, (
                         self.project_id,
                         result['element_id'],
@@ -466,7 +484,7 @@ class AdvancedRadiationAnalyzer:
                         result['orientation_factor']
                     ))
                 
-                # Save analysis summary
+                # Save analysis summary with duplicate handling
                 cursor.execute("DELETE FROM radiation_analysis WHERE project_id = %s", (self.project_id,))
                 
                 avg_radiation = sum(r['annual_radiation'] for r in radiation_results) / len(radiation_results)
@@ -476,6 +494,13 @@ class AdvancedRadiationAnalyzer:
                     INSERT INTO radiation_analysis 
                     (project_id, avg_irradiance, peak_irradiance, shading_factor, grid_points, analysis_complete)
                     VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (project_id) 
+                    DO UPDATE SET 
+                        avg_irradiance = EXCLUDED.avg_irradiance,
+                        peak_irradiance = EXCLUDED.peak_irradiance,
+                        shading_factor = EXCLUDED.shading_factor,
+                        grid_points = EXCLUDED.grid_points,
+                        analysis_complete = EXCLUDED.analysis_complete
                 """, (
                     self.project_id,
                     avg_radiation,

@@ -166,11 +166,10 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
         else:
             st.error("❌ Analysis failed. Please check the logs.")
         
-        # Clear progress after completion
-        progress_container.empty()
-        
     except Exception as e:
         st.error(f"❌ Database analysis error: {str(e)}")
+        import traceback
+        st.error(f"Detailed error: {traceback.format_exc()}")
 
 def reset_analysis(project_id):
     """Reset radiation analysis for the project."""
