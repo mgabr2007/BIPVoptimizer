@@ -1238,7 +1238,8 @@ def render_radiation_grid():
                 
                 def update_progress_log(message, progress=None, current_element=None):
                     """Update the live progress log"""
-                    timestamp = datetime.now().strftime("%H:%M:%S")
+                    from datetime import datetime as dt
+                    timestamp = dt.now().strftime("%H:%M:%S")
                     log_entry = f"{timestamp} - {message}"
                     
                     # Add to session state log
