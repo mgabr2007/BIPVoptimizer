@@ -113,36 +113,29 @@ def render_radiation_grid():
             except Exception as e:
                 st.error(f"Error processing walls CSV: {str(e)}")
         
-        # Manual shading factors as fallback
-        st.subheader("🌳 Manual Shading Factors (Fallback)")
-        st.markdown("**Use these manual factors if wall data is not available:**")
+        # Shading calculation status
+        st.subheader("🔍 Shading Calculation Status")
         
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            morning_shading = st.slider(
-                "Morning Shading Factor",
-                0.0, 1.0, 0.85,
-                help="Reduction factor for morning solar radiation (0.85 = 15% reduction)"
-            )
-        with col2:
-            midday_shading = st.slider(
-                "Midday Shading Factor", 
-                0.0, 1.0, 0.90,
-                help="Reduction factor for midday solar radiation (0.90 = 10% reduction)"
-            )
-        with col3:
-            evening_shading = st.slider(
-                "Evening Shading Factor",
-                0.0, 1.0, 0.85,
-                help="Reduction factor for evening solar radiation (0.85 = 15% reduction)"
-            )
+        # Check if wall data is available
+        conn = db_manager.get_connection()
+        walls_available = False
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM building_walls WHERE project_id = %s
+                    """, (project_id,))
+                    wall_count = cursor.fetchone()[0]
+                    walls_available = wall_count > 0
+            except:
+                walls_available = False
+            finally:
+                conn.close()
         
-        # Store shading factors in session state
-        st.session_state.manual_shading_factors = {
-            'morning': morning_shading,
-            'midday': midday_shading,
-            'evening': evening_shading
-        }
+        if walls_available:
+            st.success(f"✅ Wall data available - precise geometric shading calculations will be used")
+        else:
+            st.warning("⚠️ No wall data uploaded - shading calculations will be disabled. Upload wall data above for accurate analysis.")
     
     # Show calculation details based on precision
     calculation_details = {

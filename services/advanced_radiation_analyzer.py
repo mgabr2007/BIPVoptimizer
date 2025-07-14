@@ -289,13 +289,16 @@ class AdvancedRadiationAnalyzer:
         if not suitable_elements:
             return False
         
-        # Get walls data for shading
-        try:
-            walls_data = self.get_walls_data() if include_shading else []
-        except Exception as e:
-            if progress_callback:
-                progress_callback(f"Walls data not available for shading calculations: {str(e)}", 0, 0)
-            walls_data = []
+        # Get walls data for shading - only use authentic data
+        walls_data = []
+        if include_shading:
+            try:
+                walls_data = self.get_walls_data()
+                if not walls_data and progress_callback:
+                    progress_callback("No wall data available - shading calculations disabled", 0, 0)
+            except Exception as e:
+                if progress_callback:
+                    progress_callback(f"Wall data retrieval failed: {str(e)}", 0, 0)
         
         # Configure precision settings
         precision_settings = {
