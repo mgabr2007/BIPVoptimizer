@@ -31,22 +31,23 @@ def get_orientation_from_azimuth(azimuth):
     except (ValueError, TypeError):
         return "Unknown"
 
-# Simplified BIPV Glass Types
+# BIPV Glass Types with Heliatek HeliaSol Preset
 BIPV_GLASS_TYPES = {
-    "Standard": {
+    "Heliatek HeliaSol 436-2000": {
+        "efficiency": 0.089,  # 8.9% efficiency
+        "transparency": 0.0,   # 0% transparency (opaque)
+        "cost_per_m2": 183,   # €183/m² calculated from €160 per 0.872 m²
+        "power_density": 85,  # 85 W/m² as specified
+        "description": "Ultra-light OPV film by Heliatek",
+        "contact": "Treidlerstraße 3, 01139 Dresden • +49 351 2130 3430"
+    },
+    "Custom": {
         "efficiency": 0.16,
         "transparency": 0.20,
-        "cost_per_m2": 300
-    },
-    "High-Efficiency": {
-        "efficiency": 0.19,
-        "transparency": 0.15,
-        "cost_per_m2": 400
-    },
-    "Aesthetic": {
-        "efficiency": 0.14,
-        "transparency": 0.25,
-        "cost_per_m2": 350
+        "cost_per_m2": 300,
+        "power_density": 160,
+        "description": "Custom BIPV glass specification",
+        "contact": "User-defined parameters"
     }
 }
 
@@ -315,6 +316,12 @@ def render_pv_specification():
     # Get base specifications
     base_specs = BIPV_GLASS_TYPES[selected_panel_type]
     
+    # Display selected panel information
+    if selected_panel_type != "Custom":
+        st.info(f"**{selected_panel_type}**: {base_specs['description']}")
+        if 'contact' in base_specs:
+            st.caption(f"📞 Contact: {base_specs['contact']}")
+    
     # Simplified customization - only the most important parameters
     st.subheader("🔧 Customize Key Specifications")
     
@@ -333,11 +340,11 @@ def render_pv_specification():
     with col2:
         transparency = st.slider(
             "Transparency (%)",
-            min_value=10.0, max_value=40.0,
+            min_value=0.0, max_value=40.0,
             value=float(base_specs['transparency']*100),
             step=5.0,
             key="transparency",
-            help="Light transmission through BIPV glass"
+            help="Light transmission through BIPV glass (0% = opaque, 10-40% = semi-transparent)"
         ) / 100
         
     with col3:
@@ -351,9 +358,13 @@ def render_pv_specification():
         )
     
     # Calculate derived specifications - BIPV glass power density
-    # Standard solar irradiance is 1000 W/m², so power density = efficiency * 1000
-    # But for BIPV glass, this is the peak power output under standard test conditions
-    power_density = panel_efficiency * 1000  # W/m² peak power (STC)
+    # Use preset power density if available, otherwise calculate from efficiency
+    if 'power_density' in base_specs and selected_panel_type != "Custom":
+        power_density = float(base_specs['power_density'])  # Use preset value
+    else:
+        # Calculate from efficiency for custom panels
+        power_density = panel_efficiency * 1000  # W/m² peak power (STC)
+    
     temperature_coefficient = -0.004  # Standard value
     
     # Create final panel specifications

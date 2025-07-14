@@ -1,0 +1,46 @@
+* **Heliatek — HeliaSol 436-2000 (ultra-light OPV film)**
+  • *Efficiency*: 8–9 % module (≈85 W m-²) ([Wikipedia][1])
+  • *Day-light transmission*: 0 % (standard); lab prototypes reach 50 % Tvis at \~6 % η ([Electrek][2])
+  • *Indicative price*: €160 per 2 m × 0.436 m strip ⇒ ≈€183 m-² ([IGEPA Austria][3])
+  • *Contact*: Treidlerstraße 3, 01139 Dresden • +49 351 2130 3430 • [sayhello@heliatek.com](mailto:sayhello@heliatek.com) ([Heliatek GmbH][4])
+
+* **SUNOVATION — eFORM clear (glass-glass Si BIPV)**
+  • *Efficiency*: project modules 255–287 Wp on 3 m² glass (≈10–12 %); smaller units exceed 200 Wp m-² (\~20 %) ([Back Contact Workshop][5])
+  • *Day-light transmission*: freely selectable 10–65 % Tvis by cell spacing/design ([Sunovation][6])
+  • *Indicative price*: project-specific; BIPV studies place coloured glass-glass at 200–625 € m-² (eFORM typically ≈ €400 m-²) ([MetSolar][7])
+  • *Contact*: Glanzstoffstraße 21, 63820 Elsenfeld • +49 6022 26573-0 • [info@sunovation.de](mailto:info@sunovation.de) ([Sunovation][6])
+
+* **Solarnova — SOL\_GT Translucent (custom glass-glass Si)**
+  • *Efficiency*: 217 Wp panel (1.656 × 0.990 m) ⇒ 13.2 % module η ([ENF Solar][8])
+  • *Day-light transmission*: catalog variants at 33 % and 11 % Tvis; other ratios on request ([ENF Solar][8])
+  • *Indicative price*: vendor quotes on request; typical EU glass-glass BIPV 120–250 € m-² ([MetSolar][7])
+  • *Contact*: Am Marienhof 6, 22880 Wedel • +49 4103 91208-0 • [info@solarnova.de](mailto:info@solarnova.de) ([Solarnova][9])
+
+* **Solarwatt — Panel Vision AM 4.5 Style (glass-glass TOPCon)**
+  • *Efficiency*: 420–435 Wp on 1.95 m² → 21.5–22.3 % η ([Solarwatt][10])
+  • *Day-light transmission*: ≈20 % via widened inter-cell gaps (Style version) ([Solarwatt][10])
+  • *Price*: €169 per panel ⇒ ≈€87 m-² ([Balkonvolt][11])
+  • *Contact*: Maria-Reiche-Str. 2a, 01109 Dresden • +49 351 8895-0 • [info@solarwatt.com](mailto:info@solarwatt.com) ([Solarwatt][12])
+
+* **AVANCIS — SKALA 105-110 W (CIGS thin-film façade panel)**
+  • *Efficiency*: 10.0–10.4 % module η (data-sheet) ([Home][13])
+  • *Day-light transmission*: 0 % (opaque); matt colour finishes available ([Home][13])
+  • *Price*: 6 294 Kč per 130 W panel (1.05 m²) ⇒ ≈€244 m-² ([nanosun s.r.o.][14])
+  • *Contact*: Solarstraße 3, 04860 Torgau • +49 3421 7388-0 • [sales@avancis.de](mailto:sales@avancis.de) ([Home][15])
+
+[1]: https://de.wikipedia.org/wiki/Heliatek?utm_source=chatgpt.com "Heliatek"
+[2]: https://electrek.co/2017/11/17/worlds-largest-building-integrated-organic-solar-power-installation-completed/?utm_source=chatgpt.com "World's largest building integrated 'organic' solar power installation ..."
+[3]: https://igepa.at/soht-modul-g-50wp.html?utm_source=chatgpt.com "HeliaSol® Modul 50 Watt - IGEPA Austria"
+[4]: https://www.heliatek.com/en/imprint/?utm_source=chatgpt.com "Imprint - Heliatek GmbH"
+[5]: https://www.backcontact-workshop.com/pdf/2022-2/20_Sunovation.pdf?utm_source=chatgpt.com "[PDF] Erban, C. - Module design based on BC PV cells"
+[6]: https://sunovation.de/en/products/eFORM_clear?utm_source=chatgpt.com "SUNOVATION eFORM clear"
+[7]: https://metsolar.eu/blog/how-much-does-really-bipv-cost/?utm_source=chatgpt.com "BIPV Cost Analysis 2024 | Solar Facade ROI | Construction Guide"
+[8]: https://www.enfsolar.com/pv/panel-datasheet/crystalline/30699 "            Solarnova | SOL_GT Translucent | Solar Panel Datasheet | ENF Panel Directory
+    "
+[9]: https://www.solarnova.de/en/en_downloads.html?file=files%2FInhalte%2FDownload%2FGewaehrleistungGarantie%2FSOL_GT_warranties_guarantees_en.pdf&utm_source=chatgpt.com "[PDF] SOLARNOVA STANDARD PHOTOVOLTAIC MODULES"
+[10]: https://www.solarwatt.com/canto/download/u3e43g3ar51th82b317kfol16n?utm_source=chatgpt.com "[PDF] Data sheet SOLARWATT Panel vision AM 4.5 en v4.00.0001"
+[11]: https://balkonvolt.de/en/products/solarwatt-panel-vision-am-4-5-420-wp-style?srsltid=AfmBOop9-NVZCDyaPLcqWkP61RohaolKt8Vws40m-Ebw-EfBLwUNqC1B&utm_source=chatgpt.com "SOLARWATT Panel vision AM 4.5 420 Wp Style Glass-Glass"
+[12]: https://www.solarwatt.com/imprintpage?utm_source=chatgpt.com "Imprint - Solarwatt"
+[13]: https://www.avancis.de/_Resources/Persistent/2/8/2/a/282aad04a1dc1bda5aa2b90386640f650f0bba19/FE_PD_DATASHEET_SKALA_A2BB_V4.9_EN.pdf?utm_source=chatgpt.com "[PDF] SKALA Solid - AVANCIS"
+[14]: https://nanosun-shop.com/products/avancis-skala-130w-b?srsltid=AfmBOooGXmJpAB1VRS1vBHWn_eFkCsP_nHZdJndRrP1XMR3D5S8rMAIW "Avancis Skala 130W Black / Grey / Green Solar panel – nanosun s.r.o."
+[15]: https://www.avancis.de/en/imprint?utm_source=chatgpt.com "Imprint - AVANCIS - Solar facades made in Germany"
