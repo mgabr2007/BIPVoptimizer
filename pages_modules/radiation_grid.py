@@ -50,9 +50,9 @@ def render_radiation_grid():
         )
     
     # Wall data upload for precise geometric shading
-    st.subheader("🏗️ Building Walls Data Upload (Optional)")
+    st.subheader("🏗️ Building Walls Data Upload (Required)")
     
-    with st.expander("📤 Upload Wall Data for Precise Self-Shading Calculations", expanded=False):
+    with st.expander("📤 Upload Wall Data for Precise Self-Shading Calculations", expanded=True):
         st.markdown("""
         **Upload building walls CSV data to enable precise geometric self-shading calculations based on actual BIM wall data.**
         
@@ -135,7 +135,7 @@ def render_radiation_grid():
         if walls_available:
             st.success(f"✅ Wall data available - precise geometric shading calculations will be used")
         else:
-            st.warning("⚠️ No wall data uploaded - shading calculations will be disabled. Upload wall data above for accurate analysis.")
+            st.error("❌ Wall data is required for radiation analysis. Upload wall data above to proceed with calculations.")
     
     # Show calculation details based on precision
     calculation_details = {
@@ -154,11 +154,29 @@ def render_radiation_grid():
         help="Apply physics-based orientation corrections for realistic radiation values"
     )
     
-    # Analysis interface
+    # Analysis interface - only allow if wall data is available
+    conn = db_manager.get_connection()
+    walls_available = False
+    if conn:
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM building_walls WHERE project_id = %s
+                """, (project_id,))
+                wall_count = cursor.fetchone()[0]
+                walls_available = wall_count > 0
+        except:
+            walls_available = False
+        finally:
+            conn.close()
+    
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis"):
-            run_advanced_analysis(project_id, precision, include_shading, apply_corrections)
+        if walls_available:
+            if st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis"):
+                run_advanced_analysis(project_id, precision, include_shading, apply_corrections)
+        else:
+            st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis", disabled=True, help="Upload wall data first to enable analysis")
     
     with col2:
         if st.button("🔄 Reset Analysis", key="reset_analysis"):
@@ -358,3 +376,57 @@ def display_existing_results(project_id):
         
     except Exception as e:
         st.error(f"❌ Error displaying results: {str(e)}")
+
+def save_walls_data_to_database(project_id, walls_df):
+    """Save wall data to database for shading calculations."""
+    try:
+        conn = db_manager.get_connection()
+        if not conn:
+            return False
+            
+        with conn.cursor() as cursor:
+            # Create walls table if it doesn't exist
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS building_walls (
+                    id SERIAL PRIMARY KEY,
+                    project_id INTEGER REFERENCES projects(id),
+                    element_id VARCHAR(100),
+                    wall_type VARCHAR(100),
+                    orientation VARCHAR(20),
+                    azimuth DECIMAL(10,2),
+                    height DECIMAL(10,2),
+                    level VARCHAR(50),
+                    area DECIMAL(10,2),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Clear existing wall data for this project
+            cursor.execute("DELETE FROM building_walls WHERE project_id = %s", (project_id,))
+            
+            # Insert new wall data without ON CONFLICT clause
+            for idx, row in walls_df.iterrows():
+                cursor.execute("""
+                    INSERT INTO building_walls 
+                    (project_id, element_id, wall_type, orientation, azimuth, height, level, area)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    project_id,
+                    row.get('ElementId', row.get('element_id', f'wall_{idx}')),
+                    row.get('WallType', row.get('wall_type', 'Generic Wall')),
+                    row.get('Orientation', row.get('orientation', 'Unknown')),
+                    float(row.get('Azimuth', row.get('azimuth', 0))),
+                    float(row.get('Height', row.get('height', 3.0))),
+                    row.get('Level', row.get('level', 'Level 1')),
+                    float(row.get('Area', row.get('area', 10.0)))
+                ))
+            
+            conn.commit()
+            return True
+            
+    except Exception as e:
+        st.error(f"Error saving wall data: {str(e)}")
+        return False
+    finally:
+        if conn:
+            conn.close()

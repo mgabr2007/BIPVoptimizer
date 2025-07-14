@@ -466,17 +466,12 @@ class AdvancedRadiationAnalyzer:
                 # Clear existing radiation data
                 cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (self.project_id,))
                 
-                # Insert new radiation data with duplicate handling
+                # Insert new radiation data without ON CONFLICT (cleared above)
                 for result in radiation_results:
                     cursor.execute("""
                         INSERT INTO element_radiation 
                         (project_id, element_id, annual_radiation, irradiance, orientation_multiplier)
                         VALUES (%s, %s, %s, %s, %s)
-                        ON CONFLICT (project_id, element_id) 
-                        DO UPDATE SET 
-                            annual_radiation = EXCLUDED.annual_radiation,
-                            irradiance = EXCLUDED.irradiance,
-                            orientation_multiplier = EXCLUDED.orientation_multiplier
                     """, (
                         self.project_id,
                         result['element_id'],
@@ -495,13 +490,6 @@ class AdvancedRadiationAnalyzer:
                     INSERT INTO radiation_analysis 
                     (project_id, avg_irradiance, peak_irradiance, shading_factor, grid_points, analysis_complete)
                     VALUES (%s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (project_id) 
-                    DO UPDATE SET 
-                        avg_irradiance = EXCLUDED.avg_irradiance,
-                        peak_irradiance = EXCLUDED.peak_irradiance,
-                        shading_factor = EXCLUDED.shading_factor,
-                        grid_points = EXCLUDED.grid_points,
-                        analysis_complete = EXCLUDED.analysis_complete
                 """, (
                     self.project_id,
                     avg_radiation,
