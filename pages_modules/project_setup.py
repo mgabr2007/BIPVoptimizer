@@ -240,10 +240,24 @@ def render_project_setup():
             )
         
         # Update coordinates and location name from manual input
-        if manual_lat != st.session_state.map_coordinates['lat'] or manual_lon != st.session_state.map_coordinates['lng']:
+        coord_changed = (manual_lat != st.session_state.map_coordinates['lat'] or 
+                        manual_lon != st.session_state.map_coordinates['lng'])
+        
+        if coord_changed:
             st.session_state.map_coordinates = {'lat': manual_lat, 'lng': manual_lon}
+            
             # Update location name based on new coordinates
-            st.session_state.location_name = get_location_from_coordinates(manual_lat, manual_lon)
+            try:
+                new_location = get_location_from_coordinates(manual_lat, manual_lon)
+                if new_location and new_location != "Unknown Location":
+                    st.session_state.location_name = new_location
+                else:
+                    st.session_state.location_name = f"Location at {manual_lat:.4f}°, {manual_lon:.4f}°"
+            except Exception as e:
+                st.session_state.location_name = f"Location at {manual_lat:.4f}°, {manual_lon:.4f}°"
+            
+            # Force rerun to update the map display with new marker
+            st.rerun()
     
     # Find nearby weather stations with error handling
     try:
@@ -323,8 +337,8 @@ def render_project_setup():
             with st.container():
                 st.info("📍 Click on the map to select your project location")
                 
-                # Create a stable key based on coordinates to prevent unnecessary re-renders
-                coord_key = f"{st.session_state.map_coordinates['lat']:.3f}_{st.session_state.map_coordinates['lng']:.3f}"
+                # Create a stable key that updates when coordinates change
+                coord_key = f"{st.session_state.map_coordinates['lat']:.4f}_{st.session_state.map_coordinates['lng']:.4f}"
                 map_key = f"location_map_{coord_key}"
                 
                 map_data = st_folium(
@@ -341,7 +355,7 @@ def render_project_setup():
             st.error(f"Error displaying map: {str(e)}")
             st.info("Please use Manual Coordinates option below")
         
-        # Only process actual clicks, not pan/zoom interactions
+        # Process map clicks for coordinate updates
         if (map_data and 
             map_data.get('last_clicked') is not None and
             not st.session_state.get('map_processing', False)):
@@ -356,13 +370,13 @@ def render_project_setup():
             lat_diff = abs(new_coords['lat'] - current_lat)
             lon_diff = abs(new_coords['lng'] - current_lon)
             
-            # Only process significant coordinate changes that represent intentional clicks
-            if lat_diff > 0.005 or lon_diff > 0.005:  # Balanced threshold to prevent pan interference
+            # Process clicks with reasonable threshold to avoid pan interference
+            if lat_diff > 0.003 or lon_diff > 0.003:  # Smaller threshold for better responsiveness
                 # Set processing flag to prevent concurrent updates
                 st.session_state.map_processing = True
                 
                 try:
-                    # Update coordinates and location name
+                    # Update coordinates immediately
                     st.session_state.map_coordinates = new_coords
                     
                     # Get location name with error handling
@@ -370,14 +384,16 @@ def render_project_setup():
                         new_location = get_location_from_coordinates(new_coords['lat'], new_coords['lng'])
                         if new_location and new_location != "Unknown Location":
                             st.session_state.location_name = new_location
+                        else:
+                            st.session_state.location_name = f"Location at {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°"
                     except Exception as e:
-                        st.warning(f"Could not update location name: {str(e)}")
+                        st.session_state.location_name = f"Location at {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°"
                     
                     # Clear processing flag
                     st.session_state.map_processing = False
                     
-                    # Provide immediate user feedback without forcing rerun
-                    st.success(f"📍 Location updated: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
+                    # Force rerun to update the map with new marker position
+                    st.rerun()
                     
                 except Exception as e:
                     st.session_state.map_processing = False
