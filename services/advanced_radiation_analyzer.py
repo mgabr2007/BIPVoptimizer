@@ -380,10 +380,26 @@ class AdvancedRadiationAnalyzer:
                 # Calculate solar position
                 solar_pos = self.calculate_solar_position_simple(latitude, longitude, day, hour)
                 
-                # Get irradiance components
-                ghi = float(matching_data.get('ghi', 0) or 0)
-                dni = float(matching_data.get('dni', 0) or 0)
-                dhi = float(matching_data.get('dhi', 0) or 0)
+                # Get irradiance components with multiple field name support
+                ghi = 0
+                dni = 0
+                dhi = 0
+                
+                # Try multiple field names for irradiance data
+                for ghi_field in ['ghi', 'GHI', 'Global_Horizontal_Irradiance', 'ghi_wm2']:
+                    if ghi_field in matching_data and matching_data[ghi_field]:
+                        ghi = float(matching_data[ghi_field])
+                        break
+                
+                for dni_field in ['dni', 'DNI', 'Direct_Normal_Irradiance', 'dni_wm2']:
+                    if dni_field in matching_data and matching_data[dni_field]:
+                        dni = float(matching_data[dni_field])
+                        break
+                        
+                for dhi_field in ['dhi', 'DHI', 'Diffuse_Horizontal_Irradiance', 'dhi_wm2']:
+                    if dhi_field in matching_data and matching_data[dhi_field]:
+                        dhi = float(matching_data[dhi_field])
+                        break
                 
                 if ghi <= 0:
                     continue  # Skip night hours
@@ -420,15 +436,28 @@ class AdvancedRadiationAnalyzer:
                 if 0 <= month < 12:
                     monthly_totals[month] += surface_irradiance
         
-        # Scale to annual values
-        annual_irradiation = (total_irradiance * scaling_factor) / 1000  # Convert to kWh/m²/year
+        # Scale to annual values - ensure realistic scaling
+        if scaling_factor > 0:
+            annual_irradiation = (total_irradiance * scaling_factor) / 1000  # Convert to kWh/m²/year
+        else:
+            annual_irradiation = 0
         
-        # Debug: Log first few elements to check calculation
-        if element_id.endswith(('1', '2', '3')) or total_irradiance <= 10:
-            st.write(f"Debug {element_id}: Total irradiance: {total_irradiance:.2f} W/m², Annual: {annual_irradiation:.2f} kWh/m²/year")
-            st.write(f"Debug {element_id}: Orientation: {orientation}, Scaling: {scaling_factor:.2f}")
+        # Debug: Log calculation details for troubleshooting
+        if element_id.endswith(('1', '2', '3')) or annual_irradiation < 100:
+            st.write(f"🔍 Debug {element_id}: TMY samples: {len(sample_hours)}, Days: {len(days_sample)}")
+            st.write(f"🔍 Debug {element_id}: Total irradiance: {total_irradiance:.2f} W/m², Annual: {annual_irradiation:.2f} kWh/m²/year")
+            st.write(f"🔍 Debug {element_id}: Orientation: {orientation}, Azimuth: {azimuth}°, Scaling: {scaling_factor:.2f}")
+            
+            # Check TMY data structure
+            sample_tmy = tmy_data[0] if tmy_data else {}
+            st.write(f"🔍 Debug {element_id}: TMY fields available: {list(sample_tmy.keys())}")
+            
+            if total_irradiance > 0:
+                st.write(f"✅ Debug {element_id}: Sample calculation successful")
+            else:
+                st.write(f"❌ Debug {element_id}: No valid irradiance calculated - check TMY data structure")
         
-        # Return actual calculated values without any fallback minimums
+        # Return actual calculated values
         
         return {
             'element_id': element_id,

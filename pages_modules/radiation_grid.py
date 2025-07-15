@@ -203,11 +203,33 @@ def check_dependencies():
     
     return True
 
+def clear_radiation_data(project_id):
+    """Clear previous radiation analysis data for the project"""
+    try:
+        from database_manager import BIPVDatabaseManager
+        db_manager = BIPVDatabaseManager()
+        conn = db_manager.get_connection()
+        
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
+                cursor.execute("DELETE FROM radiation_analysis WHERE project_id = %s", (project_id,))
+                conn.commit()
+            conn.close()
+            return True
+    except Exception as e:
+        st.warning(f"Error clearing radiation data: {str(e)}")
+        return False
+
 def run_advanced_analysis(project_id, precision, include_shading, apply_corrections):
     """Run advanced database-driven radiation analysis with sophisticated calculations."""
     
     try:
         st.subheader("🔄 Advanced Radiation Analysis")
+        
+        # Clear previous radiation calculations for this project
+        st.info("🗑️ Clearing previous radiation data...")
+        clear_radiation_data(project_id)
         
         # Initialize advanced analyzer
         analyzer = AdvancedRadiationAnalyzer(project_id)
@@ -329,7 +351,7 @@ def display_existing_results(project_id):
             max_radiation = max(r['annual_radiation'] for r in element_radiation)
             st.metric("Maximum Radiation", f"{max_radiation:.0f} kWh/m²/year")
         with col4:
-            min_radiation = min(r['annual_radiation'] for r in element_radiation)
+            min_radiation = min(r['annual_radiation'] for r in element_radiation) if element_radiation else 0
             st.metric("Minimum Radiation", f"{min_radiation:.0f} kWh/m²/year")
         
         # Radiation distribution chart
