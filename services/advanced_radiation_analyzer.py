@@ -388,21 +388,31 @@ class AdvancedRadiationAnalyzer:
                 dni = 0
                 dhi = 0
                 
-                # Try multiple field names for irradiance data
-                for ghi_field in ['ghi', 'GHI', 'Global_Horizontal_Irradiance', 'ghi_wm2']:
-                    if ghi_field in matching_data and matching_data[ghi_field]:
-                        ghi = float(matching_data[ghi_field])
-                        break
+                # Try multiple field names for irradiance data (including CSV format)
+                for ghi_field in ['ghi', 'GHI', 'Global_Horizontal_Irradiance', 'ghi_wm2', 'GHI_Wm2']:
+                    if ghi_field in matching_data and matching_data[ghi_field] is not None:
+                        try:
+                            ghi = float(matching_data[ghi_field])
+                            if ghi > 0:
+                                break
+                        except (ValueError, TypeError):
+                            continue
                 
-                for dni_field in ['dni', 'DNI', 'Direct_Normal_Irradiance', 'dni_wm2']:
-                    if dni_field in matching_data and matching_data[dni_field]:
-                        dni = float(matching_data[dni_field])
-                        break
+                for dni_field in ['dni', 'DNI', 'Direct_Normal_Irradiance', 'dni_wm2', 'DNI_Wm2']:
+                    if dni_field in matching_data and matching_data[dni_field] is not None:
+                        try:
+                            dni = float(matching_data[dni_field])
+                            break
+                        except (ValueError, TypeError):
+                            continue
                         
-                for dhi_field in ['dhi', 'DHI', 'Diffuse_Horizontal_Irradiance', 'dhi_wm2']:
-                    if dhi_field in matching_data and matching_data[dhi_field]:
-                        dhi = float(matching_data[dhi_field])
-                        break
+                for dhi_field in ['dhi', 'DHI', 'Diffuse_Horizontal_Irradiance', 'dhi_wm2', 'DHI_Wm2']:
+                    if dhi_field in matching_data and matching_data[dhi_field] is not None:
+                        try:
+                            dhi = float(matching_data[dhi_field])
+                            break
+                        except (ValueError, TypeError):
+                            continue
                 
                 if ghi <= 0:
                     continue  # Skip night hours
@@ -469,7 +479,15 @@ class AdvancedRadiationAnalyzer:
                         data_hour = hour_data.get('hour', 0)
                         if data_day == day and data_hour == hour:
                             matching_count += 1
-                            ghi_val = hour_data.get('ghi', 0)
+                            # Get GHI value using multiple field names
+                            ghi_val = 0
+                            for ghi_field in ['ghi', 'GHI', 'GHI_Wm2', 'ghi_wm2']:
+                                if ghi_field in hour_data and hour_data[ghi_field] is not None:
+                                    try:
+                                        ghi_val = float(hour_data[ghi_field])
+                                        break
+                                    except (ValueError, TypeError):
+                                        continue
                             sample_ghi_values.append(ghi_val)
                             break
             
@@ -477,10 +495,14 @@ class AdvancedRadiationAnalyzer:
             if sample_ghi_values:
                 st.write(f"🔍 Debug {element_id}: Sample GHI values: {sample_ghi_values[:5]} (avg: {sum(sample_ghi_values)/len(sample_ghi_values):.1f} W/m²)")
             
-            # Show sample TMY data structure
+            # Show sample TMY data structure and available fields
             if tmy_data:
                 sample_record = tmy_data[0]
-                st.write(f"🔍 Debug {element_id}: Sample TMY record - day: {sample_record.get('day', 'N/A')}, hour: {sample_record.get('hour', 'N/A')}, ghi: {sample_record.get('ghi', 'N/A')}")
+                st.write(f"🔍 Debug {element_id}: Sample TMY record structure:")
+                st.write(f"   - day: {sample_record.get('day', sample_record.get('day_of_year', 'N/A'))}")
+                st.write(f"   - hour: {sample_record.get('hour', 'N/A')}")
+                st.write(f"   - ghi: {sample_record.get('ghi', sample_record.get('GHI_Wm2', 'N/A'))}")
+                st.write(f"   - Available keys: {list(sample_record.keys())[:10]}...")  # Show first 10 keys
             
             if total_irradiance > 0:
                 st.write(f"✅ Debug {element_id}: Sample calculation successful")
