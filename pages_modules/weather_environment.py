@@ -204,6 +204,58 @@ def _get_climate_zone(latitude):
         return "Arctic"
 
 
+def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shading_reduction):
+    """Regenerate TMY data with environmental shading factors applied"""
+    try:
+        # Apply shading reduction to all irradiance values
+        adjusted_tmy_data = []
+        shading_factor = 1 - (shading_reduction / 100)
+        
+        for hour_data in original_tmy_data:
+            adjusted_hour = hour_data.copy()
+            # Apply shading reduction to all irradiance components
+            if 'ghi' in adjusted_hour:
+                adjusted_hour['ghi'] = float(adjusted_hour['ghi']) * shading_factor
+            if 'dni' in adjusted_hour:
+                adjusted_hour['dni'] = float(adjusted_hour['dni']) * shading_factor
+            if 'dhi' in adjusted_hour:
+                adjusted_hour['dhi'] = float(adjusted_hour['dhi']) * shading_factor
+            
+            adjusted_tmy_data.append(adjusted_hour)
+        
+        # Calculate new annual GHI
+        annual_ghi = sum(float(hour.get('ghi', 0)) for hour in adjusted_tmy_data)
+        
+        # Update weather analysis with adjusted data
+        weather_analysis = st.session_state.project_data.get('weather_analysis', {})
+        weather_analysis.update({
+            'tmy_data': adjusted_tmy_data,
+            'annual_ghi': annual_ghi,
+            'environmental_adjustment': shading_reduction,
+            'generation_timestamp': datetime.now().isoformat()
+        })
+        
+        # Save updated weather analysis
+        st.session_state.project_data['weather_analysis'] = weather_analysis
+        
+        # Save to database if project exists
+        project_data = st.session_state.get('project_data', {})
+        project_name = project_data.get('project_name')
+        if project_name:
+            try:
+                from database_manager import BIPVDatabaseManager
+                db_manager = BIPVDatabaseManager()
+                db_manager.save_weather_data(project_name, weather_analysis)
+            except Exception as db_error:
+                st.warning(f"Database save failed: {str(db_error)}")
+        
+        st.success(f"✅ TMY data regenerated with {shading_reduction}% environmental shading adjustment!")
+        st.success(f"📊 New annual GHI: {annual_ghi:,.0f} kWh/m²")
+        
+    except Exception as e:
+        st.error(f"❌ TMY regeneration failed: {str(e)}")
+
+
 def render_weather_environment():
     """Render the weather and environment analysis module."""
     
@@ -776,6 +828,24 @@ def render_weather_environment():
             'shading_reduction': shading_reduction,
             'adjusted_ghi': adjusted_ghi
         }
+        
+        # Show TMY regeneration button when environmental factors are selected
+        if trees_nearby or tall_buildings:
+            st.markdown("---")
+            st.subheader("🔄 Regenerate TMY with Environmental Adjustments")
+            st.info("""
+            **Environmental factors detected!** You can regenerate the TMY data to incorporate 
+            shading adjustments directly into the solar irradiance calculations. This will update 
+            all subsequent analysis steps with environmentally-adjusted values.
+            """)
+            
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                st.warning(f"Current shading impact: {shading_reduction}% reduction will be applied to TMY data")
+            with col2:
+                if st.button("🔄 Regenerate TMY Data", key="regenerate_tmy_env"):
+                    regenerate_tmy_with_environmental_factors(lat, lon, weather_analysis.get('tmy_data', []), shading_reduction)
+                    st.rerun()
         
         # Environmental Shading References Section
         with st.expander("📚 Environmental Shading References", expanded=False):
