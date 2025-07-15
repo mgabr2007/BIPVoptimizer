@@ -25,6 +25,21 @@ class AdvancedRadiationAnalyzer:
         
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # First check if elements exist for this project
+                cursor.execute("""
+                    SELECT COUNT(*) as total_count
+                    FROM building_elements 
+                    WHERE project_id = %s
+                """, (self.project_id,))
+                
+                result = cursor.fetchone()
+                total_count = result['total_count'] if result else 0
+                
+                if total_count == 0:
+                    st.warning(f"⚠️ No building elements found for project {self.project_id}")
+                    return []
+                
+                # Get window elements (suitable for BIPV)
                 cursor.execute("""
                     SELECT element_id, orientation, azimuth, glass_area, building_level, 
                            family, wall_element_id, level
@@ -34,10 +49,18 @@ class AdvancedRadiationAnalyzer:
                 """, (self.project_id,))
                 
                 elements = cursor.fetchall()
+                
+                if not elements:
+                    st.warning(f"⚠️ No window elements found for project {self.project_id} out of {total_count} total elements")
+                    return []
+                
+                st.info(f"📊 Found {len(elements):,} window elements out of {total_count:,} total elements")
                 return [dict(row) for row in elements]
                 
         except Exception as e:
             st.error(f"Error getting suitable elements: {str(e)}")
+            import traceback
+            st.error(f"Detailed error: {traceback.format_exc()}")
             return []
         finally:
             conn.close()

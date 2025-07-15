@@ -49,86 +49,9 @@ def render_radiation_grid():
             help="Calculate precise shadows from building walls"
         )
     
-    # Wall data upload for precise geometric shading
-    st.subheader("🏗️ Building Walls Data Upload (Required)")
-    
-    with st.expander("📤 Upload Wall Data for Precise Self-Shading Calculations", expanded=True):
-        st.markdown("""
-        **Upload building walls CSV data to enable precise geometric self-shading calculations based on actual BIM wall data.**
-        
-        **Required CSV Columns (exact format from BIM extraction):**
-        - `ElementId`: Unique wall identifier (e.g., 342220, 342221)
-        - `Wall Type`: Wall type/family name (e.g., "Generic - 200mm")
-        - `Level`: Building level (00, 01, 02, 03, etc.)
-        - `Length (m)`: Wall length in meters
-        - `Area (m²)`: Wall area in square meters  
-        - `Azimuth (°)`: Wall azimuth angle (0-360°)
-        
-        **How Wall Data Enables Self-Shading:**
-        - Windows are analyzed using precise geometric shading from nearby walls
-        - Wall height is calculated from area/length for accurate shadow projections
-        - Wall orientation determines shadow direction on adjacent windows
-        - Multi-story buildings use level-specific wall-window relationships
-        - Real BIM wall geometry provides authentic shadow analysis
-        
-        **Benefits of Wall Data Upload:**
-        - Precise multi-story building geometry analysis
-        - Accurate shadow calculations based on wall dimensions
-        - Height-dependent shading effects
-        - Orientation-based wall-window relationships
-        """)
-        
-        walls_csv = st.file_uploader(
-            "Upload Building Walls CSV",
-            type=['csv'],
-            key='walls_csv_upload',
-            help="CSV file extracted from BIM model containing wall geometry data"
-        )
-        
-        if walls_csv is not None:
-            try:
-                import pandas as pd
-                import io
-                
-                # Read CSV with progress
-                with st.spinner("Processing wall data..."):
-                    walls_df = pd.read_csv(walls_csv)
-                    
-                    # Display preview
-                    st.subheader("📋 Walls Data Preview")
-                    st.dataframe(walls_df.head(10))
-                    
-                    # Summary statistics
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("Total Walls", len(walls_df))
-                    with col2:
-                        if 'Azimuth (°)' in walls_df.columns:
-                            # Calculate orientations from azimuth
-                            orientations = walls_df['Azimuth (°)'].apply(get_orientation_from_azimuth).value_counts()
-                            st.metric("Orientations", len(orientations))
-                    with col3:
-                        if 'Level' in walls_df.columns:
-                            levels = walls_df['Level'].value_counts()
-                            st.metric("Building Levels", len(levels))
-                    with col4:
-                        if 'Area (m²)' in walls_df.columns:
-                            total_area = walls_df['Area (m²)'].sum()
-                            st.metric("Total Wall Area", f"{total_area:.0f} m²")
-                    
-                    # Save to database
-                    if st.button("💾 Save Wall Data", key="save_walls_data"):
-                        if save_walls_data_to_database(project_id, walls_df):
-                            st.success("✅ Wall data saved successfully!")
-                            # Force refresh to update button state
-                            st.rerun()
-                        else:
-                            st.error("❌ Failed to save wall data")
-                        
-            except Exception as e:
-                st.error(f"Error processing walls CSV: {str(e)}")
-        
-        # Note: Status will be checked comprehensively below
+    # Wall data info - already uploaded in Step 4
+    st.subheader("🏗️ Building Walls Data")
+    st.info("📋 **Wall data is automatically retrieved from Step 4 upload** - No additional upload needed here.")
     
     # Show calculation details based on precision
     calculation_details = {
@@ -385,12 +308,41 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
         # Initialize advanced analyzer
         analyzer = AdvancedRadiationAnalyzer(project_id)
         
-        # Get suitable elements
-        suitable_elements = analyzer.get_suitable_elements()
-        
-        if not suitable_elements:
-            st.error("❌ No suitable building elements found for radiation analysis")
-            return
+        # Get suitable elements with error handling
+        try:
+            suitable_elements = analyzer.get_suitable_elements()
+            
+            if not suitable_elements:
+                st.error("❌ No suitable building elements found for radiation analysis")
+                return
+                
+            st.success(f"✅ Found {len(suitable_elements):,} suitable elements for analysis")
+            
+        except Exception as e:
+            st.error(f"Error getting suitable elements: {e}")
+            # Try to get all elements if suitable filtering fails
+            try:
+                conn = db_manager.get_connection()
+                if conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT COUNT(*) FROM building_elements WHERE project_id = %s
+                        """, (project_id,))
+                        result = cursor.fetchone()
+                        element_count = result[0] if result else 0
+                        
+                        if element_count > 0:
+                            st.warning(f"Found {element_count:,} total elements, but filtering failed. Using all elements.")
+                        else:
+                            st.error("❌ No building elements found in database for this project")
+                            return
+                    conn.close()
+                else:
+                    st.error("❌ Database connection failed")
+                    return
+            except Exception as e2:
+                st.error(f"❌ Critical error checking elements: {e2}")
+                return
         
         # Get weather data
         weather_data = st.session_state.project_data.get('weather_analysis', {})
