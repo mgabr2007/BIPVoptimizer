@@ -57,13 +57,19 @@ def render_radiation_grid():
         **Upload building walls CSV data to enable precise geometric self-shading calculations based on actual BIM wall data.**
         
         **Required CSV Columns:**
-        - `ElementId`: Unique wall identifier
+        - `ElementId`: Unique wall identifier  
         - `WallType`: Wall type/family
         - `Orientation`: Wall orientation (North/South/East/West)
         - `Azimuth`: Wall azimuth angle (0-360°)
         - `Height`: Wall height in meters
         - `Level`: Building level (Level 1, Level 2, etc.)
         - `Area`: Wall area in m²
+        
+        **How Wall Data Enables Self-Shading:**
+        - Windows are analyzed using precise geometric shading from nearby walls
+        - Wall height and orientation determine shadow casting on adjacent windows
+        - Multi-story buildings benefit from level-specific shading calculations
+        - Real BIM wall geometry provides authentic shadow analysis
         
         **Benefits of Wall Data Upload:**
         - Precise multi-story building geometry analysis
@@ -172,9 +178,10 @@ def render_radiation_grid():
                 wall_count = cursor.fetchone()[0]
                 walls_available = wall_count > 0
                 
-                # Get total building elements count
+                # Get window elements count only
                 cursor.execute("""
-                    SELECT COUNT(*) FROM building_elements WHERE project_id = %s
+                    SELECT COUNT(*) FROM building_elements 
+                    WHERE project_id = %s AND (family ILIKE '%window%' OR family ILIKE '%glazing%' OR family ILIKE '%curtain%')
                 """, (project_id,))
                 total_building_elements = cursor.fetchone()[0]
         except:
@@ -182,9 +189,9 @@ def render_radiation_grid():
         finally:
             conn.close()
     
-    # Show element count information
+    # Show window element count information
     if total_building_elements > 0:
-        st.info(f"📊 Ready to analyze **{total_building_elements:,} building elements** from BIM data")
+        st.info(f"🪟 Ready to analyze **{total_building_elements:,} window elements** for BIPV installation")
     
     col1, col2 = st.columns(2)
     with col1:

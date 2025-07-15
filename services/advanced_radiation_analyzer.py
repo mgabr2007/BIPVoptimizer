@@ -18,7 +18,7 @@ class AdvancedRadiationAnalyzer:
         self.db_manager = db_manager
         
     def get_suitable_elements(self):
-        """Get ALL building elements directly from database for comprehensive analysis"""
+        """Get window elements only from database for BIPV analysis"""
         conn = self.db_manager.get_connection()
         if not conn:
             return []
@@ -29,7 +29,7 @@ class AdvancedRadiationAnalyzer:
                     SELECT element_id, orientation, azimuth, glass_area, building_level, 
                            family, wall_element_id, level
                     FROM building_elements 
-                    WHERE project_id = %s
+                    WHERE project_id = %s AND (family ILIKE '%window%' OR family ILIKE '%glazing%' OR family ILIKE '%curtain%')
                     ORDER BY orientation, azimuth
                 """, (self.project_id,))
                 
@@ -243,35 +243,16 @@ class AdvancedRadiationAnalyzer:
         
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                # Check if walls table exists (optional feature)
+                # Use dedicated building_walls table (uploaded CSV data)
                 cursor.execute("""
-                    SELECT table_name FROM information_schema.tables 
-                    WHERE table_schema = 'public' AND table_name = 'building_walls'
-                """)
+                    SELECT element_id as wall_id, orientation, azimuth, height, level, area, wall_type
+                    FROM building_walls 
+                    WHERE project_id = %s
+                    ORDER BY level, azimuth
+                """, (self.project_id,))
                 
-                if cursor.fetchone():
-                    # Use dedicated building_walls table if available
-                    cursor.execute("""
-                        SELECT element_id as wall_id, azimuth, height, level, area
-                        FROM building_walls 
-                        WHERE project_id = %s
-                    """, (self.project_id,))
-                    
-                    walls = cursor.fetchall()
-                    return [dict(row) for row in walls]
-                else:
-                    # Fallback to building_elements table
-                    cursor.execute("""
-                        SELECT element_id as wall_id, azimuth, 
-                               3.0 as height, 
-                               building_level as level, 
-                               glass_area as area
-                        FROM building_elements 
-                        WHERE project_id = %s AND element_type LIKE '%Wall%'
-                    """, (self.project_id,))
-                    
-                    walls = cursor.fetchall()
-                    return [dict(row) for row in walls]
+                walls = cursor.fetchall()
+                return [dict(row) for row in walls]
                     
         except Exception as e:
             # Return empty list if no walls data available
