@@ -255,18 +255,43 @@ def render_radiation_grid():
 def check_dependencies():
     """Check if required data is available for radiation analysis."""
     
-    # Check building elements
-    if 'building_elements' not in st.session_state:
-        st.error("⚠️ No building elements found. Please complete Step 4 (Facade Extraction) first.")
+    project_id = st.session_state.get('project_id')
+    if not project_id:
+        st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
         return False
     
-    # Check weather data
-    weather_data = st.session_state.project_data.get('weather_analysis', {})
+    # Check building elements in database
+    conn = db_manager.get_connection()
+    if conn:
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) FROM building_elements WHERE project_id = %s", (project_id,))
+                element_count = cursor.fetchone()[0]
+                
+                if element_count == 0:
+                    st.error("⚠️ No building elements found. Please complete Step 4 (Facade Extraction) first.")
+                    return False
+                else:
+                    st.success(f"✅ Found {element_count:,} building elements in database")
+                    
+        except Exception as e:
+            st.error(f"❌ Error checking building elements: {str(e)}")
+            return False
+        finally:
+            conn.close()
+    else:
+        st.error("❌ Database connection failed")
+        return False
+    
+    # Check weather data  
+    weather_data = st.session_state.get('project_data', {}).get('weather_analysis', {})
     tmy_data = weather_data.get('tmy_data', weather_data.get('hourly_data', []))
     
     if not tmy_data:
         st.error("⚠️ No TMY weather data available. Please complete Step 3 (Weather & Environment) first.")
         return False
+    else:
+        st.success("✅ TMY weather data available")
     
     return True
 
