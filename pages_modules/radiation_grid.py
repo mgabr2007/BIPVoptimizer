@@ -56,19 +56,19 @@ def render_radiation_grid():
         st.markdown("""
         **Upload building walls CSV data to enable precise geometric self-shading calculations based on actual BIM wall data.**
         
-        **Required CSV Columns:**
-        - `ElementId`: Unique wall identifier  
-        - `WallType`: Wall type/family
-        - `Orientation`: Wall orientation (North/South/East/West)
-        - `Azimuth`: Wall azimuth angle (0-360°)
-        - `Height`: Wall height in meters
-        - `Level`: Building level (Level 1, Level 2, etc.)
-        - `Area`: Wall area in m²
+        **Required CSV Columns (exact format from BIM extraction):**
+        - `ElementId`: Unique wall identifier (e.g., 342220, 342221)
+        - `Wall Type`: Wall type/family name (e.g., "Generic - 200mm")
+        - `Level`: Building level (00, 01, 02, 03, etc.)
+        - `Length (m)`: Wall length in meters
+        - `Area (m²)`: Wall area in square meters  
+        - `Azimuth (°)`: Wall azimuth angle (0-360°)
         
         **How Wall Data Enables Self-Shading:**
         - Windows are analyzed using precise geometric shading from nearby walls
-        - Wall height and orientation determine shadow casting on adjacent windows
-        - Multi-story buildings benefit from level-specific shading calculations
+        - Wall height is calculated from area/length for accurate shadow projections
+        - Wall orientation determines shadow direction on adjacent windows
+        - Multi-story buildings use level-specific wall-window relationships
         - Real BIM wall geometry provides authentic shadow analysis
         
         **Benefits of Wall Data Upload:**
@@ -99,17 +99,22 @@ def render_radiation_grid():
                     st.dataframe(walls_df.head(10))
                     
                     # Summary statistics
-                    col1, col2, col3 = st.columns(3)
+                    col1, col2, col3, col4 = st.columns(4)
                     with col1:
                         st.metric("Total Walls", len(walls_df))
                     with col2:
-                        if 'Orientation' in walls_df.columns:
-                            orientations = walls_df['Orientation'].value_counts()
+                        if 'Azimuth (°)' in walls_df.columns:
+                            # Calculate orientations from azimuth
+                            orientations = walls_df['Azimuth (°)'].apply(get_orientation_from_azimuth).value_counts()
                             st.metric("Orientations", len(orientations))
                     with col3:
                         if 'Level' in walls_df.columns:
                             levels = walls_df['Level'].value_counts()
                             st.metric("Building Levels", len(levels))
+                    with col4:
+                        if 'Area (m²)' in walls_df.columns:
+                            total_area = walls_df['Area (m²)'].sum()
+                            st.metric("Total Wall Area", f"{total_area:.0f} m²")
                     
                     # Save to database
                     if st.button("💾 Save Wall Data", key="save_walls_data"):
@@ -189,9 +194,10 @@ def render_radiation_grid():
         finally:
             conn.close()
     
-    # Show window element count information
+    # Show window element count information  
     if total_building_elements > 0:
-        st.info(f"🪟 Ready to analyze **{total_building_elements:,} window elements** for BIPV installation")
+        st.info(f"🪟 Ready to analyze **{total_building_elements:,} window elements** for BIPV glass replacement")
+        st.caption("Analysis will focus on windows with families: Windows, M_Sliding, M_Fixed, M_Casement, ARCHED_ALUMINUM, etc.")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -488,21 +494,30 @@ def save_walls_data_to_database(project_id, walls_df):
             # Clear existing wall data for this project
             cursor.execute("DELETE FROM building_walls WHERE project_id = %s", (project_id,))
             
-            # Insert new wall data without ON CONFLICT clause
+            # Insert new wall data using actual CSV column names
             for idx, row in walls_df.iterrows():
+                # Extract wall height from Area and Length if available
+                length = float(row.get('Length (m)', 0))
+                area = float(row.get('Area (m²)', 0))
+                height = area / length if length > 0 else 3.0  # Calculate height or default to 3m
+                
+                # Get orientation from azimuth
+                azimuth = float(row.get('Azimuth (°)', 0))
+                orientation = get_orientation_from_azimuth(azimuth)
+                
                 cursor.execute("""
                     INSERT INTO building_walls 
                     (project_id, element_id, wall_type, orientation, azimuth, height, level, area)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
-                    row.get('ElementId', row.get('element_id', f'wall_{idx}')),
-                    row.get('WallType', row.get('wall_type', 'Generic Wall')),
-                    row.get('Orientation', row.get('orientation', 'Unknown')),
-                    float(row.get('Azimuth', row.get('azimuth', 0))),
-                    float(row.get('Height', row.get('height', 3.0))),
-                    row.get('Level', row.get('level', 'Level 1')),
-                    float(row.get('Area', row.get('area', 10.0)))
+                    str(row.get('ElementId', f'wall_{idx}')),
+                    str(row.get('Wall Type', 'Generic Wall')),
+                    orientation,
+                    azimuth,
+                    height,
+                    str(row.get('Level', '')),
+                    area
                 ))
             
             conn.commit()
@@ -514,3 +529,17 @@ def save_walls_data_to_database(project_id, walls_df):
     finally:
         if conn:
             conn.close()
+
+def get_orientation_from_azimuth(azimuth):
+    """Convert azimuth angle to orientation direction"""
+    azimuth = azimuth % 360  # Normalize to 0-360
+    if 315 <= azimuth or azimuth < 45:
+        return "North"
+    elif 45 <= azimuth < 135:
+        return "East"
+    elif 135 <= azimuth < 225:
+        return "South"
+    elif 225 <= azimuth < 315:
+        return "West"
+    else:
+        return "Unknown"

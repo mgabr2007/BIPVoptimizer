@@ -243,7 +243,7 @@ class AdvancedRadiationAnalyzer:
         
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                # Use dedicated building_walls table (uploaded CSV data)
+                # Use dedicated building_walls table (uploaded CSV data) 
                 cursor.execute("""
                     SELECT element_id as wall_id, orientation, azimuth, height, level, area, wall_type
                     FROM building_walls 
