@@ -154,6 +154,10 @@ def render_radiation_grid():
     # Check data availability for analysis
     st.subheader("🔍 Data Availability Check")
     
+    # Show current project info
+    project_name = st.session_state.get('project_data', {}).get('project_name', 'Unknown')
+    st.info(f"🆔 **Current Project**: {project_name} (ID: {project_id})")
+    
     conn = db_manager.get_connection()
     walls_available = False
     total_building_elements = 0
@@ -167,7 +171,8 @@ def render_radiation_grid():
                     cursor.execute("""
                         SELECT COUNT(*) FROM building_walls WHERE project_id = %s
                     """, (project_id,))
-                    wall_count = cursor.fetchone()[0]
+                    result = cursor.fetchone()
+                    wall_count = result[0] if result else 0
                     walls_available = wall_count > 0
                 except Exception as e:
                     st.error(f"Error checking wall data: {e}")
@@ -177,12 +182,69 @@ def render_radiation_grid():
                 try:
                     cursor.execute("""
                         SELECT COUNT(*) FROM building_elements 
-                        WHERE project_id = %s AND (family ILIKE '%window%' OR family ILIKE '%glazing%' OR family ILIKE '%curtain%')
+                        WHERE project_id = %s
                     """, (project_id,))
-                    total_building_elements = cursor.fetchone()[0]
+                    result = cursor.fetchone()
+                    total_building_elements = result[0] if result else 0
                 except Exception as e:
                     st.error(f"Error checking window elements: {e}")
                     total_building_elements = 0
+                
+                # If no data found, show available projects with data
+                if total_building_elements == 0 or wall_count == 0:
+                    try:
+                        cursor.execute("""
+                            SELECT be.project_id, p.project_name, COUNT(be.id) as window_count
+                            FROM building_elements be
+                            JOIN projects p ON be.project_id = p.id
+                            GROUP BY be.project_id, p.project_name
+                            ORDER BY be.project_id DESC
+                            LIMIT 5
+                        """)
+                        window_projects = cursor.fetchall()
+                        
+                        cursor.execute("""
+                            SELECT bw.project_id, p.project_name, COUNT(bw.id) as wall_count
+                            FROM building_walls bw
+                            JOIN projects p ON bw.project_id = p.id
+                            GROUP BY bw.project_id, p.project_name
+                            ORDER BY bw.project_id DESC
+                            LIMIT 5
+                        """)
+                        wall_projects = cursor.fetchall()
+                        
+                        if window_projects or wall_projects:
+                            with st.expander("🔍 **Debug: Available Projects with Data**", expanded=True):
+                                if window_projects:
+                                    st.write("**Projects with Window Data:**")
+                                    for proj_id, proj_name, count in window_projects:
+                                        st.write(f"- Project {proj_id}: {proj_name} ({count:,} windows)")
+                                        
+                                if wall_projects:
+                                    st.write("**Projects with Wall Data:**")
+                                    for proj_id, proj_name, count in wall_projects:
+                                        st.write(f"- Project {proj_id}: {proj_name} ({count:,} walls)")
+                                
+                                # Option to switch to latest project with both data types
+                                latest_window_project = window_projects[0][0] if window_projects else None
+                                latest_wall_project = wall_projects[0][0] if wall_projects else None
+                                
+                                if latest_window_project and latest_wall_project:
+                                    # Find a project that has both
+                                    common_projects = [(proj_id, proj_name) for proj_id, proj_name, _ in window_projects 
+                                                     if proj_id in [wp[0] for wp in wall_projects]]
+                                    
+                                    if common_projects:
+                                        recommended_id, recommended_name = common_projects[0]
+                                        st.success(f"💡 **Recommendation**: Project {recommended_id} ({recommended_name}) has both window and wall data")
+                                        
+                                        if st.button(f"🔄 Switch to Project {recommended_id}", key="switch_to_recommended_project"):
+                                            st.session_state.project_id = recommended_id
+                                            st.session_state.project_data['project_id'] = recommended_id
+                                            st.success(f"✅ Switched to project {recommended_id}")
+                                            st.rerun()
+                    except Exception as e:
+                        st.warning(f"Could not retrieve project data: {e}")
                     
         except Exception as e:
             st.error(f"Database connection error: {e}")
@@ -192,7 +254,7 @@ def render_radiation_grid():
             conn.close()
     
     # Debug information
-    st.info(f"📊 Found: {total_building_elements} window elements, {wall_count} wall elements")
+    st.info(f"📊 **Found**: {total_building_elements:,} window elements, {wall_count:,} wall elements")
     
     # Show requirements status clearly
     st.subheader("📋 Analysis Requirements Status")
