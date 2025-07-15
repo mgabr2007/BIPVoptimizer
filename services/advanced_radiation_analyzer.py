@@ -18,7 +18,7 @@ class AdvancedRadiationAnalyzer:
         self.db_manager = db_manager
         
     def get_suitable_elements(self):
-        """Get suitable building elements directly from database"""
+        """Get ALL building elements directly from database for comprehensive analysis"""
         conn = self.db_manager.get_connection()
         if not conn:
             return []
@@ -27,9 +27,9 @@ class AdvancedRadiationAnalyzer:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute("""
                     SELECT element_id, orientation, azimuth, glass_area, building_level, 
-                           family, wall_element_id
+                           family, wall_element_id, level
                     FROM building_elements 
-                    WHERE project_id = %s AND pv_suitable = TRUE
+                    WHERE project_id = %s
                     ORDER BY orientation, azimuth
                 """, (self.project_id,))
                 

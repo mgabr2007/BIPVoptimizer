@@ -154,21 +154,37 @@ def render_radiation_grid():
         help="Apply physics-based orientation corrections for realistic radiation values"
     )
     
+    # Check for existing analysis
+    existing_data = db_manager.get_radiation_analysis_data(project_id)
+    has_existing_analysis = existing_data and existing_data.get('element_radiation')
+    
     # Analysis interface - only allow if wall data is available
     conn = db_manager.get_connection()
     walls_available = False
+    total_building_elements = 0
     if conn:
         try:
             with conn.cursor() as cursor:
+                # Check wall data
                 cursor.execute("""
                     SELECT COUNT(*) FROM building_walls WHERE project_id = %s
                 """, (project_id,))
                 wall_count = cursor.fetchone()[0]
                 walls_available = wall_count > 0
+                
+                # Get total building elements count
+                cursor.execute("""
+                    SELECT COUNT(*) FROM building_elements WHERE project_id = %s
+                """, (project_id,))
+                total_building_elements = cursor.fetchone()[0]
         except:
             walls_available = False
         finally:
             conn.close()
+    
+    # Show element count information
+    if total_building_elements > 0:
+        st.info(f"📊 Ready to analyze **{total_building_elements:,} building elements** from BIM data")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -384,8 +400,8 @@ def display_existing_results(project_id):
             st.metric("Minimum Radiation", f"{min_radiation:.0f} kWh/m²/year")
         with col4:
             # Calculate suitable elements (>200 kWh/m²/year threshold)
-            suitable_elements = len([r for r in element_radiation if r['annual_radiation'] > 200])
-            st.metric("Suitable Elements", f"{suitable_elements:,}", delta=f"{(suitable_elements/total_elements)*100:.1f}%")
+            suitable_radiation = len([r for r in element_radiation if r['annual_radiation'] > 200])
+            st.metric("High Performance Elements", f"{suitable_radiation:,}", delta=f"{(suitable_radiation/total_elements)*100:.1f}%")
         
         # Radiation distribution chart
         st.subheader("📈 Radiation Distribution")
