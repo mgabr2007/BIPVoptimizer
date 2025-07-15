@@ -1,0 +1,397 @@
+"""
+Pydantic models for BIPV panel specification and analysis.
+"""
+
+from typing import Optional, List, Dict, Any, Union
+from pydantic import BaseModel, Field, validator, ConfigDict
+from enum import Enum
+from datetime import datetime
+from decimal import Decimal
+import pandas as pd
+
+
+class PanelType(str, Enum):
+    """Enumeration for BIPV panel types."""
+    OPAQUE = "opaque"
+    SEMI_TRANSPARENT = "semi_transparent"
+
+
+class OrientationType(str, Enum):
+    """Building element orientation types."""
+    NORTH = "North"
+    NORTHEAST = "Northeast"
+    EAST = "East"
+    SOUTHEAST = "Southeast"
+    SOUTH = "South"
+    SOUTHWEST = "Southwest"
+    WEST = "West"
+    NORTHWEST = "Northwest"
+    UNKNOWN = "Unknown"
+
+
+class BuildingElement(BaseModel):
+    """Building element data from Step 4 facade extraction."""
+    element_id: str = Field(..., description="Unique element identifier")
+    project_id: int = Field(..., description="Project identifier")
+    orientation: OrientationType = Field(..., description="Element orientation")
+    azimuth: float = Field(..., description="Azimuth angle in degrees")
+    glass_area: float = Field(..., description="Glass area in square meters")
+    building_level: Optional[str] = Field(None, description="Building level/floor")
+    wall_element_id: Optional[str] = Field(None, description="Associated wall element ID")
+    pv_suitable: bool = Field(default=True, description="PV suitability flag")
+    
+    @validator('glass_area')
+    def validate_glass_area(cls, v):
+        """Validate glass area is positive."""
+        if v <= 0:
+            raise ValueError(f'Glass area must be positive, got {v}')
+        return v
+    
+    @validator('azimuth')
+    def validate_azimuth(cls, v):
+        """Validate azimuth is in valid range."""
+        if not 0 <= v <= 360:
+            raise ValueError(f'Azimuth must be between 0 and 360 degrees, got {v}')
+        return v
+
+
+class RadiationRecord(BaseModel):
+    """Solar radiation data from Step 5 analysis."""
+    element_id: str = Field(..., description="Unique element identifier")
+    project_id: int = Field(..., description="Project identifier")
+    annual_radiation: float = Field(..., description="Annual radiation in kWh/m²/year")
+    monthly_radiation: Optional[Dict[str, float]] = Field(None, description="Monthly breakdown")
+    shading_factor: float = Field(default=1.0, description="Applied shading factor")
+    calculated_at: datetime = Field(default_factory=datetime.now)
+    
+    @validator('annual_radiation')
+    def validate_radiation(cls, v):
+        """Validate radiation values are reasonable."""
+        if v < 0 or v > 3000:
+            raise ValueError(f'Annual radiation {v} kWh/m²/year outside expected range (0-3000)')
+        return v
+    
+    @validator('shading_factor')
+    def validate_shading_factor(cls, v):
+        """Validate shading factor is between 0 and 1."""
+        if not 0 <= v <= 1:
+            raise ValueError(f'Shading factor must be between 0 and 1, got {v}')
+        return v
+
+
+class PanelSpecification(BaseModel):
+    """BIPV panel specification from catalog."""
+    id: Optional[int] = Field(None, description="Database ID")
+    name: str = Field(..., description="Panel name/model")
+    manufacturer: str = Field(..., description="Manufacturer name")
+    panel_type: PanelType = Field(..., description="Panel type classification")
+    efficiency: float = Field(..., description="Panel efficiency as decimal (0.08 = 8%)")
+    transparency: float = Field(..., description="Glass transparency as decimal (0.35 = 35%)")
+    power_density: float = Field(..., description="Power density in W/m²")
+    cost_per_m2: float = Field(..., description="Cost per square meter in EUR")
+    glass_thickness: float = Field(..., description="Glass thickness in mm")
+    u_value: float = Field(..., description="Thermal transmittance in W/m²K")
+    glass_weight: float = Field(..., description="Glass weight in kg/m²")
+    performance_ratio: float = Field(default=0.85, description="System performance ratio")
+    is_active: bool = Field(default=True, description="Active in catalog")
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    
+    @validator('efficiency')
+    def validate_efficiency(cls, v):
+        """Validate efficiency is reasonable."""
+        if not 0.02 <= v <= 0.25:  # 2% to 25%
+            raise ValueError(f'Efficiency {v:.1%} outside reasonable range (2%-25%)')
+        return v
+    
+    @validator('transparency')
+    def validate_transparency(cls, v):
+        """Validate transparency is between 0 and 1."""
+        if not 0 <= v <= 0.65:  # 0% to 65%
+            raise ValueError(f'Transparency {v:.1%} outside valid range (0%-65%)')
+        return v
+    
+    @validator('cost_per_m2')
+    def validate_cost(cls, v):
+        """Validate cost is reasonable."""
+        if not 50 <= v <= 1000:  # €50 to €1000 per m²
+            raise ValueError(f'Cost €{v}/m² outside reasonable range (€50-€1000)')
+        return v
+    
+    @validator('power_density')
+    def validate_power_density(cls, v):
+        """Validate power density is reasonable."""
+        if not 10 <= v <= 250:  # 10 to 250 W/m²
+            raise ValueError(f'Power density {v} W/m² outside reasonable range (10-250)')
+        return v
+    
+    @property
+    def efficiency_percent(self) -> float:
+        """Get efficiency as percentage."""
+        return self.efficiency * 100
+    
+    @property
+    def transparency_percent(self) -> float:
+        """Get transparency as percentage."""
+        return self.transparency * 100
+
+
+class ElementPVSpecification(BaseModel):
+    """PV specification for individual building element."""
+    id: Optional[int] = Field(None, description="Database ID")
+    project_id: int = Field(..., description="Project identifier")
+    element_id: str = Field(..., description="Building element ID")
+    panel_spec_id: int = Field(..., description="Selected panel specification ID")
+    glass_area: float = Field(..., description="Available glass area in m²")
+    panel_coverage: float = Field(..., description="Panel coverage factor (0-1)")
+    effective_area: float = Field(..., description="Effective panel area in m²")
+    system_power: float = Field(..., description="System power in kW")
+    annual_radiation: float = Field(..., description="Annual radiation kWh/m²/year")
+    annual_energy: float = Field(..., description="Annual energy generation kWh/year")
+    specific_yield: float = Field(..., description="Specific yield kWh/kW/year")
+    total_cost: float = Field(..., description="Total system cost in EUR")
+    cost_per_wp: float = Field(..., description="Cost per Wp in EUR")
+    orientation: str = Field(..., description="Element orientation")
+    created_at: datetime = Field(default_factory=datetime.now)
+    
+    @validator('panel_coverage')
+    def validate_coverage(cls, v):
+        """Validate coverage factor."""
+        if not 0 <= v <= 1:
+            raise ValueError(f'Panel coverage must be between 0 and 1, got {v}')
+        return v
+    
+    @validator('effective_area', 'system_power', 'annual_energy')
+    def validate_positive_values(cls, v):
+        """Validate values are positive."""
+        if v < 0:
+            raise ValueError(f'Value must be non-negative, got {v}')
+        return v
+    
+    @property
+    def power_per_m2(self) -> float:
+        """Calculate power per square meter."""
+        if self.glass_area > 0:
+            return (self.system_power * 1000) / self.glass_area  # W/m²
+        return 0.0
+
+
+class ProjectPVSummary(BaseModel):
+    """Summary of PV specifications for entire project."""
+    project_id: int
+    total_elements: int = Field(..., description="Total number of elements")
+    suitable_elements: int = Field(..., description="PV-suitable elements")
+    specified_elements: int = Field(..., description="Elements with PV specs")
+    total_glass_area: float = Field(..., description="Total glass area in m²")
+    total_effective_area: float = Field(..., description="Total effective panel area")
+    total_system_power: float = Field(..., description="Total system power in kW")
+    total_annual_energy: float = Field(..., description="Total annual energy in kWh")
+    total_system_cost: float = Field(..., description="Total system cost in EUR")
+    avg_specific_yield: float = Field(..., description="Average specific yield")
+    avg_cost_per_wp: float = Field(..., description="Average cost per Wp")
+    orientation_breakdown: Dict[str, int] = Field(..., description="Count by orientation")
+    power_breakdown: Dict[str, float] = Field(..., description="Power by orientation")
+    cost_breakdown: Dict[str, float] = Field(..., description="Cost by orientation")
+    panel_type_distribution: Dict[str, int] = Field(..., description="Panel type usage")
+    analysis_settings: Dict[str, Any] = Field(..., description="Analysis configuration")
+    completed_at: datetime = Field(default_factory=datetime.now)
+
+
+class SpecificationConfiguration(BaseModel):
+    """Configuration for PV specification analysis."""
+    default_coverage_factor: float = Field(default=0.85, description="Default panel coverage")
+    min_coverage_factor: float = Field(default=0.60, description="Minimum coverage")
+    max_coverage_factor: float = Field(default=0.95, description="Maximum coverage")
+    default_performance_ratio: float = Field(default=0.85, description="Default performance ratio")
+    min_system_size_kw: float = Field(default=0.1, description="Minimum system size")
+    max_system_size_kw: float = Field(default=1000.0, description="Maximum system size")
+    enable_custom_panels: bool = Field(default=True, description="Allow custom panel specs")
+    filter_by_orientation: bool = Field(default=True, description="Filter unsuitable orientations")
+    
+    @validator('default_coverage_factor', 'min_coverage_factor', 'max_coverage_factor')
+    def validate_coverage_factors(cls, v):
+        """Validate coverage factors are between 0 and 1."""
+        if not 0 <= v <= 1:
+            raise ValueError(f'Coverage factor must be between 0 and 1, got {v}')
+        return v
+
+
+class ValidationResult(BaseModel):
+    """Result of data validation."""
+    is_valid: bool
+    errors: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    element_count: int = 0
+    radiation_count: int = 0
+    validation_summary: Dict[str, Any] = Field(default_factory=dict)
+    validated_at: datetime = Field(default_factory=datetime.now)
+
+
+class CalculationMetrics(BaseModel):
+    """Metrics for specification calculations."""
+    total_elements: int
+    processed_elements: int
+    calculation_time: float
+    memory_usage_mb: Optional[float] = None
+    errors_encountered: int = 0
+    warnings_generated: int = 0
+    method_used: str = Field(default="vectorized")
+    performance_notes: List[str] = Field(default_factory=list)
+
+
+# Default panel specifications for initial catalog
+DEFAULT_PANEL_SPECIFICATIONS = [
+    {
+        "name": "Heliatek HeliaSol 436-2000",
+        "manufacturer": "Heliatek",
+        "panel_type": "opaque",
+        "efficiency": 0.089,
+        "transparency": 0.0,
+        "power_density": 89.0,
+        "cost_per_m2": 183.0,
+        "glass_thickness": 1.5,
+        "u_value": 1.1,
+        "glass_weight": 15.0
+    },
+    {
+        "name": "SUNOVATION eFORM Clear",
+        "manufacturer": "SUNOVATION",
+        "panel_type": "semi_transparent",
+        "efficiency": 0.11,
+        "transparency": 0.35,
+        "power_density": 110.0,
+        "cost_per_m2": 400.0,
+        "glass_thickness": 6.0,
+        "u_value": 2.8,
+        "glass_weight": 25.0
+    },
+    {
+        "name": "Solarnova SOL_GT Translucent",
+        "manufacturer": "Solarnova",
+        "panel_type": "semi_transparent",
+        "efficiency": 0.132,
+        "transparency": 0.22,
+        "power_density": 132.0,
+        "cost_per_m2": 185.0,
+        "glass_thickness": 10.0,
+        "u_value": 1.8,
+        "glass_weight": 30.0
+    },
+    {
+        "name": "Solarwatt Vision AM 4.5",
+        "manufacturer": "Solarwatt",
+        "panel_type": "semi_transparent",
+        "efficiency": 0.219,
+        "transparency": 0.20,
+        "power_density": 219.0,
+        "cost_per_m2": 87.0,
+        "glass_thickness": 8.0,
+        "u_value": 1.5,
+        "glass_weight": 28.0
+    },
+    {
+        "name": "AVANCIS SKALA 105-110W",
+        "manufacturer": "AVANCIS",
+        "panel_type": "opaque",
+        "efficiency": 0.102,
+        "transparency": 0.0,
+        "power_density": 102.0,
+        "cost_per_m2": 244.0,
+        "glass_thickness": 6.0,
+        "u_value": 1.2,
+        "glass_weight": 22.0
+    }
+]
+
+
+def validate_element_radiation_data(elements_df: pd.DataFrame, radiation_df: pd.DataFrame) -> ValidationResult:
+    """Validate building elements and radiation data consistency."""
+    errors = []
+    warnings = []
+    
+    # Check required columns
+    required_element_cols = ['element_id', 'orientation', 'glass_area', 'azimuth']
+    required_radiation_cols = ['element_id', 'annual_radiation']
+    
+    missing_element_cols = [col for col in required_element_cols if col not in elements_df.columns]
+    missing_radiation_cols = [col for col in required_radiation_cols if col not in radiation_df.columns]
+    
+    if missing_element_cols:
+        errors.append(f"Missing element columns: {missing_element_cols}")
+    if missing_radiation_cols:
+        errors.append(f"Missing radiation columns: {missing_radiation_cols}")
+    
+    if errors:
+        return ValidationResult(is_valid=False, errors=errors)
+    
+    # Check data consistency
+    element_ids = set(elements_df['element_id'].unique())
+    radiation_ids = set(radiation_df['element_id'].unique())
+    
+    missing_radiation = element_ids - radiation_ids
+    missing_elements = radiation_ids - element_ids
+    
+    if missing_radiation:
+        warnings.append(f"{len(missing_radiation)} elements missing radiation data")
+    if missing_elements:
+        warnings.append(f"{len(missing_elements)} radiation records without elements")
+    
+    # Check value ranges
+    invalid_areas = elements_df[elements_df['glass_area'] <= 0]
+    if len(invalid_areas) > 0:
+        errors.append(f"{len(invalid_areas)} elements with invalid glass area")
+    
+    invalid_radiation = radiation_df[(radiation_df['annual_radiation'] <= 0) | 
+                                   (radiation_df['annual_radiation'] > 3000)]
+    if len(invalid_radiation) > 0:
+        warnings.append(f"{len(invalid_radiation)} elements with questionable radiation values")
+    
+    validation_summary = {
+        "element_count": len(elements_df),
+        "radiation_count": len(radiation_df),
+        "matching_elements": len(element_ids & radiation_ids),
+        "valid_areas": len(elements_df[elements_df['glass_area'] > 0]),
+        "valid_radiation": len(radiation_df[(radiation_df['annual_radiation'] > 0) & 
+                                          (radiation_df['annual_radiation'] <= 3000)])
+    }
+    
+    return ValidationResult(
+        is_valid=len(errors) == 0,
+        errors=errors,
+        warnings=warnings,
+        element_count=len(elements_df),
+        radiation_count=len(radiation_df),
+        validation_summary=validation_summary
+    )
+
+
+def detect_unit_anomalies(data: Dict[str, Any]) -> Dict[str, str]:
+    """Detect unit anomalies in data and suggest conversions."""
+    suggestions = {}
+    
+    # Check glass area units
+    if 'glass_area' in data:
+        glass_area = data['glass_area']
+        if isinstance(glass_area, (int, float)):
+            if glass_area > 1000:  # Likely cm²
+                suggestions['glass_area'] = f"Value {glass_area} appears to be in cm². Divide by 10,000 for m²."
+            elif glass_area < 0.1:  # Suspiciously small
+                suggestions['glass_area'] = f"Value {glass_area} m² seems very small. Check units."
+    
+    # Check power density units
+    if 'power_density' in data:
+        power_density = data['power_density']
+        if isinstance(power_density, (int, float)):
+            if power_density < 1:  # Likely kW/m²
+                suggestions['power_density'] = f"Value {power_density} appears to be in kW/m². Multiply by 1000 for W/m²."
+            elif power_density > 500:  # Too high for BIPV
+                suggestions['power_density'] = f"Value {power_density} W/m² seems too high for BIPV panels."
+    
+    # Check efficiency units
+    if 'efficiency' in data:
+        efficiency = data['efficiency']
+        if isinstance(efficiency, (int, float)):
+            if efficiency > 1:  # Likely percentage
+                suggestions['efficiency'] = f"Value {efficiency} appears to be percentage. Divide by 100 for decimal."
+    
+    return suggestions

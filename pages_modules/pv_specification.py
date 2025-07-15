@@ -220,6 +220,20 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
 def render_pv_specification():
     """Render the simplified PV panel specification and layout module."""
     
+    # Enhanced production-grade interface option
+    if st.checkbox("🚀 Use Production-Grade Interface", value=False, help="Switch to the new modular, high-performance interface"):
+        try:
+            from step6_pv_spec import render_pv_specification_enhanced
+            # Get project_id from session or database
+            project_id = st.session_state.get('project_id', 1)
+            render_pv_specification_enhanced(project_id)
+            return
+        except ImportError:
+            st.warning("Production-grade interface not available. Using legacy interface.")
+        except Exception as e:
+            st.error(f"Error loading production interface: {e}")
+            st.info("Falling back to legacy interface.")
+    
     # Add OptiSunny character header image
     st.image("attached_assets/step06_1751436847830.png", width=400)
     
