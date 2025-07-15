@@ -128,32 +128,7 @@ def render_radiation_grid():
             except Exception as e:
                 st.error(f"Error processing walls CSV: {str(e)}")
         
-        # Shading calculation status
-        st.subheader("🔍 Shading Calculation Status")
-        
-        # Check if wall data is available
-        conn = db_manager.get_connection()
-        walls_available = False
-        if conn:
-            try:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT COUNT(*) FROM building_walls WHERE project_id = %s
-                    """, (project_id,))
-                    wall_count = cursor.fetchone()[0]
-                    walls_available = wall_count > 0
-            except:
-                walls_available = False
-            finally:
-                conn.close()
-        
-        if walls_available:
-            st.success(f"✅ Wall data available - precise geometric shading calculations will be used")
-        else:
-            st.error("❌ Wall data is required for radiation analysis. Upload wall data above to proceed with calculations.")
-            
-        # Additional status check - need to check this after the total_building_elements calculation
-        # This will be displayed after we calculate the count below
+        # Note: Status will be checked comprehensively below
     
     # Show calculation details based on precision
     calculation_details = {
@@ -176,51 +151,73 @@ def render_radiation_grid():
     existing_data = db_manager.get_radiation_analysis_data(project_id)
     has_existing_analysis = existing_data and existing_data.get('element_radiation')
     
-    # Analysis interface - only allow if wall data is available
+    # Check data availability for analysis
+    st.subheader("🔍 Data Availability Check")
+    
     conn = db_manager.get_connection()
     walls_available = False
     total_building_elements = 0
+    wall_count = 0
+    
     if conn:
         try:
             with conn.cursor() as cursor:
-                # Check wall data
-                cursor.execute("""
-                    SELECT COUNT(*) FROM building_walls WHERE project_id = %s
-                """, (project_id,))
-                wall_count = cursor.fetchone()[0]
-                walls_available = wall_count > 0
+                # Check wall data from Step 5 upload
+                try:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM building_walls WHERE project_id = %s
+                    """, (project_id,))
+                    wall_count = cursor.fetchone()[0]
+                    walls_available = wall_count > 0
+                except Exception as e:
+                    st.error(f"Error checking wall data: {e}")
+                    walls_available = False
                 
-                # Get window elements count only
-                cursor.execute("""
-                    SELECT COUNT(*) FROM building_elements 
-                    WHERE project_id = %s AND (family ILIKE '%window%' OR family ILIKE '%glazing%' OR family ILIKE '%curtain%')
-                """, (project_id,))
-                total_building_elements = cursor.fetchone()[0]
-        except:
+                # Check window elements from Step 4 upload  
+                try:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM building_elements 
+                        WHERE project_id = %s AND (family ILIKE '%window%' OR family ILIKE '%glazing%' OR family ILIKE '%curtain%')
+                    """, (project_id,))
+                    total_building_elements = cursor.fetchone()[0]
+                except Exception as e:
+                    st.error(f"Error checking window elements: {e}")
+                    total_building_elements = 0
+                    
+        except Exception as e:
+            st.error(f"Database connection error: {e}")
             walls_available = False
+            total_building_elements = 0
         finally:
             conn.close()
     
-    # Show window element count information  
-    if total_building_elements > 0:
-        st.info(f"🪟 Ready to analyze **{total_building_elements:,} window elements** for BIPV glass replacement")
-        st.caption("Analysis will focus on windows with families: Windows, M_Sliding, M_Fixed, M_Casement, ARCHED_ALUMINUM, etc.")
-    else:
-        st.warning("⚠️ No window elements found. Complete Step 4 (Facade Extraction) to upload window data first.")
-        
-    # Show both requirements status clearly
+    # Debug information
+    st.info(f"📊 Found: {total_building_elements} window elements, {wall_count} wall elements")
+    
+    # Show requirements status clearly
     st.subheader("📋 Analysis Requirements Status")
     col1, col2 = st.columns(2)
     with col1:
         if total_building_elements > 0:
             st.success(f"✅ Window Elements: {total_building_elements:,} available")
         else:
-            st.error("❌ Window Elements: Not uploaded (Step 4 required)")
+            st.error("❌ Window Elements: Missing - Go to Step 4 first")
     with col2:
         if walls_available:
-            st.success("✅ Wall Data: Available for self-shading")
+            st.success(f"✅ Wall Data: {wall_count} walls available")  
         else:
-            st.error("❌ Wall Data: Not uploaded (required above)")
+            st.error("❌ Wall Data: Missing - Upload walls CSV above")
+            
+    # Clear instructions based on what's missing
+    if total_building_elements == 0:
+        st.warning("🚨 **CRITICAL**: No window elements found! You must complete Step 4 (Facade Extraction) first to upload window data before proceeding to Step 5.")
+        st.markdown("**Next Steps:**")
+        st.markdown("1. Go back to **Step 4: Facade & Window Extraction**")
+        st.markdown("2. Upload your window/glass areas CSV file")  
+        st.markdown("3. Return to Step 5 and upload wall data")
+        st.markdown("4. Run radiation analysis")
+    elif not walls_available:
+        st.warning("Upload wall data above to enable radiation analysis with self-shading calculations.")
     
     col1, col2 = st.columns(2)
     with col1:
