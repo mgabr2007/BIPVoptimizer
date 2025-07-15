@@ -136,12 +136,25 @@ def render_facade_extraction():
         st.error("❌ Please complete Step 1: Project Setup first.")
         return
     
-    # Get current project ID
+    # Get current project ID with debugging
     project_data = st.session_state.get('project_data', {})
     project_id = project_data.get('project_id')
     
+    # Try alternative sources for project_id
+    if not project_id:
+        project_id = st.session_state.get('project_id')
+    
+    # Debug information
+    if st.checkbox("Show Debug Info", key="debug_step4"):
+        st.write("**Debug Information:**")
+        st.write(f"- Session project_id: {st.session_state.get('project_id')}")
+        st.write(f"- Project_data keys: {list(project_data.keys())}")
+        st.write(f"- Project_data project_id: {project_data.get('project_id')}")
+        st.write(f"- Setup complete: {project_data.get('setup_complete')}")
+    
     if not project_id:
         st.error("❌ No project ID found. Please complete Step 1: Project Setup first.")
+        st.info("💡 **Tip:** Make sure to click 'Save Project Configuration' in Step 1 to generate a project ID.")
         return
     
     st.info(f"📋 Current Project: **{project_data.get('project_name', 'Unnamed')}** (ID: {project_id})")

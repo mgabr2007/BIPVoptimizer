@@ -809,20 +809,19 @@ def render_project_setup():
         project_data['solar_parameters'] = location_params
         project_data['electricity_rates'] = electricity_rates
         
-        # Store in session state
-        st.session_state.project_data = project_data
-        
-        # Save to database
+        # Save to database first to get project ID
         project_id = save_project_data(project_data)
-        # Also save to session state for consistent access
+        
         if project_id:
+            # Store project_id in both places for consistency
+            project_data['project_id'] = project_id
             st.session_state.project_id = project_id
             st.session_state.project_data = project_data
-        if project_id:
-            st.session_state.project_id = project_id
+            st.session_state.project_name = project_data.get('project_name')
+            st.session_state.project_data['setup_complete'] = True
             
-            # Unified success message system
-            st.success("✅ Project configuration saved successfully!")
+            # Display success with project ID
+            st.success(f"✅ Project saved successfully! Project ID: **{project_id}**")
             
             with st.container():
                 st.markdown("### 📋 Project Configuration Summary")
@@ -862,6 +861,9 @@ def render_project_setup():
                     - Selected API: {project_data['weather_api_choice'].replace('_', ' ').title()}
                     - Use "Load Stations from Selected API" button above
                     """)
+                
+                # Show project ID prominently  
+                st.info(f"🆔 **Project ID: {project_id}** - Use this ID to identify your project in the system")
                 
                 # Data usage explanation
                 st.info("""
