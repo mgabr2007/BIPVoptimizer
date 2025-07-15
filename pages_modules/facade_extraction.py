@@ -6,6 +6,7 @@ import streamlit as st
 import pandas as pd
 from database_manager import BIPVDatabaseManager
 from utils.consolidated_data_manager import ConsolidatedDataManager
+from utils.session_state_standardizer import BIPVSessionStateManager
 def render_step4_navigation():
     """Render navigation specific to Step 4"""
     st.markdown("---")
@@ -218,6 +219,15 @@ def render_facade_extraction():
                         'element_count': len(windows_df),
                         'glass_area_total': windows_df['Glass Area (m²)'].sum() if 'Glass Area (m²)' in windows_df.columns else 0
                     })
+                    
+                    # Standardize element IDs and update session state
+                    st.session_state.project_data['building_elements'] = windows_df.to_dict('records')
+                    st.session_state.project_data['element_count'] = len(windows_df)
+                    st.session_state.project_data['extraction_complete'] = True
+                    st.session_state['facade_completed'] = True
+                    
+                    # Standardize element ID format
+                    BIPVSessionStateManager.standardize_element_ids()
                     
                     # Force refresh to show updated status
                     st.rerun()

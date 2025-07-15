@@ -13,6 +13,7 @@ from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from core.carbon_factors import get_grid_carbon_factor, display_carbon_factor_info
 from utils.consolidated_data_manager import ConsolidatedDataManager
+from utils.session_state_standardizer import BIPVSessionStateManager
 
 def calculate_npv(cash_flows, discount_rate):
     """Calculate Net Present Value of cash flows."""

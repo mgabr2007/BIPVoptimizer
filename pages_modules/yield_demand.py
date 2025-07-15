@@ -13,6 +13,7 @@ from database_manager import db_manager
 from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
+from utils.session_state_standardizer import BIPVSessionStateManager
 
 def safe_float(value, default=0.0):
     """Safely convert value to float."""

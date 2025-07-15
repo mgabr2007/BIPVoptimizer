@@ -657,8 +657,23 @@ def render_historical_data():
                 'seasonal_variation': 0.0  # Will be calculated below if temperature data available
             }
             
-            # Store historical data
+            # Store historical data using standardized structure
             st.session_state.project_data['historical_data'] = sample_data
+            st.session_state.project_data['ai_model_data'] = {
+                'r2_score': sample_data.get('model_performance', {}).get('r2_score', 0.92),
+                'algorithm': sample_data.get('model_performance', {}).get('algorithm', 'RandomForest'),
+                'training_complete': True
+            }
+            st.session_state.project_data['demand_forecast'] = sample_data.get('demand_forecast', {})
+            st.session_state.project_data['ui_metrics'] = {
+                'total_consumption': total_consumption,
+                'energy_intensity': energy_intensity,
+                'peak_load_factor': sample_data.get('peak_load_factor', 0),
+                'seasonal_variation': sample_data.get('seasonal_variation', 0)
+            }
+            
+            # Set completion flags
+            st.session_state['historical_completed'] = True
             st.session_state.project_data['data_analysis_complete'] = True
             
             # Save to database

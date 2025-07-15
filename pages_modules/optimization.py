@@ -14,6 +14,7 @@ from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from utils.color_schemes import CHART_COLORS, get_chart_color
 from utils.consolidated_data_manager import ConsolidatedDataManager
+from utils.session_state_standardizer import BIPVSessionStateManager
 
 def create_individual(n_elements):
     """Create a random individual for genetic algorithm."""

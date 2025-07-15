@@ -13,6 +13,7 @@ from utils.database_helper import db_helper
 from datetime import datetime
 from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
+from utils.session_state_standardizer import BIPVSessionStateManager
 
 def get_orientation_from_azimuth(azimuth):
     """Convert azimuth angle to cardinal orientation."""

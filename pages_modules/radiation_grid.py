@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 from database_manager import db_manager, BIPVDatabaseManager
 from services.advanced_radiation_analyzer import AdvancedRadiationAnalyzer
+from utils.session_state_standardizer import BIPVSessionStateManager
 import time
 
 def render_radiation_grid():

@@ -564,18 +564,45 @@ from components.workflow_visualization import (
 
 
 
-# Initialize session state
-if 'current_step' not in st.session_state:
-    st.session_state.current_step = 'welcome'
+# Initialize standardized session state
+from utils.session_state_standardizer import initialize_standardized_session, repair_data_flow
+from utils.data_flow_validator import display_data_flow_status, validate_step_dependencies
 
-if 'project_data' not in st.session_state:
-    st.session_state.project_data = {}
+initialize_standardized_session()
 
-# Initialize completion flags
+# Repair any broken data dependencies
+repairs_made = repair_data_flow()
+
+# Debug mode and data flow status
+debug_mode = st.sidebar.checkbox("🔧 Debug Mode", value=False, help="Show data flow repair messages and validation status")
+if debug_mode:
+    with st.sidebar.expander("🔧 Data Flow Management", expanded=False):
+        if repairs_made:
+            st.subheader("Recent Repairs")
+            for repair in repairs_made:
+                st.info(f"✅ {repair}")
+        
+        # Show validation status
+        validation = validate_step_dependencies()
+        status_colors = {
+            'PASSED': '🟢',
+            'WARNING': '🟡', 
+            'ERROR': '🟠',
+            'CRITICAL': '🔴'
+        }
+        overall_status = validation['summary']['overall_status']
+        st.metric(
+            "Data Flow Status", 
+            f"{status_colors[overall_status]} {overall_status}",
+            f"{validation['summary']['passed_checks']}/{validation['summary']['total_checks']} checks passed"
+        )
+
+# Initialize completion flags (standardized)
 completion_flags = [
     'setup_completed', 'historical_completed', 'weather_completed', 
-    'building_elements_completed', 'radiation_completed', 'pv_specs_completed',
-    'yield_demand_completed', 'optimization_completed', 'financial_completed'
+    'facade_completed', 'radiation_completed', 'pv_specs_completed',
+    'yield_demand_completed', 'optimization_completed', 'financial_completed',
+    'reporting_completed'
 ]
 
 for flag in completion_flags:
