@@ -27,4 +27,9 @@ dependencies = [
     "pandera>=0.25.0",
     "asyncpg>=0.30.0",
     "loguru>=0.7.3",
+    "streamlit-extras>=0.7.5",
+    "great-expectations>=0.18.22",
+    "sentry-sdk>=2.33.0",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.6.15",
 ]

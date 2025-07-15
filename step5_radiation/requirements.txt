@@ -1,0 +1,54 @@
+# Step 5 Radiation Analysis - Production Dependencies
+
+# Core framework
+streamlit>=1.28.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Database and async support
+asyncpg>=0.28.0
+psycopg2-binary>=2.9.0
+
+# Data validation and modeling
+pydantic>=2.4.0
+pandera>=0.17.0
+
+# Visualization
+plotly>=5.15.0
+
+# Logging and monitoring
+loguru>=0.7.0
+sentry-sdk>=1.32.0
+
+# Testing framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# UI enhancements (optional)
+streamlit-extras>=0.3.0
+
+# Documentation
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+pdoc>=14.0.0
+
+# Development tools
+black>=23.0.0
+ruff>=0.0.290
+mypy>=1.5.0
+pre-commit>=3.4.0
+
+# Performance monitoring
+memory-profiler>=0.61.0
+py-spy>=0.3.14
+
+# Data quality and validation
+great-expectations>=0.17.0
+
+# Environment and configuration
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# Concurrent processing
+concurrent-futures>=3.1.1

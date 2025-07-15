@@ -1,0 +1,106 @@
+Transform the provided Step 6 Streamlit module into a clean, maintainable, and fully integrated component of the BIPV‑Optimizer pipeline (Steps 4 → 5 → 6 → 7). Apply every requirement below.
+
+1 · Architecture & Integration
+
+Decompose code into:
+
+ui.py – Streamlit interface only.
+
+services/spec_calculator.py – BIPV sizing & cost logic.
+
+services/panel_catalog.py – CRUD for BIPV_GLASS_TYPES plus DB persistence.
+
+db/queries.py – async / sync parametrised SQL helpers (re‑use Step 4/5 layer).
+
+models.py – Pydantic models (BuildingElement, RadiationRecord, PVSpec).
+
+config.py – constants (coverage factor, default perf‑ratio, defaults).
+
+Ensure seamless data flow:
+
+Input: building_elements from Step 4 and radiation_data from Step 5 (DB or st.session_state).
+
+Output: pv_specifications persisted to DB and passed to Step 7 via ConsolidatedDataManager.
+
+Add type hints and docstrings everywhere.
+
+2 · Data Validation & QC
+
+Validate inputs with pandera schemas ( orientation, glass_area > 0, radiation > 0 kWh/m² ).
+
+Detect unit anomalies (cm², W/m²) and auto‑convert with warnings.
+
+Enforce unique element_id & FK to building_elements.
+
+3 · Performance & Scalability
+
+Replace per‑row computations with vectorised pandas or NumPy;
+fall back to Dask for > 100 k elements.
+
+Use bulk execute_values or asyncpg copy_records_to_table for DB inserts.
+
+Cache expensive catalog look‑ups with LRU cache.
+
+4 · Panel Catalog Enhancements
+
+Migrate BIPV_GLASS_TYPES to a DB table (panel_catalog).
+
+Provide Streamlit CRUD dialog (admin‑only) to add/edit/remove panels.
+
+Auto‑calculate power_density if missing, based on efficiency.
+
+5 · UI/UX Improvements
+
+Use Streamlit‑Extras accordion/stepper for panel selection → customisation → results.
+
+Show interactive Plotly treemap of cost vs capacity per orientation.
+
+Persist in‑progress selections in st.session_state so refresh doesn’t lose edits.
+
+Add sidebar toggle to choose between opaque and semi‑transparent presets, auto‑filter catalog.
+
+6 · Export & API
+
+Create /api/v1/pv‑specs/<project_id> FastAPI endpoint returning JSON for downstream apps.
+
+Switch CSV downloads to st.download_button fed from io.BytesIO() with utf‑8‑sig BOM.
+
+Provide optional Excel export with separate sheets (catalog, element_specs, summary).
+
+7 · Testing & CI
+
+Unit tests for spec_calculator.calculate_specs() edge cases (zero area, bad radiation).
+
+Integration test: mock DB → insert sample Step 4+5 data → run Step 6 → assert DB rows & summary stats.
+
+Pre‑commit hooks (black, ruff) and GitHub Actions CI matrix (3.10‑3.12).
+
+8 · Logging & Observability
+
+Replace st.error/info debug prints with loguru; expose a log panel in debug mode.
+
+Add Sentry instrumentation (reuse DSN from Steps 4/5).
+
+9 · Security & Ops
+
+RBAC: only project owner can modify panel catalog or reset Step 6.
+
+Secrets via env vars/Streamlit secrets; no hard‑coded creds.
+
+10 · Documentation & Deliverables
+
+Update /docs/step6.md with sequence diagram: Step 4 → 5 → 6 data flow.
+
+Produce OpenAPI docs for new API endpoint.
+
+Provide requirements.txt/pyproject.toml updates (pydantic, pandera, fastapi, loguru).
+
+Deliverables
+
+Refactored package step6_pv_spec/ with modules above.
+
+DB migration SQL for panel_catalog and indices.
+
+Unit + integration tests.
+
+Updated docs & dependency files.
