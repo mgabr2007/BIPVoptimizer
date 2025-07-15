@@ -6,33 +6,24 @@ import streamlit as st
 import pandas as pd
 from database_manager import BIPVDatabaseManager
 from utils.consolidated_data_manager import ConsolidatedDataManager
-def render_bottom_navigation(workflow_steps, current_step):
-    """Render navigation buttons at the bottom of each page"""
+def render_step4_navigation():
+    """Render navigation specific to Step 4"""
+    st.markdown("---")
+    
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col1:
-        # Find current step index
-        current_index = next((i for i, step in enumerate(workflow_steps) if step == current_step), 0)
-        if current_index > 0:
-            prev_step = workflow_steps[current_index - 1]
-            if st.button(f"← {prev_step}", key="bottom_prev_step", use_container_width=True):
-                st.session_state.current_step = prev_step.lower().replace(' ', '_')
-                st.rerun()
+        if st.button("← Weather Environment", key="step4_prev_btn", use_container_width=True):
+            st.session_state.current_step = 'weather_environment'
+            st.rerun()
     
     with col2:
-        if current_step == 'welcome':
-            st.markdown(f"<h4 style='text-align: center;'>Welcome</h4>", unsafe_allow_html=True)
-        else:
-            step_number = current_index
-            st.markdown(f"<h4 style='text-align: center;'>Step {step_number} of 11</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='text-align: center;'>Step 4 of 11</h4>", unsafe_allow_html=True)
     
     with col3:
-        # Find next step for navigation
-        if current_index < len(workflow_steps) - 1:
-            next_step = workflow_steps[current_index + 1]
-            if st.button(f"{next_step} →", key="bottom_next_step", use_container_width=True):
-                st.session_state.current_step = next_step.lower().replace(' ', '_')
-                st.rerun()
+        if st.button("Radiation Analysis →", key="step4_next_btn", use_container_width=True):
+            st.session_state.current_step = 'radiation_grid'
+            st.rerun()
 
 # Initialize database manager
 db_manager = BIPVDatabaseManager()
@@ -416,4 +407,4 @@ def render_facade_extraction():
         st.info("📋 **Ready to Upload**: Please upload both window and wall CSV files to proceed")
     
     # Navigation
-    render_bottom_navigation(['Welcome', 'Project Setup', 'Historical Data', 'Weather Environment', 'Facade Extraction', 'Radiation Grid'], 'Facade Extraction')
+    render_step4_navigation()
