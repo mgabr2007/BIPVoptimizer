@@ -53,7 +53,7 @@ class AdvancedRadiationAnalyzer:
                 # Get window elements (suitable for BIPV)
                 cursor.execute("""
                     SELECT element_id, orientation, azimuth, glass_area, building_level, 
-                           family, wall_element_id, level
+                           family, wall_element_id
                     FROM building_elements 
                     WHERE project_id = %s AND (family ILIKE %s OR family ILIKE %s OR family ILIKE %s)
                     ORDER BY orientation, azimuth

@@ -348,16 +348,16 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
             progress_bar.progress(progress)
             status_text.text(f"{message} ({current}/{total})")
         
-            # Run advanced analysis with all sophisticated calculations
-            success = analyzer.run_advanced_analysis(
-                tmy_data=tmy_data,
-                latitude=latitude,
-                longitude=longitude,
-                precision=precision,
-                include_shading=include_shading,
-                apply_corrections=apply_corrections,
-                progress_callback=update_progress
-            )
+        # Run advanced analysis with all sophisticated calculations
+        success = analyzer.run_advanced_analysis(
+            tmy_data=tmy_data,
+            latitude=latitude,
+            longitude=longitude,
+            precision=precision,
+            include_shading=include_shading,
+            apply_corrections=apply_corrections,
+            progress_callback=update_progress
+        )
         
         if success:
             st.success("✅ Advanced analysis completed successfully!")
