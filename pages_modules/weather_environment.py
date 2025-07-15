@@ -210,30 +210,55 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
         if not original_tmy_data:
             st.error("❌ No original TMY data available for regeneration")
             return False
-            
+        
+        # Get the current weather analysis to preserve original annual GHI
+        weather_analysis = st.session_state.project_data.get('weather_analysis', {})
+        original_annual_ghi = weather_analysis.get('annual_ghi', 0)
+        
+        # If original_annual_ghi is 0, calculate it from current TMY data
+        if original_annual_ghi == 0:
+            original_annual_ghi = sum(float(hour.get('ghi', 0) or 0) for hour in original_tmy_data)
+            if original_annual_ghi == 0:
+                # Try different field names for GHI
+                for hour in original_tmy_data:
+                    for key in ['GHI', 'Global_Horizontal_Irradiance', 'ghi_wm2']:
+                        if key in hour and hour[key]:
+                            original_annual_ghi += float(hour[key])
+                            break
+        
         # Apply shading reduction to all irradiance values
         adjusted_tmy_data = []
         shading_factor = 1 - (shading_reduction / 100)
         
         for hour_data in original_tmy_data:
             adjusted_hour = hour_data.copy()
-            # Apply shading reduction to all irradiance components
-            if 'ghi' in adjusted_hour and adjusted_hour['ghi'] is not None:
-                adjusted_hour['ghi'] = float(adjusted_hour['ghi']) * shading_factor
-            if 'dni' in adjusted_hour and adjusted_hour['dni'] is not None:
-                adjusted_hour['dni'] = float(adjusted_hour['dni']) * shading_factor
-            if 'dhi' in adjusted_hour and adjusted_hour['dhi'] is not None:
-                adjusted_hour['dhi'] = float(adjusted_hour['dhi']) * shading_factor
+            
+            # Apply shading reduction to all possible irradiance field names
+            irradiance_fields = ['ghi', 'dni', 'dhi', 'GHI', 'DNI', 'DHI', 
+                               'Global_Horizontal_Irradiance', 'Direct_Normal_Irradiance', 
+                               'Diffuse_Horizontal_Irradiance', 'ghi_wm2', 'dni_wm2', 'dhi_wm2']
+            
+            for field in irradiance_fields:
+                if field in adjusted_hour and adjusted_hour[field] is not None:
+                    try:
+                        adjusted_hour[field] = float(adjusted_hour[field]) * shading_factor
+                    except (ValueError, TypeError):
+                        continue
             
             adjusted_tmy_data.append(adjusted_hour)
         
-        # Calculate new annual GHI
-        annual_ghi = sum(float(hour.get('ghi', 0) or 0) for hour in adjusted_tmy_data)
+        # Calculate new annual GHI using the same field names as original
+        annual_ghi = 0
+        for hour in adjusted_tmy_data:
+            for key in ['ghi', 'GHI', 'Global_Horizontal_Irradiance', 'ghi_wm2']:
+                if key in hour and hour[key] is not None:
+                    try:
+                        annual_ghi += float(hour[key])
+                        break
+                    except (ValueError, TypeError):
+                        continue
         
         # Update weather analysis with adjusted data
-        weather_analysis = st.session_state.project_data.get('weather_analysis', {})
-        original_annual_ghi = weather_analysis.get('annual_ghi', 0)
-        
         weather_analysis.update({
             'tmy_data': adjusted_tmy_data,
             'annual_ghi': annual_ghi,
@@ -905,11 +930,21 @@ def render_weather_environment():
                     with col1:
                         st.metric("Total Hours", f"{len(tmy_data):,}")
                     with col2:
-                        valid_ghi = sum(1 for hour in tmy_data if hour.get('ghi', 0) > 0)
-                        st.metric("Valid Solar Hours", f"{valid_ghi:,}")
+                        # Count valid solar hours using multiple field names
+                        valid_ghi = 0
+                        for hour in tmy_data:
+                            for key in ['ghi', 'GHI', 'Global_Horizontal_Irradiance', 'ghi_wm2']:
+                                if key in hour and hour.get(key, 0) > 0:
+                                    valid_ghi += 1
+                                    break
+                        st.metric("Daylight Hours", f"{valid_ghi:,}")
                     with col3:
                         coverage = (valid_ghi / len(tmy_data)) * 100 if tmy_data else 0
-                        st.metric("Data Coverage", f"{coverage:.1f}%")
+                        st.metric("Daylight Coverage", f"{coverage:.1f}%")
+                    
+                    # Add explanation for data coverage
+                    if coverage < 60:
+                        st.info("ℹ️ ~50% coverage is normal - represents daylight hours vs. total 24-hour cycle")
         
         # Environmental Shading References Section
         with st.expander("📚 Environmental Shading References", expanded=False):
