@@ -25,18 +25,29 @@ class AdvancedRadiationAnalyzer:
         
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Validate project_id
+                if not self.project_id or not isinstance(self.project_id, (int, str)):
+                    st.error(f"❌ Invalid project_id: {self.project_id}")
+                    return []
+                
+                # Convert to int if string
+                try:
+                    project_id_int = int(self.project_id)
+                except ValueError:
+                    st.error(f"❌ Cannot convert project_id to integer: {self.project_id}")
+                    return []
+                
                 # First check if elements exist for this project
-                cursor.execute("""
-                    SELECT COUNT(*) as total_count
-                    FROM building_elements 
-                    WHERE project_id = %s
-                """, (self.project_id,))
+                cursor.execute(
+                    "SELECT COUNT(*) as total_count FROM building_elements WHERE project_id = %s", 
+                    (project_id_int,)
+                )
                 
                 result = cursor.fetchone()
                 total_count = result['total_count'] if result else 0
                 
                 if total_count == 0:
-                    st.warning(f"⚠️ No building elements found for project {self.project_id}")
+                    st.warning(f"⚠️ No building elements found for project {project_id_int}")
                     return []
                 
                 # Get window elements (suitable for BIPV)
@@ -44,14 +55,14 @@ class AdvancedRadiationAnalyzer:
                     SELECT element_id, orientation, azimuth, glass_area, building_level, 
                            family, wall_element_id, level
                     FROM building_elements 
-                    WHERE project_id = %s AND (family ILIKE '%window%' OR family ILIKE '%glazing%' OR family ILIKE '%curtain%')
+                    WHERE project_id = %s AND (family ILIKE %s OR family ILIKE %s OR family ILIKE %s)
                     ORDER BY orientation, azimuth
-                """, (self.project_id,))
+                """, (project_id_int, '%window%', '%glazing%', '%curtain%'))
                 
                 elements = cursor.fetchall()
                 
                 if not elements:
-                    st.warning(f"⚠️ No window elements found for project {self.project_id} out of {total_count} total elements")
+                    st.warning(f"⚠️ No window elements found for project {project_id_int} out of {total_count} total elements")
                     return []
                 
                 st.info(f"📊 Found {len(elements):,} window elements out of {total_count:,} total elements")

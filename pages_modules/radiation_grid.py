@@ -114,7 +114,7 @@ def render_radiation_grid():
                     total_building_elements = 0
                 
                 # If no data found, show available projects with data
-                if total_building_elements == 0 or wall_count == 0:
+                if total_building_elements == 0:
                     try:
                         cursor.execute("""
                             SELECT be.project_id, p.project_name, COUNT(be.id) as window_count
@@ -126,46 +126,27 @@ def render_radiation_grid():
                         """)
                         window_projects = cursor.fetchall()
                         
-                        cursor.execute("""
-                            SELECT bw.project_id, p.project_name, COUNT(bw.id) as wall_count
-                            FROM building_walls bw
-                            JOIN projects p ON bw.project_id = p.id
-                            GROUP BY bw.project_id, p.project_name
-                            ORDER BY bw.project_id DESC
-                            LIMIT 5
-                        """)
-                        wall_projects = cursor.fetchall()
-                        
-                        if window_projects or wall_projects:
-                            with st.expander("🔍 **Debug: Available Projects with Data**", expanded=True):
-                                if window_projects:
-                                    st.write("**Projects with Window Data:**")
-                                    for proj_id, proj_name, count in window_projects:
-                                        st.write(f"- Project {proj_id}: {proj_name} ({count:,} windows)")
-                                        
-                                if wall_projects:
-                                    st.write("**Projects with Wall Data:**")
-                                    for proj_id, proj_name, count in wall_projects:
-                                        st.write(f"- Project {proj_id}: {proj_name} ({count:,} walls)")
+                        if window_projects:
+                            with st.expander("🔍 **Available Projects with Window Data**", expanded=True):
+                                st.write("**Projects with Window Data:**")
+                                for proj_id, proj_name, count in window_projects:
+                                    st.write(f"- Project {proj_id}: {proj_name} ({count:,} windows)")
                                 
-                                # Option to switch to latest project with both data types
-                                latest_window_project = window_projects[0][0] if window_projects else None
-                                latest_wall_project = wall_projects[0][0] if wall_projects else None
+                                # Option to switch to latest project with data
+                                latest_window_project = window_projects[0][0]
+                                latest_project_name = window_projects[0][1]
                                 
-                                if latest_window_project and latest_wall_project:
-                                    # Find a project that has both
-                                    common_projects = [(proj_id, proj_name) for proj_id, proj_name, _ in window_projects 
-                                                     if proj_id in [wp[0] for wp in wall_projects]]
-                                    
-                                    if common_projects:
-                                        recommended_id, recommended_name = common_projects[0]
-                                        st.success(f"💡 **Recommendation**: Project {recommended_id} ({recommended_name}) has both window and wall data")
-                                        
-                                        if st.button(f"🔄 Switch to Project {recommended_id}", key="switch_to_recommended_project"):
-                                            st.session_state.project_id = recommended_id
-                                            st.session_state.project_data['project_id'] = recommended_id
-                                            st.success(f"✅ Switched to project {recommended_id}")
-                                            st.rerun()
+                                st.success(f"💡 **Recommendation**: Switch to Project {latest_window_project} ({latest_project_name}) with {window_projects[0][2]:,} windows")
+                                
+                                if st.button(f"🔄 Switch to Project {latest_window_project}", key="switch_to_window_project"):
+                                    st.session_state.project_id = latest_window_project
+                                    # Update project data in session state
+                                    if 'project_data' not in st.session_state:
+                                        st.session_state.project_data = {}
+                                    st.session_state.project_data['project_id'] = latest_window_project
+                                    st.session_state.project_data['project_name'] = latest_project_name
+                                    st.success(f"✅ Switched to project {latest_window_project}")
+                                    st.rerun()
                     except Exception as e:
                         st.warning(f"Could not retrieve project data: {e}")
                     
