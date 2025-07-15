@@ -9,7 +9,7 @@ try:
     from pydantic_settings import BaseSettings
 except ImportError:
     from pydantic import BaseSettings
-from pydantic import Field
+from pydantic import Field, ConfigDict
 
 
 class DatabaseConfig(BaseSettings):
@@ -41,8 +41,7 @@ class DatabaseConfig(BaseSettings):
         """Get async database connection URL."""
         return f"postgresql+asyncpg://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
 
-    class Config:
-        env_prefix = "DB_"
+    model_config = ConfigDict(env_prefix="DB_")
 
 
 class SpecificationConfig(BaseSettings):

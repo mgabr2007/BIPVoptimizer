@@ -3,7 +3,7 @@ Pydantic models for BIPV panel specification and analysis.
 """
 
 from typing import Optional, List, Dict, Any, Union
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from enum import Enum
 from datetime import datetime
 from decimal import Decimal
@@ -31,6 +31,8 @@ class OrientationType(str, Enum):
 
 class BuildingElement(BaseModel):
     """Building element data from Step 4 facade extraction."""
+    model_config = ConfigDict(validate_assignment=True, extra="allow")
+    
     element_id: str = Field(..., description="Unique element identifier")
     project_id: int = Field(..., description="Project identifier")
     orientation: OrientationType = Field(..., description="Element orientation")
@@ -59,6 +61,8 @@ class BuildingElement(BaseModel):
 
 class RadiationRecord(BaseModel):
     """Solar radiation data from Step 5 analysis."""
+    model_config = ConfigDict(validate_assignment=True, extra="allow")
+    
     element_id: str = Field(..., description="Unique element identifier")
     project_id: int = Field(..., description="Project identifier")
     annual_radiation: float = Field(..., description="Annual radiation in kWh/m²/year")

@@ -4,6 +4,92 @@ Core mathematical functions and solar calculations for BIPV Optimizer
 import math
 import streamlit as st
 from datetime import datetime, timedelta
+from typing import Tuple, List, Optional
+
+
+def calculate_solar_position(latitude: float, longitude: float, timestamp: datetime) -> Tuple[float, float]:
+    """
+    Calculate solar position (elevation and azimuth) for given location and time.
+    
+    Args:
+        latitude: Latitude in degrees
+        longitude: Longitude in degrees  
+        timestamp: UTC datetime
+        
+    Returns:
+        Tuple of (solar_elevation, solar_azimuth) in degrees
+    """
+    
+    # Convert to radians
+    lat_rad = math.radians(latitude)
+    
+    # Day of year
+    day_of_year = timestamp.timetuple().tm_yday
+    
+    # Solar declination angle
+    declination = math.radians(23.45 * math.sin(math.radians(360 * (284 + day_of_year) / 365)))
+    
+    # Hour angle
+    time_correction = 4 * (longitude - 15 * timestamp.hour)  # Simplified
+    solar_time = timestamp.hour + timestamp.minute/60.0 + time_correction/60.0
+    hour_angle = math.radians(15 * (solar_time - 12))
+    
+    # Solar elevation
+    elevation_rad = math.asin(
+        math.sin(declination) * math.sin(lat_rad) + 
+        math.cos(declination) * math.cos(lat_rad) * math.cos(hour_angle)
+    )
+    elevation = math.degrees(elevation_rad)
+    
+    # Solar azimuth
+    azimuth_rad = math.atan2(
+        math.sin(hour_angle),
+        math.cos(hour_angle) * math.sin(lat_rad) - math.tan(declination) * math.cos(lat_rad)
+    )
+    azimuth = math.degrees(azimuth_rad) + 180  # Convert from south = 0 to north = 0
+    
+    return max(0, elevation), azimuth % 360
+
+
+def calculate_irradiance_on_surface(dni: float, solar_elevation: float, solar_azimuth: float, 
+                                  surface_azimuth: float, surface_tilt: float = 90) -> float:
+    """
+    Calculate irradiance on a tilted surface.
+    
+    Args:
+        dni: Direct Normal Irradiance in W/m²
+        solar_elevation: Solar elevation angle in degrees
+        solar_azimuth: Solar azimuth angle in degrees
+        surface_azimuth: Surface azimuth angle in degrees
+        surface_tilt: Surface tilt angle in degrees (90 = vertical)
+        
+    Returns:
+        Irradiance on surface in W/m²
+    """
+    
+    if solar_elevation <= 0 or dni <= 0:
+        return 0
+    
+    # Convert to radians
+    sun_elev_rad = math.radians(solar_elevation)
+    sun_azim_rad = math.radians(solar_azimuth)
+    surf_azim_rad = math.radians(surface_azimuth)
+    surf_tilt_rad = math.radians(surface_tilt)
+    
+    # Calculate angle of incidence
+    cos_incidence = (
+        math.sin(sun_elev_rad) * math.cos(surf_tilt_rad) +
+        math.cos(sun_elev_rad) * math.sin(surf_tilt_rad) * 
+        math.cos(sun_azim_rad - surf_azim_rad)
+    )
+    
+    # Ensure positive incidence
+    cos_incidence = max(0, cos_incidence)
+    
+    # Calculate surface irradiance
+    surface_irradiance = dni * cos_incidence
+    
+    return surface_irradiance
 
 
 class SimpleMath:

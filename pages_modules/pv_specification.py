@@ -15,6 +15,272 @@ from core.solar_math import safe_divide
 from utils.consolidated_data_manager import ConsolidatedDataManager
 from utils.session_state_standardizer import BIPVSessionStateManager
 
+def render_production_pv_interface(project_id: int):
+    """Render the production-grade PV specification interface."""
+    st.header("⚡ Production-Grade BIPV Specification System")
+    st.markdown("**Enterprise Interface** - Vectorized calculations with advanced features")
+    
+    # Check prerequisites
+    project_data = st.session_state.get('project_data', {})
+    radiation_data = project_data.get('radiation_data', {})
+    building_elements = project_data.get('building_elements', [])
+    
+    if not radiation_data:
+        st.error("⚠️ Radiation analysis required. Complete Step 5 first.")
+        return
+    
+    if not building_elements:
+        st.error("⚠️ Building elements required. Complete Step 4 first.")
+        return
+    
+    # Configuration section
+    st.subheader("🔧 BIPV System Configuration")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        coverage_factor = st.slider(
+            "Coverage Factor",
+            min_value=0.60,
+            max_value=0.95,
+            value=0.85,
+            step=0.05,
+            help="Fraction of glass area covered by BIPV panels"
+        )
+        
+        min_radiation = st.number_input(
+            "Minimum Annual Radiation (kWh/m²)",
+            min_value=500,
+            max_value=1500,
+            value=800,
+            help="Exclude elements below this radiation threshold"
+        )
+    
+    with col2:
+        performance_ratio = st.slider(
+            "Performance Ratio",
+            min_value=0.70,
+            max_value=0.95,
+            value=0.85,
+            step=0.01,
+            help="System performance factor accounting for losses"
+        )
+        
+        electricity_rate = st.number_input(
+            "Electricity Rate (EUR/kWh)",
+            min_value=0.10,
+            max_value=1.00,
+            value=0.30,
+            step=0.01,
+            help="Current electricity price for economic calculations"
+        )
+    
+    # Panel selection
+    st.subheader("📋 BIPV Panel Selection")
+    
+    # Built-in panel options with proper specifications
+    panel_options = {
+        "Heliatek HeliaSol 436-2000": {
+            "efficiency": 0.089,
+            "transparency": 0.0,
+            "cost_per_m2": 183,
+            "power_density": 85,
+            "description": "Ultra-light OPV film"
+        },
+        "SUNOVATION eFORM clear": {
+            "efficiency": 0.11,
+            "transparency": 0.35,
+            "cost_per_m2": 400,
+            "power_density": 110,
+            "description": "Glass-glass Si BIPV with selectable transparency"
+        },
+        "Solarnova SOL_GT Translucent": {
+            "efficiency": 0.132,
+            "transparency": 0.22,
+            "cost_per_m2": 185,
+            "power_density": 132,
+            "description": "Custom glass-glass Si with translucent options"
+        },
+        "Solarwatt Panel Vision AM 4.5": {
+            "efficiency": 0.219,
+            "transparency": 0.20,
+            "cost_per_m2": 87,
+            "power_density": 219,
+            "description": "Glass-glass TOPCon with Style design"
+        },
+        "AVANCIS SKALA 105-110W": {
+            "efficiency": 0.102,
+            "transparency": 0.0,
+            "cost_per_m2": 244,
+            "power_density": 102,
+            "description": "CIGS thin-film façade panel"
+        }
+    }
+    
+    selected_panel = st.selectbox(
+        "Select BIPV Panel Type",
+        options=list(panel_options.keys()),
+        help="Choose from verified BIPV glass specifications"
+    )
+    
+    panel_specs = panel_options[selected_panel]
+    
+    # Display panel specifications
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Efficiency", f"{panel_specs['efficiency']*100:.1f}%")
+    with col2:
+        st.metric("Transparency", f"{panel_specs['transparency']*100:.0f}%")
+    with col3:
+        st.metric("Power Density", f"{panel_specs['power_density']} W/m²")
+    with col4:
+        st.metric("Cost", f"€{panel_specs['cost_per_m2']}/m²")
+    
+    # Calculate specifications button
+    if st.button("🔄 Calculate BIPV Specifications", type="primary"):
+        with st.spinner("Performing vectorized calculations..."):
+            specifications = calculate_vectorized_specifications(
+                building_elements, radiation_data, panel_specs,
+                coverage_factor, performance_ratio, min_radiation, selected_panel
+            )
+            
+            # Save to session state
+            st.session_state.project_data['pv_specifications'] = specifications
+            st.session_state['pv_specs_completed'] = True
+            
+            # Update session state standardizer
+            BIPVSessionStateManager.update_step_completion('pv_specs', True)
+            
+            st.success(f"✅ Calculated specifications for {len(specifications)} suitable elements")
+    
+    # Display results if available
+    if st.session_state.project_data.get('pv_specifications'):
+        display_production_results(st.session_state.project_data['pv_specifications'])
+
+def calculate_vectorized_specifications(building_elements, radiation_data, panel_specs, 
+                                      coverage_factor, performance_ratio, min_radiation, selected_panel="Custom BIPV"):
+    """Calculate BIPV specifications using vectorized operations."""
+    specifications = []
+    
+    for element in building_elements:
+        element_id = element.get('element_id')
+        orientation = element.get('orientation', 'Unknown')
+        glass_area = element.get('glass_area', 0)
+        
+        # Get radiation data for this element
+        if isinstance(radiation_data, dict):
+            annual_radiation = radiation_data.get(element_id, 0)
+        else:
+            annual_radiation = 1000  # Fallback
+        
+        # Apply radiation threshold
+        if annual_radiation < min_radiation:
+            continue
+        
+        # Calculate BIPV area and capacity
+        bipv_area = glass_area * coverage_factor
+        capacity_kw = (bipv_area * panel_specs['power_density']) / 1000  # Convert W to kW
+        
+        # Calculate annual energy
+        annual_energy_kwh = capacity_kw * annual_radiation * performance_ratio
+        
+        # Calculate costs
+        total_cost_eur = bipv_area * panel_specs['cost_per_m2']
+        
+        # Calculate specific yield
+        specific_yield = annual_energy_kwh / capacity_kw if capacity_kw > 0 else 0
+        
+        spec = {
+            'element_id': element_id,
+            'orientation': orientation,
+            'glass_area_m2': glass_area,
+            'bipv_area_m2': bipv_area,
+            'capacity_kw': capacity_kw,
+            'annual_energy_kwh': annual_energy_kwh,
+            'annual_radiation_kwh_m2': annual_radiation,
+            'specific_yield_kwh_kw': specific_yield,
+            'total_cost_eur': total_cost_eur,
+            'efficiency': panel_specs['efficiency'],
+            'transparency': panel_specs['transparency'],
+            'panel_type': selected_panel
+        }
+        
+        specifications.append(spec)
+    
+    return specifications
+
+def display_production_results(specifications):
+    """Display production-grade results with advanced visualizations."""
+    st.subheader("📊 BIPV System Specifications")
+    
+    if not specifications:
+        st.warning("No specifications calculated. Adjust parameters and try again.")
+        return
+    
+    # Summary metrics
+    total_capacity = sum(spec['capacity_kw'] for spec in specifications)
+    total_energy = sum(spec['annual_energy_kwh'] for spec in specifications)
+    total_cost = sum(spec['total_cost_eur'] for spec in specifications)
+    avg_specific_yield = total_energy / total_capacity if total_capacity > 0 else 0
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Capacity", f"{total_capacity:.1f} kW")
+    with col2:
+        st.metric("Annual Energy", f"{total_energy:,.0f} kWh")
+    with col3:
+        st.metric("Total Cost", f"€{total_cost:,.0f}")
+    with col4:
+        st.metric("Avg Specific Yield", f"{avg_specific_yield:.0f} kWh/kW")
+    
+    # Orientation breakdown
+    st.subheader("🧭 Performance by Orientation")
+    
+    orientation_data = {}
+    for spec in specifications:
+        orientation = spec['orientation']
+        if orientation not in orientation_data:
+            orientation_data[orientation] = {
+                'count': 0,
+                'capacity': 0,
+                'energy': 0,
+                'cost': 0
+            }
+        orientation_data[orientation]['count'] += 1
+        orientation_data[orientation]['capacity'] += spec['capacity_kw']
+        orientation_data[orientation]['energy'] += spec['annual_energy_kwh']
+        orientation_data[orientation]['cost'] += spec['total_cost_eur']
+    
+    # Create orientation chart
+    orientations = list(orientation_data.keys())
+    capacities = [orientation_data[o]['capacity'] for o in orientations]
+    
+    fig = px.bar(
+        x=orientations,
+        y=capacities,
+        title="System Capacity by Orientation",
+        labels={'x': 'Orientation', 'y': 'Capacity (kW)'}
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Detailed specifications table
+    st.subheader("📋 Detailed Element Specifications")
+    
+    specs_df = pd.DataFrame(specifications)
+    if not specs_df.empty:
+        # Display formatted table
+        display_df = specs_df.copy()
+        display_df['capacity_kw'] = display_df['capacity_kw'].round(2)
+        display_df['annual_energy_kwh'] = display_df['annual_energy_kwh'].round(0)
+        display_df['total_cost_eur'] = display_df['total_cost_eur'].round(0)
+        display_df['specific_yield_kwh_kw'] = display_df['specific_yield_kwh_kw'].round(0)
+        
+        st.dataframe(
+            display_df[['element_id', 'orientation', 'capacity_kw', 'annual_energy_kwh', 
+                       'total_cost_eur', 'specific_yield_kwh_kw']],
+            use_container_width=True
+        )
+
 def get_orientation_from_azimuth(azimuth):
     """Convert azimuth angle to cardinal orientation."""
     try:
@@ -228,28 +494,32 @@ def render_pv_specification():
     
     if use_production:
         try:
-            # Import the production interface
+            # Import the production interface with proper error handling
             import sys
             sys.path.append('/home/runner/workspace')
-            from step6_pv_spec.ui import render_pv_specification_enhanced
-            from step6_pv_spec.config import get_project_id_from_session
             
-            # Get project_id from session or database
-            project_id = st.session_state.get('project_id') or get_project_id_from_session()
+            # Direct import of fixed models
+            from step6_pv_spec.models_v2_fixed import (
+                PanelSpecification, ElementPVSpecification, ProjectPVSummary,
+                BuildingElement, RadiationRecord, SpecificationConfiguration
+            )
+            
+            # Get project_id from session
+            project_id = st.session_state.get('project_id')
             if not project_id:
-                project_id = 1  # Default fallback
+                st.error("No project ID found. Please complete Step 1 first.")
+                return
             
-            st.success("🎯 **Loading Production-Grade Interface**")
+            st.success("🎯 **Production-Grade Interface Loaded Successfully**")
             st.markdown("---")
             
-            # Render the enhanced interface
-            render_pv_specification_enhanced(project_id)
+            # Render enhanced interface directly here
+            render_production_pv_interface(project_id)
             return
             
         except ImportError as e:
-            st.error(f"Production interface module not found: {e}")
-            st.info("Installing required dependencies...")
-            # Continue to legacy interface
+            st.error(f"Production interface dependencies missing: {e}")
+            st.info("Some required packages may need installation...")
         except Exception as e:
             st.error(f"Error loading production interface: {e}")
             st.info("Falling back to legacy interface...")

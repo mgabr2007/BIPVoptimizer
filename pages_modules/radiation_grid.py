@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 from database_manager import db_manager, BIPVDatabaseManager
 from services.advanced_radiation_analyzer import AdvancedRadiationAnalyzer
+from services.optimized_radiation_analyzer import OptimizedRadiationAnalyzer
 from utils.session_state_standardizer import BIPVSessionStateManager
 import time
 
@@ -30,8 +31,14 @@ def render_radiation_grid():
     if not check_dependencies():
         return
     
-    # Analysis precision selection - based on user's calculation details
-    st.subheader("📊 Analysis Configuration")
+    # Performance optimization interface
+    st.subheader("⚡ Performance & Precision Configuration")
+    
+    use_optimized = st.checkbox(
+        "🚀 Enable High-Performance Analysis",
+        value=True,
+        help="Use optimized analyzer to reduce processing time from hours to minutes"
+    )
     
     col1, col2 = st.columns(2)
     
@@ -40,14 +47,29 @@ def render_radiation_grid():
             "Calculation Precision",
             ["Hourly", "Daily Peak", "Monthly Average", "Yearly Average"],
             index=1,  # Default to Daily Peak
-            help="Hourly: 4,015 calculations per element | Daily Peak: 365 calculations | Monthly: 12 calculations | Yearly: 4 calculations"
+            help="Higher precision = longer processing time | Daily Peak recommended for balance"
         )
+        
+        # Show expected processing time
+        time_estimates = {
+            "Hourly": "15-30 minutes (maximum accuracy)",
+            "Daily Peak": "3-5 minutes (recommended)",
+            "Monthly Average": "30-60 seconds (good accuracy)",
+            "Yearly Average": "10-20 seconds (quick overview)"
+        }
+        st.info(f"⏱️ **Estimated Time**: {time_estimates[precision]}")
     
     with col2:
         include_shading = st.checkbox(
             "Include Geometric Shading",
             value=True,
             help="Calculate precise shadows from building walls"
+        )
+        
+        apply_corrections = st.checkbox(
+            "Apply Orientation Corrections",
+            value=True,
+            help="Apply physics-based orientation corrections for realistic radiation values"
         )
     
     # Wall data info - already uploaded in Step 4
@@ -62,14 +84,17 @@ def render_radiation_grid():
         "Yearly Average": "📊 **4 calculations per element** (seasonal representatives)"
     }
     
-    st.info(calculation_details[precision])
+    calculation_details = {
+        "Hourly": "⏰ **4,015 calculations per element** (11 hours × 365 days)",
+        "Daily Peak": "☀️ **365 calculations per element** (noon × 365 days)",
+        "Monthly Average": "📅 **12 calculations per element** (monthly representatives)",
+        "Yearly Average": "📊 **4 calculations per element** (seasonal representatives)"
+    }
     
-    # Advanced analysis options
-    apply_corrections = st.checkbox(
-        "Apply Orientation Corrections",
-        value=True,
-        help="Apply physics-based orientation corrections for realistic radiation values"
-    )
+    if not use_optimized:
+        st.info(calculation_details[precision])
+    else:
+        st.success(f"🚀 **Optimized Mode**: {calculation_details[precision]} with vectorized processing")
     
     # Check for existing analysis
     existing_data = db_manager.get_radiation_analysis_data(project_id)
@@ -193,7 +218,38 @@ def render_radiation_grid():
         
         if can_run_analysis:
             if st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis"):
-                run_advanced_analysis(project_id, precision, include_shading, apply_corrections)
+                if use_optimized:
+                    # Use optimized analyzer
+                    analyzer = OptimizedRadiationAnalyzer()
+                    st.info("🚀 **Using High-Performance Analyzer**")
+                    
+                    analysis_results = analyzer.analyze_radiation_optimized(
+                        project_id=project_id,
+                        precision=precision,
+                        apply_corrections=apply_corrections,
+                        include_shading=include_shading
+                    )
+                    
+                    if analysis_results and not analysis_results.get('error'):
+                        # Save to session state for persistence
+                        if 'project_data' not in st.session_state:
+                            st.session_state.project_data = {}
+                        
+                        st.session_state.project_data['radiation_data'] = analysis_results['element_radiation']
+                        st.session_state['radiation_completed'] = True
+                        BIPVSessionStateManager.update_step_completion('radiation', True)
+                        
+                        st.success(f"✅ **Optimized Analysis Complete!**\n"
+                                 f"- Elements: {analysis_results['total_elements']}\n"
+                                 f"- Method: {precision} (optimized)\n"
+                                 f"- Time: {analysis_results['calculation_time']:.1f} seconds\n"
+                                 f"- Speed: {analysis_results['performance_metrics']['calculations_per_second']:.0f} calc/sec")
+                        st.rerun()
+                    else:
+                        st.error(f"Optimized analysis failed: {analysis_results.get('error', 'Unknown error')}")
+                else:
+                    # Use legacy analyzer
+                    run_advanced_analysis(project_id, precision, include_shading, apply_corrections)
         else:
             # Determine what's missing
             if not walls_available and total_building_elements == 0:
