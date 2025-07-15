@@ -1,0 +1,93 @@
+I. Upgrade the supplied render_radiation_grid() Streamlit page (and helpers) into a scalable, high‑performance, and production‑ready module. Apply every requirement below.
+
+1 · Code Architecture
+
+Decompose into
+
+ui.py – Streamlit UI only
+
+services/analysis_runner.py – orchestration & callbacks
+
+db/queries.py – parametrised SQL / asyncpg helpers
+
+models.py – Pydantic models for radiation results
+
+config.py – constants (precision presets, thresholds, table names)
+
+Add type hints and docstrings everywhere.
+
+Centralise error handling & logging utilities; remove inline print/st.error duplicates.
+
+2 · Database & Performance
+
+Switch to UPSERT + bulk execute_values for wall & radiation inserts.
+
+Provide async execution path using asyncio + asyncpg; fall back to sync if event loop blocked.
+
+Create SQL functions/views for heavy aggregations (orientation counts, stats) to offload from Python.
+
+Add DB indices on frequently filtered columns (project_id, element_id, orientation).
+
+3 · Radiation Engine Integration
+
+Inject AdvancedRadiationAnalyzer as a strategy class; allow DI for testing.
+
+Make precision presets (Hourly, Daily Peak…) a dataclass with calc_count, label, description.
+
+Accept TMY, EPW, or raw hourly weather; implement quick auto‑detect + validation.
+
+Support parallel element chunks (e.g. via concurrent.futures.ThreadPoolExecutor) when calling analyzer.run_advanced_analysis.
+
+4 · UI & UX Improvements
+
+Replace two‑column st.columns checklists with a timeline/stepper component (Streamlit Extras) for status.
+
+Embed a Plotly polar bar showing orientation energy after analysis.
+
+Persist progress via st.session_state so refreshes resume instead of restart.
+
+Add a lightweight dashboard route (/results) that fetches only final stats (no heavy re‑computation).
+
+5 · Validation & QC
+
+Validate wall & window presence with great_expectations; raise explicit Streamlit warnings.
+
+Detect units (degrees vs radians) and auto‑convert; warn if min/max outside expected ranges.
+
+Implement pytest unit tests for get_orientation_from_azimuth, DB cleaners, analyzer orchestrator.
+
+Create a docker‑compose CI using Postgres‑alpine for integration tests.
+
+6 · Logging & Observability
+
+Use loguru for structured logs (JSON output when ENV=prod).
+
+Add Sentry integration for uncaught exceptions.
+
+Provide a Streamlit expander showing the last 200 log lines for the current run.
+
+7 · Security & Ops
+
+Enforce file‑size and MIME checks for any future uploads (though Step 5 is upload‑free).
+
+Remove hard‑coded secrets; fetch via env vars or Streamlit secrets manager.
+
+Add RBAC stubs so only project owners can launch analysis or reset results.
+
+8 · Documentation & Deliverables
+
+Update /README.md with architecture diagram, dev setup, env vars, and typical run sequence.
+
+Produce API docs via mkdocs‑material or pdoc.
+
+Supply requirements.txt or pyproject.toml reflecting new deps (asyncpg, pydantic, loguru, great_expectations).
+
+Final Deliverables
+
+Refactored package step5_radiation/ with modules outlined above.
+
+Unit + integration test suite in /tests and a CI workflow file (GitHub Actions).
+
+Updated documentation & dependency files.
+
+A sample Postgres migration SQL for required tables/indices.

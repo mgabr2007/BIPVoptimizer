@@ -1,0 +1,93 @@
+Your task is to transform the existing render_facade_extraction() Streamlit module (and its supporting functions) into a production‑grade, maintainable, and high‑performance component. Apply every item in the roadmap below.
+
+1 · Code Architecture & Maintainability
+
+Break UI, data processing, and DB I/O into separate helper modules.
+
+Add full type hints.
+
+Introduce dataclasses or pydantic models for Window & Wall records.
+
+Move constants (orientation thresholds, table names, feature flags) to a YAML/JSON config file.
+
+Replace scattered try/except with a centralised error‑handling utility.
+
+2 · Performance & UX
+
+Implement async/bulk DB writes (e.g. via asyncpg or threaded executor) to keep UI responsive.
+
+Clean up st.session_state after each run to free memory.
+
+Process large CSVs in chunks, updating the progress bar per chunk.
+
+Add client‑side header validation before upload to fail fast.
+
+3 · Data Quality & Validation
+
+Validate DataFrames with pandera (or great_expectations) against an explicit schema.
+
+Detect units (radians vs degrees, cm² vs m²) and prompt conversion.
+
+Flag duplicate ElementId values within the file or DB.
+
+4 · Database Layer
+
+Convert DELETE+INSERT pattern to UPSERT (INSERT … ON CONFLICT DO UPDATE).
+
+Use psycopg2.extras.execute_values (or equivalent) for bulk inserts.
+
+Wrap connections in a context‑manager in BIPVDatabaseManager.
+
+Ensure indices on project_id, element_id, host_wall_id.
+
+5 · Functional Enhancements
+
+Allow multiple façade files (ZIP) and merge automatically.
+
+Replace bar chart with polar histogram for orientation distribution.
+
+Provide editable suitability rules in a Streamlit sidebar (orientation ranges, min area, glazing types).
+
+Persist partial uploads so a browser refresh doesn’t force re‑upload.
+
+6 · Testing & CI
+
+Add pytest unit tests for helpers (get_orientation_from_azimuth, DB insert helpers).
+
+Create an integration test that loads a sample CSV into a temporary Postgres container.
+
+Set up pre‑commit hooks with black & ruff.
+
+7 · Logging & Monitoring
+
+Integrate loguru or structlog for structured logs (tagged with project_id & step).
+
+Expose a log viewer panel in the UI.
+
+Configure Sentry (or similar) for error telemetry.
+
+8 · Accessibility & i18n
+
+Accept locale‑aware numbers (comma decimal separators).
+
+Add language toggle (EN/AR) using st.session_state["lang"].
+
+9 · Security
+
+Enforce file‑size limits and scan uploads for malware.
+
+Ensure all SQL queries remain parametrised; add role‑based project access.
+
+Load DB credentials via environment variables or Streamlit secrets manager.
+
+Deliverables
+
+Refactored Python package (/step4_facade_extraction/) with modules: ui.py, processing.py, database.py, models.py, config.py, validators.py, logging_utils.py.
+
+Unit & integration test suite under /tests with CI workflow.
+
+Updated requirements.txt (or pyproject.toml).
+
+Documentation (README.md) summarising setup, config, and dev workflow.
+
+Focus on clean, idiomatic Python 3.11, PEP‑8 compliance, and clear docstrings. When in doubt, favour explicitness and testability over clever one‑liners.

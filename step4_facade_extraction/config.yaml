@@ -1,0 +1,53 @@
+orientation:
+  north_range: [315, 45]
+  south_range: [135, 225]
+  east_range: [45, 135]
+  west_range: [225, 315]
+
+suitability:
+  min_glass_area: 0.5
+  max_glass_area: 100.0
+  suitable_orientations:
+    - "South"
+    - "East"
+    - "West"
+    - "Southeast"
+    - "Southwest"
+  excluded_families:
+    - "Roof"
+    - "Floor"
+    - "Ceiling"
+  min_building_level: null
+
+database:
+  batch_size: 1000
+  connection_timeout: 30
+  max_retries: 3
+  tables:
+    building_elements: "building_elements"
+    building_walls: "building_walls"
+    projects: "projects"
+
+processing:
+  chunk_size: 500
+  max_file_size_mb: 50
+  allowed_extensions:
+    - ".csv"
+  encoding_fallbacks:
+    - "utf-8"
+    - "latin-1"
+    - "iso-8859-1"
+    - "cp1252"
+
+ui:
+  progress_update_interval: 100
+  max_preview_rows: 10
+  enable_debug_mode: false
+  chart_height: 400
+
+security:
+  enable_malware_scan: false
+  max_upload_size_mb: 50
+  allowed_mime_types:
+    - "text/csv"
+    - "application/csv"
