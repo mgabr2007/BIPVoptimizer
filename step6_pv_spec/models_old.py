@@ -106,37 +106,39 @@ class PanelSpecification(BaseModel):
     def validate_efficiency(cls, v):
         """Validate efficiency is reasonable."""
         if not 0.02 <= v <= 0.25:  # 2% to 25%
-            raise ValueError(f'Efficiency {v} outside reasonable range (0.02-0.25)')
+            raise ValueError(f'Efficiency {v:.1%} outside reasonable range (2%-25%)')
         return v
     
     @field_validator('transparency')
     @classmethod
     def validate_transparency(cls, v):
         """Validate transparency is between 0 and 1."""
-        if not 0.0 <= v <= 0.65:  # 0% to 65%
-            raise ValueError(f'Transparency {v} outside range (0.0-0.65)')
+        if not 0 <= v <= 0.65:  # 0% to 65%
+            raise ValueError(f'Transparency {v:.1%} outside valid range (0%-65%)')
         return v
     
     @field_validator('cost_per_m2')
     @classmethod
     def validate_cost(cls, v):
         """Validate cost is reasonable."""
-        if not 50.0 <= v <= 1000.0:
-            raise ValueError(f'Cost per m² {v} outside reasonable range (50-1000 EUR)')
+        if not 50 <= v <= 1000:  # €50 to €1000 per m²
+            raise ValueError(f'Cost €{v}/m² outside reasonable range (€50-€1000)')
         return v
     
     @field_validator('power_density')
     @classmethod
     def validate_power_density(cls, v):
         """Validate power density is reasonable."""
-        if not 10.0 <= v <= 250.0:
-            raise ValueError(f'Power density {v} outside reasonable range (10-250 W/m²)')
+        if not 10 <= v <= 250:  # 10 to 250 W/m²
+            raise ValueError(f'Power density {v} W/m² outside reasonable range (10-250)')
         return v
     
+    @property
     def efficiency_percent(self) -> float:
         """Get efficiency as percentage."""
         return self.efficiency * 100
     
+    @property
     def transparency_percent(self) -> float:
         """Get transparency as percentage."""
         return self.transparency * 100
@@ -164,8 +166,8 @@ class ElementPVSpecification(BaseModel):
     @classmethod
     def validate_coverage(cls, v):
         """Validate coverage factor."""
-        if not 0.0 <= v <= 1.0:
-            raise ValueError(f'Panel coverage {v} must be between 0 and 1')
+        if not 0 <= v <= 1:
+            raise ValueError(f'Panel coverage must be between 0 and 1, got {v}')
         return v
     
     @field_validator('effective_area', 'system_power', 'annual_energy')
@@ -173,12 +175,15 @@ class ElementPVSpecification(BaseModel):
     def validate_positive_values(cls, v):
         """Validate values are positive."""
         if v < 0:
-            raise ValueError(f'Value {v} must be non-negative')
+            raise ValueError(f'Value must be non-negative, got {v}')
         return v
     
+    @property
     def power_per_m2(self) -> float:
         """Calculate power per square meter."""
-        return (self.system_power * 1000) / self.glass_area if self.glass_area > 0 else 0
+        if self.glass_area > 0:
+            return (self.system_power * 1000) / self.glass_area  # W/m²
+        return 0.0
 
 
 class ProjectPVSummary(BaseModel):
@@ -217,8 +222,8 @@ class SpecificationConfiguration(BaseModel):
     @classmethod
     def validate_coverage_factors(cls, v):
         """Validate coverage factors are between 0 and 1."""
-        if not 0.0 <= v <= 1.0:
-            raise ValueError(f'Coverage factor {v} must be between 0 and 1')
+        if not 0 <= v <= 1:
+            raise ValueError(f'Coverage factor must be between 0 and 1, got {v}')
         return v
 
 
@@ -245,33 +250,121 @@ class CalculationMetrics(BaseModel):
     performance_notes: List[str] = Field(default_factory=list)
 
 
+# Default panel specifications for initial catalog
+DEFAULT_PANEL_SPECIFICATIONS = [
+    {
+        "name": "Heliatek HeliaSol 436-2000",
+        "manufacturer": "Heliatek",
+        "panel_type": "opaque",
+        "efficiency": 0.089,
+        "transparency": 0.0,
+        "power_density": 89.0,
+        "cost_per_m2": 183.0,
+        "glass_thickness": 1.5,
+        "u_value": 1.1,
+        "glass_weight": 15.0
+    },
+    {
+        "name": "SUNOVATION eFORM Clear",
+        "manufacturer": "SUNOVATION",
+        "panel_type": "semi_transparent",
+        "efficiency": 0.11,
+        "transparency": 0.35,
+        "power_density": 110.0,
+        "cost_per_m2": 400.0,
+        "glass_thickness": 6.0,
+        "u_value": 2.8,
+        "glass_weight": 25.0
+    },
+    {
+        "name": "Solarnova SOL_GT Translucent",
+        "manufacturer": "Solarnova",
+        "panel_type": "semi_transparent",
+        "efficiency": 0.132,
+        "transparency": 0.22,
+        "power_density": 132.0,
+        "cost_per_m2": 185.0,
+        "glass_thickness": 10.0,
+        "u_value": 1.8,
+        "glass_weight": 30.0
+    },
+    {
+        "name": "Solarwatt Vision AM 4.5",
+        "manufacturer": "Solarwatt",
+        "panel_type": "semi_transparent",
+        "efficiency": 0.219,
+        "transparency": 0.20,
+        "power_density": 219.0,
+        "cost_per_m2": 87.0,
+        "glass_thickness": 8.0,
+        "u_value": 1.5,
+        "glass_weight": 28.0
+    },
+    {
+        "name": "AVANCIS SKALA 105-110W",
+        "manufacturer": "AVANCIS",
+        "panel_type": "opaque",
+        "efficiency": 0.102,
+        "transparency": 0.0,
+        "power_density": 102.0,
+        "cost_per_m2": 244.0,
+        "glass_thickness": 6.0,
+        "u_value": 1.2,
+        "glass_weight": 22.0
+    }
+]
+
+
 def validate_element_radiation_data(elements_df: pd.DataFrame, radiation_df: pd.DataFrame) -> ValidationResult:
     """Validate building elements and radiation data consistency."""
     errors = []
     warnings = []
     
-    # Check if element IDs match
-    element_ids = set(elements_df['element_id']) if 'element_id' in elements_df.columns else set()
-    radiation_ids = set(radiation_df['element_id']) if 'element_id' in radiation_df.columns else set()
+    # Check required columns
+    required_element_cols = ['element_id', 'orientation', 'glass_area', 'azimuth']
+    required_radiation_cols = ['element_id', 'annual_radiation']
+    
+    missing_element_cols = [col for col in required_element_cols if col not in elements_df.columns]
+    missing_radiation_cols = [col for col in required_radiation_cols if col not in radiation_df.columns]
+    
+    if missing_element_cols:
+        errors.append(f"Missing element columns: {missing_element_cols}")
+    if missing_radiation_cols:
+        errors.append(f"Missing radiation columns: {missing_radiation_cols}")
+    
+    if errors:
+        return ValidationResult(is_valid=False, errors=errors)
+    
+    # Check data consistency
+    element_ids = set(elements_df['element_id'].unique())
+    radiation_ids = set(radiation_df['element_id'].unique())
     
     missing_radiation = element_ids - radiation_ids
-    if missing_radiation:
-        warnings.append(f"Missing radiation data for {len(missing_radiation)} elements")
-    
     missing_elements = radiation_ids - element_ids
+    
+    if missing_radiation:
+        warnings.append(f"{len(missing_radiation)} elements missing radiation data")
     if missing_elements:
-        warnings.append(f"Radiation data for {len(missing_elements)} elements without building data")
+        warnings.append(f"{len(missing_elements)} radiation records without elements")
     
-    # Check data types and ranges
-    if 'glass_area' in elements_df.columns:
-        invalid_areas = elements_df[elements_df['glass_area'] <= 0]
-        if len(invalid_areas) > 0:
-            errors.append(f"Found {len(invalid_areas)} elements with invalid glass areas")
+    # Check value ranges
+    invalid_areas = elements_df[elements_df['glass_area'] <= 0]
+    if len(invalid_areas) > 0:
+        errors.append(f"{len(invalid_areas)} elements with invalid glass area")
     
-    if 'annual_radiation' in radiation_df.columns:
-        invalid_radiation = radiation_df[(radiation_df['annual_radiation'] < 0) | (radiation_df['annual_radiation'] > 3000)]
-        if len(invalid_radiation) > 0:
-            errors.append(f"Found {len(invalid_radiation)} elements with invalid radiation values")
+    invalid_radiation = radiation_df[(radiation_df['annual_radiation'] <= 0) | 
+                                   (radiation_df['annual_radiation'] > 3000)]
+    if len(invalid_radiation) > 0:
+        warnings.append(f"{len(invalid_radiation)} elements with questionable radiation values")
+    
+    validation_summary = {
+        "element_count": len(elements_df),
+        "radiation_count": len(radiation_df),
+        "matching_elements": len(element_ids & radiation_ids),
+        "valid_areas": len(elements_df[elements_df['glass_area'] > 0]),
+        "valid_radiation": len(radiation_df[(radiation_df['annual_radiation'] > 0) & 
+                                          (radiation_df['annual_radiation'] <= 3000)])
+    }
     
     return ValidationResult(
         is_valid=len(errors) == 0,
@@ -279,37 +372,37 @@ def validate_element_radiation_data(elements_df: pd.DataFrame, radiation_df: pd.
         warnings=warnings,
         element_count=len(elements_df),
         radiation_count=len(radiation_df),
-        validation_summary={
-            'common_elements': len(element_ids & radiation_ids),
-            'missing_radiation': len(missing_radiation),
-            'missing_elements': len(missing_elements)
-        }
+        validation_summary=validation_summary
     )
 
 
 def detect_unit_anomalies(data: Dict[str, Any]) -> Dict[str, str]:
     """Detect unit anomalies in data and suggest conversions."""
-    issues = {}
+    suggestions = {}
     
-    # Check glass area (likely in cm² if very large)
+    # Check glass area units
     if 'glass_area' in data:
-        areas = data['glass_area'] if isinstance(data['glass_area'], list) else [data['glass_area']]
-        max_area = max(areas) if areas else 0
-        if max_area > 1000:  # Likely cm²
-            issues['glass_area'] = "Values appear to be in cm² - convert to m² by dividing by 10,000"
+        glass_area = data['glass_area']
+        if isinstance(glass_area, (int, float)):
+            if glass_area > 1000:  # Likely cm²
+                suggestions['glass_area'] = f"Value {glass_area} appears to be in cm². Divide by 10,000 for m²."
+            elif glass_area < 0.1:  # Suspiciously small
+                suggestions['glass_area'] = f"Value {glass_area} m² seems very small. Check units."
     
-    # Check radiation (likely in MWh/m² if very small)
-    if 'annual_radiation' in data:
-        radiation = data['annual_radiation'] if isinstance(data['annual_radiation'], list) else [data['annual_radiation']]
-        min_radiation = min(radiation) if radiation else 0
-        if min_radiation < 10:  # Likely MWh/m²
-            issues['annual_radiation'] = "Values appear to be in MWh/m² - convert to kWh/m² by multiplying by 1,000"
-    
-    # Check power density (likely in kW/m² if very small)
+    # Check power density units
     if 'power_density' in data:
-        power = data['power_density'] if isinstance(data['power_density'], list) else [data['power_density']]
-        min_power = min(power) if power else 0
-        if min_power < 1:  # Likely kW/m²
-            issues['power_density'] = "Values appear to be in kW/m² - convert to W/m² by multiplying by 1,000"
+        power_density = data['power_density']
+        if isinstance(power_density, (int, float)):
+            if power_density < 1:  # Likely kW/m²
+                suggestions['power_density'] = f"Value {power_density} appears to be in kW/m². Multiply by 1000 for W/m²."
+            elif power_density > 500:  # Too high for BIPV
+                suggestions['power_density'] = f"Value {power_density} W/m² seems too high for BIPV panels."
     
-    return issues
+    # Check efficiency units
+    if 'efficiency' in data:
+        efficiency = data['efficiency']
+        if isinstance(efficiency, (int, float)):
+            if efficiency > 1:  # Likely percentage
+                suggestions['efficiency'] = f"Value {efficiency} appears to be percentage. Divide by 100 for decimal."
+    
+    return suggestions

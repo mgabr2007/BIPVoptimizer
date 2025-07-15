@@ -220,19 +220,42 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
 def render_pv_specification():
     """Render the simplified PV panel specification and layout module."""
     
-    # Enhanced production-grade interface option
-    if st.checkbox("🚀 Use Production-Grade Interface", value=False, help="Switch to the new modular, high-performance interface"):
+    # Enhanced production-grade interface option - prominent placement
+    st.info("🚀 **NEW: Enhanced Production-Grade Interface Available**")
+    use_production = st.checkbox("✅ Enable Production-Grade BIPV Analysis", value=False, 
+                                help="Switch to enterprise-grade interface with vectorized calculations, database persistence, and advanced features")
+    
+    if use_production:
         try:
-            from step6_pv_spec import render_pv_specification_enhanced
+            # Import the production interface
+            import sys
+            sys.path.append('/home/runner/workspace')
+            from step6_pv_spec.ui import render_pv_specification_enhanced
+            from step6_pv_spec.config import get_project_id_from_session
+            
             # Get project_id from session or database
-            project_id = st.session_state.get('project_id', 1)
+            project_id = st.session_state.get('project_id') or get_project_id_from_session()
+            if not project_id:
+                project_id = 1  # Default fallback
+            
+            st.success("🎯 **Loading Production-Grade Interface**")
+            st.markdown("---")
+            
+            # Render the enhanced interface
             render_pv_specification_enhanced(project_id)
             return
-        except ImportError:
-            st.warning("Production-grade interface not available. Using legacy interface.")
+            
+        except ImportError as e:
+            st.error(f"Production interface module not found: {e}")
+            st.info("Installing required dependencies...")
+            # Continue to legacy interface
         except Exception as e:
             st.error(f"Error loading production interface: {e}")
-            st.info("Falling back to legacy interface.")
+            st.info("Falling back to legacy interface...")
+    
+    # Legacy interface header
+    if not use_production:
+        st.warning("📝 **Using Legacy Interface** - Enable production-grade interface above for enhanced features")
     
     # Add OptiSunny character header image
     st.image("attached_assets/step06_1751436847830.png", width=400)

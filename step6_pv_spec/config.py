@@ -5,7 +5,11 @@ Configuration constants and settings for PV specification module.
 import os
 from typing import Dict, Any, List
 from pathlib import Path
-from pydantic import BaseSettings, Field
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
+from pydantic import Field
 
 
 class DatabaseConfig(BaseSettings):
@@ -129,6 +133,23 @@ class SecurityConfig(BaseSettings):
     
     class Config:
         env_prefix = "SECURITY_"
+
+
+def get_project_id_from_session():
+    """Get project ID from Streamlit session state."""
+    try:
+        import streamlit as st
+        return st.session_state.get('project_id', 1)
+    except:
+        return 1
+
+
+# API Configuration
+API_ENDPOINTS = {
+    "base_path": "/api/v1/pv-spec",
+    "panel_catalog": "/panel-catalog",
+    "calculate": "/calculate-specifications"
+}
 
 
 class LoggingConfig(BaseSettings):

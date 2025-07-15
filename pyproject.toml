@@ -32,4 +32,5 @@ dependencies = [
     "sentry-sdk>=2.33.0",
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.6.15",
+    "pydantic-settings>=2.10.1",
 ]
