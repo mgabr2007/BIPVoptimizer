@@ -366,11 +366,14 @@ class AdvancedRadiationAnalyzer:
         
         for day in days_sample:
             for hour in sample_hours:
-                # Find matching TMY data
+                # Find matching TMY data - handle different field name conventions
                 matching_data = None
                 for hour_data in tmy_data:
-                    if (hour_data.get('day_of_year') == day and 
-                        hour_data.get('hour') == hour):
+                    # Try different field name conventions
+                    data_day = hour_data.get('day_of_year', hour_data.get('day', 0))
+                    data_hour = hour_data.get('hour', 0)
+                    
+                    if (data_day == day and data_hour == hour):
                         matching_data = hour_data
                         break
                 
@@ -431,8 +434,12 @@ class AdvancedRadiationAnalyzer:
                 total_irradiance += surface_irradiance
                 peak_irradiance = max(peak_irradiance, surface_irradiance)
                 
-                # Monthly totals
-                month = matching_data.get('month', 1) - 1
+                # Monthly totals - calculate month from day_of_year if month not available
+                month = matching_data.get('month', 0)
+                if month == 0:
+                    # Calculate month from day of year
+                    month = ((day - 1) // 30) + 1  # Approximate month calculation
+                month = month - 1  # Convert to 0-based index
                 if 0 <= month < 12:
                     monthly_totals[month] += surface_irradiance
         
@@ -448,14 +455,37 @@ class AdvancedRadiationAnalyzer:
             st.write(f"🔍 Debug {element_id}: Total irradiance: {total_irradiance:.2f} W/m², Annual: {annual_irradiation:.2f} kWh/m²/year")
             st.write(f"🔍 Debug {element_id}: Orientation: {orientation}, Azimuth: {azimuth}°, Scaling: {scaling_factor:.2f}")
             
-            # Check TMY data structure
+            # Check TMY data structure and matching
             sample_tmy = tmy_data[0] if tmy_data else {}
             st.write(f"🔍 Debug {element_id}: TMY fields available: {list(sample_tmy.keys())}")
+            
+            # Test data matching and show sample values
+            matching_count = 0
+            sample_ghi_values = []
+            for day in days_sample:
+                for hour in sample_hours:
+                    for hour_data in tmy_data:
+                        data_day = hour_data.get('day_of_year', hour_data.get('day', 0))
+                        data_hour = hour_data.get('hour', 0)
+                        if data_day == day and data_hour == hour:
+                            matching_count += 1
+                            ghi_val = hour_data.get('ghi', 0)
+                            sample_ghi_values.append(ghi_val)
+                            break
+            
+            st.write(f"🔍 Debug {element_id}: Found {matching_count} matching TMY records out of {len(days_sample) * len(sample_hours)} requested")
+            if sample_ghi_values:
+                st.write(f"🔍 Debug {element_id}: Sample GHI values: {sample_ghi_values[:5]} (avg: {sum(sample_ghi_values)/len(sample_ghi_values):.1f} W/m²)")
+            
+            # Show sample TMY data structure
+            if tmy_data:
+                sample_record = tmy_data[0]
+                st.write(f"🔍 Debug {element_id}: Sample TMY record - day: {sample_record.get('day', 'N/A')}, hour: {sample_record.get('hour', 'N/A')}, ghi: {sample_record.get('ghi', 'N/A')}")
             
             if total_irradiance > 0:
                 st.write(f"✅ Debug {element_id}: Sample calculation successful")
             else:
-                st.write(f"❌ Debug {element_id}: No valid irradiance calculated - check TMY data structure")
+                st.write(f"❌ Debug {element_id}: No valid irradiance calculated - check data matching and values")
         
         # Return actual calculated values
         
