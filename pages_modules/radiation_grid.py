@@ -340,19 +340,56 @@ def display_existing_results(project_id):
         element_radiation = radiation_data['element_radiation']
         total_elements = len(element_radiation)
         
-        # Summary metrics
+        # Progress Matrix
+        st.subheader("📈 Analysis Progress Matrix")
+        
+        # Calculate statistics for progress matrix
+        successful_elements = len([r for r in element_radiation if r['annual_radiation'] > 0])
+        failed_elements = total_elements - successful_elements
+        
+        # Calculate orientation distribution
+        orientation_counts = {}
+        for element in element_radiation:
+            orientation = element.get('orientation', 'Unknown')
+            orientation_counts[orientation] = orientation_counts.get(orientation, 0) + 1
+        
+        # Progress matrix display
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Total Elements", total_elements)
+            st.metric("Total Elements", f"{total_elements:,}")
         with col2:
+            st.metric("Successfully Analyzed", f"{successful_elements:,}", delta=f"{(successful_elements/total_elements)*100:.1f}%")
+        with col3:
+            st.metric("Failed Analysis", f"{failed_elements:,}", delta=f"{(failed_elements/total_elements)*100:.1f}%" if failed_elements > 0 else "0%")
+        with col4:
+            completion_rate = (successful_elements / total_elements) * 100 if total_elements > 0 else 0
+            st.metric("Completion Rate", f"{completion_rate:.1f}%")
+        
+        # Orientation breakdown
+        st.subheader("🧭 Orientation Distribution")
+        if orientation_counts:
+            orientation_cols = st.columns(len(orientation_counts))
+            for i, (orientation, count) in enumerate(orientation_counts.items()):
+                with orientation_cols[i]:
+                    percentage = (count / total_elements) * 100
+                    st.metric(f"{orientation}", f"{count:,}", delta=f"{percentage:.1f}%")
+        
+        # Summary statistics
+        st.subheader("☀️ Radiation Statistics")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
             avg_radiation = sum(r['annual_radiation'] for r in element_radiation) / total_elements
             st.metric("Average Radiation", f"{avg_radiation:.0f} kWh/m²/year")
-        with col3:
+        with col2:
             max_radiation = max(r['annual_radiation'] for r in element_radiation)
             st.metric("Maximum Radiation", f"{max_radiation:.0f} kWh/m²/year")
-        with col4:
+        with col3:
             min_radiation = min(r['annual_radiation'] for r in element_radiation) if element_radiation else 0
             st.metric("Minimum Radiation", f"{min_radiation:.0f} kWh/m²/year")
+        with col4:
+            # Calculate suitable elements (>200 kWh/m²/year threshold)
+            suitable_elements = len([r for r in element_radiation if r['annual_radiation'] > 200])
+            st.metric("Suitable Elements", f"{suitable_elements:,}", delta=f"{(suitable_elements/total_elements)*100:.1f}%")
         
         # Radiation distribution chart
         st.subheader("📈 Radiation Distribution")

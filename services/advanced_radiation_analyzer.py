@@ -459,55 +459,9 @@ class AdvancedRadiationAnalyzer:
         else:
             annual_irradiation = 0
         
-        # Debug: Log calculation details for troubleshooting
-        if element_id.endswith(('1', '2', '3')) or annual_irradiation < 100:
-            st.write(f"🔍 Debug {element_id}: TMY samples: {len(sample_hours)}, Days: {len(days_sample)}")
-            st.write(f"🔍 Debug {element_id}: Total irradiance: {total_irradiance:.2f} W/m², Annual: {annual_irradiation:.2f} kWh/m²/year")
-            st.write(f"🔍 Debug {element_id}: Orientation: {orientation}, Azimuth: {azimuth}°, Scaling: {scaling_factor:.2f}")
-            
-            # Check TMY data structure and matching
-            sample_tmy = tmy_data[0] if tmy_data else {}
-            st.write(f"🔍 Debug {element_id}: TMY fields available: {list(sample_tmy.keys())}")
-            
-            # Test data matching and show sample values
-            matching_count = 0
-            sample_ghi_values = []
-            for day in days_sample:
-                for hour in sample_hours:
-                    for hour_data in tmy_data:
-                        data_day = hour_data.get('day_of_year', hour_data.get('day', 0))
-                        data_hour = hour_data.get('hour', 0)
-                        if data_day == day and data_hour == hour:
-                            matching_count += 1
-                            # Get GHI value using multiple field names
-                            ghi_val = 0
-                            for ghi_field in ['ghi', 'GHI', 'GHI_Wm2', 'ghi_wm2']:
-                                if ghi_field in hour_data and hour_data[ghi_field] is not None:
-                                    try:
-                                        ghi_val = float(hour_data[ghi_field])
-                                        break
-                                    except (ValueError, TypeError):
-                                        continue
-                            sample_ghi_values.append(ghi_val)
-                            break
-            
-            st.write(f"🔍 Debug {element_id}: Found {matching_count} matching TMY records out of {len(days_sample) * len(sample_hours)} requested")
-            if sample_ghi_values:
-                st.write(f"🔍 Debug {element_id}: Sample GHI values: {sample_ghi_values[:5]} (avg: {sum(sample_ghi_values)/len(sample_ghi_values):.1f} W/m²)")
-            
-            # Show sample TMY data structure and available fields
-            if tmy_data:
-                sample_record = tmy_data[0]
-                st.write(f"🔍 Debug {element_id}: Sample TMY record structure:")
-                st.write(f"   - day: {sample_record.get('day', sample_record.get('day_of_year', 'N/A'))}")
-                st.write(f"   - hour: {sample_record.get('hour', 'N/A')}")
-                st.write(f"   - ghi: {sample_record.get('ghi', sample_record.get('GHI_Wm2', 'N/A'))}")
-                st.write(f"   - Available keys: {list(sample_record.keys())[:10]}...")  # Show first 10 keys
-            
-            if total_irradiance > 0:
-                st.write(f"✅ Debug {element_id}: Sample calculation successful")
-            else:
-                st.write(f"❌ Debug {element_id}: No valid irradiance calculated - check data matching and values")
+        # Log successful calculation silently (no debug output)
+        if annual_irradiation > 0:
+            pass  # Calculation successful
         
         # Return actual calculated values
         
