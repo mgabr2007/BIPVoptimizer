@@ -63,21 +63,15 @@ def save_walls_data_to_database(project_id, walls_df):
             for _, row in walls_df.iterrows():
                 cursor.execute("""
                     INSERT INTO building_walls 
-                    (project_id, element_id, name, wall_type, level, length_m, area_m2, volume_m3, 
-                     ori_x, ori_y, ori_z, azimuth, orientation)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    (project_id, element_id, name, wall_type, level, area, azimuth, orientation)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
                     str(row.get('ElementId', '')),
                     str(row.get('Name', '')),
                     str(row.get('Wall Type', '')),
                     str(row.get('Level', '')),
-                    float(row.get('Length (m)', 0)) if pd.notna(row.get('Length (m)')) else None,
                     float(row.get('Area (m²)', 0)) if pd.notna(row.get('Area (m²)')) else None,
-                    float(row.get('Volume (m³)', 0)) if pd.notna(row.get('Volume (m³)')) else None,
-                    float(row.get('OriX', 0)) if pd.notna(row.get('OriX')) else None,
-                    float(row.get('OriY', 0)) if pd.notna(row.get('OriY')) else None,
-                    float(row.get('OriZ', 0)) if pd.notna(row.get('OriZ')) else None,
                     float(row.get('Azimuth (°)', 0)) if pd.notna(row.get('Azimuth (°)')) else None,
                     get_orientation_from_azimuth(row.get('Azimuth (°)'))
                 ))

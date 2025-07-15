@@ -140,6 +140,21 @@ CREATE TABLE IF NOT EXISTS optimization_results (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Building walls table - stores wall geometry for self-shading calculations
+CREATE TABLE IF NOT EXISTS building_walls (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    element_id VARCHAR(100),
+    name VARCHAR(255),
+    wall_type VARCHAR(100),
+    orientation VARCHAR(50),
+    azimuth DECIMAL(5, 1),
+    height DECIMAL(8, 2),
+    level VARCHAR(100),
+    area DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(project_name);
 CREATE INDEX IF NOT EXISTS idx_building_elements_project ON building_elements(project_id);
@@ -147,6 +162,7 @@ CREATE INDEX IF NOT EXISTS idx_building_elements_element ON building_elements(el
 CREATE INDEX IF NOT EXISTS idx_element_radiation_project ON element_radiation(project_id);
 CREATE INDEX IF NOT EXISTS idx_financial_analysis_project ON financial_analysis(project_id);
 CREATE INDEX IF NOT EXISTS idx_optimization_results_project ON optimization_results(project_id);
+CREATE INDEX IF NOT EXISTS idx_building_walls_project ON building_walls(project_id);
 
 -- Create a view for comprehensive project reports
 CREATE OR REPLACE VIEW project_report_view AS
