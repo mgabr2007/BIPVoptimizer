@@ -207,6 +207,10 @@ def _get_climate_zone(latitude):
 def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shading_reduction):
     """Regenerate TMY data with environmental shading factors applied"""
     try:
+        if not original_tmy_data:
+            st.error("❌ No original TMY data available for regeneration")
+            return False
+            
         # Apply shading reduction to all irradiance values
         adjusted_tmy_data = []
         shading_factor = 1 - (shading_reduction / 100)
@@ -214,25 +218,29 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
         for hour_data in original_tmy_data:
             adjusted_hour = hour_data.copy()
             # Apply shading reduction to all irradiance components
-            if 'ghi' in adjusted_hour:
+            if 'ghi' in adjusted_hour and adjusted_hour['ghi'] is not None:
                 adjusted_hour['ghi'] = float(adjusted_hour['ghi']) * shading_factor
-            if 'dni' in adjusted_hour:
+            if 'dni' in adjusted_hour and adjusted_hour['dni'] is not None:
                 adjusted_hour['dni'] = float(adjusted_hour['dni']) * shading_factor
-            if 'dhi' in adjusted_hour:
+            if 'dhi' in adjusted_hour and adjusted_hour['dhi'] is not None:
                 adjusted_hour['dhi'] = float(adjusted_hour['dhi']) * shading_factor
             
             adjusted_tmy_data.append(adjusted_hour)
         
         # Calculate new annual GHI
-        annual_ghi = sum(float(hour.get('ghi', 0)) for hour in adjusted_tmy_data)
+        annual_ghi = sum(float(hour.get('ghi', 0) or 0) for hour in adjusted_tmy_data)
         
         # Update weather analysis with adjusted data
         weather_analysis = st.session_state.project_data.get('weather_analysis', {})
+        original_annual_ghi = weather_analysis.get('annual_ghi', 0)
+        
         weather_analysis.update({
             'tmy_data': adjusted_tmy_data,
             'annual_ghi': annual_ghi,
+            'original_annual_ghi': original_annual_ghi,
             'environmental_adjustment': shading_reduction,
-            'generation_timestamp': datetime.now().isoformat()
+            'generation_timestamp': datetime.now().isoformat(),
+            'regenerated': True
         })
         
         # Save updated weather analysis
@@ -249,11 +257,23 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
             except Exception as db_error:
                 st.warning(f"Database save failed: {str(db_error)}")
         
+        # Display regeneration results
         st.success(f"✅ TMY data regenerated with {shading_reduction}% environmental shading adjustment!")
-        st.success(f"📊 New annual GHI: {annual_ghi:,.0f} kWh/m²")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Original Annual GHI", f"{original_annual_ghi:,.0f} kWh/m²")
+        with col2:
+            st.metric("Adjusted Annual GHI", f"{annual_ghi:,.0f} kWh/m²")
+        with col3:
+            reduction_amount = original_annual_ghi - annual_ghi
+            st.metric("Reduction", f"{reduction_amount:,.0f} kWh/m²", f"-{shading_reduction}%")
+        
+        return True
         
     except Exception as e:
         st.error(f"❌ TMY regeneration failed: {str(e)}")
+        return False
 
 
 def render_weather_environment():
@@ -844,8 +864,48 @@ def render_weather_environment():
                 st.warning(f"Current shading impact: {shading_reduction}% reduction will be applied to TMY data")
             with col2:
                 if st.button("🔄 Regenerate TMY Data", key="regenerate_tmy_env"):
-                    regenerate_tmy_with_environmental_factors(lat, lon, weather_analysis.get('tmy_data', []), shading_reduction)
-                    st.rerun()
+                    success = regenerate_tmy_with_environmental_factors(lat, lon, weather_analysis.get('tmy_data', []), shading_reduction)
+                    if success:
+                        st.rerun()
+            
+            # Display regenerated TMY data if available
+            if weather_analysis.get('regenerated', False):
+                st.markdown("---")
+                st.subheader("📊 Regenerated TMY Data Summary")
+                
+                # Get regenerated data
+                env_adjustment = weather_analysis.get('environmental_adjustment', 0)
+                original_ghi = weather_analysis.get('original_annual_ghi', 0)
+                adjusted_ghi = weather_analysis.get('annual_ghi', 0)
+                generation_time = weather_analysis.get('generation_timestamp', 'Unknown')
+                
+                st.success(f"✅ TMY data successfully regenerated with {env_adjustment}% environmental adjustment")
+                
+                # Display comparison metrics
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Original Annual GHI", f"{original_ghi:,.0f} kWh/m²")
+                with col2:
+                    st.metric("Environmentally Adjusted GHI", f"{adjusted_ghi:,.0f} kWh/m²") 
+                with col3:
+                    reduction = original_ghi - adjusted_ghi
+                    st.metric("Total Reduction", f"{reduction:,.0f} kWh/m²", f"-{env_adjustment}%")
+                
+                st.info(f"📅 Regenerated on: {generation_time[:19].replace('T', ' ')}")
+                
+                # Display TMY data quality metrics
+                tmy_data = weather_analysis.get('tmy_data', [])
+                if tmy_data:
+                    st.markdown("**TMY Data Quality:**")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Total Hours", f"{len(tmy_data):,}")
+                    with col2:
+                        valid_ghi = sum(1 for hour in tmy_data if hour.get('ghi', 0) > 0)
+                        st.metric("Valid Solar Hours", f"{valid_ghi:,}")
+                    with col3:
+                        coverage = (valid_ghi / len(tmy_data)) * 100 if tmy_data else 0
+                        st.metric("Data Coverage", f"{coverage:.1f}%")
         
         # Environmental Shading References Section
         with st.expander("📚 Environmental Shading References", expanded=False):
