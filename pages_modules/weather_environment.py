@@ -248,12 +248,16 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
         
         # Save to database if project exists
         project_data = st.session_state.get('project_data', {})
+        project_id = project_data.get('project_id')
         project_name = project_data.get('project_name')
-        if project_name:
+        
+        if project_id or project_name:
             try:
                 from database_manager import BIPVDatabaseManager
                 db_manager = BIPVDatabaseManager()
-                db_manager.save_weather_data(project_name, weather_analysis)
+                # Use project_id if available, otherwise use project_name
+                identifier = project_id if project_id else project_name
+                db_manager.save_weather_data(identifier, weather_analysis)
             except Exception as db_error:
                 st.warning(f"Database save failed: {str(db_error)}")
         

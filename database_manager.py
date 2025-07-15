@@ -93,7 +93,7 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
-    def save_weather_data(self, project_id, weather_data):
+    def save_weather_data(self, project_identifier, weather_data):
         """Save weather and TMY data"""
         conn = self.get_connection()
         if not conn:
@@ -101,8 +101,34 @@ class BIPVDatabaseManager:
         
         try:
             with conn.cursor() as cursor:
+                # Get project_id if identifier is a string (project name)
+                if isinstance(project_identifier, str):
+                    cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_identifier,))
+                    result = cursor.fetchone()
+                    if not result:
+                        st.error(f"Project '{project_identifier}' not found in database")
+                        return False
+                    project_id = result[0]
+                else:
+                    project_id = int(project_identifier)
+                
                 # Delete existing weather data for this project
                 cursor.execute("DELETE FROM weather_data WHERE project_id = %s", (project_id,))
+                
+                # Prepare data with proper type conversion
+                temperature = weather_data.get('temperature')
+                humidity = weather_data.get('humidity') 
+                description = weather_data.get('description', '')
+                annual_ghi = weather_data.get('annual_ghi', 0)
+                annual_dni = weather_data.get('annual_dni', 0)
+                annual_dhi = weather_data.get('annual_dhi', 0)
+                
+                # Convert to proper types
+                temperature = float(temperature) if temperature is not None else None
+                humidity = float(humidity) if humidity is not None else None
+                annual_ghi = float(annual_ghi) if annual_ghi is not None else 0.0
+                annual_dni = float(annual_dni) if annual_dni is not None else 0.0
+                annual_dhi = float(annual_dhi) if annual_dhi is not None else 0.0
                 
                 # Insert new weather data
                 cursor.execute("""
@@ -111,12 +137,12 @@ class BIPVDatabaseManager:
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
-                    weather_data.get('temperature'),
-                    weather_data.get('humidity'),
-                    weather_data.get('description'),
-                    weather_data.get('annual_ghi'),
-                    weather_data.get('annual_dni'),
-                    weather_data.get('annual_dhi')
+                    temperature,
+                    humidity,
+                    description,
+                    annual_ghi,
+                    annual_dni,
+                    annual_dhi
                 ))
                 
                 conn.commit()
