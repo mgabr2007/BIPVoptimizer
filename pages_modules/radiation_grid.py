@@ -118,8 +118,12 @@ def render_radiation_grid():
                     
                     # Save to database
                     if st.button("💾 Save Wall Data", key="save_walls_data"):
-                        save_walls_data_to_database(project_id, walls_df)
-                        st.success("✅ Wall data saved successfully!")
+                        if save_walls_data_to_database(project_id, walls_df):
+                            st.success("✅ Wall data saved successfully!")
+                            # Force refresh to update button state
+                            st.rerun()
+                        else:
+                            st.error("❌ Failed to save wall data")
                         
             except Exception as e:
                 st.error(f"Error processing walls CSV: {str(e)}")
@@ -147,6 +151,9 @@ def render_radiation_grid():
             st.success(f"✅ Wall data available - precise geometric shading calculations will be used")
         else:
             st.error("❌ Wall data is required for radiation analysis. Upload wall data above to proceed with calculations.")
+            
+        # Additional status check - need to check this after the total_building_elements calculation
+        # This will be displayed after we calculate the count below
     
     # Show calculation details based on precision
     calculation_details = {
@@ -198,14 +205,44 @@ def render_radiation_grid():
     if total_building_elements > 0:
         st.info(f"🪟 Ready to analyze **{total_building_elements:,} window elements** for BIPV glass replacement")
         st.caption("Analysis will focus on windows with families: Windows, M_Sliding, M_Fixed, M_Casement, ARCHED_ALUMINUM, etc.")
+    else:
+        st.warning("⚠️ No window elements found. Complete Step 4 (Facade Extraction) to upload window data first.")
+        
+    # Show both requirements status clearly
+    st.subheader("📋 Analysis Requirements Status")
+    col1, col2 = st.columns(2)
+    with col1:
+        if total_building_elements > 0:
+            st.success(f"✅ Window Elements: {total_building_elements:,} available")
+        else:
+            st.error("❌ Window Elements: Not uploaded (Step 4 required)")
+    with col2:
+        if walls_available:
+            st.success("✅ Wall Data: Available for self-shading")
+        else:
+            st.error("❌ Wall Data: Not uploaded (required above)")
     
     col1, col2 = st.columns(2)
     with col1:
-        if walls_available:
+        # Check both wall data and window elements for button activation
+        can_run_analysis = walls_available and total_building_elements > 0
+        
+        if can_run_analysis:
             if st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis"):
                 run_advanced_analysis(project_id, precision, include_shading, apply_corrections)
         else:
-            st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis", disabled=True, help="Upload wall data first to enable analysis")
+            # Determine what's missing
+            if not walls_available and total_building_elements == 0:
+                help_text = "Upload window elements (Step 4) and wall data first"
+            elif not walls_available:
+                help_text = "Upload wall data first to enable analysis"
+            elif total_building_elements == 0:
+                help_text = "Upload window elements in Step 4 first"
+            else:
+                help_text = "Missing required data"
+                
+            st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis", 
+                     disabled=True, help=help_text)
     
     with col2:
         if st.button("🔄 Reset Analysis", key="reset_analysis"):
