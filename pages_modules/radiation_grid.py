@@ -184,6 +184,10 @@ def render_radiation_grid():
     
     # Display existing results if available
     display_existing_results(project_id)
+    
+    # Reset the flag after displaying results
+    if 'analysis_just_completed' in st.session_state:
+        del st.session_state['analysis_just_completed']
 
 def check_dependencies():
     """Check if required data is available for radiation analysis."""
@@ -225,10 +229,7 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
     """Run advanced database-driven radiation analysis with sophisticated calculations."""
     
     try:
-        st.subheader("🔄 Advanced Radiation Analysis")
-        
-        # Clear previous radiation calculations for this project
-        st.info("🗑️ Clearing previous radiation data...")
+        # Clear previous radiation calculations silently
         clear_radiation_data(project_id)
         
         # Initialize advanced analyzer
@@ -240,8 +241,6 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
         if not suitable_elements:
             st.error("❌ No suitable building elements found for radiation analysis")
             return
-        
-        st.success(f"✅ Found {len(suitable_elements)} suitable elements for analysis")
         
         # Get weather data
         weather_data = st.session_state.project_data.get('weather_analysis', {})
@@ -266,19 +265,16 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
             progress_bar.progress(progress)
             status_text.text(f"{message} ({current}/{total})")
         
-        # Show calculation details
-        st.info(f"🔬 **Analysis Details**: {precision} precision with {len(suitable_elements)} elements")
-        
-        # Run advanced analysis with all sophisticated calculations
-        success = analyzer.run_advanced_analysis(
-            tmy_data=tmy_data,
-            latitude=latitude,
-            longitude=longitude,
-            precision=precision,
-            include_shading=include_shading,
-            apply_corrections=apply_corrections,
-            progress_callback=update_progress
-        )
+            # Run advanced analysis with all sophisticated calculations
+            success = analyzer.run_advanced_analysis(
+                tmy_data=tmy_data,
+                latitude=latitude,
+                longitude=longitude,
+                precision=precision,
+                include_shading=include_shading,
+                apply_corrections=apply_corrections,
+                progress_callback=update_progress
+            )
         
         if success:
             st.success("✅ Advanced analysis completed successfully!")
@@ -288,9 +284,9 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
             # Update session state
             st.session_state.radiation_completed = True
             st.session_state.step5_completed = True
+            st.session_state.analysis_just_completed = True
             
-            # Display results immediately
-            display_existing_results(project_id)
+            # Don't display results here - they will be shown below to avoid duplication
         else:
             st.error("❌ Analysis failed. Please check the logs.")
         
@@ -406,7 +402,10 @@ def display_existing_results(project_id):
             xaxis_title="Annual Radiation (kWh/m²/year)",
             yaxis_title="Number of Elements"
         )
-        st.plotly_chart(fig, use_container_width=True, key=f"radiation_distribution_chart_{project_id}_{len(element_radiation)}")
+        # Use timestamp to ensure unique key
+        import time
+        unique_key = f"radiation_distribution_chart_{project_id}_{int(time.time())}"
+        st.plotly_chart(fig, use_container_width=True, key=unique_key)
         
         # Top performing elements
         st.subheader("🏆 Top Performing Elements")
@@ -428,7 +427,10 @@ def display_existing_results(project_id):
         
         # Navigation
         st.markdown("---")
-        if st.button("Continue to Step 6: PV Specification", key=f"continue_pv_spec_{project_id}_{len(element_radiation)}"):
+        # Use timestamp for unique button key
+        import time
+        unique_button_key = f"continue_pv_spec_{project_id}_{int(time.time())}"
+        if st.button("Continue to Step 6: PV Specification", key=unique_button_key):
             st.session_state.current_step = 'pv_specification'
             st.session_state.scroll_to_top = True
             st.rerun()
