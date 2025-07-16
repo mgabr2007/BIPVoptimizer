@@ -361,16 +361,11 @@ class BIPVDatabaseManager:
                     cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
                     
                     for element in element_radiation:
-                        # Use INSERT ON CONFLICT to handle unique constraint
+                        # Simple INSERT since we already deleted existing records
                         cursor.execute("""
                             INSERT INTO element_radiation 
                             (project_id, element_id, annual_radiation, irradiance, orientation_multiplier)
                             VALUES (%s, %s, %s, %s, %s)
-                            ON CONFLICT (project_id, element_id) 
-                            DO UPDATE SET
-                                annual_radiation = EXCLUDED.annual_radiation,
-                                irradiance = EXCLUDED.irradiance,
-                                orientation_multiplier = EXCLUDED.orientation_multiplier
                         """, (
                             project_id,
                             element.get('element_id'),
@@ -449,17 +444,15 @@ class BIPVDatabaseManager:
                         element.get('orientation_multiplier', 1.0)
                     ))
                 
+                # Clear existing records first
+                cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
+                
                 # Use execute_batch for efficient bulk insert
                 from psycopg2.extras import execute_batch
                 execute_batch(cursor, """
                     INSERT INTO element_radiation 
                     (project_id, element_id, annual_radiation, irradiance, orientation_multiplier)
                     VALUES (%s, %s, %s, %s, %s)
-                    ON CONFLICT (project_id, element_id) 
-                    DO UPDATE SET
-                        annual_radiation = EXCLUDED.annual_radiation,
-                        irradiance = EXCLUDED.irradiance,
-                        orientation_multiplier = EXCLUDED.orientation_multiplier
                 """, insert_data)
                 
                 conn.commit()

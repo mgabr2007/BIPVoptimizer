@@ -414,6 +414,9 @@ class OptimizedRadiationAnalyzer:
             conn = self.db_manager.get_connection()
             if conn:
                 with conn.cursor() as cursor:
+                    # Clear existing results for this project first
+                    cursor.execute("DELETE FROM element_radiation WHERE project_id = %s", (project_id,))
+                    
                     # Save individual element results
                     for element_id, radiation_value in results.items():
                         cursor.execute("""
@@ -421,11 +424,6 @@ class OptimizedRadiationAnalyzer:
                             (project_id, element_id, annual_radiation, 
                              calculation_method, calculated_at)
                             VALUES (%s, %s, %s, %s, %s)
-                            ON CONFLICT (project_id, element_id) 
-                            DO UPDATE SET 
-                                annual_radiation = EXCLUDED.annual_radiation,
-                                calculation_method = EXCLUDED.calculation_method,
-                                calculated_at = EXCLUDED.calculated_at
                         """, (project_id, element_id, radiation_value, 
                               f"optimized_{precision.lower().replace(' ', '_')}", 
                               datetime.now()))
