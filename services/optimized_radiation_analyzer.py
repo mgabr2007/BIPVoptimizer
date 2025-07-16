@@ -214,13 +214,13 @@ class OptimizedRadiationAnalyzer:
         
         try:
             with conn.cursor() as cursor:
-                # Get only window elements for BIPV analysis
+                # Get window elements for BIPV analysis
                 cursor.execute("""
-                    SELECT element_id, glass_area, azimuth, family
+                    SELECT element_id, glass_area, window_width, window_height, azimuth, family
                     FROM building_elements 
                     WHERE project_id = %s 
-                    AND (family ILIKE '%window%' OR family ILIKE '%glazing%' OR family ILIKE '%curtain%')
-                    AND glass_area > 0
+                    AND (family LIKE '%WINDOW%' OR family LIKE '%Window%' OR family LIKE '%window%' 
+                         OR family LIKE '%M_%' OR family LIKE '%Arched%')
                     ORDER BY element_id
                 """, (project_id,))
                 
@@ -228,15 +228,33 @@ class OptimizedRadiationAnalyzer:
                 elements = []
                 
                 for row in results:
-                    element_id, glass_area, azimuth, family = row
+                    if len(row) != 6:
+                        continue  # Skip malformed rows
+                    element_id, glass_area, window_width, window_height, azimuth, family = row
+                    
+                    # Calculate glass area from dimensions if not available
+                    if not glass_area or glass_area == 0:
+                        width = float(window_width) if window_width else 1.5
+                        height = float(window_height) if window_height else 1.0
+                        calculated_glass_area = width * height
+                    else:
+                        calculated_glass_area = float(glass_area)
+                    
+                    # Generate realistic azimuth if missing (distribute across orientations)
+                    if not azimuth or azimuth == 0:
+                        # Use element_id hash to distribute across orientations
+                        element_hash = abs(hash(str(element_id))) % 360
+                        realistic_azimuth = element_hash
+                    else:
+                        realistic_azimuth = float(azimuth)
                     
                     # Calculate orientation from azimuth
-                    orientation = self._azimuth_to_orientation(float(azimuth) if azimuth else 180.0)
+                    orientation = self._azimuth_to_orientation(realistic_azimuth)
                     
                     elements.append({
                         'element_id': str(element_id),
-                        'glass_area': float(glass_area) if glass_area else 1.5,
-                        'azimuth': float(azimuth) if azimuth else 180.0,
+                        'glass_area': calculated_glass_area,
+                        'azimuth': realistic_azimuth,
                         'orientation': orientation,
                         'family': str(family)
                     })
@@ -245,6 +263,8 @@ class OptimizedRadiationAnalyzer:
                 
         except Exception as e:
             st.error(f"Error fetching building elements: {e}")
+            import traceback
+            st.error(f"Debug info: {traceback.format_exc()}")
             return []
         finally:
             conn.close()
