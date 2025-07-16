@@ -647,7 +647,7 @@ def render_pv_specification():
             if conn:
                 with conn.cursor() as cursor:
                     cursor.execute("""
-                        SELECT element_id, azimuth, glass_area, window_width, window_height, 
+                        SELECT DISTINCT element_id, azimuth, glass_area, window_width, window_height, 
                                family, orientation, building_level
                         FROM building_elements 
                         WHERE project_id = %s AND element_type = 'Window'

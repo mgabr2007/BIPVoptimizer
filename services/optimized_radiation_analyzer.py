@@ -214,9 +214,9 @@ class OptimizedRadiationAnalyzer:
         
         try:
             with conn.cursor() as cursor:
-                # Get window elements for BIPV analysis - use correct column order
+                # Get window elements for BIPV analysis - eliminate duplicates
                 cursor.execute("""
-                    SELECT element_id, azimuth, glass_area, window_width, window_height, family
+                    SELECT DISTINCT element_id, azimuth, glass_area, window_width, window_height, family
                     FROM building_elements 
                     WHERE project_id = %s
                     AND element_type = 'Window'
