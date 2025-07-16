@@ -462,23 +462,42 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
         # Clear previous radiation calculations silently
         clear_radiation_data(project_id)
         
-        # Initialize advanced analyzer
-        analyzer = AdvancedRadiationAnalyzer(project_id)
+        # Initialize advanced analyzer - use OptimizedRadiationAnalyzer instead
+        from services.optimized_radiation_analyzer import OptimizedRadiationAnalyzer
+        analyzer = OptimizedRadiationAnalyzer()
         
-        # Get suitable elements with error handling
+        # Get building elements with error handling
         try:
-            suitable_elements = analyzer.get_suitable_elements()
+            # Use database manager to check elements
+            from database_manager import BIPVDatabaseManager
+            db_manager = BIPVDatabaseManager()
+            conn = db_manager.get_connection()
             
-            if not suitable_elements:
-                st.error("❌ No suitable building elements found for radiation analysis")
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM building_elements 
+                        WHERE project_id = %s
+                    """, (project_id,))
+                    result = cursor.fetchone()
+                    element_count = result[0] if result else 0
+                    
+                    if element_count == 0:
+                        st.error("❌ No building elements found for radiation analysis")
+                        return
+                        
+                    st.success(f"✅ Found {element_count:,} building elements for analysis")
+                conn.close()
+            else:
+                st.error("❌ Database connection failed")
                 return
-                
-            st.success(f"✅ Found {len(suitable_elements):,} suitable elements for analysis")
             
         except Exception as e:
             st.error(f"Error getting suitable elements: {e}")
             # Try to get all elements if suitable filtering fails
             try:
+                from database_manager import BIPVDatabaseManager
+                db_manager = BIPVDatabaseManager()
                 conn = db_manager.get_connection()
                 if conn:
                     with conn.cursor() as cursor:
@@ -524,30 +543,42 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
             progress_bar.progress(progress)
             status_text.text(f"{message} ({current}/{total})")
         
-        # Run advanced analysis with all sophisticated calculations
-        success = analyzer.run_advanced_analysis(
-            tmy_data=tmy_data,
-            latitude=latitude,
-            longitude=longitude,
+        # Run optimized radiation analysis
+        analysis_results = analyzer.analyze_radiation_optimized(
+            project_id=project_id,
             precision=precision,
-            include_shading=include_shading,
             apply_corrections=apply_corrections,
-            progress_callback=update_progress
+            include_shading=include_shading
         )
+        
+        # Check if analysis was successful
+        success = analysis_results and not analysis_results.get('error', False)
         
         if success:
             st.success("✅ Advanced analysis completed successfully!")
             progress_bar.progress(100)
             status_text.text("Analysis complete")
             
-            # Update session state
+            # Update session state with results
+            if 'project_data' not in st.session_state:
+                st.session_state.project_data = {}
+            
+            st.session_state.project_data['radiation_data'] = analysis_results.get('element_radiation', {})
             st.session_state.radiation_completed = True
             st.session_state.step5_completed = True
             st.session_state.analysis_just_completed = True
             
-            # Don't display results here - they will be shown below to avoid duplication
+            # Show completion metrics
+            total_elements = analysis_results.get('total_elements', 0)
+            calc_time = analysis_results.get('calculation_time', 0)
+            st.info(f"📊 **Results**: {total_elements:,} elements analyzed in {calc_time:.1f} seconds")
+            
+            # Trigger page refresh to show results
+            st.rerun()
+            
         else:
-            st.error("❌ Analysis failed. Please check the logs.")
+            error_msg = analysis_results.get('error', 'Unknown error') if analysis_results else 'Analysis failed'
+            st.error(f"❌ Analysis failed: {error_msg}")
         
     except Exception as e:
         st.error(f"❌ Database analysis error: {str(e)}")
@@ -559,6 +590,8 @@ def reset_analysis(project_id):
     
     try:
         # Clear database
+        from database_manager import BIPVDatabaseManager
+        db_manager = BIPVDatabaseManager()
         conn = db_manager.get_connection()
         if conn:
             with conn.cursor() as cursor:
