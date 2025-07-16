@@ -262,8 +262,6 @@ class OptimizedRadiationAnalyzer:
                 
         except Exception as e:
             st.error(f"Error fetching building elements: {e}")
-            import traceback
-            st.error(f"Debug info: {traceback.format_exc()}")
             return []
         finally:
             conn.close()
