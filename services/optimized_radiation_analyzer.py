@@ -127,12 +127,23 @@ class OptimizedRadiationAnalyzer:
         if not building_elements:
             return {"error": "No building elements found"}
         
+        st.info(f"📊 **Found {len(building_elements)} total building elements**")
+        
         # Filter for suitable elements only
         suitable_elements = [elem for elem in building_elements 
                            if self._is_pv_suitable(elem)]
         
         if not suitable_elements:
-            return {"error": "No PV-suitable elements found"}
+            # If strict filtering fails, try all elements with reasonable glass area
+            suitable_elements = [elem for elem in building_elements 
+                               if elem.get('glass_area', 0) >= 0.5]
+            
+            if not suitable_elements:
+                return {"error": f"No suitable elements found from {len(building_elements)} total elements"}
+            else:
+                st.warning(f"Using relaxed criteria: {len(suitable_elements)} elements with glass area ≥ 0.5 m²")
+        else:
+            st.success(f"Found {len(suitable_elements)} PV-suitable elements")
         
         # Get precision configuration
         config = self.precision_configs.get(precision, self.precision_configs["Daily Peak"])
@@ -204,7 +215,7 @@ class OptimizedRadiationAnalyzer:
         try:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT element_id, glass_area, azimuth, level,
+                    SELECT element_id, glass_area, azimuth,
                            COALESCE(orientation, 'Unknown') as orientation
                     FROM building_elements 
                     WHERE project_id = %s
@@ -215,13 +226,12 @@ class OptimizedRadiationAnalyzer:
                 elements = []
                 
                 for row in results:
-                    element_id, glass_area, azimuth, level, orientation = row
+                    element_id, glass_area, azimuth, orientation = row
                     
                     elements.append({
                         'element_id': str(element_id),
                         'glass_area': float(glass_area) if glass_area else 1.5,
                         'azimuth': float(azimuth) if azimuth else 180.0,
-                        'level': str(level) if level else 'Ground',
                         'orientation': str(orientation)
                     })
                 
@@ -238,9 +248,21 @@ class OptimizedRadiationAnalyzer:
         orientation = element.get('orientation', 'Unknown')
         glass_area = element.get('glass_area', 0)
         
-        # Only include South, East, West facing elements
-        suitable_orientations = ['South', 'East', 'West', 'Southeast', 'Southwest']
-        return orientation in suitable_orientations and glass_area >= 0.5
+        # Handle descriptive orientations like "East (45-135°)", "South (225-315°)"
+        orientation_lower = orientation.lower()
+        
+        # Check for key orientation indicators
+        suitable_patterns = ['south', 'east', 'west', 'southeast', 'southwest']
+        orientation_suitable = any(pattern in orientation_lower for pattern in suitable_patterns)
+        
+        # Also check azimuth directly - exclude North-facing (315-45°)
+        azimuth = element.get('azimuth', 0)
+        azimuth_suitable = not (315 <= azimuth <= 360 or 0 <= azimuth <= 45)
+        
+        # Require minimum glass area
+        area_suitable = glass_area >= 0.5
+        
+        return (orientation_suitable or azimuth_suitable) and area_suitable
     
     def _process_element_batch(self, elements: List[Dict], time_steps: List[datetime],
                               apply_corrections: bool, include_shading: bool) -> Dict:
