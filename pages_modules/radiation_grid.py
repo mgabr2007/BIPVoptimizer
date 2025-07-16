@@ -598,8 +598,8 @@ def display_existing_results(project_id):
         # Progress Matrix
         st.subheader("📈 Analysis Progress Matrix")
         
-        # Calculate statistics for progress matrix
-        successful_elements = len([r for r in element_radiation if r['annual_radiation'] > 0])
+        # Calculate statistics for progress matrix with safe decimal handling
+        successful_elements = len([r for r in element_radiation if float(r['annual_radiation'] or 0) > 0])
         failed_elements = total_elements - successful_elements
         
         # Calculate orientation distribution
@@ -634,15 +634,16 @@ def display_existing_results(project_id):
         # Enhanced radiation statistics with visual indicators
         st.markdown("### ☀️ Radiation Performance Overview")
         
-        # Calculate enhanced statistics
-        avg_radiation = sum(r['annual_radiation'] for r in element_radiation) / total_elements
-        max_radiation = max(r['annual_radiation'] for r in element_radiation)
-        min_radiation = min(r['annual_radiation'] for r in element_radiation) if element_radiation else 0
+        # Calculate enhanced statistics with safe decimal handling
+        radiation_values_safe = [float(r['annual_radiation']) if r['annual_radiation'] else 0.0 for r in element_radiation]
+        avg_radiation = sum(radiation_values_safe) / total_elements if total_elements > 0 else 0
+        max_radiation = max(radiation_values_safe) if radiation_values_safe else 0
+        min_radiation = min(radiation_values_safe) if radiation_values_safe else 0
         
-        # Performance categorization
-        excellent_elements = len([r for r in element_radiation if r['annual_radiation'] > 1200])
-        good_elements = len([r for r in element_radiation if 800 <= r['annual_radiation'] <= 1200])
-        poor_elements = len([r for r in element_radiation if r['annual_radiation'] < 800])
+        # Performance categorization with safe decimal handling
+        excellent_elements = len([r for r in element_radiation if float(r['annual_radiation'] or 0) > 1200])
+        good_elements = len([r for r in element_radiation if 800 <= float(r['annual_radiation'] or 0) <= 1200])
+        poor_elements = len([r for r in element_radiation if float(r['annual_radiation'] or 0) < 800])
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -668,13 +669,13 @@ def display_existing_results(project_id):
             )
         with col4:
             # Calculate suitable elements (>200 kWh/m²/year threshold)
-            suitable_radiation = len([r for r in element_radiation if r['annual_radiation'] > 200])
+            suitable_radiation = len([r for r in element_radiation if float(r['annual_radiation'] or 0) > 200])
             st.metric("High Performance Elements", f"{suitable_radiation:,}", delta=f"{(suitable_radiation/total_elements)*100:.1f}%")
         
         # Enhanced radiation distribution with multiple visualizations
         st.markdown("### 📈 Radiation Distribution Analysis")
         
-        radiation_values = [r['annual_radiation'] for r in element_radiation]
+        radiation_values = [float(r['annual_radiation']) if r['annual_radiation'] else 0.0 for r in element_radiation]
         
         # Create tabs for different chart views
         chart_tab1, chart_tab2, chart_tab3 = st.tabs(["📊 Distribution", "🧭 By Orientation", "🏢 Performance Map"])
@@ -709,7 +710,7 @@ def display_existing_results(project_id):
                 orientation = element.get('orientation', 'Unknown')
                 if orientation not in orientation_data:
                     orientation_data[orientation] = []
-                orientation_data[orientation].append(element['annual_radiation'])
+                orientation_data[orientation].append(float(element['annual_radiation']) if element['annual_radiation'] else 0.0)
             
             # Box plot by orientation
             if orientation_data:
@@ -785,7 +786,9 @@ def display_existing_results(project_id):
                         elif hasattr(glass_area, '__float__'):  # Handle Decimal type
                             glass_area = float(glass_area)
                         
-                        potential_yield = element['annual_radiation'] * glass_area * 0.15  # 15% efficiency
+                        # Ensure all values are float for multiplication
+                        annual_radiation = float(element['annual_radiation']) if element['annual_radiation'] else 0.0
+                        potential_yield = annual_radiation * glass_area * 0.15  # 15% efficiency
                         st.write(f"Est. Annual Yield: {potential_yield:.0f} kWh")
                         cost_savings = potential_yield * 0.30  # €0.30/kWh
                         st.write(f"Est. Annual Savings: €{cost_savings:.0f}")
