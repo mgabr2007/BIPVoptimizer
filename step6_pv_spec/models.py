@@ -317,3 +317,68 @@ def detect_unit_anomalies(data: Dict[str, Any]) -> Dict[str, str]:
             issues['power_density'] = "Values appear to be in kW/m² - convert to W/m² by multiplying by 1,000"
     
     return issues
+
+
+# Default panel specifications for initial catalog
+DEFAULT_PANEL_SPECIFICATIONS = [
+    {
+        "name": "Heliatek HeliaSol 436-2000",
+        "manufacturer": "Heliatek",
+        "panel_type": "opaque",
+        "efficiency": 0.089,
+        "transparency": 0.0,
+        "power_density": 89.0,
+        "cost_per_m2": 183.0,
+        "glass_thickness": 1.5,
+        "u_value": 1.1,
+        "glass_weight": 15.0
+    },
+    {
+        "name": "SUNOVATION eFORM Clear",
+        "manufacturer": "SUNOVATION",
+        "panel_type": "semi_transparent",
+        "efficiency": 0.11,
+        "transparency": 0.35,
+        "power_density": 110.0,
+        "cost_per_m2": 400.0,
+        "glass_thickness": 6.0,
+        "u_value": 2.8,
+        "glass_weight": 25.0
+    },
+    {
+        "name": "Solarnova SOL_GT Translucent",
+        "manufacturer": "Solarnova",
+        "panel_type": "semi_transparent",
+        "efficiency": 0.132,
+        "transparency": 0.22,
+        "power_density": 132.0,
+        "cost_per_m2": 185.0,
+        "glass_thickness": 10.0,
+        "u_value": 1.8,
+        "glass_weight": 30.0
+    },
+    {
+        "name": "Solarwatt Vision AM 4.5",
+        "manufacturer": "Solarwatt",
+        "panel_type": "semi_transparent",
+        "efficiency": 0.219,
+        "transparency": 0.20,
+        "power_density": 219.0,
+        "cost_per_m2": 87.0,
+        "glass_thickness": 8.0,
+        "u_value": 1.5,
+        "glass_weight": 28.0
+    },
+    {
+        "name": "AVANCIS SKALA 105-110W",
+        "manufacturer": "AVANCIS",
+        "panel_type": "opaque",
+        "efficiency": 0.102,
+        "transparency": 0.0,
+        "power_density": 102.0,
+        "cost_per_m2": 244.0,
+        "glass_thickness": 6.0,
+        "u_value": 1.2,
+        "glass_weight": 22.0
+    }
+]
