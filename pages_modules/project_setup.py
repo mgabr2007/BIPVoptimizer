@@ -532,14 +532,7 @@ def render_project_setup():
                 for adv in ow_info['advantages']:
                     st.write(f"• {adv}")
         
-        # Show nearby WMO stations for reference (without selection functionality)
-        if not nearby_stations.empty:
-            with st.expander(f"📊 Nearby WMO CLIMAT Stations ({len(nearby_stations)} found)", expanded=False):
-                st.info("Reference information - actual weather data comes from the selected API above")
-                for idx, station in nearby_stations.head(3).iterrows():
-                    st.write(f"• **{station['name']}** ({station['country']}) - {station['distance_km']:.1f} km")
-        else:
-            st.info(f"ℹ️ No WMO reference stations found in the area")
+
         
         # Dynamic station fetching based on selected API
         st.markdown("### 🌡️ Active Weather Data Source")
