@@ -401,18 +401,23 @@ class BIPVDatabaseManager:
                 
                 radiation_summary = cursor.fetchone()
                 
-                # Get detailed element radiation data with DISTINCT to prevent duplication
+                # Get detailed element radiation data - avoid JOIN duplication by using subquery
                 cursor.execute("""
-                    SELECT DISTINCT er.id, er.project_id, er.element_id, er.annual_radiation, 
+                    SELECT er.id, er.project_id, er.element_id, er.annual_radiation, 
                            er.irradiance, er.orientation_multiplier, er.created_at, 
                            er.calculation_method, er.calculated_at,
                            be.element_type, be.orientation, be.azimuth, 
                            be.glass_area, be.building_level, be.family
                     FROM element_radiation er
-                    JOIN building_elements be ON er.element_id = be.element_id 
+                    JOIN (
+                        SELECT DISTINCT element_id, element_type, orientation, azimuth, 
+                               glass_area, building_level, family
+                        FROM building_elements 
+                        WHERE project_id = %s
+                    ) be ON er.element_id = be.element_id 
                     WHERE er.project_id = %s
                     ORDER BY er.annual_radiation DESC
-                """, (project_id,))
+                """, (project_id, project_id))
                 
                 element_radiation = cursor.fetchall()
                 
