@@ -627,7 +627,9 @@ def display_existing_results(project_id):
             for i, (orientation, count) in enumerate(orientation_counts.items()):
                 with orientation_cols[i]:
                     percentage = (count / total_elements) * 100
-                    st.metric(f"{orientation}", f"{count:,}", delta=f"{percentage:.1f}%")
+                    # Ensure orientation label is not empty
+                    orientation_label = orientation if orientation and orientation.strip() else f"Direction {i+1}"
+                    st.metric(orientation_label, f"{count:,}", delta=f"{percentage:.1f}%")
         
         # Enhanced radiation statistics with visual indicators
         st.markdown("### ☀️ Radiation Performance Overview")
@@ -773,7 +775,17 @@ def display_existing_results(project_id):
                         st.write(f"Family: {element.get('family', 'Unknown')}")
                     with col3:
                         st.markdown("**BIPV Potential**")
-                        potential_yield = element['annual_radiation'] * element.get('glass_area', 1.5) * 0.15  # 15% efficiency
+                        # Convert glass_area to float safely
+                        glass_area = element.get('glass_area', 1.5)
+                        if isinstance(glass_area, str):
+                            try:
+                                glass_area = float(glass_area)
+                            except:
+                                glass_area = 1.5
+                        elif hasattr(glass_area, '__float__'):  # Handle Decimal type
+                            glass_area = float(glass_area)
+                        
+                        potential_yield = element['annual_radiation'] * glass_area * 0.15  # 15% efficiency
                         st.write(f"Est. Annual Yield: {potential_yield:.0f} kWh")
                         cost_savings = potential_yield * 0.30  # €0.30/kWh
                         st.write(f"Est. Annual Savings: €{cost_savings:.0f}")
