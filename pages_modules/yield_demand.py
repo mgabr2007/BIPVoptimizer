@@ -295,10 +295,45 @@ def render_yield_demand():
     
     # Check dependencies - look for actual data instead of flags
     
-    # Check for PV specifications from Step 6 (multiple possible locations)
+    # Check for PV specifications from Step 6 - enhanced with database fallback
     pv_specs = project_data.get('pv_specifications')
     if pv_specs is None:
         pv_specs = st.session_state.get('pv_specifications')
+    
+    # If no PV specs in session state, try to load from database
+    if pv_specs is None or len(pv_specs) == 0:
+        try:
+            from database_manager import BIPVDatabaseManager
+            db_manager = BIPVDatabaseManager()
+            conn = db_manager.get_connection()
+            
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM pv_specifications 
+                        WHERE project_id = %s
+                    """, (st.session_state.get('project_id'),))
+                    
+                    pv_count = cursor.fetchone()[0]
+                    if pv_count > 0:
+                        # Load PV specifications from database
+                        cursor.execute("""
+                            SELECT specification_data 
+                            FROM pv_specifications 
+                            WHERE project_id = %s
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                        """, (st.session_state.get('project_id'),))
+                        
+                        result = cursor.fetchone()
+                        if result:
+                            import json
+                            pv_data = json.loads(result[0])
+                            pv_specs = pv_data.get('bipv_specifications', [])
+                            st.info(f"✅ Loaded {len(pv_specs)} PV specifications from database")
+                conn.close()
+        except Exception as e:
+            st.error(f"Error loading PV specifications: {e}")
     
     if pv_specs is None or len(pv_specs) == 0:
         st.error("⚠️ PV system specifications not available. Please complete Step 6 (PV Specification).")

@@ -180,9 +180,38 @@ def render_production_pv_interface(project_id: int):
             # Save to session state
             st.session_state.project_data['pv_specifications'] = specifications
             st.session_state['pv_specs_completed'] = True
+            st.session_state['pv_specifications'] = specifications  # Also save to direct session state
             
             # Update session state standardizer
             BIPVSessionStateManager.update_step_completion('pv_specs', True)
+            
+            # Save to database for persistent storage
+            try:
+                from database_manager import BIPVDatabaseManager
+                db_manager = BIPVDatabaseManager()
+                
+                # Convert specifications to proper format for database
+                pv_data = {
+                    'panel_specs': {
+                        'efficiency': panel_specs['efficiency'],
+                        'transparency': panel_specs['transparency'],
+                        'cost_per_m2': panel_specs['cost_per_m2'],
+                        'power_density': panel_specs['power_density'],
+                        'selected_panel': selected_panel
+                    },
+                    'bipv_specifications': specifications,
+                    'summary_stats': {
+                        'total_elements': len(specifications),
+                        'total_capacity': sum(s['capacity_kw'] for s in specifications),
+                        'total_area': sum(s['glass_area'] for s in specifications),
+                        'avg_efficiency': panel_specs['efficiency']
+                    }
+                }
+                
+                db_manager.save_pv_specifications(project_id, pv_data)
+                st.success("✅ PV specifications saved to database")
+            except Exception as e:
+                st.warning(f"Could not save to database: {e}")
             
             st.success(f"✅ Calculated specifications for {len(specifications)} suitable elements")
     
