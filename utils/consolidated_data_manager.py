@@ -319,6 +319,55 @@ class ConsolidatedDataManager:
         except:
             return 0
     
+    def save_step_data(self, step_name: str, data: dict):
+        """Generic method to save data for any step"""
+        try:
+            # Ensure consolidated data exists
+            if 'consolidated_analysis_data' not in st.session_state:
+                self.__init__()
+            
+            # For facade extraction (Step 4), save building elements
+            if 'facade' in step_name.lower() or step_name == '4':
+                st.session_state.consolidated_analysis_data['step4_facade_extraction'] = data
+                # Also save to project_data for backward compatibility
+                if 'project_data' in st.session_state:
+                    st.session_state.project_data['building_elements'] = data.get('building_elements', [])
+                    st.session_state.project_data['element_count'] = len(data.get('building_elements', []))
+                    st.session_state.project_data['facade_data'] = data
+                    st.session_state.facade_completed = True
+            else:
+                # Generic step data saving
+                step_key = f"step{step_name.replace('step', '').replace('_', '')}_data" if step_name.startswith('step') else f"step{step_name}_data"
+                st.session_state.consolidated_analysis_data[step_key] = data
+            
+            # Update timestamp
+            from datetime import datetime
+            st.session_state.consolidated_analysis_data['last_updated'] = datetime.now().isoformat()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error saving step data: {e}")  # Use print instead of st.error to avoid circular imports
+            return False
+    
+    def get_step_data(self, step_name: str):
+        """Generic method to retrieve data for any step"""
+        try:
+            if 'consolidated_analysis_data' not in st.session_state:
+                return {}
+            
+            step_key = f"step{step_name.replace('step', '').replace('_', '')}_data" if step_name.startswith('step') else f"step{step_name}_data"
+            
+            # For facade extraction (Step 4), check multiple locations
+            if 'facade' in step_name.lower() or step_name == '4':
+                return st.session_state.consolidated_analysis_data.get('step4_facade_extraction', {})
+            else:
+                return st.session_state.consolidated_analysis_data.get(step_key, {})
+                
+        except Exception as e:
+            st.error(f"Error retrieving step data: {e}")
+            return {}
+
     def print_summary(self):
         """Print summary of consolidated data (silenced to prevent duplicate logging)"""
         # Silenced console output to prevent duplicate logging
