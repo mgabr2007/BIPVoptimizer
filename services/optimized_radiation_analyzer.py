@@ -214,13 +214,12 @@ class OptimizedRadiationAnalyzer:
         
         try:
             with conn.cursor() as cursor:
-                # Get window elements for BIPV analysis
+                # Get window elements for BIPV analysis - use correct column order
                 cursor.execute("""
-                    SELECT element_id, glass_area, window_width, window_height, azimuth, family
+                    SELECT element_id, azimuth, glass_area, window_width, window_height, family
                     FROM building_elements 
-                    WHERE project_id = %s 
-                    AND (family LIKE '%WINDOW%' OR family LIKE '%Window%' OR family LIKE '%window%' 
-                         OR family LIKE '%M_%' OR family LIKE '%Arched%')
+                    WHERE project_id = %s
+                    AND element_type = 'Window'
                     ORDER BY element_id
                 """, (project_id,))
                 
@@ -230,7 +229,7 @@ class OptimizedRadiationAnalyzer:
                 for row in results:
                     if len(row) != 6:
                         continue  # Skip malformed rows
-                    element_id, glass_area, window_width, window_height, azimuth, family = row
+                    element_id, azimuth, glass_area, window_width, window_height, family = row
                     
                     # Calculate glass area from dimensions if not available
                     if not glass_area or glass_area == 0:
