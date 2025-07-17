@@ -805,11 +805,9 @@ def render_project_setup():
         project_id = save_project_data(project_data)
         
         if project_id:
-            # Store project_id in both places for consistency
-            project_data['project_id'] = project_id
-            st.session_state.project_id = project_id
-            st.session_state.project_data = project_data
+            # Store only essential data in session state (project name for database lookups)
             st.session_state.project_name = project_data.get('project_name')
+            st.session_state.project_data = project_data
             st.session_state.project_data['setup_complete'] = True
             
             # Display success with project ID

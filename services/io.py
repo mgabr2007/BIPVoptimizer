@@ -9,6 +9,27 @@ import streamlit as st
 from database_manager import db_manager
 
 
+def get_current_project_id():
+    """Get current project ID from database based on project name"""
+    project_name = st.session_state.get('project_name')
+    if not project_name:
+        return None
+    
+    try:
+        conn = db_manager.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_name,))
+                result = cursor.fetchone()
+                if result:
+                    return result[0]
+            conn.close()
+    except Exception as e:
+        st.error(f"Error getting project ID: {str(e)}")
+    
+    return None
+
+
 @st.cache_data(ttl=3600)
 def load_complete_wmo_stations():
     """Load all WMO stations from the official database file"""

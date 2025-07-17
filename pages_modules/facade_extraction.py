@@ -105,28 +105,24 @@ def render_facade_extraction():
         st.error("❌ Please complete Step 1: Project Setup first.")
         return
     
-    # Get current project ID with debugging
-    project_data = st.session_state.get('project_data', {})
-    project_id = project_data.get('project_id')
-    
-    # Try alternative sources for project_id
-    if not project_id:
-        project_id = st.session_state.get('project_id')
+    # Get current project ID from database
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
     
     # Debug information
     if st.checkbox("Show Debug Info", key="debug_step4"):
         st.write("**Debug Information:**")
-        st.write(f"- Session project_id: {st.session_state.get('project_id')}")
-        st.write(f"- Project_data keys: {list(project_data.keys())}")
-        st.write(f"- Project_data project_id: {project_data.get('project_id')}")
-        st.write(f"- Setup complete: {project_data.get('setup_complete')}")
+        st.write(f"- Project name: {st.session_state.get('project_name')}")
+        st.write(f"- Database project_id: {project_id}")
+        st.write(f"- Setup complete: {st.session_state.get('project_data', {}).get('setup_complete')}")
     
     if not project_id:
         st.error("❌ No project ID found. Please complete Step 1: Project Setup first.")
         st.info("💡 **Tip:** Make sure to click 'Save Project Configuration' in Step 1 to generate a project ID.")
         return
     
-    st.info(f"📋 Current Project: **{project_data.get('project_name', 'Unnamed')}** (ID: {project_id})")
+    project_name = st.session_state.get('project_name', 'Unnamed')
+    st.info(f"📋 Current Project: **{project_name}** (ID: {project_id})")
     
     # BIM Data Upload Interface
     st.subheader("🏢 Step 1: Window & Glass Areas Data Upload")

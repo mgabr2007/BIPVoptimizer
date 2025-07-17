@@ -157,11 +157,9 @@ def render_welcome():
                     if key in st.session_state:
                         del st.session_state[key]
                 
-                # Store project information in session state
-                st.session_state.project_id = project_id
+                # Store only project name for database lookups
                 st.session_state.project_name = project_name
                 st.session_state.project_data = initial_project_data
-                st.session_state.project_data['project_id'] = project_id
                 
                 # Navigate to Step 1
                 st.session_state.current_step = 'project_setup'
