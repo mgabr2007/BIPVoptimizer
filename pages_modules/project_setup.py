@@ -802,19 +802,23 @@ def render_project_setup():
         project_data['solar_parameters'] = location_params
         project_data['electricity_rates'] = electricity_rates
         
-        # Save to database first to get project ID
-        project_id = save_project_data(project_data)
+        # Save to database (preserving UUID project ID)
+        db_project_id = save_project_data(project_data)
         
-        if project_id:
-            # Store project_id in both places for consistency
-            project_data['project_id'] = project_id
-            st.session_state.project_id = project_id
+        if db_project_id:
+            # Keep original UUID project ID for display
+            uuid_project_id = project_data.get('project_id')
+            
+            # Store both IDs for consistency
+            project_data['db_project_id'] = db_project_id  # Database integer ID
+            st.session_state.project_id = uuid_project_id  # UUID for display
+            st.session_state.db_project_id = db_project_id  # Database ID for queries
             st.session_state.project_data = project_data
             st.session_state.project_name = project_data.get('project_name')
             st.session_state.project_data['setup_complete'] = True
             
-            # Display success with project ID
-            st.success(f"✅ Project saved successfully! Project ID: **{project_id}**")
+            # Display success with UUID project ID
+            st.success(f"✅ Project saved successfully! Project ID: **{uuid_project_id}**")
             
             with st.container():
                 st.markdown("### 📋 Project Configuration Summary")
@@ -856,7 +860,7 @@ def render_project_setup():
                     """)
                 
                 # Show project ID prominently  
-                st.info(f"🆔 **Project ID: {project_id}** - Use this ID to identify your project in the system")
+                st.info(f"🆔 **Project ID: {uuid_project_id}** - Use this ID to identify your project in the system")
                 
                 # Data usage explanation
                 st.info("""
