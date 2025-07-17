@@ -238,6 +238,14 @@ def render_yield_demand():
     
     st.header("⚖️ Energy Yield vs Demand Analysis")
     
+    # Get current project ID from database
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
+    
+    if not project_id:
+        st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
+        return
+    
     st.markdown("""
     ### What This Step Does
     
@@ -305,7 +313,7 @@ def render_yield_demand():
         try:
             from database_manager import db_manager
             
-            project_id = st.session_state.get('project_id')
+            project_id = get_current_project_id()
             if project_id:
                 pv_data = db_manager.get_pv_specifications(project_id)
                 if pv_data:
@@ -986,7 +994,7 @@ def render_yield_demand():
                     display_df.columns = ['Month', 'Building Demand (kWh)', 'Solar Generation (kWh)', 'Grid Import (kWh)', 'Monthly Savings (€)']
                     st.dataframe(display_df, use_container_width=True)
                 # Save to database with error handling
-                if 'project_id' in st.session_state and st.session_state.project_id:
+                if project_id:
                     try:
                         # Save using database helper
                         db_helper.save_step_data("yield_demand", {
@@ -998,10 +1006,9 @@ def render_yield_demand():
                         })
                         
                         # Legacy save method for compatibility
-                        project_id = db_helper.get_project_id()
                         if project_id:
                             db_manager.save_yield_demand_data(
-                            st.session_state.project_id,
+                            project_id,
                             st.session_state.project_data['yield_demand_analysis']
                         )
                     except Exception as db_error:

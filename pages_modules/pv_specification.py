@@ -420,7 +420,7 @@ def calculate_bipv_glass_coverage(element_area, coverage_factor=0.90):
     bipv_glass_area = element_area * coverage_factor
     return bipv_glass_area
 
-def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverage_data, radiation_data=None):
+def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverage_data, radiation_data=None, project_id=None):
     """Calculate complete BIPV system specifications for each element."""
     bipv_specifications = []
     
@@ -438,7 +438,7 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
                 cursor.execute("""
                     SELECT COUNT(*) FROM element_radiation 
                     WHERE project_id = %s
-                """, (st.session_state.get('project_id'),))
+                """, (project_id,))
                 
                 radiation_count = cursor.fetchone()[0]
                 if radiation_count > 0:
@@ -507,7 +507,7 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
                         SELECT element_id, annual_radiation 
                         FROM element_radiation 
                         WHERE project_id = %s AND annual_radiation > 0
-                    """, (st.session_state.get('project_id'),))
+                    """, (project_id,))
                     
                     radiation_rows = cursor.fetchall()
                     for element_id, annual_radiation in radiation_rows:
@@ -635,8 +635,9 @@ def render_pv_specification():
                 BuildingElement, RadiationRecord, SpecificationConfiguration
             )
             
-            # Get project_id from session
-            project_id = st.session_state.get('project_id')
+            # Get project_id from database
+            from services.io import get_current_project_id
+            project_id = get_current_project_id()
             if not project_id:
                 st.error("No project ID found. Please complete Step 1 first.")
                 return
@@ -663,6 +664,14 @@ def render_pv_specification():
     st.image("attached_assets/step06_1751436847830.png", width=400)
     
     st.header("⚡ Step 6: BIPV Panel Specifications")
+    
+    # Get current project ID from database
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
+    
+    if not project_id:
+        st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
+        return
     
     # Data Usage Information
     with st.expander("📊 How This Data Will Be Used", expanded=False):
@@ -707,7 +716,7 @@ def render_pv_specification():
                 cursor.execute("""
                     SELECT COUNT(*) FROM element_radiation 
                     WHERE project_id = %s
-                """, (st.session_state.get('project_id'),))
+                """, (project_id,))
                 
                 radiation_count = cursor.fetchone()[0]
                 if radiation_count > 0:
@@ -720,7 +729,7 @@ def render_pv_specification():
                             SELECT element_id, annual_radiation 
                             FROM element_radiation 
                             WHERE project_id = %s AND annual_radiation > 0
-                        """, (st.session_state.get('project_id'),))
+                        """, (project_id,))
                         
                         radiation_rows = cursor.fetchall()
                         if radiation_rows:
@@ -767,7 +776,7 @@ def render_pv_specification():
                         LEFT JOIN element_radiation er ON be.element_id = er.element_id AND be.project_id = er.project_id
                         WHERE be.project_id = %s AND be.element_type = 'Window'
                         ORDER BY be.element_id
-                    """, (st.session_state.get('project_id'),))
+                    """, (project_id,))
                     
                     rows = cursor.fetchall()
                     if rows:
@@ -1002,7 +1011,8 @@ def render_pv_specification():
                 suitable_elements, 
                 final_panel_specs, 
                 coverage_data,
-                radiation_data  # Pass radiation data for accurate calculations
+                radiation_data,  # Pass radiation data for accurate calculations
+                project_id  # Pass project_id for database operations
             )
             
             if bipv_specifications is not None and len(bipv_specifications) > 0:

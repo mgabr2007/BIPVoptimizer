@@ -702,11 +702,12 @@ class PVSpecificationUI:
 
 def render_pv_specification():
     """Main function to render PV specification interface."""
-    if 'project_id' not in st.session_state:
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
+    
+    if not project_id:
         st.error("⚠️ No project selected. Please complete Step 1 first.")
         return
-    
-    project_id = st.session_state.project_id
     
     # Initialize UI controller
     ui_controller = PVSpecificationUI()

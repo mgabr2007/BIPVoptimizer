@@ -642,7 +642,7 @@ def render_weather_environment():
                                 project_id = db_helper.get_project_id()
                                 if project_id:
                                     db_manager.save_weather_data(
-                                    st.session_state.project_data['project_id'],
+                                    project_id,
                                     weather_analysis
                                 )
                                 st.success("💾 Weather data saved to database")

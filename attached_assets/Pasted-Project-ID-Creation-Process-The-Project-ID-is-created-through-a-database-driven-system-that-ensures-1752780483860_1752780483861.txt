@@ -1,0 +1,82 @@
+Project ID Creation Process
+The Project ID is created through a database-driven system that ensures consistency across all workflow steps:
+
+Initial Creation (Welcome Page)
+
+When users first access the platform, the welcome page (pages_modules/welcome.py) creates an initial project record in the PostgreSQL database
+The database automatically generates a unique integer Project ID using PostgreSQL's auto-increment feature
+This happens before any calculations begin, ensuring all subsequent steps have a valid project reference
+Database Schema
+
+CREATE TABLE projects (
+    id SERIAL PRIMARY KEY,  -- Auto-generated Project ID
+    name VARCHAR(255) NOT NULL,
+    location_lat DECIMAL(10,8),
+    location_lng DECIMAL(11,8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+Centralized Access Function
+
+Located in services/io.py as get_current_project_id()
+Queries the database using the current project name from session state
+Returns the integer Project ID for use across all workflow steps
+Integration Across Workflow Steps
+Step 1: Project Setup
+Purpose: Creates the initial project record and obtains the Project ID
+Integration: Uses database_manager.py to insert new project with location data
+Data Flow: Project name → Database insertion → Auto-generated Project ID
+Step 2: Historical Data Analysis
+Purpose: Stores energy consumption data and AI model training results
+Integration: Uses get_current_project_id() to link historical data to project
+Database Tables: historical_data, ai_models (both reference Project ID)
+Step 3: Weather & TMY Generation
+Purpose: Stores weather station data and TMY calculations
+Integration: Project ID links weather data to specific project location
+Database Tables: weather_data, tmy_data (both reference Project ID)
+Step 4: Facade Extraction
+Purpose: Stores BIM building elements (windows and walls)
+Integration: Project ID ensures building data belongs to correct project
+Database Tables: building_elements, building_walls (both reference Project ID)
+Process: CSV upload → Data processing → Database storage with Project ID linkage
+Step 5: Radiation Analysis
+Purpose: Calculates solar radiation for each building element
+Integration: Uses Project ID to:
+Retrieve building elements from Step 4
+Retrieve TMY data from Step 3
+Store radiation results linked to project
+Database Tables: radiation_analysis, element_radiation (both reference Project ID)
+Step 6: PV Specification
+Purpose: Defines BIPV glass systems for suitable elements
+Integration: Project ID connects:
+Building elements (from Step 4)
+Radiation data (from Step 5)
+PV system specifications
+Database Tables: pv_specifications (references Project ID)
+Step 7: Yield vs Demand
+Purpose: Calculates energy balance between generation and consumption
+Integration: Project ID aggregates:
+Historical consumption patterns (Step 2)
+PV system yields (Step 6)
+Energy balance calculations
+Database Tables: yield_analysis (references Project ID)
+Step 8: Optimization
+Purpose: Optimizes BIPV system selection using genetic algorithms
+Integration: Project ID ensures optimization uses project-specific data
+Database Tables: optimization_results (references Project ID)
+Step 9: Financial Analysis
+Purpose: Calculates economic viability and environmental impact
+Integration: Project ID links financial calculations to specific project
+Database Tables: financial_analysis, environmental_impact (both reference Project ID)
+Step 10: Reporting
+Purpose: Generates comprehensive reports from all workflow steps
+Integration: Project ID retrieves all related data for report generation
+Process: Uses Project ID to query all database tables for complete project data
+Key Implementation Details
+Session State Independence: All steps use get_current_project_id() instead of storing Project ID in session state, ensuring database consistency
+
+Error Handling: Each step validates Project ID existence before proceeding with calculations
+
+Data Persistence: Project ID serves as the foreign key linking all workflow data across multiple database tables
+
+Scalability: Database-driven approach allows multiple projects to be stored and accessed without session state conflicts

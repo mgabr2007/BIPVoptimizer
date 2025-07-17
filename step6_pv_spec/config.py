@@ -135,10 +135,10 @@ class SecurityConfig(BaseSettings):
 
 
 def get_project_id_from_session():
-    """Get project ID from Streamlit session state."""
+    """Get project ID from centralized function."""
     try:
-        import streamlit as st
-        return st.session_state.get('project_id', 1)
+        from services.io import get_current_project_id
+        return get_current_project_id() or 1
     except:
         return 1
 

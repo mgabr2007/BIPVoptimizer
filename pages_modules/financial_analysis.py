@@ -142,6 +142,14 @@ def render_financial_analysis():
     
     st.header("💰 Step 9: Financial & Environmental Impact Analysis")
     
+    # Get current project ID from database
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
+    
+    if not project_id:
+        st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
+        return
+    
     # AI Model Performance Impact Notice
     project_data = st.session_state.get('project_data', {})
     if project_data.get('model_r2_score') is not None:
@@ -487,16 +495,13 @@ def render_financial_analysis():
                 consolidated_manager.save_step9_data(step9_data)
                 
                 # Save to database
-                project_id = st.session_state.get('project_id') or st.session_state.project_data.get('project_id')
                 if project_id:
                     try:
                         # Save using database helper
                         db_helper.save_step_data("financial_analysis", financial_results)
                         
                         # Legacy save method for compatibility
-                        project_id = db_helper.get_project_id()
-                        if project_id:
-                            db_manager.save_financial_analysis(
+                        db_manager.save_financial_analysis(
                             project_id,
                             financial_analysis_results
                         )

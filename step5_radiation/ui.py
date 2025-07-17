@@ -73,11 +73,12 @@ class RadiationAnalysisUI:
     def _check_prerequisites(self) -> bool:
         """Check and display prerequisite status."""
         with st.expander("📋 Prerequisites Check", expanded=False):
-            if 'project_id' not in st.session_state:
+            from services.io import get_current_project_id
+            project_id = get_current_project_id()
+            
+            if not project_id:
                 st.error("⚠️ No project selected. Please complete Step 1 (Project Setup) first.")
                 return False
-            
-            project_id = st.session_state.project_id
             
             # Run validation asynchronously
             try:

@@ -14,25 +14,9 @@ class DatabaseHelper:
         self.db_manager = BIPVDatabaseManager()
     
     def get_project_id(self, project_name=None):
-        """Get project ID directly from database"""
-        if project_name is None:
-            project_name = st.session_state.get('project_name', 'Default Project')
-        
-        # Always query database for project ID
-        try:
-            conn = self.db_manager.get_connection()
-            if conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_name,))
-                    result = cursor.fetchone()
-                    if result:
-                        project_id = result[0]
-                        return project_id
-                conn.close()
-        except Exception as e:
-            st.warning(f"Could not retrieve project ID: {str(e)}")
-        
-        return None
+        """Get project ID directly from database - use centralized function"""
+        from services.io import get_current_project_id
+        return get_current_project_id()
     
     def save_step_data(self, step_name, data, project_name=None):
         """Save data for a specific workflow step"""
@@ -94,7 +78,6 @@ class DatabaseHelper:
             if project_data:
                 # Update session state with database data
                 st.session_state.project_data = project_data
-                st.session_state.project_id = project_data.get('project_id')
                 st.session_state.project_name = project_data.get('project_name', project_name)
                 return True
             return False

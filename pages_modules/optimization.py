@@ -667,7 +667,10 @@ def render_optimization():
                 consolidated_manager.save_step8_data(step8_data)
                 
                 # Save to database with validation
-                if 'project_id' in st.session_state.project_data and st.session_state.project_data['project_id']:
+                from services.io import get_current_project_id
+                project_id = get_current_project_id()
+                
+                if project_id:
                     try:
                         # Save using database helper
                         db_helper.save_step_data("optimization", {
@@ -681,7 +684,7 @@ def render_optimization():
                         project_id = db_helper.get_project_id()
                         if project_id:
                             db_manager.save_optimization_results(
-                            st.session_state.project_data['project_id'],
+                            project_id,
                             optimization_results
                         )
                     except Exception as db_error:
