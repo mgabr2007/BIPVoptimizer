@@ -93,6 +93,27 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
+    def get_project_by_id(self, project_id):
+        """Get project data by ID"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute(
+                    "SELECT * FROM projects WHERE id = %s",
+                    (project_id,)
+                )
+                result = cursor.fetchone()
+                return dict(result) if result else None
+                
+        except Exception as e:
+            st.error(f"Error getting project: {str(e)}")
+            return None
+        finally:
+            conn.close()
+    
     def save_weather_data(self, project_identifier, weather_data):
         """Save weather and TMY data"""
         conn = self.get_connection()
