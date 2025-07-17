@@ -443,23 +443,65 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
                     None
                 )
                 if annual_radiation is not None and annual_radiation > 0:
-                    radiation_lookup[element_id] = float(annual_radiation)
+                    radiation_lookup[str(element_id)] = float(annual_radiation)  # Ensure string key
                     
             st.success(f"✅ Created radiation lookup for {len(radiation_lookup)} elements")
             # Show sample radiation values for debugging
             if len(radiation_lookup) > 0:
                 sample_items = list(radiation_lookup.items())[:3]
                 st.info(f"📈 Sample radiation values: {sample_items}")
-                
-        elif isinstance(radiation_data, dict) and 'element_radiation' in radiation_data:
-            radiation_lookup = radiation_data['element_radiation']
+        
         elif isinstance(radiation_data, dict):
-            # Handle direct radiation data dict
-            for element_id, rad_value in radiation_data.items():
-                if isinstance(rad_value, (int, float)) and rad_value > 0:
-                    radiation_lookup[element_id] = float(rad_value)
-    else:
+            st.info(f"📊 Processing dictionary radiation data with {len(radiation_data)} keys")
+            # Handle dictionary format - could be direct element_id mapping or nested structure
+            if 'element_radiation' in radiation_data:
+                # Nested structure with element_radiation key
+                element_rad_data = radiation_data['element_radiation']
+                if isinstance(element_rad_data, dict):
+                    radiation_lookup = {str(k): v for k, v in element_rad_data.items() if v and v > 0}
+                    st.success(f"✅ Loaded radiation data for {len(radiation_lookup)} elements from nested dict")
+            else:
+                # Direct element_id to radiation mapping
+                radiation_lookup = {str(k): v for k, v in radiation_data.items() if isinstance(v, (int, float)) and v > 0}
+                st.success(f"✅ Loaded radiation data for {len(radiation_lookup)} elements from direct dict")
+            
+            # Show sample radiation values for debugging
+            if len(radiation_lookup) > 0:
+                sample_items = list(radiation_lookup.items())[:3]
+                st.info(f"📈 Sample radiation values: {sample_items}")
+    
+    # If no radiation lookup created but we have database records, create it directly from database
+    if len(radiation_lookup) == 0 and radiation_from_db:
+        st.info("🔄 Creating radiation lookup directly from database...")
+        try:
+            from database_manager import BIPVDatabaseManager
+            db_manager = BIPVDatabaseManager()
+            conn = db_manager.get_connection()
+            
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT element_id, annual_radiation 
+                        FROM element_radiation 
+                        WHERE project_id = %s AND annual_radiation > 0
+                    """, (st.session_state.get('project_id'),))
+                    
+                    radiation_rows = cursor.fetchall()
+                    for element_id, annual_radiation in radiation_rows:
+                        radiation_lookup[str(element_id)] = float(annual_radiation)
+                    
+                    st.success(f"✅ Created direct radiation lookup for {len(radiation_lookup)} elements")
+                    if len(radiation_lookup) > 0:
+                        sample_items = list(radiation_lookup.items())[:3]
+                        st.info(f"📈 Direct lookup sample: {sample_items}")
+                conn.close()
+        except Exception as e:
+            st.error(f"Error creating direct radiation lookup: {e}")
+    
+    # Final check - if still no radiation lookup available, display error
+    if len(radiation_lookup) == 0:
         st.error("❌ No radiation data available from Step 5 - authentic TMY calculations required")
+        return []
     
     for idx, element in suitable_elements.iterrows():
         # Use actual Element ID from building elements - REQUIRE authentic BIM data
@@ -499,14 +541,15 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
         orientation = element.get('Orientation') or element.get('orientation') or get_orientation_from_azimuth(azimuth)
         
         # Get radiation data for this specific element - REQUIRE authentic TMY data
-        annual_radiation = radiation_lookup.get(element_id)
+        element_id_str = str(element_id)  # Ensure string format for lookup
+        annual_radiation = radiation_lookup.get(element_id_str)
         if annual_radiation is None or annual_radiation <= 0:
             # Try alternative element ID formats
-            alt_element_id = str(element_id).replace('element_', '') if 'element_' in str(element_id) else f"element_{element_id}"
+            alt_element_id = element_id_str.replace('element_', '') if 'element_' in element_id_str else f"element_{element_id_str}"
             annual_radiation = radiation_lookup.get(alt_element_id)
             
             if annual_radiation is None or annual_radiation <= 0:
-                st.error(f"❌ No authentic TMY radiation data found for element {element_id}. Cannot proceed without real data.")
+                st.error(f"❌ No authentic TMY radiation data found for element {element_id} (tried: {element_id_str}, {alt_element_id}). Available keys sample: {list(radiation_lookup.keys())[:5]}")
                 continue  # Skip this element instead of using fallback values
         
         # Calculate BIPV specifications
@@ -660,6 +703,9 @@ def render_pv_specification():
                         if radiation_rows:
                             radiation_data = pd.DataFrame(radiation_rows, columns=['element_id', 'annual_radiation'])
                             st.success(f"✅ Loaded {len(radiation_data)} radiation records from database")
+                            # Show sample of loaded data for verification
+                            sample_data = radiation_data.head(3)[['element_id', 'annual_radiation']].to_dict('records')
+                            st.info(f"📊 Sample data: {sample_data}")
             conn.close()
     except Exception as e:
         st.error(f"Error checking radiation data: {e}")
