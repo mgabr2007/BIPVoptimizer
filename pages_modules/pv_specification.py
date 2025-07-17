@@ -526,7 +526,7 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
         try:
             glass_area = float(glass_area_raw) if glass_area_raw is not None else None
             if glass_area is None or glass_area <= 0:
-                st.error(f"❌ No valid glass area found for element {element_id}. Authentic BIM data required.")
+                st.error(f"❌ No valid glass area found for element {element_id} (value: {glass_area_raw}). Authentic BIM data required.")
                 continue  # Skip this element instead of using fallback values
         except (ValueError, TypeError):
             st.error(f"❌ Invalid glass area data for element {element_id}. Authentic BIM data required.")
