@@ -461,3 +461,8 @@ def render_facade_extraction():
     with col2:
         # Remove duplicate step number display - handled by global navigation
         pass
+    
+    with col3:
+        if st.button("Radiation Grid →", key="step4_next_btn", use_container_width=True):
+            st.session_state.current_step = 'radiation_grid'
+            st.rerun()
