@@ -2,6 +2,8 @@
 Welcome page for BIPV Optimizer
 """
 import streamlit as st
+import uuid
+import datetime
 from utils.color_schemes import get_emoji, create_colored_html, YELLOW_SCHEME
 
 
@@ -114,11 +116,52 @@ def render_welcome():
     """)
     
     # Ready to start section
-    st.success("""
-    **Ready to begin your BIPV analysis?**
+    st.markdown("---")
+    st.markdown("### 🚀 Start Your BIPV Analysis")
     
-    Click **Step 1: Project Setup** in the sidebar to start your complete 11-step analysis workflow.
-    """)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        if st.button("🔬 Start New Analysis", key="start_analysis_btn", use_container_width=True, type="primary"):
+            # Generate unique project ID
+            project_id = str(uuid.uuid4())[:8]  # Use first 8 characters for readability
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # Create unique project name
+            project_name = f"BIPV_Analysis_{timestamp}"
+            
+            # Initialize session state for new project
+            st.session_state['project_data'] = {
+                'project_id': project_id,
+                'project_name': project_name,
+                'created_at': datetime.datetime.now().isoformat(),
+                'setup_complete': False
+            }
+            
+            # Store project ID in session state
+            st.session_state['project_id'] = project_id
+            
+            # Clear any existing workflow data
+            workflow_keys = [
+                'historical_data', 'weather_data', 'building_elements', 'radiation_data',
+                'pv_specifications', 'yield_analysis', 'optimization_results', 'financial_analysis'
+            ]
+            
+            for key in workflow_keys:
+                if key in st.session_state:
+                    del st.session_state[key]
+            
+            # Navigate to Step 1
+            st.session_state.current_step = 'project_setup'
+            st.success(f"✅ New project created: **{project_name}** (ID: {project_id})")
+            st.info("📋 Redirecting to Step 1: Project Setup...")
+            st.rerun()
+    
+    st.markdown("""
+    <div style="text-align: center; margin-top: 10px; color: #666; font-size: 0.9em;">
+        Each analysis creates a unique project ID for independent calculations
+    </div>
+    """, unsafe_allow_html=True)
     
     # Research attribution (footer)
     st.markdown("---")
