@@ -751,11 +751,8 @@ def render_project_setup():
     save_disabled = not (project_name and location_name and selected_lat and selected_lon)
     
     if st.button("💾 Save Project Configuration", key="save_project", type="primary", disabled=save_disabled):
-        # Start with existing project data (containing UUID project ID)
-        project_data = st.session_state.get('project_data', {})
-        
-        # Update project data with user inputs
-        project_data.update({
+        # Prepare project data
+        project_data = {
             'project_name': project_name,
             'location': location_name,
             'coordinates': {
@@ -767,15 +764,7 @@ def render_project_setup():
             'setup_complete': True,
             'location_method': location_method,
             'weather_api_choice': st.session_state.get('weather_api_choice', 'auto')
-        })
-        
-        # Ensure project_id is present (from welcome page)
-        if 'project_id' not in project_data:
-            project_data['project_id'] = st.session_state.get('project_id')
-        
-        if not project_data.get('project_id'):
-            st.error("No project ID found. Please start from the welcome page.")
-            return
+        }
         
         # Add selected weather station data if available (API stations only)
         selected_station = st.session_state.get('selected_weather_station')
@@ -812,23 +801,19 @@ def render_project_setup():
         project_data['solar_parameters'] = location_params
         project_data['electricity_rates'] = electricity_rates
         
-        # Save to database (preserving UUID project ID)
-        db_project_id = save_project_data(project_data)
+        # Save to database and get project ID
+        project_id = save_project_data(project_data)
         
-        if db_project_id:
-            # Keep original UUID project ID for display
-            uuid_project_id = project_data.get('project_id')
-            
-            # Store both IDs for consistency
-            project_data['db_project_id'] = db_project_id  # Database integer ID
-            st.session_state.project_id = uuid_project_id  # UUID for display
-            st.session_state.db_project_id = db_project_id  # Database ID for queries
+        if project_id:
+            # Store project_id in both places for consistency
+            project_data['project_id'] = project_id
+            st.session_state.project_id = project_id
             st.session_state.project_data = project_data
             st.session_state.project_name = project_data.get('project_name')
             st.session_state.project_data['setup_complete'] = True
             
-            # Display success with UUID project ID
-            st.success(f"✅ Project saved successfully! Project ID: **{uuid_project_id}**")
+            # Display success with project ID
+            st.success(f"✅ Project saved successfully! Project ID: **{project_id}**")
             
             with st.container():
                 st.markdown("### 📋 Project Configuration Summary")
@@ -870,7 +855,7 @@ def render_project_setup():
                     """)
                 
                 # Show project ID prominently  
-                st.info(f"🆔 **Project ID: {uuid_project_id}** - Use this ID to identify your project in the system")
+                st.info(f"🆔 **Project ID: {project_id}** - Use this ID to identify your project in the system")
                 
                 # Data usage explanation
                 st.info("""

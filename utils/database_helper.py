@@ -14,14 +14,14 @@ class DatabaseHelper:
         self.db_manager = BIPVDatabaseManager()
     
     def get_project_id(self, project_name=None):
-        """Get database project ID from session state or database (for database operations)"""
+        """Get project ID from session state or database"""
         if project_name is None:
             project_name = st.session_state.get('project_name', 'Default Project')
         
-        # Try session state first - use database ID for database operations
-        db_project_id = st.session_state.get('db_project_id')
-        if db_project_id:
-            return int(db_project_id)
+        # Try session state first
+        project_id = st.session_state.get('project_id')
+        if project_id:
+            return int(project_id)
         
         # Query database if not in session
         try:
@@ -31,9 +31,9 @@ class DatabaseHelper:
                     cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_name,))
                     result = cursor.fetchone()
                     if result:
-                        db_project_id = result[0]
-                        st.session_state.db_project_id = db_project_id
-                        return db_project_id
+                        project_id = result[0]
+                        st.session_state.project_id = project_id
+                        return project_id
                 conn.close()
         except Exception as e:
             st.warning(f"Could not retrieve project ID: {str(e)}")

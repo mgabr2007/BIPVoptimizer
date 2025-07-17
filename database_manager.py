@@ -30,27 +30,17 @@ class BIPVDatabaseManager:
             return None
     
     def save_project(self, project_data):
-        """Save or update project data using UUID project ID converted to integer hash"""
+        """Save or update project data"""
         conn = self.get_connection()
         if not conn:
             return None
         
         try:
             with conn.cursor() as cursor:
-                # Get project ID from project_data (set by welcome page)
-                uuid_project_id = project_data.get('project_id')
-                
-                if not uuid_project_id:
-                    st.error("No project ID found in project data. Please start from welcome page.")
-                    return None
-                
-                # Convert UUID to integer hash for database compatibility
-                project_id = abs(hash(uuid_project_id)) % (10**8)  # 8-digit integer
-                
-                # Check if project already exists in database
+                # Check if project exists by name
                 cursor.execute(
-                    "SELECT id FROM projects WHERE id = %s",
-                    (project_id,)
+                    "SELECT id FROM projects WHERE project_name = %s",
+                    (project_data.get('project_name'),)
                 )
                 existing = cursor.fetchone()
                 
@@ -58,13 +48,12 @@ class BIPVDatabaseManager:
                     # Update existing project
                     cursor.execute("""
                         UPDATE projects SET 
-                            project_name = %s, location = %s, latitude = %s, longitude = %s, 
+                            location = %s, latitude = %s, longitude = %s, 
                             timezone = %s, currency = %s, weather_api_choice = %s, 
                             location_method = %s, search_radius = %s, updated_at = CURRENT_TIMESTAMP
-                        WHERE id = %s
+                        WHERE project_name = %s
                         RETURNING id
                     """, (
-                        project_data.get('project_name'),
                         project_data.get('location'),
                         project_data.get('coordinates', {}).get('lat'),
                         project_data.get('coordinates', {}).get('lon'),
@@ -73,16 +62,15 @@ class BIPVDatabaseManager:
                         project_data.get('weather_api_choice', 'auto'),
                         project_data.get('location_method', 'map'),
                         project_data.get('search_radius', 500),
-                        project_id
+                        project_data.get('project_name')
                     ))
                 else:
-                    # Insert new project with integer hash of UUID
+                    # Insert new project
                     cursor.execute("""
-                        INSERT INTO projects (id, project_name, location, latitude, longitude, timezone, currency, weather_api_choice, location_method, search_radius)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO projects (project_name, location, latitude, longitude, timezone, currency, weather_api_choice, location_method, search_radius)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
                     """, (
-                        project_id,
                         project_data.get('project_name'),
                         project_data.get('location'),
                         project_data.get('coordinates', {}).get('lat'),
@@ -94,13 +82,9 @@ class BIPVDatabaseManager:
                         project_data.get('search_radius', 500)
                     ))
                 
-                returned_project_id = cursor.fetchone()[0]
+                project_id = cursor.fetchone()[0]
                 conn.commit()
-                
-                # Store the mapping back to UUID in session state
-                st.session_state['uuid_to_db_mapping'] = {uuid_project_id: returned_project_id}
-                
-                return returned_project_id
+                return project_id
                 
         except Exception as e:
             conn.rollback()
