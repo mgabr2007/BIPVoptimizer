@@ -625,26 +625,30 @@ def render_weather_environment():
                                         else:
                                             st.error(f"❌ Temperature calculation error: August ({aug_temp:.1f}°C) should be > January ({jan_temp:.1f}°C)")
                         
-                        # Save to database
-                        if 'project_id' in st.session_state:
+                        # Save to database using centralized project ID
+                        from services.io import get_current_project_id
+                        project_id = get_current_project_id()
+                        
+                        if project_id:
                             try:
-                                # Save weather data using helper
+                                # Save to weather_data table with 8,760 hourly records
                                 db_helper.save_step_data("weather_analysis", {
                                     'tmy_data': tmy_data,
                                     'weather_data': st.session_state.project_data.get('weather_analysis', {}),
                                     'annual_ghi': annual_ghi,
-                                    'monthly_profiles': monthly_profiles
+                                    'monthly_profiles': monthly_solar
                                 })
                                 
-                                # Legacy save method for compatibility
+                                # Save to weather_data table with full TMY dataset
                                 from database_manager import BIPVDatabaseManager
                                 db_manager = BIPVDatabaseManager()
-                                project_id = db_helper.get_project_id()
-                                if project_id:
-                                    db_manager.save_weather_data(
-                                    project_id,
-                                    weather_analysis
-                                )
+                                db_manager.save_weather_data(project_id, weather_analysis)
+                                
+                                # Save environmental factors if available
+                                environmental_factors = st.session_state.project_data.get('environmental_factors', {})
+                                if environmental_factors:
+                                    db_manager.save_environmental_factors(project_id, environmental_factors)
+                                
                                 st.success("💾 Weather data saved to database")
                             except Exception as e:
                                 st.warning(f"Database save failed: {str(e)}")

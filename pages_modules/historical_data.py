@@ -676,15 +676,29 @@ def render_historical_data():
             st.session_state['historical_completed'] = True
             st.session_state.project_data['data_analysis_complete'] = True
             
-            # Save to database
-            if 'project_id' in st.session_state:
+            # Save to database using centralized project ID
+            from services.io import get_current_project_id
+            project_id = get_current_project_id()
+            
+            if project_id:
                 save_project_data(st.session_state.project_data)
-                # Save historical data using helper
+                # Save to historical_data table
                 db_helper.save_step_data("historical_data", {
                     'consumption_data': st.session_state.project_data.get('historical_data', {}),
                     'ai_model_data': st.session_state.project_data.get('ai_model', {}),
                     'forecast_data': st.session_state.project_data.get('forecast_data', {})
                 })
+                
+                # Save to ai_models table for R² scores and model parameters
+                from database_manager import BIPVDatabaseManager
+                db_manager = BIPVDatabaseManager()
+                if r_squared_score is not None:
+                    db_manager.save_ai_model_data(project_id, {
+                        'model_type': 'RandomForestRegressor',
+                        'r_squared_score': r_squared_score,
+                        'training_data_size': len(consumption_data),
+                        'forecast_years': 25
+                    })
         
         # Display analysis results
         st.success("Historical data processed and AI model trained successfully!")

@@ -1,0 +1,160 @@
+ uses a centralized database-driven architecture where calculations flow through 10 sequential steps, each building upon previous results. All data is persisted using PostgreSQL with the centralized get_current_project_id() function ensuring consistent project identification.
+
+Step-by-Step Calculation Flow
+Step 1: Project Setup
+Calculations:
+
+Location coordinate validation
+Weather station distance calculations (using haversine formula)
+Electricity rate API integration
+Timezone detection
+Database Updates:
+
+projects table: Creates initial project record with generated project_id
+Stores: project_name, location_name, latitude, longitude, timezone, currency
+Weather station metadata saved for Step 3 reference
+Step 2: Historical Data & AI Model
+Calculations:
+
+CSV consumption data processing and validation
+RandomForestRegressor training for demand prediction
+R² score calculation for model performance
+25-year energy demand forecasting
+Seasonal variation analysis
+Building energy intensity calculations (kWh/m²/year)
+Database Updates:
+
+historical_data table: Stores processed consumption data
+ai_models table: Saves trained model parameters and R² scores
+Session state: Updates forecast results for Step 7 integration
+Step 3: Weather & Environment
+Calculations:
+
+TMY (Typical Meteorological Year) generation from WMO station data
+Solar position calculations using astronomical algorithms
+GHI/DHI/DNI irradiance calculations
+Environmental shading factor applications (trees: 15%, buildings: 10%)
+Hourly weather data processing (8,760 records per year)
+Database Updates:
+
+weather_data table: Stores TMY data with hourly resolution
+environmental_factors table: Saves shading calculations
+Quality metrics and validation results preserved
+Step 4: Facade & Window Extraction
+Calculations:
+
+BIM CSV file parsing and element validation
+Glass area extraction and unit conversion
+Orientation mapping from descriptive text to degrees
+Element-level geometry processing
+PV suitability threshold calculations
+Database Updates:
+
+building_elements table: Stores all window/facade data
+Fields: element_id, glass_area, orientation, azimuth, level, wall_hosted_id
+Progress tracking with real-time percentage updates
+Step 5: Radiation & Shading Analysis
+Calculations:
+
+Solar position calculations for each building element
+Irradiance calculations using TMY data (GHI/DHI/DNI)
+Orientation-based radiation corrections
+Height-dependent shading effects
+Self-shading analysis from building walls data
+Annual radiation totals (kWh/m²/year) per element
+Database Updates:
+
+element_radiation table: Stores radiation results per element
+building_walls table: Geometric data for self-shading
+radiation_analysis table: Summary statistics and completion status
+Batch processing with progress tracking
+Step 6: PV Specification
+Calculations:
+
+BIPV glass technology specifications (5 commercial types)
+Power density calculations (W/m²)
+Coverage factor applications (80-95%)
+Capacity calculations per element (kW)
+System cost estimations (€/kW)
+Performance ratio applications
+Database Updates:
+
+pv_specifications table: Element-specific BIPV systems
+panel_catalog table: BIPV technology database
+JSON storage of complete system specifications
+Individual element capacity and cost data
+Step 7: Yield vs Demand Analysis
+Calculations:
+
+Monthly energy generation calculations using radiation data
+Seasonal solar variation modeling
+AI forecast integration for demand prediction
+Grid import/export calculations
+Electricity cost savings computation
+Feed-in tariff revenue calculations
+Database Updates:
+
+yield_demand table: Monthly energy balance data
+energy_balance table: Detailed consumption vs generation
+Financial metrics (savings, revenue, coverage ratios)
+Timeline-based analysis results
+Step 8: Multi-Objective Optimization
+Calculations:
+
+NSGA-II genetic algorithm implementation
+Weighted fitness functions (cost, yield, ROI)
+Pareto-optimal solution generation
+Investment constraint applications
+Element selection optimization
+Performance ranking calculations
+Database Updates:
+
+optimization_results table: Pareto solutions and rankings
+optimization_config table: Algorithm parameters
+Solution fitness scores and element selections
+Investment and performance metrics
+Step 9: Financial Analysis
+Calculations:
+
+NPV calculations with 5% discount rate
+IRR (Internal Rate of Return) computations
+Payback period analysis
+25-year cash flow projections
+LCOE (Levelized Cost of Energy) calculations
+Environmental impact assessments (CO₂ savings)
+Database Updates:
+
+financial_analysis table: Complete financial metrics
+cash_flow table: Annual financial projections
+environmental_impact table: Carbon footprint data
+ROI and payback calculations
+Step 10: Reporting & AI Consultation
+Calculations:
+
+Data aggregation from all previous steps
+Report generation with authentic calculated values
+Comprehensive analysis synthesis
+AI consultation using Perplexity API
+Research-based recommendations
+Database Updates:
+
+reports table: Generated report metadata
+ai_consultations table: AI analysis results
+Master report aggregation from all workflow steps
+Database Architecture Features
+Centralized Project ID System
+get_current_project_id() function provides consistent project identification
+All database operations use project_id as primary key reference
+No session state dependencies for data persistence
+Data Flow Integrity
+Each step validates previous step completion before proceeding
+Database fallback loading when session state unavailable
+Real-time progress tracking with percentage indicators
+Calculation Persistence
+All intermediate calculations preserved in database
+Authentic data flows between steps (no synthetic values)
+Comprehensive error handling and data validation
+Performance Optimization
+Batch processing for large datasets (1000+ elements)
+Database indexing on project_id and element_id
+Efficient JOIN operations for cross-step data retrieval

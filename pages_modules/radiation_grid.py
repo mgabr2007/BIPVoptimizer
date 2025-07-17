@@ -398,7 +398,7 @@ def render_radiation_grid():
 def check_dependencies():
     """Check if required data is available for radiation analysis."""
     
-    project_id = st.session_state.get('project_id')
+    project_id = get_current_project_id()
     if not project_id:
         st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
         return False
