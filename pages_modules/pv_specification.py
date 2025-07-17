@@ -676,18 +676,19 @@ def render_pv_specification():
             if conn:
                 with conn.cursor() as cursor:
                     cursor.execute("""
-                        SELECT DISTINCT element_id, azimuth, glass_area, window_width, window_height, 
-                               family, orientation, building_level
-                        FROM building_elements 
-                        WHERE project_id = %s AND element_type = 'Window'
-                        ORDER BY element_id
+                        SELECT DISTINCT be.element_id, be.azimuth, be.glass_area, be.window_width, be.window_height, 
+                               be.family, be.orientation, be.building_level, er.annual_radiation
+                        FROM building_elements be
+                        LEFT JOIN element_radiation er ON be.element_id = er.element_id AND be.project_id = er.project_id
+                        WHERE be.project_id = %s AND be.element_type = 'Window'
+                        ORDER BY be.element_id
                     """, (st.session_state.get('project_id'),))
                     
                     rows = cursor.fetchall()
                     if rows:
                         building_elements = []
                         for row in rows:
-                            element_id, azimuth, glass_area, window_width, window_height, family, orientation, building_level = row
+                            element_id, azimuth, glass_area, window_width, window_height, family, orientation, building_level, annual_radiation = row
                             
                             # Calculate glass area if missing
                             if not glass_area or glass_area == 0:
@@ -711,6 +712,7 @@ def render_pv_specification():
                                 'orientation': orientation,
                                 'family': str(family),
                                 'building_level': str(building_level),
+                                'annual_radiation': float(annual_radiation) if annual_radiation else 0.0,
                                 'pv_suitable': orientation in ['South', 'East', 'West']
                             })
                         
@@ -737,13 +739,29 @@ def render_pv_specification():
     elif 'suitable' in all_elements.columns:
         suitable_elements = all_elements[all_elements['suitable'] == True].copy()
     else:
-        # Fallback: filter by orientation if suitability flags not available
-        suitable_orientations = ["South (135-225°)", "East (45-135°)", "West (225-315°)"]
-        if 'orientation' in all_elements.columns:
+        # Enhanced filtering: use azimuth and radiation data for suitability
+        suitable_elements = all_elements.copy()
+        
+        # Filter by azimuth (exclude true north-facing: 315-45°)
+        if 'azimuth' in all_elements.columns:
+            # Convert azimuth to suitable orientations (exclude north-facing)
+            suitable_mask = ~((all_elements['azimuth'] >= 315) | (all_elements['azimuth'] <= 45))
+            suitable_elements = suitable_elements[suitable_mask].copy()
+        
+        # Filter by radiation performance (minimum 400 kWh/m²/year)
+        if 'annual_radiation' in all_elements.columns:
+            radiation_mask = all_elements['annual_radiation'] >= 400
+            suitable_elements = suitable_elements[radiation_mask].copy()
+        
+        # If no radiation data, use fallback orientation strings
+        if len(suitable_elements) == 0 and 'orientation' in all_elements.columns:
+            suitable_orientations = ["South (135-225°)", "East (45-135°)", "West (225-315°)"]
             suitable_elements = all_elements[all_elements['orientation'].isin(suitable_orientations)].copy()
-        else:
-            st.warning("⚠️ Could not determine element suitability. Processing all elements.")
-            suitable_elements = all_elements
+        
+        # Last resort: process all elements if no filtering criteria work
+        if len(suitable_elements) == 0:
+            st.warning("⚠️ Could not determine element suitability. Processing all elements with radiation data.")
+            suitable_elements = all_elements[all_elements['annual_radiation'].notna()].copy()
     
     # Debug information with suitability confirmation
     total_elements = len(all_elements)
