@@ -90,11 +90,13 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data, environmenta
     yield_profiles = []
     
     # Get environmental shading factor from Step 3
+    # NOTE: If TMY data was regenerated with environmental factors, this should be 0
     shading_reduction = 0
     if environmental_factors:
         shading_reduction = environmental_factors.get('shading_reduction', 0)
     
     # Apply shading reduction factor (1 - percentage reduction)
+    # This will be 1.0 (no additional reduction) if TMY data was already adjusted
     shading_factor = 1 - (shading_reduction / 100)
     
     # Create monthly irradiation profiles from TMY data
@@ -144,10 +146,16 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data, environmenta
                     hour_month = 12
                 
                 if hour_month == month:
-                    # Apply environmental shading factor to solar irradiance
                     # Handle different GHI field names from TMY data
+                    # NOTE: If TMY was regenerated, environmental shading is already applied
                     ghi_value = hour_data.get('ghi', hour_data.get('GHI_Wm2', hour_data.get('GHI', 0)))
-                    adjusted_ghi = ghi_value * shading_factor
+                    
+                    # Only apply additional shading if TMY wasn't already adjusted
+                    if shading_factor < 1.0:
+                        adjusted_ghi = ghi_value * shading_factor
+                    else:
+                        adjusted_ghi = ghi_value  # Use TMY data as-is (already environmentally adjusted)
+                    
                     month_total += adjusted_ghi / 1000  # Convert Wh/m² to kWh/m²
                     hours_in_month += 1
             
@@ -629,7 +637,18 @@ def render_yield_demand():
                 weather_analysis = project_data.get('weather_analysis', {})
                 if weather_analysis:
                     tmy_data = weather_analysis.get('tmy_data', {})
-                    st.info(f"✅ Using authentic TMY data from Step 3: {len(tmy_data) if tmy_data else 0} hourly records")
+                    
+                    # Check if TMY data was regenerated with environmental factors
+                    is_regenerated = weather_analysis.get('regenerated', False)
+                    environmental_adjustment = weather_analysis.get('environmental_adjustment', 0)
+                    
+                    if is_regenerated and environmental_adjustment > 0:
+                        st.success(f"✅ Using regenerated TMY data with {environmental_adjustment}% environmental shading already applied")
+                        st.info(f"📊 TMY data: {len(tmy_data) if tmy_data else 0} hourly records (environmentally adjusted)")
+                        # Reset environmental factors since they're already applied to TMY data
+                        environmental_factors = {}
+                    else:
+                        st.info(f"✅ Using original TMY data from Step 3: {len(tmy_data) if tmy_data else 0} hourly records")
                 else:
                     # Fallback: Check direct storage
                     tmy_data = project_data.get('tmy_data', {})
