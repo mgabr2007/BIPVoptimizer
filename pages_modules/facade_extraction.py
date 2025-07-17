@@ -404,4 +404,5 @@ def render_facade_extraction():
             st.rerun()
     
     with col2:
-        st.markdown("<h4 style='text-align: center;'>Step 4 of 11</h4>", unsafe_allow_html=True)
+        # Remove duplicate step number display - handled by global navigation
+        pass
