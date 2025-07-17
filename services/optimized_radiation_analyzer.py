@@ -330,37 +330,95 @@ class OptimizedRadiationAnalyzer:
     def _calculate_annual_radiation_fast(self, lat: float, lon: float, azimuth: float,
                                        time_steps: List[datetime], apply_corrections: bool,
                                        include_shading: bool, orientation: str) -> float:
-        """Fast calculation of annual radiation using optimized algorithms."""
+        """Fast calculation of annual radiation using authentic TMY data."""
+        
+        # Try to get authentic TMY data from Step 3
+        import streamlit as st
+        tmy_data = None
+        weather_analysis = st.session_state.get('project_data', {}).get('weather_analysis', {})
+        
+        if weather_analysis and 'tmy_data' in weather_analysis:
+            tmy_data = weather_analysis['tmy_data']
+            st.info(f"🌤️ Using authentic TMY data with {len(tmy_data)} hourly records from Step 3")
         
         total_irradiance = 0.0
         
-        for timestamp in time_steps:
-            # Calculate solar position
-            solar_elevation, solar_azimuth = calculate_solar_position(
-                lat, lon, timestamp
-            )
-            
-            # Skip nighttime
-            if solar_elevation <= 0:
-                continue
-            
-            # Calculate direct normal irradiance (simplified)
-            dni = self._estimate_dni(solar_elevation, timestamp)
-            
-            # Calculate irradiance on surface
-            surface_irradiance = calculate_irradiance_on_surface(
-                dni, solar_elevation, solar_azimuth, azimuth, 90  # Assume vertical surface
-            )
-            
-            # Apply orientation corrections
-            if apply_corrections:
-                surface_irradiance *= self._get_orientation_correction(orientation)
-            
-            # Apply shading factor
-            if include_shading:
-                surface_irradiance *= self._get_shading_factor(orientation)
-            
-            total_irradiance += surface_irradiance
+        if tmy_data and len(tmy_data) > 0:
+            # Use authentic TMY data from Step 3
+            for i, tmy_hour in enumerate(tmy_data):
+                if i >= len(time_steps):
+                    break
+                    
+                timestamp = time_steps[i % len(time_steps)]
+                
+                # Extract authentic irradiance values from TMY data
+                ghi = self._extract_irradiance_value(tmy_hour, ['ghi', 'GHI', 'ghi_wm2'], 0)
+                dni = self._extract_irradiance_value(tmy_hour, ['dni', 'DNI', 'dni_wm2'], 0)
+                dhi = self._extract_irradiance_value(tmy_hour, ['dhi', 'DHI', 'dhi_wm2'], 0)
+                
+                # Skip if no irradiance data available
+                if ghi <= 0 and dni <= 0:
+                    continue
+                
+                # Calculate solar position for surface calculations
+                solar_elevation, solar_azimuth = calculate_solar_position(
+                    lat, lon, timestamp
+                )
+                
+                # Skip nighttime
+                if solar_elevation <= 0:
+                    continue
+                
+                # Use authentic DNI or estimate if not available
+                if dni > 0:
+                    authentic_dni = dni
+                else:
+                    authentic_dni = max(0, ghi - dhi) if dhi > 0 else ghi * 0.8
+                
+                # Calculate irradiance on surface using authentic data
+                surface_irradiance = calculate_irradiance_on_surface(
+                    authentic_dni, solar_elevation, solar_azimuth, azimuth, 90
+                )
+                
+                # Apply orientation corrections
+                if apply_corrections:
+                    surface_irradiance *= self._get_orientation_correction(orientation)
+                
+                # Apply shading factor
+                if include_shading:
+                    surface_irradiance *= self._get_shading_factor(orientation)
+                
+                total_irradiance += surface_irradiance
+        else:
+            # Fallback to synthetic calculation only if no TMY data available
+            st.warning("⚠️ No authentic TMY data found, using simplified estimates")
+            for timestamp in time_steps:
+                # Calculate solar position
+                solar_elevation, solar_azimuth = calculate_solar_position(
+                    lat, lon, timestamp
+                )
+                
+                # Skip nighttime
+                if solar_elevation <= 0:
+                    continue
+                
+                # Calculate direct normal irradiance (simplified)
+                dni = self._estimate_dni(solar_elevation, timestamp)
+                
+                # Calculate irradiance on surface
+                surface_irradiance = calculate_irradiance_on_surface(
+                    dni, solar_elevation, solar_azimuth, azimuth, 90
+                )
+                
+                # Apply orientation corrections
+                if apply_corrections:
+                    surface_irradiance *= self._get_orientation_correction(orientation)
+                
+                # Apply shading factor
+                if include_shading:
+                    surface_irradiance *= self._get_shading_factor(orientation)
+                
+                total_irradiance += surface_irradiance
         
         # Convert to annual radiation (kWh/m²/year)
         # Scale based on precision level
@@ -386,6 +444,16 @@ class OptimizedRadiationAnalyzer:
             return max(annual_radiation, base_radiation * 0.8)  # Take higher of calculated or 80% of base
         else:
             return base_radiation
+    
+    def _extract_irradiance_value(self, tmy_hour: dict, field_names: list, default: float) -> float:
+        """Extract irradiance value from TMY data using multiple possible field names."""
+        for field in field_names:
+            if field in tmy_hour and tmy_hour[field] is not None:
+                try:
+                    return float(tmy_hour[field])
+                except (ValueError, TypeError):
+                    continue
+        return default
     
     def _estimate_dni(self, solar_elevation: float, timestamp: datetime) -> float:
         """Estimate Direct Normal Irradiance based on solar elevation and time."""
