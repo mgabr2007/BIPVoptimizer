@@ -1024,7 +1024,8 @@ def render_radiation_grid():
     
     # Check for existing radiation analysis in database
     try:
-        project_id = db_helper.get_project_id(project_name)
+        from services.io import get_current_project_id
+        project_id = get_current_project_id()
         existing_count = db_helper.count_step_records("radiation_analysis", project_name)
         
         # Show database status if analysis exists

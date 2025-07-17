@@ -27,12 +27,13 @@ def render_radiation_grid():
     </div>
     """, unsafe_allow_html=True)
     
-    # Data validation
-    if 'project_id' not in st.session_state:
-        st.error("⚠️ No project selected. Please complete Step 1 (Project Setup) first.")
+    # Get current project ID from database
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
+    
+    if not project_id:
+        st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
         return
-        
-    project_id = st.session_state.project_id
     
     # Check dependencies
     if not check_dependencies():

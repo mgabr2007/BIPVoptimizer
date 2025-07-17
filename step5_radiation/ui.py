@@ -486,11 +486,12 @@ class LogViewer:
 
 def render_radiation_grid():
     """Main function to render radiation analysis interface."""
-    if 'project_id' not in st.session_state:
-        st.error("⚠️ No project selected. Please complete Step 1 first.")
-        return
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
     
-    project_id = st.session_state.project_id
+    if not project_id:
+        st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
+        return
     
     # Initialize UI controller
     ui_controller = RadiationAnalysisUI()
