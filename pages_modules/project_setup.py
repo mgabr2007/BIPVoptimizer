@@ -3,6 +3,8 @@ Project Setup page for BIPV Optimizer
 Enhanced with weather station selection interface
 """
 import streamlit as st
+from services.database_state_manager import db_state_manager
+from services.io import get_current_project_id
 import os
 import folium
 from streamlit_folium import st_folium
@@ -172,10 +174,8 @@ def render_project_setup():
     st.markdown("Configure your BIPV optimization project with location selection and data integration.")
     
     # Initialize session state
-    if 'project_data' not in st.session_state:
-        st.session_state.project_data = {}
-    if 'map_coordinates' not in st.session_state:
-        st.session_state.map_coordinates = {'lat': 52.5200, 'lng': 13.4050}
+    # Initialize default coordinates (Berlin, Germany)
+    default_coordinates = {'lat': 52.5200, 'lng': 13.4050}
     
     # STEP 1.1: Basic Project Information
     st.subheader("1️⃣ Project Information")
@@ -224,7 +224,7 @@ def render_project_setup():
             manual_lat = st.number_input(
                 "Latitude",
                 min_value=-90.0, max_value=90.0,
-                value=st.session_state.map_coordinates['lat'],
+                value=default_coordinates['lat'],
                 format="%.6f",
                 help="Project latitude in decimal degrees",
                 key="manual_lat"
@@ -233,7 +233,7 @@ def render_project_setup():
             manual_lon = st.number_input(
                 "Longitude",
                 min_value=-180.0, max_value=180.0,
-                value=st.session_state.map_coordinates['lng'],
+                value=default_coordinates['lng'],
                 format="%.6f",
                 help="Project longitude in decimal degrees",
                 key="manual_lon"
@@ -273,7 +273,7 @@ def render_project_setup():
     # Create stable folium map with weather stations (prevent continuous refreshing)
     current_zoom = st.session_state.get('map_zoom', 13)
     m = folium.Map(
-        location=[st.session_state.map_coordinates['lat'], st.session_state.map_coordinates['lng']],
+        location=[default_coordinates['lat'], default_coordinates['lng']],
         zoom_start=current_zoom,
         tiles="OpenStreetMap",
         prefer_canvas=True,

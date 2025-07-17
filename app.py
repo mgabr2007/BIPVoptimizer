@@ -564,50 +564,20 @@ from components.workflow_visualization import (
 
 
 
-# Initialize standardized session state
-from utils.session_state_standardizer import initialize_standardized_session, repair_data_flow
-from utils.data_flow_validator import display_data_flow_status, validate_step_dependencies
+# Initialize database-driven state management
+from services.database_state_manager import db_state_manager
+from services.io import get_current_project_id
 
-initialize_standardized_session()
+# Ensure database connectivity and project context
+current_project_id = get_current_project_id()
 
-# Repair any broken data dependencies
-repairs_made = repair_data_flow()
+# Database-driven project management
+if current_project_id:
+    st.sidebar.success(f"Project ID: {current_project_id}")
+else:
+    st.sidebar.info("No active project - start with Step 1")
 
-# Debug mode and data flow status
-debug_mode = st.sidebar.checkbox("🔧 Debug Mode", value=False, help="Show data flow repair messages and validation status")
-if debug_mode:
-    with st.sidebar.expander("🔧 Data Flow Management", expanded=False):
-        if repairs_made:
-            st.subheader("Recent Repairs")
-            for repair in repairs_made:
-                st.info(f"✅ {repair}")
-        
-        # Show validation status
-        validation = validate_step_dependencies()
-        status_colors = {
-            'PASSED': '🟢',
-            'WARNING': '🟡', 
-            'ERROR': '🟠',
-            'CRITICAL': '🔴'
-        }
-        overall_status = validation['summary']['overall_status']
-        st.metric(
-            "Data Flow Status", 
-            f"{status_colors[overall_status]} {overall_status}",
-            f"{validation['summary']['passed_checks']}/{validation['summary']['total_checks']} checks passed"
-        )
-
-# Initialize completion flags (standardized)
-completion_flags = [
-    'setup_completed', 'historical_completed', 'weather_completed', 
-    'facade_completed', 'radiation_completed', 'pv_specs_completed',
-    'yield_demand_completed', 'optimization_completed', 'financial_completed',
-    'reporting_completed'
-]
-
-for flag in completion_flags:
-    if flag not in st.session_state:
-        st.session_state[flag] = False
+# Database-driven completion tracking (no session state needed)
 
 
 def main():
@@ -632,17 +602,19 @@ def main():
         ("ai_consultation", "🤖 AI Consultation", "Expert analysis and recommendations")
     ]
     
+    # Get current step from database state manager
+    current_step = db_state_manager.get_current_step()
+    
     # Render navigation buttons for workflow steps
     for i, (step_key, step_name, description) in enumerate(workflow_steps):
-        is_current = st.session_state.current_step == step_key
+        is_current = current_step == step_key
         
         if is_current:
             st.sidebar.markdown(f"**▶️ {step_name}**")
             st.sidebar.caption(f"*Current: {description}*")
         else:
             if st.sidebar.button(step_name, key=f"nav_{step_key}_{i}", use_container_width=True):
-                st.session_state.current_step = step_key
-                st.session_state.scroll_to_top = True
+                db_state_manager.set_current_step(step_key)
                 st.rerun()
             st.sidebar.caption(description)
         
@@ -652,49 +624,48 @@ def main():
     
     st.sidebar.markdown("---")
     
-    # Show current project info if available
-    if 'project_data' in st.session_state and st.session_state.project_data:
-        project_name = st.session_state.project_data.get('project_name', 'Unnamed Project')
-        st.sidebar.markdown(f"**Current Project:** {project_name}")
-        
-        # AI Model Performance Status in Sidebar
-        if st.session_state.project_data.get('model_r2_score') is not None:
-            r2_score = st.session_state.project_data['model_r2_score']
-            status = st.session_state.project_data.get('model_performance_status', 'Unknown')
+    # Show current project info from database
+    if current_project_id:
+        from database_manager import db_manager
+        project_data = db_manager.get_project_by_id(current_project_id)
+        if project_data:
+            project_name = project_data.get('project_name', 'Unnamed Project')
+            st.sidebar.markdown(f"**Current Project:** {project_name}")
             
-            if r2_score >= 0.85:
-                color = "green"
-                icon = "🟢"
-            elif r2_score >= 0.70:
-                color = "orange"
-                icon = "🟡"
-            else:
-                color = "red"
-                icon = "🔴"
-            
-            st.sidebar.markdown(f"""
-            <div style="padding: 8px; border: 2px solid {color}; border-radius: 6px; text-align: center; background: rgba(248, 249, 250, 0.9); margin: 10px 0;">
-                <strong style="font-size: 12px;">{icon} AI Model R²: {r2_score:.3f}</strong><br>
-                <span style="color: {color}; font-size: 10px;">{status} Performance</span>
-            </div>
-            """, unsafe_allow_html=True)
+            # AI Model Performance Status from database
+            historical_data = db_state_manager.get_step_data('historical_data')
+            if historical_data and historical_data.get('model_r2_score') is not None:
+                r2_score = historical_data['model_r2_score']
+                status = historical_data.get('model_performance_status', 'Unknown')
+                
+                if r2_score >= 0.85:
+                    color = "green"
+                    icon = "🟢"
+                elif r2_score >= 0.70:
+                    color = "orange"
+                    icon = "🟡"
+                else:
+                    color = "red"
+                    icon = "🔴"
+                
+                st.sidebar.markdown(f"""
+                <div style="padding: 8px; border: 2px solid {color}; border-radius: 6px; text-align: center; background: rgba(248, 249, 250, 0.9); margin: 10px 0;">
+                    <strong style="font-size: 12px;">{icon} AI Model R²: {r2_score:.3f}</strong><br>
+                    <span style="color: {color}; font-size: 10px;">{status} Performance</span>
+                </div>
+                """, unsafe_allow_html=True)
     
     st.sidebar.markdown("---")
-    
-    # Get current step for all components
-    current_step = st.session_state.current_step
     
     # Add compact progress indicator to sidebar
     render_compact_progress(workflow_steps, current_step)
     
-    # Check for scroll to top flag and inject JavaScript if needed
-    if st.session_state.get('scroll_to_top', False):
-        st.markdown("""
+    # Enhanced scroll-to-top functionality
+    st.markdown("""
         <script>
         window.scrollTo({top: 0, behavior: 'smooth'});
         </script>
         """, unsafe_allow_html=True)
-        st.session_state.scroll_to_top = False
     
     # Main content area with workflow visualization
     
@@ -768,8 +739,7 @@ def render_bottom_navigation(workflow_steps, current_step):
         if current_index > 0:
             prev_step = workflow_steps[current_index - 1]
             if st.button(f"← {prev_step[1]}", key="bottom_prev_step", use_container_width=True):
-                st.session_state.current_step = prev_step[0]
-                st.session_state.scroll_to_top = True
+                db_state_manager.set_current_step(prev_step[0])
                 st.rerun()
     
     with col2:
@@ -785,14 +755,12 @@ def render_bottom_navigation(workflow_steps, current_step):
         if current_step == 'welcome':
             # Welcome page - show start button
             if st.button("Start Analysis →", key="bottom_start", use_container_width=True):
-                st.session_state.current_step = 'project_setup'
-                st.session_state.scroll_to_top = True
+                db_state_manager.set_current_step('project_setup')
                 st.rerun()
         elif current_step == 'reporting':
             # Last step - show new calculation button
             if st.button("🔄 New Analysis", key="bottom_new_calc", use_container_width=True):
-                st.session_state.current_step = 'welcome'
-                st.session_state.scroll_to_top = True
+                db_state_manager.set_current_step('welcome')
                 st.rerun()
         elif current_step in ['project_setup', 'historical_data', 'weather_environment', 'facade_extraction', 'radiation_grid', 'pv_specification', 'yield_demand', 'optimization', 'financial_analysis']:
             # Analysis steps - show download report button
@@ -814,30 +782,24 @@ def render_bottom_navigation(workflow_steps, current_step):
                 if current_index < len(workflow_steps) - 1:
                     next_step = workflow_steps[current_index + 1]
                     if st.button(f"Continue →", key=f"bottom_continue_nav", use_container_width=True):
-                        st.session_state.current_step = next_step[0]
-                        st.session_state.scroll_to_top = True
+                        db_state_manager.set_current_step(next_step[0])
                         st.rerun()
                 else:
                     if st.button("🎯 Complete Analysis", key=f"bottom_complete_nav", use_container_width=True):
-                        st.session_state.current_step = 'reporting'
-                        st.session_state.scroll_to_top = True
+                        db_state_manager.set_current_step('reporting')
                         st.rerun()
         elif current_step == 'ai_consultation':
             # Show finish button on the final step
             if st.button("🎯 Finish & New Calculation", key="finish_restart_bottom", use_container_width=True):
-                # Reset all session state for new calculation
-                for key in list(st.session_state.keys()):
-                    if key != 'current_step':
-                        del st.session_state[key]
-                st.session_state.current_step = 'welcome'
+                # Clear current project context and return to welcome
+                db_state_manager.set_current_step('welcome')
                 st.rerun()
         else:
             # Other steps - show next navigation
             if current_index < len(workflow_steps) - 1:
                 next_step = workflow_steps[current_index + 1]
                 if st.button(f"{next_step[1]} →", key="bottom_next_step", use_container_width=True):
-                    st.session_state.current_step = next_step[0]
-                    st.session_state.scroll_to_top = True
+                    db_state_manager.set_current_step(next_step[0])
                     st.rerun()
 
 

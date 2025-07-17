@@ -306,11 +306,12 @@ def render_optimization():
         - **Comparative analysis** → Performance benchmarking against non-optimized baseline configurations
         """)
     
-    # AI Model Performance Impact Notice
-    project_data = st.session_state.get('project_data', {})
-    if project_data.get('model_r2_score') is not None:
-        r2_score = project_data['model_r2_score']
-        status = project_data.get('model_performance_status', 'Unknown')
+    # AI Model Performance Impact Notice from database
+    from services.database_state_manager import db_state_manager
+    historical_data = db_state_manager.get_step_data('historical_data')
+    if historical_data and historical_data.get('model_r2_score') is not None:
+        r2_score = historical_data['model_r2_score']
+        status = historical_data.get('model_performance_status', 'Unknown')
         
         if r2_score >= 0.85:
             color = "green"
@@ -323,8 +324,6 @@ def render_optimization():
             icon = "🔴"
         
         st.info(f"{icon} Optimization uses AI demand predictions (R² score: **{r2_score:.3f}** - {status} performance)")
-        
-        # Removed persistent warning message
     
     # Check for actual data using centralized database-driven approach
     from services.io import get_current_project_id
@@ -334,19 +333,12 @@ def render_optimization():
         st.error("⚠️ No project found. Please complete Step 1 (Project Setup) first.")
         return
     
-    # Check for PV specifications from database first (Step 6)
+    # Check for PV specifications from database (Step 6)
     pv_specs = db_manager.get_pv_specifications(project_id)
-    if pv_specs is None:
-        # Fallback to session state
-        project_data = st.session_state.get('project_data', {})
-        pv_specs = project_data.get('pv_specifications')
-        if pv_specs is None:
-            pv_specs = st.session_state.get('pv_specifications')
     
-    # Check for yield/demand analysis from Step 7
-    project_data = st.session_state.get('project_data', {})
-    yield_demand_analysis = project_data.get('yield_demand_analysis', {})
-    energy_balance = yield_demand_analysis.get('energy_balance')
+    # Check for yield/demand analysis from Step 7 database
+    yield_demand_data = db_state_manager.get_step_data('yield_demand')
+    energy_balance = yield_demand_data.get('energy_balance') if yield_demand_data else None
     
     # Validate required data
     missing_data = []
@@ -422,16 +414,13 @@ def render_optimization():
         # Auto-balancing objective weights that sum to 100%
         st.write("🎯 **Objective Weights (Auto-balanced to 100%)**")
         
-        # Initialize weights if not in session state
-        if 'opt_weight_cost' not in st.session_state:
-            st.session_state.opt_weight_cost = 33
-            st.session_state.opt_weight_yield = 33
-            st.session_state.opt_weight_roi = 34
+        # Initialize default weights
+        default_weights = {'cost': 33, 'yield': 33, 'roi': 34}
         
         # Primary weight selector
         weight_cost = st.slider(
             "Minimize Cost Weight (%)",
-            0, 100, st.session_state.opt_weight_cost, 1,
+            0, 100, default_weights['cost'], 1,
             help="Weight for minimizing total system cost. Higher values prioritize lower-cost solutions.",
             key="weight_cost_slider"
         )
@@ -439,25 +428,11 @@ def render_optimization():
         # Auto-balance the remaining two weights
         remaining = 100 - weight_cost
         if remaining > 0:
-            # Calculate proportional split of remaining weight
-            current_yield = st.session_state.opt_weight_yield
-            current_roi = st.session_state.opt_weight_roi
-            current_total = current_yield + current_roi
-            
-            if current_total > 0:
-                weight_yield = int((current_yield / current_total) * remaining)
-                weight_roi = remaining - weight_yield
-            else:
-                weight_yield = remaining // 2
-                weight_roi = remaining - weight_yield
+            weight_yield = remaining // 2
+            weight_roi = remaining - weight_yield
         else:
             weight_yield = 0
             weight_roi = 0
-        
-        # Update session state
-        st.session_state.opt_weight_cost = weight_cost
-        st.session_state.opt_weight_yield = weight_yield
-        st.session_state.opt_weight_roi = weight_roi
         
         # Display auto-calculated weights
         col_a, col_b = st.columns(2)
@@ -473,7 +448,7 @@ def render_optimization():
             if weight_yield + weight_roi > 0:
                 yield_portion = st.slider(
                     "Yield portion of remaining weight (%)",
-                    0, 100, int((weight_yield / (weight_yield + weight_roi)) * 100) if (weight_yield + weight_roi) > 0 else 50,
+                    0, 100, 50,
                     help="Adjust the balance between Yield and ROI objectives"
                 )
                 remaining_for_yield_roi = 100 - weight_cost
@@ -488,8 +463,9 @@ def render_optimization():
     # Financial parameters section
     st.write("**Financial Parameters**")
     
-    # Get electricity price from project data (Step 1)
-    electricity_rates = project_data.get('electricity_rates', {})
+    # Get electricity price from database (Step 1)
+    project_data = db_state_manager.get_step_data('project_setup')
+    electricity_rates = project_data.get('electricity_rates', {}) if project_data else {}
     electricity_price = electricity_rates.get('import_rate', 0.25)
     
     # Show rate source information
@@ -577,11 +553,17 @@ def render_optimization():
         st.write(f"• Orientation Preference: {orientation_preference} {'(+10% bonus)' if orientation_preference != 'None' else ''}")
         st.write(f"• System Size Preference: {system_size_preference} {'(+5% bonus)' if system_size_preference != 'Balanced' else ''}")
 
-    # Store variables in session state to ensure proper scope access
-    if 'opt_max_investment' not in st.session_state:
-        st.session_state.opt_max_investment = max_investment
-    else:
-        st.session_state.opt_max_investment = max_investment
+    # Store optimization parameters for evaluation function
+    optimization_params = {
+        'max_investment': max_investment,
+        'min_coverage': min_coverage,
+        'electricity_price': electricity_price,
+        'prioritize_roi': prioritize_roi,
+        'include_maintenance': include_maintenance,
+        'orientation_preference': orientation_preference,
+        'system_size_preference': system_size_preference,
+        'weights': {'cost': weight_cost, 'yield': weight_yield, 'roi': weight_roi}
+    }
     
     # Run optimization
     if st.button("🚀 Run Multi-Objective Optimization", key="run_optimization"):
@@ -662,8 +644,8 @@ def render_optimization():
                     }
                 }
                 
-                st.session_state.project_data['optimization_results'] = optimization_results
-                st.session_state.optimization_completed = True
+                # Save results to database
+                db_state_manager.save_step_completion('optimization', optimization_results)
                 
                 # Save to consolidated data manager
                 consolidated_manager = ConsolidatedDataManager()
@@ -709,8 +691,8 @@ def render_optimization():
                 return
     
     # Display results if available
-    if st.session_state.get('optimization_completed', False):
-        optimization_data = st.session_state.project_data.get('optimization_results', {})
+    optimization_data = db_state_manager.get_step_data('optimization')
+    if optimization_data:
         solutions = optimization_data.get('solutions')
         
         if solutions is not None and len(solutions) > 0:
@@ -755,7 +737,7 @@ def render_optimization():
                 objectives_data = []
                 for _, sol in top_solutions.iterrows():
                     # Normalize scores (0-1 scale for visualization)
-                    max_inv = st.session_state.get('opt_max_investment', 100000)
+                    max_inv = optimization_params.get('max_investment', 100000)
                     cost_score = 1 / (1 + sol['total_investment'] / max_inv) if max_inv > 0 else 0
                     yield_score = sol['annual_energy_kwh'] / solutions['annual_energy_kwh'].max() if solutions['annual_energy_kwh'].max() > 0 else 0
                     roi_score = min(sol['roi'] / 0.5, 1.0) if sol['roi'] > 0 else 0  # Cap at 50% ROI
@@ -840,7 +822,8 @@ def render_optimization():
                     st.write("No elements selected in this solution")
             
             if st.button("💾 Save Selected Solution", key="save_solution"):
-                st.session_state.project_data['selected_optimization_solution'] = selected_solution
+                # Save selected solution to database
+                db_state_manager.save_step_completion('optimization_selection', selected_solution)
                 st.success("Solution saved for financial analysis!")
             
             # Visualization tabs
