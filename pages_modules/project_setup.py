@@ -177,6 +177,17 @@ def render_project_setup():
     # Initialize default coordinates (Berlin, Germany)
     default_coordinates = {'lat': 52.5200, 'lng': 13.4050}
     
+    # Initialize map_coordinates if not already present
+    if 'map_coordinates' not in st.session_state:
+        st.session_state.map_coordinates = default_coordinates.copy()
+    
+    # Initialize other session state variables
+    if 'location_name' not in st.session_state:
+        st.session_state.location_name = "Berlin, Germany"
+    
+    if 'map_processing' not in st.session_state:
+        st.session_state.map_processing = False
+    
     # STEP 1.1: Basic Project Information
     st.subheader("1️⃣ Project Information")
     
@@ -240,8 +251,8 @@ def render_project_setup():
             )
         
         # Update coordinates and location name from manual input
-        coord_changed = (manual_lat != st.session_state.map_coordinates['lat'] or 
-                        manual_lon != st.session_state.map_coordinates['lng'])
+        coord_changed = (manual_lat != st.session_state.map_coordinates.get('lat', 0) or 
+                        manual_lon != st.session_state.map_coordinates.get('lng', 0))
         
         if coord_changed:
             st.session_state.map_coordinates = {'lat': manual_lat, 'lng': manual_lon}
@@ -262,8 +273,8 @@ def render_project_setup():
     # Find nearby weather stations with error handling
     try:
         nearby_stations = find_nearest_stations(
-            st.session_state.map_coordinates['lat'], 
-            st.session_state.map_coordinates['lng'], 
+            st.session_state.map_coordinates.get('lat', default_coordinates['lat']), 
+            st.session_state.map_coordinates.get('lng', default_coordinates['lng']), 
             max_distance_km=search_radius
         )
     except Exception as e:
@@ -285,8 +296,9 @@ def render_project_setup():
     # Add marker for current location with neighborhood-specific name
     current_location_name = st.session_state.get('location_name', 'Selected Location')
     folium.Marker(
-        [st.session_state.map_coordinates['lat'], st.session_state.map_coordinates['lng']],
-        popup=f"<b>{current_location_name}</b><br>Lat: {st.session_state.map_coordinates['lat']:.4f}°<br>Lon: {st.session_state.map_coordinates['lng']:.4f}°",
+        [st.session_state.map_coordinates.get('lat', default_coordinates['lat']), 
+         st.session_state.map_coordinates.get('lng', default_coordinates['lng'])],
+        popup=f"<b>{current_location_name}</b><br>Lat: {st.session_state.map_coordinates.get('lat', default_coordinates['lat']):.4f}°<br>Lon: {st.session_state.map_coordinates.get('lng', default_coordinates['lng']):.4f}°",
         tooltip=f"Project Location: {current_location_name}",
         icon=folium.Icon(color="red", icon="building", prefix="fa")
     ).add_to(m)
@@ -338,7 +350,7 @@ def render_project_setup():
                 st.info("📍 Click on the map to select your project location")
                 
                 # Create a stable key that updates when coordinates change
-                coord_key = f"{st.session_state.map_coordinates['lat']:.4f}_{st.session_state.map_coordinates['lng']:.4f}"
+                coord_key = f"{st.session_state.map_coordinates.get('lat', default_coordinates['lat']):.4f}_{st.session_state.map_coordinates.get('lng', default_coordinates['lng']):.4f}"
                 map_key = f"location_map_{coord_key}"
                 
                 map_data = st_folium(
@@ -363,8 +375,8 @@ def render_project_setup():
             new_coords = map_data['last_clicked']
             
             # Get current coordinates for comparison
-            current_lat = st.session_state.map_coordinates['lat']
-            current_lon = st.session_state.map_coordinates['lng']
+            current_lat = st.session_state.map_coordinates.get('lat', default_coordinates['lat'])
+            current_lon = st.session_state.map_coordinates.get('lng', default_coordinates['lng'])
             
             # Calculate coordinate differences
             lat_diff = abs(new_coords['lat'] - current_lat)
@@ -418,8 +430,8 @@ def render_project_setup():
     # STEP 1.3: Weather API Selection & Data Sources
     st.subheader("3️⃣ Weather API Selection & Data Sources")
     
-    selected_lat = st.session_state.map_coordinates['lat']
-    selected_lon = st.session_state.map_coordinates['lng']
+    selected_lat = st.session_state.map_coordinates.get('lat', default_coordinates['lat'])
+    selected_lon = st.session_state.map_coordinates.get('lng', default_coordinates['lng'])
     
     # Get current location name and weather info with error handling
     try:
