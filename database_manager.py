@@ -219,17 +219,31 @@ class BIPVDatabaseManager:
         
         try:
             with conn.cursor() as cursor:
-                # Update energy_analysis table with yield data
+                # Extract actual field names from Step 7 data structure
+                total_annual_yield = yield_demand_data.get('total_annual_yield', 0)
+                annual_demand = yield_demand_data.get('annual_demand', 0)
+                net_energy_balance = total_annual_yield - annual_demand
+                
+                # Calculate energy yield per m2 if building area available
+                energy_yield_per_m2 = 0
+                if 'analysis_config' in yield_demand_data:
+                    building_area = yield_demand_data['analysis_config'].get('building_area', 0)
+                    if building_area > 0:
+                        energy_yield_per_m2 = total_annual_yield / building_area
+                
+                # Update energy_analysis table with correct field mapping
                 cursor.execute("""
                     UPDATE energy_analysis SET 
                         annual_generation = %s,
+                        annual_demand = %s,
                         net_energy_balance = %s,
                         energy_yield_per_m2 = %s
                     WHERE project_id = %s
                 """, (
-                    yield_demand_data.get('annual_generation', 0),
-                    yield_demand_data.get('net_energy_balance', 0),
-                    yield_demand_data.get('energy_yield_per_m2', 0),
+                    total_annual_yield,
+                    annual_demand,
+                    net_energy_balance,
+                    energy_yield_per_m2,
                     project_id
                 ))
                 

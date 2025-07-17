@@ -38,7 +38,19 @@ class DatabaseHelper:
             elif step_name == "pv_specifications":
                 return self.db_manager.save_pv_specifications(project_id, data)
             elif step_name == "yield_demand":
-                return self.db_manager.save_yield_demand_data(project_id, data)
+                # Extract the correct data structure for saving yield demand data
+                if 'energy_balance' in data:
+                    # This is the consolidated data structure from Step 7
+                    yield_demand_analysis = {
+                        'total_annual_yield': sum([row.get('total_yield_kwh', 0) for row in data['energy_balance']]),
+                        'annual_demand': sum([row.get('predicted_demand', 0) for row in data['energy_balance']]),
+                        'analysis_config': data.get('analysis_config', {}),
+                        'energy_balance': data['energy_balance']
+                    }
+                    return self.db_manager.save_yield_demand_data(project_id, yield_demand_analysis)
+                else:
+                    # Direct yield demand analysis data
+                    return self.db_manager.save_yield_demand_data(project_id, data)
             elif step_name == "optimization":
                 return self.db_manager.save_optimization_results(project_id, data)
             elif step_name == "financial_analysis":

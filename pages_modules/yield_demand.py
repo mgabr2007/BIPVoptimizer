@@ -1049,13 +1049,14 @@ def render_yield_demand():
                 # Save to database with error handling
                 if project_id:
                     try:
-                        # Save using database helper
+                        # Save using database helper - use the actual analysis_config from yield_demand_analysis
+                        actual_analysis_config = yield_demand_analysis.get('analysis_config', {})
                         db_helper.save_step_data("yield_demand", {
                             'energy_balance': energy_balance,
-                            'analysis_config': analysis_config,
-                            'yield_analysis': yield_analysis_results,
-                            'demand_data': monthly_demand_data,
-                            'pv_data': monthly_pv_generation
+                            'analysis_config': actual_analysis_config,
+                            'yield_analysis': yield_analysis_results if 'yield_analysis_results' in locals() else {},
+                            'demand_data': monthly_demand_data if 'monthly_demand_data' in locals() else [],
+                            'pv_data': monthly_pv_generation if 'monthly_pv_generation' in locals() else []
                         })
                         
                         # Legacy save method for compatibility
