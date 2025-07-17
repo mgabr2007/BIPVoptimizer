@@ -424,6 +424,29 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
     """Calculate complete BIPV system specifications for each element."""
     bipv_specifications = []
     
+    # Initialize radiation_from_db flag
+    radiation_from_db = False
+    
+    # Check database for radiation data availability
+    try:
+        from database_manager import BIPVDatabaseManager
+        db_manager = BIPVDatabaseManager()
+        conn = db_manager.get_connection()
+        
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM element_radiation 
+                    WHERE project_id = %s
+                """, (st.session_state.get('project_id'),))
+                
+                radiation_count = cursor.fetchone()[0]
+                if radiation_count > 0:
+                    radiation_from_db = True
+            conn.close()
+    except Exception:
+        radiation_from_db = False
+    
     # Try to get radiation data for more accurate calculations
     radiation_lookup = {}
     if radiation_data is not None:
