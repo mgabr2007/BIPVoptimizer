@@ -2,7 +2,10 @@
 Welcome page for BIPV Optimizer
 """
 import streamlit as st
+import uuid
+import datetime
 from utils.color_schemes import get_emoji, create_colored_html, YELLOW_SCHEME
+from services.database_state_manager import db_state_manager
 
 
 def render_welcome():
@@ -113,7 +116,55 @@ def render_welcome():
     • **Use sample files above** as templates for your data uploads
     """)
     
-
+    # Ready to start section
+    st.markdown("---")
+    st.markdown("### 🚀 Start Your BIPV Analysis")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        if st.button("🔬 Start New Analysis", key="start_analysis_btn", use_container_width=True, type="primary"):
+            # Generate unique project name with timestamp
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            project_name = f"BIPV_Analysis_{timestamp}"
+            
+            # Create initial project record in database
+            from services.io import save_project_data
+            
+            initial_project_data = {
+                'project_name': project_name,
+                'location': 'TBD',
+                'coordinates': {'lat': 0, 'lon': 0},
+                'timezone': 'UTC',
+                'currency': 'EUR',
+                'setup_complete': False,
+                'weather_api_choice': 'auto',
+                'location_method': 'map',
+                'search_radius': 500
+            }
+            
+            # Save to database and get project ID
+            project_id = save_project_data(initial_project_data)
+            
+            if project_id:
+                # Save project data to database state manager
+                db_state_manager.save_step_data('project_setup', initial_project_data)
+                
+                # Navigate to Step 1 using query parameters
+                st.query_params['step'] = 'project_setup'
+                
+                # Success message and redirect
+                st.success(f"✅ New project created: **{project_name}** (ID: {project_id})")
+                st.info("📋 Redirecting to Step 1: Project Setup...")
+                st.rerun()
+            else:
+                st.error("Failed to create project in database. Please try again.")
+    
+    st.markdown("""
+    <div style="text-align: center; margin-top: 10px; color: #666; font-size: 0.9em;">
+        Each analysis creates a unique project ID for independent calculations
+    </div>
+    """, unsafe_allow_html=True)
     
     # Research attribution (footer)
     st.markdown("---")

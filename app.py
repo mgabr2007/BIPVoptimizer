@@ -739,7 +739,7 @@ def render_bottom_navigation(workflow_steps, current_step):
         if current_index > 0:
             prev_step = workflow_steps[current_index - 1]
             if st.button(f"← {prev_step[1]}", key="bottom_prev_step", use_container_width=True):
-                db_state_manager.set_current_step(prev_step[0])
+                st.query_params['step'] = prev_step[0]
                 st.rerun()
     
     with col2:
@@ -753,14 +753,12 @@ def render_bottom_navigation(workflow_steps, current_step):
     with col3:
         # Show download button for completed analysis steps or navigation for others
         if current_step == 'welcome':
-            # Welcome page - show start button
-            if st.button("Start Analysis →", key="bottom_start", use_container_width=True):
-                db_state_manager.set_current_step('project_setup')
-                st.rerun()
+            # Welcome page - no navigation button
+            st.empty()
         elif current_step == 'reporting':
             # Last step - show new calculation button
             if st.button("🔄 New Analysis", key="bottom_new_calc", use_container_width=True):
-                db_state_manager.set_current_step('welcome')
+                st.query_params['step'] = 'welcome'
                 st.rerun()
         elif current_step in ['project_setup', 'historical_data', 'weather_environment', 'facade_extraction', 'radiation_grid', 'pv_specification', 'yield_demand', 'optimization', 'financial_analysis']:
             # Analysis steps - show download report button
