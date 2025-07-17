@@ -997,13 +997,13 @@ def render_pv_specification():
                 try:
                     # Save using database helper
                     db_helper.save_step_data("pv_specifications", {
-                        'panel_type': selected_panel['name'],
-                        'efficiency': selected_panel['efficiency'],
-                        'transparency': selected_panel.get('transparency', 0),
-                        'cost_per_m2': selected_panel['cost_per_m2'],
-                        'power_density': selected_panel['power_density'],
-                        'installation_factor': selected_panel.get('installation_factor', 1.2),
-                        'systems': systems
+                        'panel_type': final_panel_specs['name'],
+                        'efficiency': final_panel_specs['efficiency'],
+                        'transparency': final_panel_specs.get('transparency', 0),
+                        'cost_per_m2': final_panel_specs['cost_per_m2'],
+                        'power_density': final_panel_specs['power_density'],
+                        'installation_factor': final_panel_specs.get('installation_factor', 1.2),
+                        'systems': bipv_specifications.to_dict('records')
                     })
                     
                     # Legacy save method for compatibility

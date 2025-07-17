@@ -7,24 +7,7 @@ import pandas as pd
 from database_manager import BIPVDatabaseManager
 from utils.consolidated_data_manager import ConsolidatedDataManager
 from utils.session_state_standardizer import BIPVSessionStateManager
-def render_step4_navigation():
-    """Render navigation specific to Step 4"""
-    st.markdown("---")
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col1:
-        if st.button("← Weather Environment", key="step4_prev_btn", use_container_width=True):
-            st.session_state.current_step = 'weather_environment'
-            st.rerun()
-    
-    with col2:
-        st.markdown("<h4 style='text-align: center;'>Step 4 of 11</h4>", unsafe_allow_html=True)
-    
-    with col3:
-        if st.button("Radiation Analysis →", key="step4_next_btn", use_container_width=True):
-            st.session_state.current_step = 'radiation_grid'
-            st.rerun()
+
 
 # Initialize database manager
 db_manager = BIPVDatabaseManager()
@@ -411,4 +394,14 @@ def render_facade_extraction():
         st.info("📋 **Ready to Upload**: Please upload both window and wall CSV files to proceed")
     
     # Navigation
-    render_step4_navigation()
+    st.markdown("---")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col1:
+        if st.button("← Weather Environment", key="step4_prev_btn", use_container_width=True):
+            st.session_state.current_step = 'weather_environment'
+            st.rerun()
+    
+    with col2:
+        st.markdown("<h4 style='text-align: center;'>Step 4 of 11</h4>", unsafe_allow_html=True)
