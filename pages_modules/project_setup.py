@@ -751,8 +751,11 @@ def render_project_setup():
     save_disabled = not (project_name and location_name and selected_lat and selected_lon)
     
     if st.button("💾 Save Project Configuration", key="save_project", type="primary", disabled=save_disabled):
-        # Prepare enhanced project data with weather station information
-        project_data = {
+        # Start with existing project data (containing UUID project ID)
+        project_data = st.session_state.get('project_data', {})
+        
+        # Update project data with user inputs
+        project_data.update({
             'project_name': project_name,
             'location': location_name,
             'coordinates': {
@@ -763,9 +766,16 @@ def render_project_setup():
             'currency': currency,
             'setup_complete': True,
             'location_method': location_method,
-
             'weather_api_choice': st.session_state.get('weather_api_choice', 'auto')
-        }
+        })
+        
+        # Ensure project_id is present (from welcome page)
+        if 'project_id' not in project_data:
+            project_data['project_id'] = st.session_state.get('project_id')
+        
+        if not project_data.get('project_id'):
+            st.error("No project ID found. Please start from the welcome page.")
+            return
         
         # Add selected weather station data if available (API stations only)
         selected_station = st.session_state.get('selected_weather_station')
