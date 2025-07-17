@@ -5,6 +5,7 @@ import streamlit as st
 import uuid
 import datetime
 from utils.color_schemes import get_emoji, create_colored_html, YELLOW_SCHEME
+from services.database_state_manager import db_state_manager
 
 
 def render_welcome():
@@ -146,23 +147,13 @@ def render_welcome():
             project_id = save_project_data(initial_project_data)
             
             if project_id:
-                # Clear any existing workflow data
-                workflow_keys = [
-                    'project_data', 'project_id', 'project_name', 'historical_data', 'weather_data', 
-                    'building_elements', 'radiation_data', 'pv_specifications', 'yield_analysis', 
-                    'optimization_results', 'financial_analysis'
-                ]
+                # Save project data to database state manager
+                db_state_manager.save_step_data('project_setup', initial_project_data)
                 
-                for key in workflow_keys:
-                    if key in st.session_state:
-                        del st.session_state[key]
+                # Navigate to Step 1 using query parameters
+                st.query_params['step'] = 'project_setup'
                 
-                # Store only project name for database lookups
-                st.session_state.project_name = project_name
-                st.session_state.project_data = initial_project_data
-                
-                # Navigate to Step 1
-                st.session_state.current_step = 'project_setup'
+                # Success message and redirect
                 st.success(f"✅ New project created: **{project_name}** (ID: {project_id})")
                 st.info("📋 Redirecting to Step 1: Project Setup...")
                 st.rerun()

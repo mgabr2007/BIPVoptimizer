@@ -602,8 +602,8 @@ def main():
         ("ai_consultation", "🤖 AI Consultation", "Expert analysis and recommendations")
     ]
     
-    # Get current step from database state manager
-    current_step = db_state_manager.get_current_step()
+    # Get current step from URL parameters or default to welcome
+    current_step = st.query_params.get('step', 'welcome')
     
     # Render navigation buttons for workflow steps
     for i, (step_key, step_name, description) in enumerate(workflow_steps):
@@ -614,7 +614,7 @@ def main():
             st.sidebar.caption(f"*Current: {description}*")
         else:
             if st.sidebar.button(step_name, key=f"nav_{step_key}_{i}", use_container_width=True):
-                db_state_manager.set_current_step(step_key)
+                st.query_params['step'] = step_key
                 st.rerun()
             st.sidebar.caption(description)
         
