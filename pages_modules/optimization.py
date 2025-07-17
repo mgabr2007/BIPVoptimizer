@@ -326,21 +326,31 @@ def render_optimization():
         
         # Removed persistent warning message
     
-    # Check for actual data instead of completion flags
-    project_data = st.session_state.get('project_data', {})
+    # Check for actual data using centralized database-driven approach
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
     
-    # Check for PV specifications from Step 6 (multiple possible locations)
-    pv_specs = project_data.get('pv_specifications')
+    if not project_id:
+        st.error("⚠️ No project found. Please complete Step 1 (Project Setup) first.")
+        return
+    
+    # Check for PV specifications from database first (Step 6)
+    pv_specs = db_manager.get_pv_specifications(project_id)
     if pv_specs is None:
-        pv_specs = st.session_state.get('pv_specifications')
+        # Fallback to session state
+        project_data = st.session_state.get('project_data', {})
+        pv_specs = project_data.get('pv_specifications')
+        if pv_specs is None:
+            pv_specs = st.session_state.get('pv_specifications')
     
     # Check for yield/demand analysis from Step 7
+    project_data = st.session_state.get('project_data', {})
     yield_demand_analysis = project_data.get('yield_demand_analysis', {})
     energy_balance = yield_demand_analysis.get('energy_balance')
     
     # Validate required data
     missing_data = []
-    if pv_specs is None or len(pv_specs) == 0:
+    if pv_specs is None or (isinstance(pv_specs, (list, dict)) and len(pv_specs) == 0):
         missing_data.append("Step 6 (PV Specification)")
     
     if energy_balance is None or len(energy_balance) == 0:
