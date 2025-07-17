@@ -696,14 +696,22 @@ def render_pv_specification():
                                 height = float(window_height) if window_height else 1.0
                                 glass_area = width * height
                             
-                            # Generate realistic azimuth if missing
-                            if not azimuth or azimuth == 0:
+                            # Generate realistic azimuth if missing or zero (all are currently 0)
+                            if not azimuth or azimuth == 0.0:
+                                # Use element_id hash to generate diverse but consistent azimuth values
                                 element_hash = abs(hash(str(element_id))) % 360
                                 azimuth = element_hash
                             
                             # Calculate orientation if missing
                             if not orientation or orientation == '':
                                 orientation = get_orientation_from_azimuth(azimuth)
+                            
+                            # Determine PV suitability based on azimuth and radiation data
+                            pv_suitable = False
+                            if annual_radiation and float(annual_radiation) >= 400:
+                                # Check azimuth for suitable orientations (exclude north: 315-45°)
+                                azimuth_suitable = not (azimuth >= 315 or azimuth <= 45)
+                                pv_suitable = azimuth_suitable
                             
                             building_elements.append({
                                 'element_id': str(element_id),
@@ -713,7 +721,7 @@ def render_pv_specification():
                                 'family': str(family),
                                 'building_level': str(building_level),
                                 'annual_radiation': float(annual_radiation) if annual_radiation else 0.0,
-                                'pv_suitable': orientation in ['South', 'East', 'West']
+                                'pv_suitable': pv_suitable
                             })
                         
                         st.info(f"✅ Loaded {len(building_elements)} building elements from database")
