@@ -626,7 +626,7 @@ def render_pv_specification():
     radiation_data = project_data.get('radiation_data')
     radiation_completed = st.session_state.get('radiation_completed', False)
     
-    # Also check database for radiation analysis data
+    # Also check database for radiation analysis data and load if available
     radiation_from_db = False
     try:
         from database_manager import BIPVDatabaseManager
@@ -644,6 +644,19 @@ def render_pv_specification():
                 if radiation_count > 0:
                     radiation_from_db = True
                     st.info(f"✅ Found {radiation_count} radiation analysis records in database")
+                    
+                    # If no radiation data in session state, load from database
+                    if radiation_data is None:
+                        cursor.execute("""
+                            SELECT element_id, annual_radiation 
+                            FROM element_radiation 
+                            WHERE project_id = %s AND annual_radiation > 0
+                        """, (st.session_state.get('project_id'),))
+                        
+                        radiation_rows = cursor.fetchall()
+                        if radiation_rows:
+                            radiation_data = pd.DataFrame(radiation_rows, columns=['element_id', 'annual_radiation'])
+                            st.success(f"✅ Loaded {len(radiation_data)} radiation records from database")
             conn.close()
     except Exception as e:
         st.error(f"Error checking radiation data: {e}")
