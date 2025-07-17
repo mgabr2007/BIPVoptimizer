@@ -68,33 +68,62 @@ class DatabaseStateManager:
         finally:
             conn.close()
     
+    def save_step_data(self, step_name, data):
+        """Save step data to database"""
+        project_id = self.get_current_project_id()
+        if not project_id:
+            return False
+        
+        conn = self.db_manager.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            with conn.cursor() as cursor:
+                # Convert data to JSON for storage
+                data_json = json.dumps(data) if data else None
+                
+                cursor.execute("""
+                    INSERT INTO session_data (project_id, step_name, data_key, data_value, updated_at)
+                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT (project_id, step_name, data_key) 
+                    DO UPDATE SET data_value = EXCLUDED.data_value, updated_at = CURRENT_TIMESTAMP
+                """, (project_id, step_name, 'step_data', data_json))
+                
+                conn.commit()
+                return True
+        except Exception as e:
+            st.error(f"Error saving step data: {str(e)}")
+            return False
+        finally:
+            conn.close()
+    
     def get_step_data(self, step_name):
         """Get step data from database"""
         project_id = self.get_current_project_id()
         if not project_id:
             return None
         
-        # Route to appropriate database method based on step
-        if step_name == 'project_setup':
-            return self.db_manager.get_project_by_id(project_id)
-        elif step_name == 'historical_data':
-            return self._get_historical_data(project_id)
-        elif step_name == 'weather_environment':
-            return self._get_weather_data(project_id)
-        elif step_name == 'facade_extraction':
-            return self._get_building_elements(project_id)
-        elif step_name == 'radiation_grid':
-            return self._get_radiation_data(project_id)
-        elif step_name == 'pv_specification':
-            return self.db_manager.get_pv_specifications(project_id)
-        elif step_name == 'yield_demand':
-            return self._get_yield_demand_data(project_id)
-        elif step_name == 'optimization':
-            return self._get_optimization_data(project_id)
-        elif step_name == 'financial_analysis':
-            return self._get_financial_data(project_id)
-        else:
+        conn = self.db_manager.get_connection()
+        if not conn:
             return None
+        
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT data_value FROM session_data 
+                    WHERE project_id = %s AND step_name = %s AND data_key = %s
+                    ORDER BY updated_at DESC LIMIT 1
+                """, (project_id, step_name, 'step_data'))
+                
+                result = cursor.fetchone()
+                if result and result[0]:
+                    return json.loads(result[0])
+                return None
+        except Exception as e:
+            return None
+        finally:
+            conn.close()
     
     def _get_historical_data(self, project_id):
         """Get historical data from database"""
