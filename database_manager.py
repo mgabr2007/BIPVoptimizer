@@ -276,6 +276,31 @@ class BIPVDatabaseManager:
                 if hasattr(building_elements, 'iterrows'):
                     # DataFrame format
                     for _, element in building_elements.iterrows():
+                        # Enhanced glass area extraction with debug logging
+                        glass_area_value = None
+                        for glass_col in ['Glass Area (m²)', 'glass_area', 'Glass_Area', 'window_area', 'Glass Area', 'area']:
+                            if glass_col in element and element[glass_col] not in [None, '', 0, '0']:
+                                try:
+                                    glass_area_value = float(element[glass_col])
+                                    if glass_area_value > 0:
+                                        break
+                                except (ValueError, TypeError):
+                                    continue
+                        
+                        # Fallback to 0 if no valid glass area found (will be calculated later)
+                        if glass_area_value is None:
+                            glass_area_value = 0
+                        
+                        # Extract azimuth with proper handling
+                        azimuth_value = 0
+                        for azimuth_col in ['Azimuth (°)', 'azimuth', 'Azimuth']:
+                            if azimuth_col in element and element[azimuth_col] not in [None, '']:
+                                try:
+                                    azimuth_value = float(element[azimuth_col])
+                                    break
+                                except (ValueError, TypeError):
+                                    continue
+                        
                         cursor.execute("""
                             INSERT INTO building_elements 
                             (project_id, element_id, wall_element_id, element_type, orientation, 
@@ -288,8 +313,8 @@ class BIPVDatabaseManager:
                             element.get('HostWallId', element.get('Wall_Element_ID', element.get('wall_element_id', ''))),
                             element.get('element_type', 'Window'),
                             element.get('orientation', ''),
-                            element.get('azimuth', 0),
-                            element.get('Glass Area (m²)', element.get('glass_area', element.get('Glass_Area', element.get('window_area', 0)))),
+                            azimuth_value,
+                            glass_area_value,
                             element.get('window_width', 0),
                             element.get('window_height', 0),
                             element.get('Level', element.get('level', '')),
@@ -299,6 +324,31 @@ class BIPVDatabaseManager:
                 else:
                     # List or dict format
                     for element in building_elements:
+                        # Enhanced glass area extraction with debug logging
+                        glass_area_value = None
+                        for glass_col in ['Glass Area (m²)', 'glass_area', 'Glass_Area', 'window_area', 'Glass Area', 'area']:
+                            if glass_col in element and element[glass_col] not in [None, '', 0, '0']:
+                                try:
+                                    glass_area_value = float(element[glass_col])
+                                    if glass_area_value > 0:
+                                        break
+                                except (ValueError, TypeError):
+                                    continue
+                        
+                        # Fallback to 0 if no valid glass area found (will be calculated later)
+                        if glass_area_value is None:
+                            glass_area_value = 0
+                        
+                        # Extract azimuth with proper handling
+                        azimuth_value = 0
+                        for azimuth_col in ['Azimuth (°)', 'azimuth', 'Azimuth']:
+                            if azimuth_col in element and element[azimuth_col] not in [None, '']:
+                                try:
+                                    azimuth_value = float(element[azimuth_col])
+                                    break
+                                except (ValueError, TypeError):
+                                    continue
+                        
                         cursor.execute("""
                             INSERT INTO building_elements 
                             (project_id, element_id, wall_element_id, element_type, orientation, 
@@ -311,8 +361,8 @@ class BIPVDatabaseManager:
                             element.get('HostWallId', element.get('Wall_Element_ID', element.get('wall_element_id', ''))),
                             element.get('element_type', 'Window'),
                             element.get('orientation', ''),
-                            element.get('azimuth', 0),
-                            element.get('Glass Area (m²)', element.get('glass_area', element.get('Glass_Area', element.get('window_area', 0)))),
+                            azimuth_value,
+                            glass_area_value,
                             element.get('window_width', 0),
                             element.get('window_height', 0),
                             element.get('Level', element.get('level', '')),

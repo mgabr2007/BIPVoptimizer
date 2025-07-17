@@ -775,11 +775,13 @@ def render_pv_specification():
                         for row in rows:
                             element_id, azimuth, glass_area, window_width, window_height, family, orientation, building_level, annual_radiation = row
                             
-                            # Calculate glass area if missing
+                            # Calculate glass area if missing - LOG ERROR FOR DEBUGGING
                             if not glass_area or glass_area == 0:
+                                st.error(f"❌ Element {element_id}: Glass area missing from database (value: {glass_area}). Re-upload BIM data required.")
                                 width = float(window_width) if window_width else 1.5
                                 height = float(window_height) if window_height else 1.0
                                 glass_area = width * height
+                                st.warning(f"⚠️ Using fallback calculation for element {element_id}: {width}×{height} = {glass_area:.2f} m²")
                             
                             # Generate realistic azimuth if missing or zero (all are currently 0)
                             if not azimuth or azimuth == 0.0:
@@ -959,6 +961,7 @@ def render_pv_specification():
     
     # Create final panel specifications
     final_panel_specs = {
+        'name': selected_panel_type,  # Add missing name field for database save
         'type': selected_panel_type,
         'efficiency': panel_efficiency,
         'power_density': power_density,
