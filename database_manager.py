@@ -480,23 +480,28 @@ class BIPVDatabaseManager:
             return False
         
         try:
+            import json
             with conn.cursor() as cursor:
                 # Delete existing PV specs for this project
                 cursor.execute("DELETE FROM pv_specifications WHERE project_id = %s", (project_id,))
                 
-                # Insert PV specifications
+                # Extract panel specs if nested
+                panel_specs = pv_specs.get('panel_specs', pv_specs)
+                
+                # Insert PV specifications with complete data
                 cursor.execute("""
                     INSERT INTO pv_specifications 
-                    (project_id, panel_type, efficiency, transparency, cost_per_m2, power_density, installation_factor)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (project_id, panel_type, efficiency, transparency, cost_per_m2, power_density, installation_factor, specification_data)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
-                    pv_specs.get('panel_type'),
-                    pv_specs.get('efficiency'),
-                    pv_specs.get('transparency'),
-                    pv_specs.get('cost_per_m2'),
-                    pv_specs.get('power_density'),
-                    pv_specs.get('installation_factor')
+                    panel_specs.get('panel_type', panel_specs.get('name', 'Custom BIPV')),
+                    panel_specs.get('efficiency'),
+                    panel_specs.get('transparency'),
+                    panel_specs.get('cost_per_m2'),
+                    panel_specs.get('power_density'),
+                    panel_specs.get('installation_factor', 0.85),
+                    json.dumps(pv_specs)  # Store complete specifications as JSON
                 ))
                 
                 conn.commit()

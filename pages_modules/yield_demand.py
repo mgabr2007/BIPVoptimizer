@@ -326,7 +326,7 @@ def render_yield_demand():
                         """, (st.session_state.get('project_id'),))
                         
                         result = cursor.fetchone()
-                        if result:
+                        if result and result[0]:
                             import json
                             pv_data = json.loads(result[0])
                             pv_specs = pv_data.get('bipv_specifications', [])
