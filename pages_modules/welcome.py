@@ -123,22 +123,53 @@ def render_welcome():
     
     with col2:
         if st.button("🔬 Start New Analysis", key="start_analysis_btn", use_container_width=True, type="primary"):
-            # Clear any existing workflow data
-            workflow_keys = [
-                'project_data', 'project_id', 'project_name', 'historical_data', 'weather_data', 
-                'building_elements', 'radiation_data', 'pv_specifications', 'yield_analysis', 
-                'optimization_results', 'financial_analysis'
-            ]
+            # Generate unique project name with timestamp
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            project_name = f"BIPV_Analysis_{timestamp}"
             
-            for key in workflow_keys:
-                if key in st.session_state:
-                    del st.session_state[key]
+            # Create initial project record in database
+            from services.io import save_project_data
             
-            # Navigate to Step 1
-            st.session_state.current_step = 'project_setup'
-            st.success("✅ Starting new BIPV analysis...")
-            st.info("📋 Redirecting to Step 1: Project Setup...")
-            st.rerun()
+            initial_project_data = {
+                'project_name': project_name,
+                'location': 'TBD',
+                'coordinates': {'lat': 0, 'lon': 0},
+                'timezone': 'UTC',
+                'currency': 'EUR',
+                'setup_complete': False,
+                'weather_api_choice': 'auto',
+                'location_method': 'map',
+                'search_radius': 500
+            }
+            
+            # Save to database and get project ID
+            project_id = save_project_data(initial_project_data)
+            
+            if project_id:
+                # Clear any existing workflow data
+                workflow_keys = [
+                    'project_data', 'project_id', 'project_name', 'historical_data', 'weather_data', 
+                    'building_elements', 'radiation_data', 'pv_specifications', 'yield_analysis', 
+                    'optimization_results', 'financial_analysis'
+                ]
+                
+                for key in workflow_keys:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                
+                # Store project information in session state
+                st.session_state.project_id = project_id
+                st.session_state.project_name = project_name
+                st.session_state.project_data = initial_project_data
+                st.session_state.project_data['project_id'] = project_id
+                
+                # Navigate to Step 1
+                st.session_state.current_step = 'project_setup'
+                st.success(f"✅ New project created: **{project_name}** (ID: {project_id})")
+                st.info("📋 Redirecting to Step 1: Project Setup...")
+                st.rerun()
+            else:
+                st.error("Failed to create project in database. Please try again.")
     
     st.markdown("""
     <div style="text-align: center; margin-top: 10px; color: #666; font-size: 0.9em;">
