@@ -208,8 +208,11 @@ def render_production_pv_interface(project_id: int):
                     }
                 }
                 
-                db_manager.save_pv_specifications(project_id, pv_data)
-                st.success("✅ PV specifications saved to database")
+                save_result = db_manager.save_pv_specifications(project_id, pv_data)
+                if save_result:
+                    st.success(f"✅ PV specifications saved to database for project {project_id}")
+                else:
+                    st.error(f"❌ Failed to save PV specifications to database for project {project_id}")
             except Exception as e:
                 st.warning(f"Could not save to database: {e}")
             
@@ -970,8 +973,11 @@ def render_pv_specification():
                                 'avg_efficiency': final_panel_specs['efficiency']
                             }
                         })
+                        st.success(f"✅ PV specifications saved to database for project {project_id}")
                 except Exception as e:
-                    st.warning(f"Could not save to database: {e}")
+                    st.error(f"❌ Could not save to database: {e}")
+                    import traceback
+                    st.error(f"Details: {traceback.format_exc()}")
                 
                 # Display results
                 st.success(f"✅ Successfully calculated BIPV specifications for {len(bipv_specifications)} building elements")

@@ -303,35 +303,19 @@ def render_yield_demand():
     # If no PV specs in session state, try to load from database
     if pv_specs is None or len(pv_specs) == 0:
         try:
-            from database_manager import BIPVDatabaseManager
-            db_manager = BIPVDatabaseManager()
-            conn = db_manager.get_connection()
+            from database_manager import db_manager
             
-            if conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT COUNT(*) FROM pv_specifications 
-                        WHERE project_id = %s
-                    """, (st.session_state.get('project_id'),))
-                    
-                    pv_count = cursor.fetchone()[0]
-                    if pv_count > 0:
-                        # Load PV specifications from database
-                        cursor.execute("""
-                            SELECT specification_data 
-                            FROM pv_specifications 
-                            WHERE project_id = %s
-                            ORDER BY created_at DESC
-                            LIMIT 1
-                        """, (st.session_state.get('project_id'),))
-                        
-                        result = cursor.fetchone()
-                        if result and result[0]:
-                            import json
-                            pv_data = json.loads(result[0])
-                            pv_specs = pv_data.get('bipv_specifications', [])
-                            st.info(f"✅ Loaded {len(pv_specs)} PV specifications from database")
-                conn.close()
+            project_id = st.session_state.get('project_id')
+            if project_id:
+                pv_data = db_manager.get_pv_specifications(project_id)
+                if pv_data:
+                    pv_specs = pv_data.get('bipv_specifications', [])
+                    if pv_specs:
+                        st.info(f"✅ Loaded {len(pv_specs)} PV specifications from database")
+                    else:
+                        st.warning("⚠️ PV specifications found but no BIPV specifications array")
+                else:
+                    st.warning("⚠️ No PV specifications found in database")
         except Exception as e:
             st.error(f"Error loading PV specifications: {e}")
     

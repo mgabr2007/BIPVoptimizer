@@ -514,6 +514,37 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
+    def get_pv_specifications(self, project_id):
+        """Get PV specifications for a project"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            import json
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM pv_specifications 
+                    WHERE project_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (project_id,))
+                
+                result = cursor.fetchone()
+                
+                if result and result['specification_data']:
+                    # Parse the JSON specification data
+                    pv_data = json.loads(result['specification_data'])
+                    return pv_data
+                
+                return None
+                
+        except Exception as e:
+            st.error(f"Error getting PV specifications: {str(e)}")
+            return None
+        finally:
+            conn.close()
+    
     def save_financial_analysis(self, project_id, financial_data):
         """Save financial analysis results"""
         conn = self.get_connection()

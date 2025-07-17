@@ -238,6 +238,11 @@ def save_pv_specifications(project_id, pv_specs):
     return db_manager.save_pv_specifications(project_id, pv_specs)
 
 
+def get_pv_specifications(project_id):
+    """Get PV specifications from database"""
+    return db_manager.get_pv_specifications(project_id)
+
+
 def save_yield_demand_data(project_id, yield_data):
     """Save yield and demand analysis to database"""
     return db_manager.save_yield_demand_data(project_id, yield_data)
