@@ -352,8 +352,40 @@ def render_yield_demand():
     radiation_data = project_data.get('radiation_data')
     radiation_completed = st.session_state.get('radiation_completed', False)
     
+    # Enhanced validation - check consolidated data manager and database
+    consolidated_manager = ConsolidatedDataManager()
+    
+    # Try to get radiation data from multiple sources
+    if radiation_data is None and not radiation_completed:
+        # Check consolidated data manager
+        try:
+            step5_data = consolidated_manager.get_step_data('step5_radiation')
+            if step5_data and step5_data.get('radiation_analysis'):
+                radiation_data = step5_data.get('radiation_analysis')
+                radiation_completed = True
+        except Exception:
+            pass
+        
+        # Check database for radiation analysis results
+        if radiation_data is None:
+            try:
+                from database_manager import db_manager
+                from services.io import get_current_project_id
+                
+                project_id = get_current_project_id()
+                if project_id:
+                    radiation_results = db_manager.get_radiation_analysis_data(project_id)
+                    if radiation_results and len(radiation_results) > 0:
+                        radiation_data = radiation_results
+                        radiation_completed = True
+                        st.success(f"✅ Found radiation analysis data from database: {len(radiation_results)} elements analyzed")
+            except Exception as e:
+                st.warning(f"Could not check database for radiation data: {e}")
+    
+    # Final validation
     if radiation_data is None and not radiation_completed:
         st.error("⚠️ Radiation analysis not available. Please complete Step 5 (Radiation Analysis).")
+        st.info("💡 **Next Steps:**\n1. Go to Step 5 (Radiation Analysis)\n2. Run the radiation analysis\n3. Return to this step")
         return
     
     # Convert radiation data if needed
@@ -361,6 +393,8 @@ def render_yield_demand():
         radiation_data_df = radiation_data
     elif isinstance(radiation_data, dict) and 'element_radiation' in radiation_data:
         radiation_data_df = pd.DataFrame(radiation_data['element_radiation'])
+    elif isinstance(radiation_data, list):
+        radiation_data_df = pd.DataFrame(radiation_data)
     else:
         radiation_data_df = None
     
