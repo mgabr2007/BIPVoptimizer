@@ -187,31 +187,59 @@ def render_facade_extraction():
             
             # Save to database
             if st.button("💾 Save Windows Data", key="save_windows_data"):
-                if db_manager.save_building_elements(project_id, windows_df):
-                    st.success("✅ Window data saved successfully!")
-                    windows_uploaded = True
-                    windows_element_count = len(windows_df)
+                # Create progress bar
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                try:
+                    # Step 1: Initialize database save
+                    status_text.text("Initializing database save...")
+                    progress_bar.progress(10)
                     
-                    # Update consolidated data manager
-                    consolidated_manager.save_step_data('facade_extraction', {
-                        'building_elements': windows_df.to_dict('records'),
-                        'element_count': len(windows_df),
-                        'glass_area_total': windows_df['Glass Area (m²)'].sum() if 'Glass Area (m²)' in windows_df.columns else 0
-                    })
+                    # Step 2: Save to database
+                    status_text.text("Saving window elements to database...")
+                    progress_bar.progress(30)
                     
-                    # Standardize element IDs and update session state
-                    st.session_state.project_data['building_elements'] = windows_df.to_dict('records')
-                    st.session_state.project_data['element_count'] = len(windows_df)
-                    st.session_state.project_data['extraction_complete'] = True
-                    st.session_state['facade_completed'] = True
-                    
-                    # Standardize element ID format
-                    BIPVSessionStateManager.standardize_element_ids()
-                    
-                    # Force refresh to show updated status
-                    st.rerun()
-                else:
-                    st.error("❌ Failed to save window data")
+                    if db_manager.save_building_elements(project_id, windows_df):
+                        progress_bar.progress(60)
+                        status_text.text("Updating consolidated data manager...")
+                        
+                        # Step 3: Update consolidated data manager
+                        consolidated_manager.save_step_data('facade_extraction', {
+                            'building_elements': windows_df.to_dict('records'),
+                            'element_count': len(windows_df),
+                            'glass_area_total': windows_df['Glass Area (m²)'].sum() if 'Glass Area (m²)' in windows_df.columns else 0
+                        })
+                        progress_bar.progress(80)
+                        
+                        # Step 4: Update session state
+                        status_text.text("Updating session state...")
+                        st.session_state.project_data['building_elements'] = windows_df.to_dict('records')
+                        st.session_state.project_data['element_count'] = len(windows_df)
+                        st.session_state.project_data['extraction_complete'] = True
+                        st.session_state['facade_completed'] = True
+                        
+                        # Step 5: Standardize element IDs
+                        status_text.text("Standardizing element IDs...")
+                        BIPVSessionStateManager.standardize_element_ids()
+                        progress_bar.progress(100)
+                        
+                        # Complete
+                        status_text.text("✅ Window data saved successfully!")
+                        windows_uploaded = True
+                        windows_element_count = len(windows_df)
+                        
+                        # Force refresh to show updated status
+                        st.rerun()
+                    else:
+                        progress_bar.progress(100)
+                        status_text.text("❌ Failed to save window data")
+                        st.error("❌ Failed to save window data")
+                        
+                except Exception as e:
+                    progress_bar.progress(100)
+                    status_text.text(f"❌ Error: {str(e)}")
+                    st.error(f"❌ Error saving window data: {str(e)}")
                     
         except Exception as e:
             st.error(f"Error processing windows CSV: {str(e)}")
@@ -292,14 +320,45 @@ def render_facade_extraction():
             
             # Save to database
             if st.button("💾 Save Wall Data", key="save_walls_data"):
-                if save_walls_data_to_database(project_id, walls_df):
-                    st.success("✅ Wall data saved successfully!")
-                    walls_uploaded = True
-                    wall_element_count = len(walls_df)
-                    # Force refresh to show updated status
-                    st.rerun()
-                else:
-                    st.error("❌ Failed to save wall data")
+                # Create progress bar
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                try:
+                    # Step 1: Initialize database save
+                    status_text.text("Initializing wall data save...")
+                    progress_bar.progress(10)
+                    
+                    # Step 2: Process orientations
+                    status_text.text("Processing wall orientations...")
+                    progress_bar.progress(30)
+                    
+                    # Step 3: Save to database
+                    status_text.text("Saving wall elements to database...")
+                    progress_bar.progress(50)
+                    
+                    if save_walls_data_to_database(project_id, walls_df):
+                        progress_bar.progress(80)
+                        status_text.text("Updating wall data status...")
+                        
+                        walls_uploaded = True
+                        wall_element_count = len(walls_df)
+                        progress_bar.progress(100)
+                        
+                        # Complete
+                        status_text.text("✅ Wall data saved successfully!")
+                        
+                        # Force refresh to show updated status
+                        st.rerun()
+                    else:
+                        progress_bar.progress(100)
+                        status_text.text("❌ Failed to save wall data")
+                        st.error("❌ Failed to save wall data")
+                        
+                except Exception as e:
+                    progress_bar.progress(100)
+                    status_text.text(f"❌ Error: {str(e)}")
+                    st.error(f"❌ Error saving wall data: {str(e)}")
                     
         except Exception as e:
             st.error(f"Error processing walls CSV: {str(e)}")
