@@ -175,7 +175,7 @@ def render_project_setup():
     
     # Initialize session state
     # Initialize default coordinates (Berlin, Germany)
-    default_coordinates = {'lat': 52.5200, 'lng': 13.4050}
+    default_coordinates = {'lat': 52.5121, 'lng': 13.3270}
     
     # Initialize map_coordinates if not already present
     if 'map_coordinates' not in st.session_state:
@@ -235,7 +235,7 @@ def render_project_setup():
             manual_lat = st.number_input(
                 "Latitude",
                 min_value=-90.0, max_value=90.0,
-                value=default_coordinates['lat'],
+                value=52.5121,
                 format="%.6f",
                 help="Project latitude in decimal degrees",
                 key="manual_lat"
@@ -244,7 +244,7 @@ def render_project_setup():
             manual_lon = st.number_input(
                 "Longitude",
                 min_value=-180.0, max_value=180.0,
-                value=default_coordinates['lng'],
+                value=13.3270,
                 format="%.6f",
                 help="Project longitude in decimal degrees",
                 key="manual_lon"
