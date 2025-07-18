@@ -177,6 +177,37 @@ def render_project_setup():
     # Initialize default coordinates (Berlin, Germany)
     default_coordinates = {'lat': 52.5121, 'lng': 13.3270}
     
+    # Load existing project data from database if available
+    project_id = get_current_project_id()
+    if project_id:
+        try:
+            project_info = db_helper.db_manager.get_project_info(project_id)
+            if project_info:
+                # Load existing coordinates and weather station data
+                existing_lat = float(project_info.get('latitude') or default_coordinates['lat'])
+                existing_lon = float(project_info.get('longitude') or default_coordinates['lng'])
+                existing_location = project_info.get('location') or 'Berlin, Germany'
+                
+                # Update session state with existing data
+                st.session_state.map_coordinates = {'lat': existing_lat, 'lng': existing_lon}
+                st.session_state.location_name = existing_location
+                
+                # Load existing weather station data
+                if project_info.get('weather_station_name'):
+                    st.session_state.selected_weather_station = {
+                        'name': project_info.get('weather_station_name'),
+                        'wmo_id': project_info.get('weather_station_id'),
+                        'distance_km': float(project_info.get('weather_station_distance') or 0),
+                        'latitude': float(project_info.get('weather_station_latitude') or existing_lat),
+                        'longitude': float(project_info.get('weather_station_longitude') or existing_lon),
+                        'height': float(project_info.get('weather_station_elevation') or 0),
+                        'country': 'Unknown'
+                    }
+                
+                st.success(f"✅ Loaded existing project data from database (ID: {project_id})")
+        except Exception as e:
+            st.warning(f"Could not load existing project data: {str(e)}")
+    
     # Initialize map_coordinates if not already present
     if 'map_coordinates' not in st.session_state:
         st.session_state.map_coordinates = default_coordinates.copy()
