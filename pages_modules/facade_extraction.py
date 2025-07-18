@@ -204,12 +204,14 @@ def render_facade_extraction():
                         progress_bar.progress(60)
                         status_text.text("Updating consolidated data manager...")
                         
-                        # Step 3: Update consolidated data manager
-                        consolidated_manager.save_step_data('facade_extraction', {
+                        # Step 3: Update consolidated data manager with correct step reference
+                        facade_data_to_save = {
                             'building_elements': windows_df.to_dict('records'),
                             'element_count': len(windows_df),
-                            'glass_area_total': windows_df['Glass Area (m²)'].sum() if 'Glass Area (m²)' in windows_df.columns else 0
-                        })
+                            'glass_area_total': windows_df['Glass Area (m²)'].sum() if 'Glass Area (m²)' in windows_df.columns else 0,
+                            'extraction_complete': True
+                        }
+                        consolidated_manager.save_step_data('4', facade_data_to_save)
                         progress_bar.progress(80)
                         
                         # Step 4: Update session state
