@@ -265,23 +265,88 @@ def render_weather_station_selection():
         key="search_radius"
     )
     
-    # Find weather stations button
-    if st.button("🔍 Find Nearest Weather Stations", key="find_stations"):
-        with st.spinner("Searching for WMO weather stations..."):
+    # Dynamic weather station loading
+    if st.button("🔍 Find Weather Stations", key="find_stations"):
+        with st.spinner("Searching for weather stations..."):
             try:
-                stations_df = find_nearest_stations(
-                    current_coords['lat'], 
-                    current_coords['lng'], 
-                    max_distance_km=search_radius
-                )
+                selected_api = st.session_state.get('selected_weather_api', 'wmo_stations')
                 
-                if not stations_df.empty:
-                    # Convert DataFrame to list of dictionaries
-                    stations_list = stations_df.to_dict('records')
-                    st.session_state.available_stations = stations_list
-                    st.success(f"Found {len(stations_list)} weather stations within {search_radius} km")
+                if selected_api in ['tu_berlin', 'openweathermap'] and selected_api != 'wmo_stations':
+                    # Load stations from selected weather API
+                    try:
+                        from services.weather_api_manager import weather_api_manager
+                        import asyncio
+                        
+                        # Determine which API to use
+                        if selected_api == 'auto':
+                            coverage_info = weather_api_manager.get_api_coverage_info(current_coords['lat'], current_coords['lng'])
+                            api_to_use = coverage_info['recommended_api']
+                        else:
+                            api_to_use = selected_api
+                        
+                        # Fetch station data from API
+                        if api_to_use == 'tu_berlin':
+                            station_data = asyncio.run(weather_api_manager.fetch_tu_berlin_weather_data(current_coords['lat'], current_coords['lng']))
+                        else:
+                            station_data = asyncio.run(weather_api_manager.fetch_openweathermap_data(current_coords['lat'], current_coords['lng']))
+                        
+                        if 'error' not in station_data:
+                            # Convert API station data to standard format
+                            api_stations = []
+                            if 'stations' in station_data:
+                                for station in station_data['stations']:
+                                    api_station = {
+                                        'name': station.get('name', 'Unknown'),
+                                        'wmo_id': station.get('id', 'API'),
+                                        'latitude': station.get('lat', current_coords['lat']),
+                                        'longitude': station.get('lon', current_coords['lng']),
+                                        'height': station.get('elevation', 0),
+                                        'distance_km': station.get('distance', 0),
+                                        'country': station.get('country', 'Unknown')
+                                    }
+                                    api_stations.append(api_station)
+                            
+                            if api_stations:
+                                st.session_state.available_stations = api_stations
+                                st.success(f"Found {len(api_stations)} stations from {api_to_use.replace('_', ' ').title()}")
+                            else:
+                                st.warning(f"No stations available from {api_to_use.replace('_', ' ').title()}")
+                        else:
+                            st.warning(f"API error: {station_data.get('error', 'Unknown error')}")
+                            # Fallback to WMO stations
+                            st.info("Falling back to WMO weather stations...")
+                            raise Exception("API unavailable")
+                            
+                    except Exception as api_error:
+                        # Fallback to WMO stations
+                        st.warning(f"Weather API unavailable: {str(api_error)}. Using WMO stations.")
+                        stations_df = find_nearest_stations(
+                            current_coords['lat'], 
+                            current_coords['lng'], 
+                            max_distance_km=search_radius
+                        )
+                        
+                        if not stations_df.empty:
+                            stations_list = stations_df.to_dict('records')
+                            st.session_state.available_stations = stations_list
+                            st.success(f"Found {len(stations_list)} WMO weather stations within {search_radius} km")
+                        else:
+                            st.warning(f"No WMO stations found within {search_radius} km.")
                 else:
-                    st.warning(f"No weather stations found within {search_radius} km. Try increasing the search radius.")
+                    # Use WMO stations directly
+                    stations_df = find_nearest_stations(
+                        current_coords['lat'], 
+                        current_coords['lng'], 
+                        max_distance_km=search_radius
+                    )
+                    
+                    if not stations_df.empty:
+                        stations_list = stations_df.to_dict('records')
+                        st.session_state.available_stations = stations_list
+                        st.success(f"Found {len(stations_list)} WMO weather stations within {search_radius} km")
+                    else:
+                        st.warning(f"No WMO stations found within {search_radius} km. Try increasing the search radius.")
+                        
             except Exception as e:
                 st.error(f"Error finding weather stations: {str(e)}")
     
@@ -423,5 +488,13 @@ def render_project_setup():
                 st.balloons()
     
     # Navigation
-    from components.navigation import render_bottom_navigation
-    render_bottom_navigation(current_step=1, total_steps=11)
+    try:
+        from components.navigation import render_bottom_navigation
+        render_bottom_navigation(current_step=1, total_steps=11)
+    except ImportError:
+        # Fallback navigation
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("Continue to Step 2 →", type="primary", key="nav_step2"):
+                st.switch_page("pages_modules/historical_data.py")
