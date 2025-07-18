@@ -26,12 +26,15 @@ def render_yield_demand():
     - Feed-in revenue from excess energy
     """)
     
+    # Check prerequisites and ensure project data is loaded
+    from services.io import ensure_project_data_loaded
+    
+    if not ensure_project_data_loaded():
+        st.error("⚠️ No project found. Please complete Step 1 (Project Setup) first.")
+        return
+    
     # Get project ID
     project_id = get_current_project_id()
-    
-    if not project_id:
-        st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
-        return
     
     # Simple dependency validation
     st.subheader("📋 Dependency Check")

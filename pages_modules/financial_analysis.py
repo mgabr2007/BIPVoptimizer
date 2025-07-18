@@ -142,13 +142,14 @@ def render_financial_analysis():
     
     st.header("💰 Step 9: Financial & Environmental Impact Analysis")
     
-    # Get current project ID from database
-    from services.io import get_current_project_id
-    project_id = get_current_project_id()
+    # Check prerequisites and ensure project data is loaded
+    from services.io import get_current_project_id, ensure_project_data_loaded
     
-    if not project_id:
-        st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
+    if not ensure_project_data_loaded():
+        st.error("⚠️ No project found. Please complete Step 1 (Project Setup) first.")
         return
+    
+    project_id = get_current_project_id()
     
     # AI Model Performance Impact Notice
     # Get project data from database only

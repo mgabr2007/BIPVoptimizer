@@ -328,13 +328,14 @@ def render_optimization():
     except Exception:
         pass  # No fallback display if database unavailable
     
-    # Check for actual data using centralized database-driven approach
-    from services.io import get_current_project_id
-    project_id = get_current_project_id()
+    # Check prerequisites and ensure project data is loaded
+    from services.io import get_current_project_id, ensure_project_data_loaded
     
-    if not project_id:
+    if not ensure_project_data_loaded():
         st.error("⚠️ No project found. Please complete Step 1 (Project Setup) first.")
         return
+    
+    project_id = get_current_project_id()
     
     # Check for PV specifications from database (Step 6)
     pv_specs = db_manager.get_pv_specifications(project_id)

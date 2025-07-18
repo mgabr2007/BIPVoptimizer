@@ -175,11 +175,15 @@ def render_pv_specification():
     st.header("⚡ Step 6: BIPV Panel Specifications")
     st.markdown("**Unified Interface** - Consistent dataflow for all workflow steps")
     
+    # Check prerequisites and ensure project data is loaded
+    from services.io import ensure_project_data_loaded
+    
+    if not ensure_project_data_loaded():
+        st.error("⚠️ No project found. Please complete Step 1 (Project Setup) first.")
+        return
+    
     # Get current project ID from database
     project_id = get_current_project_id()
-    if not project_id:
-        st.error("⚠️ No project ID found. Please complete Step 1 first.")
-        return
     
     # Initialize database manager
     db_manager = BIPVDatabaseManager()

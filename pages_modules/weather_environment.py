@@ -343,13 +343,14 @@ def render_weather_environment():
         - **Solar resource quality** → Site suitability analysis and performance expectations
         """)
     
-    # Check prerequisites - use centralized project ID function
-    from services.io import get_current_project_id
-    project_id = get_current_project_id()
+    # Check prerequisites and ensure project data is loaded
+    from services.io import get_current_project_id, ensure_project_data_loaded
     
-    if not project_id:
+    if not ensure_project_data_loaded():
         st.error("Please complete Step 1: Project Setup first.")
         return
+    
+    project_id = get_current_project_id()
     
     # Get project data from database using centralized approach
     from database_manager import BIPVDatabaseManager

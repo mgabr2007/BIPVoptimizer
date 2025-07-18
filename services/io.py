@@ -53,6 +53,68 @@ def get_current_project_id():
     return None
 
 
+def load_project_data_from_database(project_id):
+    """Load complete project data from database and populate session state"""
+    if not project_id:
+        return False
+    
+    try:
+        # Get project basic data
+        project_data = db_manager.get_project_by_id(project_id)
+        if not project_data:
+            return False
+        
+        # Initialize session state project_data if not exists
+        if 'project_data' not in st.session_state:
+            st.session_state.project_data = {}
+        
+        # Update session state with database data
+        st.session_state.project_data.update({
+            'project_id': project_id,
+            'project_name': project_data.get('project_name'),
+            'location': project_data.get('location'),
+            'coordinates': {
+                'lat': project_data.get('latitude'),
+                'lon': project_data.get('longitude')
+            } if project_data.get('latitude') and project_data.get('longitude') else {},
+            'timezone': project_data.get('timezone'),
+            'currency': project_data.get('currency', 'EUR'),
+            'setup_complete': True
+        })
+        
+        # Load electricity rates if available
+        if project_data.get('electricity_rates'):
+            import json
+            try:
+                rates = json.loads(project_data['electricity_rates']) if isinstance(project_data['electricity_rates'], str) else project_data['electricity_rates']
+                st.session_state.project_data['electricity_rates'] = rates
+            except:
+                pass
+        
+        # Set project name in session state for compatibility
+        st.session_state.project_name = project_data.get('project_name')
+        st.session_state.project_id = project_id
+        
+        return True
+        
+    except Exception as e:
+        st.error(f"Error loading project data: {str(e)}")
+        return False
+
+
+def ensure_project_data_loaded():
+    """Ensure project data is loaded from database when project is selected"""
+    project_id = get_current_project_id()
+    if project_id:
+        # Check if we need to reload data from database
+        current_project_id = st.session_state.get('project_data', {}).get('project_id')
+        if current_project_id != project_id:
+            # Project changed, reload from database
+            load_project_data_from_database(project_id)
+        return True
+    return False
+
+
 @st.cache_data(ttl=3600)
 def load_complete_wmo_stations():
     """Load all WMO stations from the official database file"""

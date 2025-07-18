@@ -78,7 +78,19 @@ def save_walls_data_to_database(project_id, walls_df, progress_callback=None):
         conn.close()
 
 def render_facade_extraction():
-    """Render the integrated BIM data extraction module."""
+    """Render facade extraction page with proper project data loading"""
+    
+    # Ensure project data is loaded from database
+    from services.io import get_current_project_id, ensure_project_data_loaded
+    
+    if not ensure_project_data_loaded():
+        st.error("Please complete Step 1: Project Setup first.")
+        return
+    
+    project_id = get_current_project_id()
+    if not project_id:
+        st.error("Project ID not found. Please complete Step 1 first.")
+        return
     
     st.header("Step 4: Integrated BIM Data Extraction")
     st.markdown("Upload both window elements and wall self-shading data for comprehensive BIPV analysis.")
