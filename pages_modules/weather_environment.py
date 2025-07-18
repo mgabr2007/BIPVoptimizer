@@ -478,7 +478,8 @@ def render_weather_environment():
             return
             
     except Exception as e:
-        st.error(f"❌ Database error: {str(e)}")
+        st.error(f"❌ Error retrieving project data: {str(e)}")
+        st.write("Please ensure Step 1 project setup is completed with valid coordinates and weather station selection.")
         return
     
     # Display project and weather station info

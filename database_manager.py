@@ -1192,11 +1192,11 @@ class BIPVDatabaseManager:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 # Get comprehensive project data using the view
+                # Use direct project table query instead of view to avoid dependency issues
                 cursor.execute("""
-                    SELECT * FROM project_report_view 
+                    SELECT * FROM projects 
                     WHERE project_name = %s
                 """, (project_name,))
-                
                 project_data = cursor.fetchone()
                 
                 if not project_data:
