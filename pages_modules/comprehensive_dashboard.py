@@ -65,18 +65,21 @@ def load_dashboard_data():
             
             # Weather Data (Step 3)
             cursor.execute("""
-                SELECT station_id, weather_data
+                SELECT station_metadata, tmy_data, annual_ghi, annual_dni, annual_dhi
                 FROM weather_data WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
             """, (project_id,))
             weather_result = cursor.fetchone()
             
-            if weather_result and weather_result[1]:
-                weather_data = json.loads(weather_result[1])
+            if weather_result:
+                station_metadata = weather_result[0]
+                tmy_data = weather_result[1] 
                 dashboard_data['weather'] = {
-                    'station_id': weather_result[0],
-                    'total_ghi': weather_data.get('total_annual_ghi', 0),
-                    'avg_temperature': weather_data.get('avg_temperature', 0),
-                    'data_points': len(weather_data.get('hourly_data', []))
+                    'station_metadata': station_metadata,
+                    'annual_ghi': float(weather_result[2]) if weather_result[2] else 0,
+                    'annual_dni': float(weather_result[3]) if weather_result[3] else 0,
+                    'annual_dhi': float(weather_result[4]) if weather_result[4] else 0,
+                    'tmy_data': tmy_data,
+                    'data_points': 8760  # Standard TMY hours per year
                 }
             
             # Building Elements (Step 4)

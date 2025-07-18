@@ -173,33 +173,28 @@ def render_financial_analysis():
         # Removed persistent warning message
     
     # Check dependencies - check database for optimization results
-    optimization_results = db_manager.get_optimization_results(project_id)
-    if not optimization_results:
+    optimization_data = db_manager.get_optimization_results(project_id)
+    if not optimization_data:
         st.error("⚠️ Optimization results required. Please complete Step 8 (Multi-Objective Optimization) first.")
         return
     
-    # Load required data from database only
-    project_data = db_manager.get_project_by_id(project_id) or {}
-    optimization_results = project_data.get('optimization_results', {})
-    solutions = optimization_results.get('solutions')
+    # Extract solutions from optimization data
+    solutions = optimization_data.get('solutions')
     
     if solutions is None or len(solutions) == 0:
         st.error("⚠️ No optimization solutions available.")
         return
+        
+    # Load project data for other settings
+    project_data = db_manager.get_project_by_id(project_id) or {}
     
-    # Check if solution is selected
-    selected_solution = project_data.get('selected_optimization_solution')
-    if selected_solution is None:
-        st.warning("⚠️ Please select a solution in Step 8 first, or choose one below:")
-        
-        solution_options = solutions['solution_id'].tolist()
-        selected_id = st.selectbox("Select Solution for Analysis:", solution_options, key="financial_solution_select")
-        selected_solution = solutions[solutions['solution_id'] == selected_id].iloc[0]
-        
-        if st.button("Use This Solution", key="use_solution_financial"):
-            # Save selected solution to database
-            db_manager.save_selected_optimization_solution(project_id, selected_solution)
-            st.rerun()
+    # Check if solution is selected - for now use the best solution (highest ROI)
+    if len(solutions) > 0:
+        # Use the best solution (first one, sorted by ROI in Step 8)
+        selected_solution = solutions.iloc[0]
+        st.success(f"✅ Using best optimization solution: {selected_solution['solution_id']}")
+    else:
+        st.error("⚠️ No optimization solutions available.")
         return
     
     st.success(f"✅ Analyzing financial performance of {selected_solution['solution_id']} (suitable elements only)")
@@ -220,18 +215,19 @@ def render_financial_analysis():
                 f"**⚡ Rate Source:** {electricity_rates.get('source', 'manual')}")
     
     with auto_col2:
-        selected_solution = project_data.get('selected_optimization_solution', {})
-        if isinstance(selected_solution, dict) and selected_solution:
-            # Use standardized field names with comprehensive fallback
-            total_cost = selected_solution.get('total_cost_eur', 
-                        selected_solution.get('total_investment', 
-                        selected_solution.get('total_installation_cost', 0)))
-            annual_energy = selected_solution.get('annual_energy_kwh', 
-                           selected_solution.get('annual_yield_kwh', 
-                           selected_solution.get('energy_generation', 0)))
-            st.info(f"**💼 System Cost:** {total_cost:,.0f} €\n"
-                    f"**⚡ Annual Energy:** {annual_energy:,.0f} kWh\n"
-                    f"**🎯 Solution:** {selected_solution.get('solution_id', 'Selected')}")
+        # Use the selected_solution from optimization results (already a pandas Series)
+        if selected_solution is not None:
+            # Convert Series to dict for consistent access
+            solution_dict = selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution
+            
+            total_cost = float(solution_dict.get('total_cost', 0))
+            capacity = float(solution_dict.get('capacity', 0))
+            roi = float(solution_dict.get('roi', 0))
+            
+            st.info(f"**💼 System Cost:** €{total_cost:,.0f}\n"
+                    f"**⚡ Capacity:** {capacity:.1f} kW\n"
+                    f"**📈 ROI:** {roi:.1f}%\n"
+                    f"**🎯 Solution:** {solution_dict.get('solution_id', 'Selected')}")
     
     # Financial configuration
     st.subheader("🔧 Financial Analysis Configuration")
