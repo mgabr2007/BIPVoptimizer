@@ -200,8 +200,16 @@ def render_financial_analysis():
     st.success(f"✅ Analyzing financial performance of {selected_solution['solution_id']} (suitable elements only)")
     st.info("💡 Financial analysis based on South/East/West-facing elements only for accurate ROI calculations")
     
-    # Get electricity rates for display (define at top level)
-    electricity_rates = project_data.get('electricity_rates', {})
+    # Get electricity rates for display (define at top level) - ensure it's a dict
+    electricity_rates_raw = project_data.get('electricity_rates', {})
+    if isinstance(electricity_rates_raw, str):
+        try:
+            import json
+            electricity_rates = json.loads(electricity_rates_raw)
+        except:
+            electricity_rates = {'import_rate': 0.25, 'source': 'fallback'}
+    else:
+        electricity_rates = electricity_rates_raw or {'import_rate': 0.25, 'source': 'fallback'}
     
     # Show automatically loaded data
     st.subheader("📊 Auto-Loaded Project Data")
@@ -250,9 +258,7 @@ def render_financial_analysis():
             key="discount_rate_fin"
         )
         
-        # Get electricity price from Step 1 project setup (database only)
-        project_data = db_manager.get_project_by_id(project_id) or {}
-        electricity_rates = project_data.get('electricity_rates', {})
+        # Get electricity price from Step 1 project setup (database only) - already loaded above
         default_price = electricity_rates.get('import_rate', 0.25)
         
         electricity_price = st.number_input(
@@ -264,7 +270,7 @@ def render_financial_analysis():
         
         # Show data source
         rate_source = electricity_rates.get('source', 'manual_input')
-        if rate_source.startswith('live_api'):
+        if isinstance(rate_source, str) and rate_source.startswith('live_api'):
             st.info(f"📡 Using live rate from {rate_source.replace('live_api_', '').upper()} API")
         else:
             st.info(f"📊 Using rate from Step 1 configuration")

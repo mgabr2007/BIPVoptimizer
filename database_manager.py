@@ -142,7 +142,17 @@ class BIPVDatabaseManager:
                     (project_id,)
                 )
                 result = cursor.fetchone()
-                return dict(result) if result else None
+                if result:
+                    project_data = dict(result)
+                    # Deserialize JSON fields
+                    if 'electricity_rates' in project_data and project_data['electricity_rates']:
+                        try:
+                            import json
+                            project_data['electricity_rates'] = json.loads(project_data['electricity_rates'])
+                        except (json.JSONDecodeError, TypeError):
+                            project_data['electricity_rates'] = {'import_rate': 0.25, 'source': 'fallback'}
+                    return project_data
+                return None
                 
         except Exception as e:
             st.error(f"Error getting project: {str(e)}")
