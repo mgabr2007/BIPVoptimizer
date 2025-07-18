@@ -794,6 +794,11 @@ def render_project_setup():
         # Get location-specific parameters
         location_params = get_location_solar_parameters(location_name)
         
+        # Initialize electricity_rates to avoid undefined variable
+        electricity_rates = get_location_electricity_rates(location_name, currency)
+        electricity_rates['source'] = 'database_estimates'
+        electricity_rates['live_rates_enabled'] = False
+        
         # Use real-time rates if available from live integration
         live_rates = st.session_state.get('live_electricity_rates')
         if live_rates and live_rates.get('success') and live_rates.get('import_rate'):
@@ -804,10 +809,6 @@ def render_project_setup():
                 'live_rates_enabled': True,
                 'data_quality': live_rates.get('data_quality', 'official_source')
             }
-        else:
-            electricity_rates = get_location_electricity_rates(location_name, currency)
-            electricity_rates['source'] = 'database_estimates'
-            electricity_rates['live_rates_enabled'] = False
         
         # Add calculated parameters
         project_data['solar_parameters'] = location_params
