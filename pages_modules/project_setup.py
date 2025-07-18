@@ -181,15 +181,17 @@ def render_weather_station_selection():
     if st.button("🔍 Find Nearest Weather Stations", key="find_stations"):
         with st.spinner("Searching for WMO weather stations..."):
             try:
-                stations = find_nearest_stations(
+                stations_df = find_nearest_stations(
                     current_coords['lat'], 
                     current_coords['lng'], 
                     max_distance_km=search_radius
                 )
                 
-                if stations:
-                    st.session_state.available_stations = stations
-                    st.success(f"Found {len(stations)} weather stations within {search_radius} km")
+                if not stations_df.empty:
+                    # Convert DataFrame to list of dictionaries
+                    stations_list = stations_df.to_dict('records')
+                    st.session_state.available_stations = stations_list
+                    st.success(f"Found {len(stations_list)} weather stations within {search_radius} km")
                 else:
                     st.warning(f"No weather stations found within {search_radius} km. Try increasing the search radius.")
             except Exception as e:
