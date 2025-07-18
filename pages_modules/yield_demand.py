@@ -950,7 +950,11 @@ def render_yield_demand():
                 }
                 
                 # Save yield demand analysis to database
-                db_manager.save_yield_demand_analysis(project_id, yield_demand_analysis)
+                try:
+                    db_manager.save_yield_demand_analysis(project_id, yield_demand_analysis)
+                except Exception as db_error:
+                    st.warning(f"Database save error: {str(db_error)}")
+                    # Continue with analysis display even if database save fails
                 
                 # Database save completed above
                 step7_data = {

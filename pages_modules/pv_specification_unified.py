@@ -272,7 +272,7 @@ def render_pv_specification():
             
             # BIPV suitable: South (135-225°), East (45-135°), West (225-315°)
             # Exclude North (315-45°) - poor solar performance
-            if not (315 <= azimuth <= 360 or 0 <= azimuth <= 45):
+            if not (315 <= azimuth or azimuth <= 45):
                 suitable_elements.append(element)
         except (ValueError, TypeError):
             continue  # Skip elements with invalid azimuth data
