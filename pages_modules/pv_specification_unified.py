@@ -226,6 +226,27 @@ def render_pv_specification():
     
     st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_analysis_data.get('element_radiation', []))} radiation records")
     
+    # Apply BIPV suitability filtering based on azimuth (not database pv_suitable flag)
+    suitable_elements = []
+    for element in building_elements:
+        azimuth = float(element.get('azimuth', 0))
+        # BIPV suitable: South (135-225°), East (45-135°), West (225-315°)
+        # Exclude North (315-45°) - poor solar performance
+        if not (315 <= azimuth <= 360 or 0 <= azimuth <= 45):
+            suitable_elements.append(element)
+    
+    if len(suitable_elements) == 0:
+        st.error("❌ No suitable elements found for BIPV installation. Check building orientation data.")
+        st.info(f"**Found {len(building_elements)} total windows:**\n"
+                f"- All elements appear to be North-facing (poor solar performance)\n"
+                f"- BIPV requires South, East, or West-facing windows for viable energy generation")
+        return
+    
+    st.info(f"🎯 **BIPV Suitability Analysis:**\n"
+           f"- **{len(suitable_elements)}** elements suitable for BIPV (South/East/West)\n"
+           f"- **{len(building_elements) - len(suitable_elements)}** elements excluded (North-facing)\n"
+           f"- **{len(suitable_elements)/len(building_elements)*100:.1f}%** suitability rate")
+    
     # BIPV Panel Technology Selection
     st.subheader("🔧 BIPV Glass Technology Selection")
     
@@ -292,16 +313,8 @@ def render_pv_specification():
                 element_id = str(element.get('element_id'))
                 radiation_lookup[element_id] = element.get('annual_radiation', 1000)
             
-            # Filter for suitable elements only (exclude North-facing)
-            suitable_elements = [
-                elem for elem in building_elements 
-                if elem.get('pv_suitable', True) and 
-                elem.get('orientation', '').lower() not in ['north', 'n']
-            ]
-            
-            if len(suitable_elements) == 0:
-                st.error("No suitable building elements found for BIPV installation")
-                return
+            # Use the pre-calculated suitable_elements (already filtered by azimuth)
+            # No need to filter again since we already did azimuth-based filtering above
             
             # Calculate specifications using unified function
             bipv_specifications = calculate_unified_bipv_specifications(
