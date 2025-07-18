@@ -215,20 +215,20 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
         weather_analysis = st.session_state.project_data.get('weather_analysis', {})
         original_annual_ghi = float(weather_analysis.get('annual_ghi', 0) or 0)
         
-        # If original_annual_ghi is 0, calculate it from current TMY data
+        # If original_annual_ghi is 0, calculate it from current TMY data with explicit float conversion
         if original_annual_ghi == 0:
-            original_annual_ghi = sum(float(hour.get('ghi', 0) or 0) for hour in original_tmy_data)
+            original_annual_ghi = float(sum(float(hour.get('ghi', 0) or 0) for hour in original_tmy_data))
             if original_annual_ghi == 0:
-                # Try different field names for GHI
+                # Try different field names for GHI with explicit float conversion
                 for hour in original_tmy_data:
                     for key in ['GHI', 'Global_Horizontal_Irradiance', 'ghi_wm2']:
                         if key in hour and hour[key]:
-                            original_annual_ghi += float(hour[key])
+                            original_annual_ghi += float(hour[key] or 0)
                             break
         
-        # Apply shading reduction to all irradiance values
+        # Apply shading reduction to all irradiance values with explicit float arithmetic
         adjusted_tmy_data = []
-        shading_factor = 1 - (shading_reduction / 100)
+        shading_factor = 1.0 - (float(shading_reduction) / 100.0)
         
         for hour_data in original_tmy_data:
             adjusted_hour = hour_data.copy()
@@ -241,19 +241,19 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
             for field in irradiance_fields:
                 if field in adjusted_hour and adjusted_hour[field] is not None:
                     try:
-                        adjusted_hour[field] = float(adjusted_hour[field]) * shading_factor
+                        adjusted_hour[field] = float(adjusted_hour[field] or 0) * float(shading_factor)
                     except (ValueError, TypeError):
                         continue
             
             adjusted_tmy_data.append(adjusted_hour)
         
-        # Calculate new annual GHI using the same field names as original
+        # Calculate new annual GHI using the same field names as original with explicit float arithmetic
         annual_ghi = 0.0
         for hour in adjusted_tmy_data:
             for key in ['ghi', 'GHI', 'Global_Horizontal_Irradiance', 'ghi_wm2']:
                 if key in hour and hour[key] is not None:
                     try:
-                        annual_ghi += float(hour[key])
+                        annual_ghi += float(hour[key] or 0)
                         break
                     except (ValueError, TypeError):
                         continue
@@ -297,7 +297,7 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
         with col2:
             st.metric("Adjusted Annual GHI", f"{annual_ghi:,.0f} kWh/m²")
         with col3:
-            reduction_amount = float(original_annual_ghi) - float(annual_ghi)
+            reduction_amount = float(original_annual_ghi or 0) - float(annual_ghi or 0)
             st.metric("Reduction", f"{reduction_amount:,.0f} kWh/m²", f"-{shading_reduction}%")
         
         return True
@@ -627,12 +627,12 @@ def render_weather_environment():
                     
                     if tmy_data and len(tmy_data) > 0:
                         
-                        # Calculate comprehensive statistics from our TMY data
-                        annual_ghi = sum(record.get('ghi', 0) for record in tmy_data) / 1000  # Convert to kWh/m²/year
-                        annual_dni = sum(record.get('dni', 0) for record in tmy_data) / 1000
-                        annual_dhi = sum(record.get('dhi', 0) for record in tmy_data) / 1000
-                        peak_sun_hours = annual_ghi / 365
-                        avg_temperature = sum(record.get('temperature', 15) for record in tmy_data) / len(tmy_data)
+                        # Calculate comprehensive statistics from our TMY data - ensure all float arithmetic
+                        annual_ghi = float(sum(float(record.get('ghi', 0) or 0) for record in tmy_data)) / 1000.0  # Convert to kWh/m²/year
+                        annual_dni = float(sum(float(record.get('dni', 0) or 0) for record in tmy_data)) / 1000.0
+                        annual_dhi = float(sum(float(record.get('dhi', 0) or 0) for record in tmy_data)) / 1000.0
+                        peak_sun_hours = float(annual_ghi) / 365.0
+                        avg_temperature = float(sum(float(record.get('temperature', 15) or 15) for record in tmy_data)) / float(len(tmy_data))
                         
                         # Create monthly solar profile
                         monthly_solar = {}
@@ -642,14 +642,14 @@ def render_weather_environment():
                         # Group data by month
                         monthly_data = {i: [] for i in range(1, 13)}
                         for record in tmy_data:
-                            day = record.get('day', 1)
+                            day = int(record.get('day', 1) or 1)
                             # Convert day of year to month (approximate)
                             month = min(12, max(1, ((day - 1) // 30) + 1))
-                            monthly_data[month].append(record.get('ghi', 0))
+                            monthly_data[month].append(float(record.get('ghi', 0) or 0))
                         
                         for month in range(1, 13):
-                            monthly_ghi = sum(monthly_data[month]) / 1000  # Convert to kWh/m²/month
-                            monthly_solar[month_names[month-1]] = monthly_ghi
+                            monthly_ghi = float(sum(float(val or 0) for val in monthly_data[month])) / 1000.0  # Convert to kWh/m²/month
+                            monthly_solar[month_names[month-1]] = float(monthly_ghi)
                         
                         # Enhanced weather analysis structure - ensure all numeric values are float
                         weather_analysis = {
@@ -1024,7 +1024,7 @@ def render_weather_environment():
         # Display shading impact
         if shading_reduction > 0:
             st.warning(f"Estimated shading impact: {shading_reduction}% reduction in solar irradiance")
-            adjusted_ghi = float(base_ghi) * (1 - shading_reduction / 100)
+            adjusted_ghi = float(base_ghi) * (1.0 - float(shading_reduction) / 100.0)
             st.info(f"Adjusted annual GHI: {adjusted_ghi:,.0f} kWh/m² (accounting for shading)")
         else:
             st.success("No significant shading factors identified")
@@ -1077,7 +1077,7 @@ def render_weather_environment():
                 with col2:
                     st.metric("Environmentally Adjusted GHI", f"{adjusted_ghi:,.0f} kWh/m²") 
                 with col3:
-                    reduction = float(original_ghi) - float(adjusted_ghi)
+                    reduction = float(original_ghi or 0) - float(adjusted_ghi or 0)
                     st.metric("Total Reduction", f"{reduction:,.0f} kWh/m²", f"-{env_adjustment}%")
                 
                 st.info(f"📅 Regenerated on: {generation_time[:19].replace('T', ' ')}")
