@@ -87,7 +87,7 @@ def load_dashboard_data():
                 SELECT COUNT(*) as total_elements,
                        SUM(glass_area) as total_glass_area,
                        COUNT(DISTINCT orientation) as unique_orientations,
-                       COUNT(DISTINCT level) as building_levels
+                       COUNT(DISTINCT building_level) as building_levels
                 FROM building_elements WHERE project_id = %s
             """, (project_id,))
             building_stats = cursor.fetchone()
