@@ -651,19 +651,33 @@ class BIPVDatabaseManager:
                 # Extract panel specs if nested
                 panel_specs = pv_specs.get('panel_specs', pv_specs)
                 
-                # Insert PV specifications - only authentic data, no fallbacks
+                # Validate required fields to prevent NULL constraint errors
+                required_fields = ['efficiency', 'transparency', 'cost_per_m2', 'power_density']
+                for field in required_fields:
+                    if panel_specs.get(field) is None:
+                        raise ValueError(f"Required field '{field}' is missing from PV specifications")
+                
+                panel_type = panel_specs.get('panel_type') or panel_specs.get('name')
+                if not panel_type:
+                    raise ValueError("Panel type or name is required for PV specifications")
+                
+                installation_factor = panel_specs.get('installation_factor')
+                if installation_factor is None:
+                    raise ValueError("Installation factor is required for PV specifications")
+                
+                # Insert PV specifications - only authentic data, validated
                 cursor.execute("""
                     INSERT INTO pv_specifications 
                     (project_id, panel_type, efficiency, transparency, cost_per_m2, power_density, installation_factor, specification_data)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
-                    panel_specs.get('panel_type') or panel_specs.get('name'),
+                    panel_type,
                     panel_specs.get('efficiency'),
                     panel_specs.get('transparency'),
                     panel_specs.get('cost_per_m2'),
                     panel_specs.get('power_density'),
-                    panel_specs.get('installation_factor'),
+                    installation_factor,
                     json.dumps(pv_specs)  # Store complete specifications as JSON
                 ))
                 
