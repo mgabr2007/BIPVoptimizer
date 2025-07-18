@@ -50,7 +50,7 @@ def load_dashboard_data():
             
             # Historical Data & AI Model (Step 2)
             cursor.execute("""
-                SELECT model_type, r2_score, training_data_points, forecast_years
+                SELECT model_type, r_squared_score, training_data_size, forecast_years
                 FROM ai_models WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
             """, (project_id,))
             ai_model = cursor.fetchone()
