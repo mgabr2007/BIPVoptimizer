@@ -85,12 +85,9 @@ def render_yield_demand():
             rate_source = "Default"
             
             try:
-                from services.io import get_current_project_id
-                from database_manager import BIPVDatabaseManager
-                
+                # Use already imported functions from module level
                 project_id = get_current_project_id()
                 if project_id:
-                    db_manager = BIPVDatabaseManager()
                     project_data = db_manager.get_project_data(project_id)
                     
                     if project_data and 'electricity_rates' in project_data:
