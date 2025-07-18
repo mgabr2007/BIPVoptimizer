@@ -52,11 +52,17 @@ class BIPVDatabaseManager:
                     if 'electricity_rates' in project_data:
                         electricity_rates_json = json.dumps(project_data['electricity_rates'])
                     
+                    # Extract weather station data
+                    weather_station = project_data.get('selected_weather_station', {})
+                    
                     cursor.execute("""
                         UPDATE projects SET 
                             location = %s, latitude = %s, longitude = %s, 
                             timezone = %s, currency = %s, weather_api_choice = %s, 
-                            location_method = %s, search_radius = %s, electricity_rates = %s, updated_at = CURRENT_TIMESTAMP
+                            location_method = %s, search_radius = %s, electricity_rates = %s,
+                            weather_station_name = %s, weather_station_id = %s, weather_station_distance = %s,
+                            weather_station_latitude = %s, weather_station_longitude = %s, weather_station_elevation = %s,
+                            updated_at = CURRENT_TIMESTAMP
                         WHERE project_name = %s
                         RETURNING id
                     """, (
@@ -69,6 +75,12 @@ class BIPVDatabaseManager:
                         project_data.get('location_method', 'map'),
                         project_data.get('search_radius', 500),
                         electricity_rates_json,
+                        weather_station.get('name'),
+                        weather_station.get('wmo_id'),
+                        weather_station.get('distance_km'),
+                        weather_station.get('latitude'),
+                        weather_station.get('longitude'),
+                        weather_station.get('height'),
                         project_data.get('project_name')
                     ))
                 else:
@@ -79,9 +91,13 @@ class BIPVDatabaseManager:
                     if 'electricity_rates' in project_data:
                         electricity_rates_json = json.dumps(project_data['electricity_rates'])
                     
+                    # Extract weather station data
+                    weather_station = project_data.get('selected_weather_station', {})
+                    
                     cursor.execute("""
-                        INSERT INTO projects (project_name, location, latitude, longitude, timezone, currency, weather_api_choice, location_method, search_radius, electricity_rates)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO projects (project_name, location, latitude, longitude, timezone, currency, weather_api_choice, location_method, search_radius, electricity_rates,
+                                            weather_station_name, weather_station_id, weather_station_distance, weather_station_latitude, weather_station_longitude, weather_station_elevation)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
                     """, (
                         project_data.get('project_name'),
@@ -93,7 +109,13 @@ class BIPVDatabaseManager:
                         project_data.get('weather_api_choice', 'auto'),
                         project_data.get('location_method', 'map'),
                         project_data.get('search_radius', 500),
-                        electricity_rates_json
+                        electricity_rates_json,
+                        weather_station.get('name'),
+                        weather_station.get('wmo_id'),
+                        weather_station.get('distance_km'),
+                        weather_station.get('latitude'),
+                        weather_station.get('longitude'),
+                        weather_station.get('height')
                     ))
                 
                 project_id = cursor.fetchone()[0]
@@ -127,6 +149,10 @@ class BIPVDatabaseManager:
             return None
         finally:
             conn.close()
+    
+    def get_project_info(self, project_id):
+        """Get project information including weather station data for Step 3"""
+        return self.get_project_by_id(project_id)
     
     def save_weather_data(self, project_identifier, weather_data):
         """Save weather and TMY data"""

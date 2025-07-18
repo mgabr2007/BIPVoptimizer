@@ -609,6 +609,63 @@ def render_project_setup():
                 except Exception as e:
                     st.error(f"❌ Failed to load stations: {str(e)}")
         
+        # WMO WEATHER STATIONS SECTION
+        st.markdown("### 🌡️ WMO Weather Station Selection")
+        st.markdown("Select from World Meteorological Organization (WMO) weather stations for authentic TMY generation:")
+        
+        # Load WMO stations
+        try:
+            nearest_wmo_stations = find_nearest_stations(selected_lat, selected_lon, max_distance_km=1000, max_stations=15)
+            
+            if not nearest_wmo_stations.empty:
+                wmo_station_options = []
+                wmo_station_details = {}
+                
+                for _, station in nearest_wmo_stations.iterrows():
+                    display_name = f"{station['name']} ({station['country']}) - {station['distance_km']:.1f} km"
+                    wmo_station_options.append(display_name)
+                    
+                    wmo_station_details[display_name] = {
+                        'name': station['name'],
+                        'wmo_id': station['wmo_id'],
+                        'distance_km': station['distance_km'],
+                        'latitude': station['latitude'],
+                        'longitude': station['longitude'],
+                        'height': station['height'],
+                        'country': station['country']
+                    }
+                
+                selected_wmo_station = st.selectbox(
+                    "Choose WMO Weather Station:",
+                    wmo_station_options,
+                    key="wmo_weather_station_selector"
+                )
+                
+                if selected_wmo_station:
+                    wmo_station_data = wmo_station_details[selected_wmo_station]
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.info(f"""
+                        **WMO Station:** {wmo_station_data['name']}  
+                        **Country:** {wmo_station_data['country']}  
+                        **WMO ID:** {wmo_station_data['wmo_id']}
+                        """)
+                    with col2:
+                        st.info(f"""
+                        **Distance:** {wmo_station_data['distance_km']:.1f} km  
+                        **Elevation:** {wmo_station_data['height']:.0f} m  
+                        **Coordinates:** {wmo_station_data['latitude']:.2f}°, {wmo_station_data['longitude']:.2f}°
+                        """)
+                    
+                    # Save selected WMO station to session state
+                    st.session_state.selected_weather_station = wmo_station_data
+            else:
+                st.warning("⚠️ No WMO weather stations found within 1000 km radius.")
+                
+        except Exception as e:
+            st.error(f"❌ Error loading WMO weather stations: {str(e)}")
+        
         # Display stations from selected API if available
         if st.session_state.get('dynamic_stations'):
             dynamic_stations = st.session_state.dynamic_stations
