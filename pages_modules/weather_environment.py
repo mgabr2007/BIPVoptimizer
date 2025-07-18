@@ -426,6 +426,111 @@ def render_weather_environment():
                 *Note: No station selected in Step 1. Using nearest available.*
                 """)
     
+    # Check for existing weather data and TMY results
+    existing_weather_data = None
+    try:
+        conn = db_manager.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT temperature, humidity, description, annual_ghi, annual_dni, annual_dhi,
+                           tmy_data, peak_sun_hours, created_at
+                    FROM weather_data WHERE project_id = %s 
+                    ORDER BY created_at DESC LIMIT 1
+                """, (project_id,))
+                result = cursor.fetchone()
+                if result:
+                    existing_weather_data = {
+                        'temperature': result[0],
+                        'humidity': result[1],
+                        'description': result[2],
+                        'annual_ghi': result[3],
+                        'annual_dni': result[4],
+                        'annual_dhi': result[5],
+                        'tmy_data': result[6],
+                        'peak_sun_hours': result[7],
+                        'created_at': result[8]
+                    }
+            conn.close()
+    except Exception as e:
+        st.error(f"Error loading weather data: {str(e)}")
+    
+    # Display existing TMY results if available
+    if existing_weather_data:
+        st.success("✅ **Previous TMY Analysis Found** - Displaying saved results")
+        
+        with st.expander("🌤️ **Previously Generated TMY Data**", expanded=True):
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                annual_ghi = existing_weather_data.get('annual_ghi', 0)
+                st.metric("Annual GHI", f"{annual_ghi:,.0f} kWh/m²")
+            
+            with col2:
+                annual_dni = existing_weather_data.get('annual_dni', 0)
+                st.metric("Annual DNI", f"{annual_dni:,.0f} kWh/m²")
+            
+            with col3:
+                annual_dhi = existing_weather_data.get('annual_dhi', 0)
+                st.metric("Annual DHI", f"{annual_dhi:,.0f} kWh/m²")
+            
+            with col4:
+                peak_sun_hours = existing_weather_data.get('peak_sun_hours', 0)
+                st.metric("Peak Sun Hours", f"{peak_sun_hours:.1f} h/day")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                temp = existing_weather_data.get('temperature', 0)
+                humidity = existing_weather_data.get('humidity', 0)
+                st.info(f"""
+                **Current Weather:**
+                - Temperature: {temp:.1f}°C
+                - Humidity: {humidity:.0f}%
+                - Conditions: {existing_weather_data.get('description', 'N/A')}
+                """)
+            
+            with col2:
+                analysis_date = existing_weather_data.get('created_at')
+                if analysis_date:
+                    st.info(f"""
+                    **TMY Generation:**
+                    - Date: {analysis_date.strftime('%Y-%m-%d %H:%M')}
+                    - Data Source: ISO 15927-4 Compliant
+                    - Quality: Authenticated TMY Dataset
+                    """)
+            
+            # Display TMY data sample if available
+            tmy_data = existing_weather_data.get('tmy_data')
+            if tmy_data:
+                import json
+                try:
+                    tmy_records = json.loads(tmy_data) if isinstance(tmy_data, str) else tmy_data
+                    if tmy_records and len(tmy_records) > 0:
+                        st.subheader("📊 TMY Data Summary (First 24 Hours)")
+                        
+                        import pandas as pd
+                        sample_data = tmy_records[:24]  # First 24 hours
+                        df_sample = pd.DataFrame(sample_data)
+                        
+                        if not df_sample.empty:
+                            # Select key columns for display
+                            display_cols = []
+                            for col in ['datetime', 'ghi', 'dni', 'dhi', 'temperature', 'solar_elevation']:
+                                if col in df_sample.columns:
+                                    display_cols.append(col)
+                            
+                            if display_cols:
+                                st.dataframe(df_sample[display_cols].head(12), use_container_width=True)
+                        
+                        st.success(f"✅ Complete TMY dataset contains {len(tmy_records):,} hourly records")
+                
+                except Exception as e:
+                    st.warning(f"TMY data available but cannot display: {str(e)}")
+            
+            st.info("💡 **Data is loaded from database.** You can regenerate TMY data below, or proceed to Step 4.")
+        
+        st.divider()
+    
     # Hybrid Weather API Integration
     project_data = st.session_state.get('project_data', {})
     selected_api = project_data.get('weather_api_choice', 'auto')

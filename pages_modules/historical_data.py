@@ -418,6 +418,109 @@ def render_historical_data():
     
     project_id = get_current_project_id()
     
+    # Check for existing historical data and AI model from database
+    from database_manager import BIPVDatabaseManager
+    db_manager = BIPVDatabaseManager()
+    
+    # Load existing historical data if available
+    existing_historical_data = db_manager.get_historical_data(project_id)
+    existing_ai_model = None
+    
+    # Check for existing AI model data
+    try:
+        conn = db_manager.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT model_type, r_squared_score, training_data_size, forecast_data, 
+                           consumption_data, temperature_data, occupancy_data, created_at
+                    FROM ai_models WHERE project_id = %s 
+                    ORDER BY created_at DESC LIMIT 1
+                """, (project_id,))
+                result = cursor.fetchone()
+                if result:
+                    existing_ai_model = {
+                        'model_type': result[0],
+                        'r_squared_score': result[1],
+                        'training_data_size': result[2],
+                        'forecast_data': result[3],
+                        'consumption_data': result[4],
+                        'temperature_data': result[5],
+                        'occupancy_data': result[6],
+                        'created_at': result[7]
+                    }
+            conn.close()
+    except Exception as e:
+        st.error(f"Error loading AI model data: {str(e)}")
+    
+    # Display existing results if available
+    if existing_historical_data or existing_ai_model:
+        st.success("✅ **Previous Analysis Found** - Displaying saved results")
+        
+        with st.expander("📊 **Previously Calculated Results**", expanded=True):
+            if existing_ai_model:
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    r2_score = existing_ai_model.get('r_squared_score', 0)
+                    if r2_score >= 0.85:
+                        status_color = "🟢"
+                        status_text = "Excellent"
+                    elif r2_score >= 0.70:
+                        status_color = "🟡"
+                        status_text = "Good"
+                    else:
+                        status_color = "🔴"
+                        status_text = "Needs Improvement"
+                    
+                    st.metric(
+                        "AI Model Performance (R²)",
+                        f"{r2_score:.3f}",
+                        f"{status_color} {status_text}"
+                    )
+                
+                with col2:
+                    training_size = existing_ai_model.get('training_data_size', 0)
+                    st.metric(
+                        "Training Data Points",
+                        f"{training_size} months"
+                    )
+                
+                with col3:
+                    model_date = existing_ai_model.get('created_at')
+                    if model_date:
+                        st.metric(
+                            "Analysis Date",
+                            model_date.strftime("%Y-%m-%d")
+                        )
+                
+                # Display forecast summary if available
+                forecast_data = existing_ai_model.get('forecast_data')
+                if forecast_data and isinstance(forecast_data, dict):
+                    st.subheader("📈 25-Year Demand Forecast Summary")
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        annual_avg = forecast_data.get('annual_average_kwh', 0)
+                        st.metric("Annual Average", f"{annual_avg:,.0f} kWh")
+                    
+                    with col2:
+                        growth_rate = forecast_data.get('annual_growth_rate', 0) * 100
+                        st.metric("Growth Rate", f"{growth_rate:.1f}% /year")
+                    
+                    with col3:
+                        peak_demand = forecast_data.get('peak_year_demand', 0)
+                        st.metric("Peak Demand", f"{peak_demand:,.0f} kWh")
+                    
+                    with col4:
+                        total_25_year = forecast_data.get('total_25_year_demand', 0)
+                        st.metric("25-Year Total", f"{total_25_year/1000000:.1f} MWh")
+                
+                st.info("💡 **Data is loaded from database.** You can upload new data to recalculate, or proceed to Step 3.")
+        
+        st.divider()
+    
     # Educational building context
     st.subheader("Educational Building Energy Patterns")
     
