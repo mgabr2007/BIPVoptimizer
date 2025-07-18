@@ -245,7 +245,7 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
             if 'total_cost_eur' in selected_specs.columns:
                 total_cost = selected_specs['total_cost_eur'].sum()
             elif 'total_installation_cost' in selected_specs.columns:
-                total_cost = selected_specs['total_cost_eur'].sum()
+                total_cost = selected_specs['total_installation_cost'].sum()  # Fixed: was using wrong column
             elif 'total_cost' in selected_specs.columns:
                 total_cost = selected_specs['total_cost'].sum()
             else:
@@ -679,10 +679,38 @@ def render_optimization():
                     st.error("Optimization failed to find viable solutions.")
                     return
                 
+                # DEBUGGING: Show input data before analysis
+                st.write("🔍 **Debugging Input Data:**")
+                st.write(f"- Pareto solutions found: {len(pareto_solutions)}")
+                st.write(f"- Affordable specs: {len(affordable_specs)} systems")
+                st.write(f"- Energy balance data: {len(energy_balance) if energy_balance is not None else 'None'}")
+                
+                if len(affordable_specs) > 0:
+                    st.write("**Sample PV specs data:**")
+                    sample_cols = ['element_id', 'capacity_kw', 'total_cost_eur', 'annual_energy_kwh']
+                    available_cols = [col for col in sample_cols if col in affordable_specs.columns]
+                    st.dataframe(affordable_specs[available_cols].head(3), use_container_width=True)
+                
+                if energy_balance is not None and len(energy_balance) > 0:
+                    st.write("**Energy balance data:**")
+                    balance_cols = ['predicted_demand', 'annual_generation'] 
+                    available_balance_cols = [col for col in balance_cols if col in energy_balance.columns]
+                    if available_balance_cols:
+                        st.dataframe(energy_balance[available_balance_cols].head(3), use_container_width=True)
+                    st.write(f"- Total annual demand: {energy_balance['predicted_demand'].sum() if 'predicted_demand' in energy_balance.columns else 'No predicted_demand column'}")
+                
                 # Analyze results
                 solutions_df = analyze_optimization_results(
                     pareto_solutions, affordable_specs, energy_balance, financial_params
                 )
+                
+                # DEBUGGING: Show calculated solutions
+                st.write("🔍 **Debugging Calculated Solutions:**")
+                st.write(f"- Solutions calculated: {len(solutions_df)}")
+                if len(solutions_df) > 0:
+                    debug_cols = ['solution_id', 'total_power_kw', 'total_investment', 'annual_energy_kwh', 'roi', 'net_import_kwh']
+                    available_debug_cols = [col for col in debug_cols if col in solutions_df.columns]
+                    st.dataframe(solutions_df[available_debug_cols].head(3), use_container_width=True)
                 
                 # Filter solutions by constraints
                 solutions_df = solutions_df[solutions_df['total_investment'] <= max_investment]
@@ -750,6 +778,36 @@ def render_optimization():
         st.subheader("📊 Optimization Results")
         
         st.info("**Multi-Objective Optimization Results from Database**")
+        
+        # DEBUGGING MATRIX DISPLAY - Show calculation breakdown
+        st.subheader("🔍 Debugging Matrix: Optimization Calculations")
+        
+        with st.expander("📊 Detailed Calculation Matrix", expanded=True):
+            # Show first few solutions with detailed breakdown
+            debug_solutions = solutions.head(3)
+            
+            st.write("**Solution Calculation Results:**")
+            for i, (_, solution) in enumerate(debug_solutions.iterrows()):
+                st.write(f"**Solution {i+1}:**")
+                sol_col1, sol_col2, sol_col3 = st.columns(3)
+                
+                with sol_col1:
+                    st.write(f"- Solution ID: {solution['solution_id']}")
+                    st.write(f"- Capacity: {solution['capacity']:.3f} kW")
+                    st.write(f"- Total Cost: €{solution['total_cost']:,.2f}")
+                
+                with sol_col2:
+                    st.write(f"- ROI: {solution['roi']:.2f}%")
+                    st.write(f"- Net Import: {solution['net_import']:,.0f} kWh")
+                    
+                with sol_col3:
+                    st.write(f"- Raw capacity value: {solution['capacity']}")
+                    st.write(f"- Raw net_import value: {solution['net_import']}")
+                    st.write(f"- Zero values detected: {solution['capacity'] == 0 or solution['net_import'] == 0}")
+            
+            # Show database table structure
+            st.write("**Database Values Analysis:**")
+            st.dataframe(debug_solutions[['solution_id', 'capacity', 'roi', 'net_import', 'total_cost']], use_container_width=True)
         
         # Key metrics from best solutions using authentic database fields
         best_solution = solutions.iloc[0]

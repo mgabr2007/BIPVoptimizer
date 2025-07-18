@@ -367,9 +367,14 @@ class BIPVDatabaseManager:
                 # Delete existing optimization results
                 cursor.execute("DELETE FROM optimization_results WHERE project_id = %s", (project_id,))
                 
-                # Save optimization solutions
+                # Save optimization solutions with proper field mapping
                 solutions = optimization_data.get('solutions', [])
                 for i, solution in enumerate(solutions):
+                    # Map field names correctly from analyze_optimization_results output
+                    capacity = solution.get('total_power_kw', solution.get('capacity', 0))  # Map total_power_kw to capacity
+                    net_import = solution.get('net_import_kwh', solution.get('net_import', 0))  # Map net_import_kwh to net_import
+                    total_cost = solution.get('total_investment', solution.get('total_cost', 0))  # Map total_investment to total_cost
+                    
                     cursor.execute("""
                         INSERT INTO optimization_results 
                         (project_id, solution_id, capacity, roi, net_import, total_cost, rank_position, pareto_optimal)
@@ -377,10 +382,10 @@ class BIPVDatabaseManager:
                     """, (
                         project_id,
                         solution.get('solution_id', f'solution_{i}'),
-                        solution.get('capacity', 0),
-                        solution.get('roi', 0),
-                        solution.get('net_import', 0),
-                        solution.get('total_cost', 0),
+                        float(capacity) if capacity is not None else 0,  # Ensure float conversion
+                        float(solution.get('roi', 0)) if solution.get('roi') is not None else 0,
+                        float(net_import) if net_import is not None else 0,
+                        float(total_cost) if total_cost is not None else 0,
                         i + 1,
                         solution.get('pareto_optimal', False)
                     ))
