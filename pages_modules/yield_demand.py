@@ -94,30 +94,63 @@ def render_yield_demand():
                     pv_specs = db_manager.get_pv_specifications(project_id)
                     historical_data = db_manager.get_historical_data(project_id)
                     
+                    st.write(f"Debug - PV specs: {pv_specs}")
+                    st.write(f"Debug - Historical data: {historical_data}")
+                    
                     if not pv_specs or not historical_data:
                         st.error("Missing required data for analysis")
+                        st.write(f"PV specs: {pv_specs}")
+                        st.write(f"Historical data: {historical_data}")
                         return
                     
-                    # Parse PV specifications from JSON
+                    # Handle different data formats from database
                     import json
-                    if isinstance(pv_specs[0].get('specification_data'), str):
-                        spec_data = json.loads(pv_specs[0]['specification_data'])
-                    else:
-                        spec_data = pv_specs[0].get('specification_data', {})
+                    bipv_specs = []
                     
-                    bipv_specs = spec_data.get('bipv_specifications', [])
+                    # Try different ways to parse PV specifications
+                    if isinstance(pv_specs, list) and len(pv_specs) > 0:
+                        # Format: [{'specification_data': '...'}, ...]
+                        spec_data = pv_specs[0].get('specification_data', {})
+                        if isinstance(spec_data, str):
+                            spec_data = json.loads(spec_data)
+                        bipv_specs = spec_data.get('bipv_specifications', [])
+                    elif isinstance(pv_specs, dict):
+                        # Format: {'bipv_specifications': [...]}
+                        bipv_specs = pv_specs.get('bipv_specifications', [])
                     
                     if not bipv_specs:
                         st.error("No BIPV specifications found in database")
+                        st.write(f"Available data: {pv_specs}")
                         return
                     
-                    # Calculate totals using actual field names
-                    total_capacity_kw = sum(float(spec.get('capacity_kw', 0)) for spec in bipv_specs)
-                    total_annual_yield = sum(float(spec.get('annual_energy_kwh', 0)) for spec in bipv_specs)
-                    total_cost_eur = sum(float(spec.get('total_cost_eur', 0)) for spec in bipv_specs)
+                    # Calculate totals using actual field names with safe conversion
+                    total_capacity_kw = 0
+                    total_annual_yield = 0 
+                    total_cost_eur = 0
                     
-                    # Get annual demand from historical data
-                    annual_demand = float(historical_data.get('annual_consumption', 0))
+                    for spec in bipv_specs:
+                        try:
+                            total_capacity_kw += float(spec.get('capacity_kw', 0))
+                            total_annual_yield += float(spec.get('annual_energy_kwh', 0))
+                            total_cost_eur += float(spec.get('total_cost_eur', 0))
+                        except (ValueError, TypeError) as e:
+                            st.warning(f"Error parsing spec data: {e}")
+                            continue
+                    
+                    # Get annual demand from historical data with safe conversion
+                    annual_demand = 0
+                    try:
+                        if isinstance(historical_data, dict):
+                            annual_demand = float(historical_data.get('annual_consumption', 0))
+                            if annual_demand == 0:
+                                # Try alternative field names
+                                annual_demand = float(historical_data.get('total_annual_consumption', 0))
+                        else:
+                            st.error(f"Historical data format unexpected: {type(historical_data)}")
+                            return
+                    except (ValueError, TypeError) as e:
+                        st.error(f"Error parsing annual demand: {e}")
+                        return
                     
                     # Calculate key metrics
                     coverage_ratio = (total_annual_yield / annual_demand * 100) if annual_demand > 0 else 0
@@ -187,6 +220,16 @@ def render_yield_demand():
                     st.write(f"Project ID: {project_id}")
                     st.write(f"PV Specs Available: {bool(pv_specs)}")
                     st.write(f"Historical Data Available: {bool(historical_data)}")
+                    st.write(f"Exception type: {type(e)}")
+                    
+                    # Additional debug info
+                    if pv_specs:
+                        st.write(f"PV Specs data: {pv_specs}")
+                    if historical_data:
+                        st.write(f"Historical data: {historical_data}")
+                        
+                    import traceback
+                    st.text_area("Full Error Traceback", traceback.format_exc(), height=200)
         
         # Individual step report download
         st.markdown("---")
