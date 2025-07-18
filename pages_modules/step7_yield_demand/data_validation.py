@@ -7,7 +7,6 @@ from services.io import get_current_project_id
 from database_manager import db_manager
 
 
-@st.cache_data(ttl=300)  # Cache for 5 minutes
 def validate_step7_dependencies(project_id):
     """
     Validate all required data dependencies for Step 7 analysis.

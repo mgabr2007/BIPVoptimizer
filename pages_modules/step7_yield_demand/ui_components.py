@@ -12,7 +12,10 @@ import io
 
 def render_step7_header():
     """Render the Step 7 header and introduction."""
-    st.image("attached_assets/step07_1751436847830.png", width=400)
+    try:
+        st.image("attached_assets/step07_1751436847830.png", width=400)
+    except:
+        pass  # Skip image if not found
     st.header("⚖️ Energy Yield vs Demand Analysis")
     
     st.markdown("""

@@ -17,7 +17,6 @@ def safe_float(value, default=0.0):
         return default
 
 
-@st.cache_data(ttl=600)  # Cache for 10 minutes
 def calculate_monthly_demand(project_id, historical_data):
     """
     Calculate monthly energy demand from historical data and forecasts.
@@ -74,7 +73,6 @@ def calculate_monthly_demand(project_id, historical_data):
         }
 
 
-@st.cache_data(ttl=600)  # Cache for 10 minutes
 def calculate_pv_yields(project_id, pv_specs, tmy_data, environmental_factors=None):
     """
     Calculate PV energy yields using authentic TMY data and environmental factors.
@@ -163,7 +161,6 @@ def calculate_pv_yields(project_id, pv_specs, tmy_data, environmental_factors=No
         }
 
 
-@st.cache_data(ttl=600)  # Cache for 10 minutes
 def calculate_energy_balance(demand_data, yield_data, electricity_rates):
     """
     Calculate comprehensive energy balance including financial metrics.
