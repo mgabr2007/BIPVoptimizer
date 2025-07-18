@@ -379,16 +379,11 @@ def render_yield_demand():
         # Check database for radiation analysis results
         if radiation_data is None:
             try:
-                from database_manager import db_manager
-                from services.io import get_current_project_id
-                
-                project_id = get_current_project_id()
-                if project_id:
-                    radiation_results = db_manager.get_radiation_analysis_data(project_id)
-                    if radiation_results and len(radiation_results) > 0:
-                        radiation_data = radiation_results
-                        radiation_completed = True
-                        st.success(f"✅ Found radiation analysis data from database: {len(radiation_results)} elements analyzed")
+                radiation_results = db_manager.get_radiation_analysis_data(project_id)
+                if radiation_results and len(radiation_results) > 0:
+                    radiation_data = radiation_results
+                    radiation_completed = True
+                    st.success(f"✅ Found radiation analysis data from database: {len(radiation_results)} elements analyzed")
             except Exception as e:
                 st.warning(f"Could not check database for radiation data: {e}")
     
@@ -449,7 +444,7 @@ def render_yield_demand():
         st.info("Using baseline demand patterns for analysis.")
     
     # Load demand model (optional)
-    model, feature_columns, metrics = load_demand_model()
+    model, feature_columns, metrics = load_demand_model(project_id)
     
     st.success(f"Analyzing energy balance for {len(pv_specs)} BIPV systems")
     
