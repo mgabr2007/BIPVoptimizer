@@ -107,10 +107,7 @@ def render_facade_extraction():
         - **Step 10 (Reporting)**: Complete building geometry documentation with authentic data relationships
         """)
     
-    # Check prerequisites
-    if not st.session_state.get('project_data', {}).get('setup_complete'):
-        st.error("❌ Please complete Step 1: Project Setup first.")
-        return
+    # Check prerequisites - use centralized project ID function
     
     # Get current project ID from database
     from services.io import get_current_project_id

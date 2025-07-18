@@ -409,8 +409,11 @@ def render_historical_data():
     
     st.divider()
     
-    # Check prerequisites
-    if not st.session_state.get('project_data', {}).get('setup_complete'):
+    # Check prerequisites - use centralized project ID function
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
+    
+    if not project_id:
         st.error("Please complete Step 1: Project Setup first.")
         return
     
