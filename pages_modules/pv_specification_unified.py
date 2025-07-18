@@ -180,6 +180,8 @@ def render_pv_specification():
         st.error("⚠️ No project ID found. Please complete Step 1 first.")
         return
     
+    st.write(f"🔍 **Debug Info:** Using project_id = {project_id}")
+    
     # Initialize database manager
     db_manager = BIPVDatabaseManager()
     
@@ -217,6 +219,7 @@ def render_pv_specification():
     # Check for building elements from database
     try:
         building_elements = db_manager.get_building_elements(project_id)
+        st.write(f"🔍 **Debug Info:** Retrieved {len(building_elements) if building_elements else 0} building elements for project_id {project_id}")
         if not building_elements or len(building_elements) == 0:
             st.error("⚠️ Building elements required. Complete Step 4 first.")
             return
@@ -226,14 +229,28 @@ def render_pv_specification():
     
     st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_analysis_data.get('element_radiation', []))} radiation records")
     
+    # Debug: Check actual azimuth values in building elements
+    azimuth_debug = []
+    for element in building_elements:
+        azimuth = element.get('azimuth', 0)
+        azimuth_debug.append(azimuth)
+    
+    st.write(f"🔍 **Debug Info:** Sample azimuth values: {azimuth_debug[:10]}")
+    
     # Apply BIPV suitability filtering based on azimuth (not database pv_suitable flag)
     suitable_elements = []
     for element in building_elements:
-        azimuth = float(element.get('azimuth', 0))
-        # BIPV suitable: South (135-225°), East (45-135°), West (225-315°)
-        # Exclude North (315-45°) - poor solar performance
-        if not (315 <= azimuth <= 360 or 0 <= azimuth <= 45):
-            suitable_elements.append(element)
+        try:
+            azimuth = float(element.get('azimuth', 0))
+            # BIPV suitable: South (135-225°), East (45-135°), West (225-315°)
+            # Exclude North (315-45°) - poor solar performance
+            if not (315 <= azimuth <= 360 or 0 <= azimuth <= 45):
+                suitable_elements.append(element)
+                st.write(f"✅ Element {element.get('element_id')} suitable - azimuth: {azimuth}°")
+            else:
+                st.write(f"❌ Element {element.get('element_id')} excluded - azimuth: {azimuth}° (North-facing)")
+        except (ValueError, TypeError) as e:
+            st.write(f"⚠️ Invalid azimuth for element {element.get('element_id')}: {element.get('azimuth')} - {e}")
     
     if len(suitable_elements) == 0:
         st.error("❌ No suitable elements found for BIPV installation. Check building orientation data.")
