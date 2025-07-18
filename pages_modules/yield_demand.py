@@ -320,16 +320,17 @@ def render_yield_demand():
     # If no PV specs in session state, try to load from database
     if pv_specs is None or len(pv_specs) == 0:
         try:
-            
             project_id = get_current_project_id()
             if project_id:
                 pv_data = db_manager.get_pv_specifications(project_id)
-                if pv_data:
+                if pv_data and isinstance(pv_data, dict):
                     pv_specs = pv_data.get('bipv_specifications', [])
                     if pv_specs:
                         st.info(f"✅ Loaded {len(pv_specs)} PV specifications from database")
                     else:
                         st.warning("⚠️ PV specifications found but no BIPV specifications array")
+                elif pv_data:
+                    st.warning(f"⚠️ PV data has unexpected format: {type(pv_data)}")
                 else:
                     st.warning("⚠️ No PV specifications found in database")
         except Exception as e:
@@ -373,8 +374,11 @@ def render_yield_demand():
         try:
             # Get radiation data from database only
             step5_data = db_manager.get_radiation_analysis_data(project_id)
-            if step5_data and step5_data.get('radiation_analysis'):
+            if step5_data and isinstance(step5_data, dict) and step5_data.get('radiation_analysis'):
                 radiation_data = step5_data.get('radiation_analysis')
+                radiation_completed = True
+            elif step5_data and isinstance(step5_data, list):
+                radiation_data = step5_data
                 radiation_completed = True
         except Exception:
             pass
