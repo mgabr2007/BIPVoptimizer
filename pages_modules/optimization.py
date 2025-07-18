@@ -360,7 +360,9 @@ def render_optimization():
     
     # Validate required authentic data only
     missing_data = []
-    if pv_specs is None or (isinstance(pv_specs, (list, dict)) and len(pv_specs) == 0):
+    if pv_specs is None:
+        missing_data.append("Step 6 (PV Specification)")
+    elif isinstance(pv_specs, (list, dict)) and len(pv_specs) == 0:
         missing_data.append("Step 6 (PV Specification)")
     
     if energy_balance is None:
@@ -372,20 +374,26 @@ def render_optimization():
             st.error(f"• {step}")
         return
     
-    # Success confirmation
-    st.success(f"✅ Ready for optimization: {len(pv_specs)} PV systems, energy balance analysis complete")
-    
     # Convert authentic pv_specs to DataFrame - no fallbacks, database data only
-    if isinstance(pv_specs, list):
+    if isinstance(pv_specs, dict):
+        # Extract bipv_specifications array from JSON structure
+        if 'bipv_specifications' in pv_specs:
+            pv_specs = pd.DataFrame(pv_specs['bipv_specifications'])
+        else:
+            st.error("⚠️ No 'bipv_specifications' array found in database JSON structure.")
+            return
+    elif isinstance(pv_specs, list):
         pv_specs = pd.DataFrame(pv_specs)
     elif not isinstance(pv_specs, pd.DataFrame):
-        st.error("⚠️ PV specifications data format error from database.")
+        st.error("⚠️ PV specifications data format error from database. Expected dict with 'bipv_specifications' key, list, or DataFrame.")
         return
     
     # Convert authentic energy_balance to DataFrame - database data only
     if isinstance(energy_balance, list):
         energy_balance = pd.DataFrame(energy_balance)
     
+    # Success confirmation after data conversion
+    st.success(f"✅ Ready for optimization: {len(pv_specs)} PV systems, energy balance analysis complete")
     st.success(f"✅ Using authentic data: {len(pv_specs)} BIPV systems from database")
     st.info("💡 Optimization includes only South/East/West-facing elements for realistic solar performance")
     
