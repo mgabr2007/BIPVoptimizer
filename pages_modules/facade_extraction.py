@@ -232,17 +232,26 @@ def render_facade_extraction():
                         status_text.text("Updating consolidated data manager...")
                         
                         # Step 3: Update consolidated data manager with correct step reference
+                        # Safe glass area calculation with field name validation
+                        glass_area_total = 0
+                        if 'Glass Area (m²)' in windows_df.columns:
+                            glass_area_total = windows_df['Glass Area (m²)'].sum()
+                        
                         facade_data_to_save = {
                             'building_elements': windows_df.to_dict('records'),
                             'element_count': len(windows_df),
-                            'glass_area_total': windows_df['Glass Area (m²)'].sum(),
+                            'glass_area_total': glass_area_total,
                             'extraction_complete': True
                         }
                         consolidated_manager.save_step_data('4', facade_data_to_save)
                         progress_bar.progress(80)
                         
-                        # Step 4: Update session state
+                        # Step 4: Update session state with validation
                         status_text.text("Updating session state...")
+                        # Ensure project_data exists in session state
+                        if 'project_data' not in st.session_state:
+                            st.session_state.project_data = {}
+                        
                         st.session_state.project_data['building_elements'] = windows_df.to_dict('records')
                         st.session_state.project_data['element_count'] = len(windows_df)
                         st.session_state.project_data['extraction_complete'] = True
@@ -273,18 +282,19 @@ def render_facade_extraction():
         except Exception as e:
             st.error(f"Error processing windows CSV: {str(e)}")
     
-    # Check if windows data already exists
-    conn = db_manager.get_connection()
-    if conn and not windows_uploaded:
-        try:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT COUNT(*) FROM building_elements WHERE project_id = %s", (project_id,))
-                windows_element_count = cursor.fetchone()[0]
-                windows_uploaded = windows_element_count > 0
-        except:
-            pass
-        finally:
-            conn.close()
+    # Check if windows data already exists - only if project_id is defined
+    if not windows_uploaded and 'project_id' in locals() and project_id:
+        conn = db_manager.get_connection()
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT COUNT(*) FROM building_elements WHERE project_id = %s", (project_id,))
+                    windows_element_count = cursor.fetchone()[0]
+                    windows_uploaded = windows_element_count > 0
+            except Exception as e:
+                st.error(f"Error checking existing windows data: {e}")
+            finally:
+                conn.close()
     
     # Wall Data Upload Section
     st.subheader("🧱 Step 2: Wall Self-Shading Data Upload")
@@ -407,8 +417,8 @@ def render_facade_extraction():
         except Exception as e:
             st.error(f"Error processing walls CSV: {str(e)}")
     
-    # Check if wall data already exists
-    if conn and not walls_uploaded:
+    # Check if wall data already exists - only if project_id is defined
+    if not walls_uploaded and 'project_id' in locals() and project_id:
         conn = db_manager.get_connection()
         if conn:
             try:
@@ -416,8 +426,8 @@ def render_facade_extraction():
                     cursor.execute("SELECT COUNT(*) FROM building_walls WHERE project_id = %s", (project_id,))
                     wall_element_count = cursor.fetchone()[0]
                     walls_uploaded = wall_element_count > 0
-            except:
-                pass
+            except Exception as e:
+                st.error(f"Error checking existing wall data: {e}")
             finally:
                 conn.close()
     
