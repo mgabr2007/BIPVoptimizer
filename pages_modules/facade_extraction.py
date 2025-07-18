@@ -158,6 +158,12 @@ def render_facade_extraction():
             # Read and process CSV
             windows_df = pd.read_csv(windows_file)
             
+            # Validate record count
+            if len(windows_df) == 0:
+                st.error("❌ **CSV File Contains Zero Records**")
+                st.error("The uploaded CSV file is empty or contains only headers. Please upload a file with actual building element data.")
+                return
+            
             # Display preview
             st.markdown("### 🔍 Windows Data Preview")
             col1, col2, col3, col4 = st.columns(4)
@@ -292,6 +298,12 @@ def render_facade_extraction():
         try:
             # Read and process CSV
             walls_df = pd.read_csv(walls_file)
+            
+            # Validate record count
+            if len(walls_df) == 0:
+                st.error("❌ **CSV File Contains Zero Records**")
+                st.error("The uploaded walls CSV file is empty or contains only headers. Please upload a file with actual wall element data.")
+                return
             
             # Display preview
             st.markdown("### 🔍 Wall Data Preview")
