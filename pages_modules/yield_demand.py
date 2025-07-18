@@ -410,7 +410,7 @@ def render_yield_demand():
         st.success(f"✅ Radiation analysis found ({len(radiation_data_df)} elements)")
     
     # Extract baseline energy demand from database historical data
-    annual_consumption = historical_data_project.get('annual_consumption', 0)
+    annual_consumption = float(historical_data_project.get('annual_consumption', 0))
     avg_consumption = annual_consumption / 12 if annual_consumption > 0 else 0
     
     # Also check project_data for forecast data if available
@@ -428,7 +428,7 @@ def render_yield_demand():
         else:
             # Apply realistic seasonal factors to average
             seasonal_factors = [1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]
-            monthly_demand = [avg_consumption * factor for factor in seasonal_factors]
+            monthly_demand = [float(avg_consumption) * factor for factor in seasonal_factors]
         
         baseline_demand = {
             'avg_consumption': avg_consumption,

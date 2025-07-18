@@ -243,8 +243,8 @@ class BIPVDatabaseManager:
                 if result:
                     annual_demand, model_accuracy = result
                     return {
-                        'annual_consumption': annual_demand,
-                        'model_accuracy': model_accuracy,
+                        'annual_consumption': float(annual_demand) if annual_demand is not None else 0.0,
+                        'model_accuracy': float(model_accuracy) if model_accuracy is not None else 0.0,
                         'data_analysis_complete': True
                     }
                 return None
