@@ -432,8 +432,7 @@ def render_historical_data():
         if conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT model_type, r_squared_score, training_data_size, forecast_data, 
-                           consumption_data, temperature_data, occupancy_data, created_at
+                    SELECT model_type, r_squared_score, training_data_size, forecast_years, created_at
                     FROM ai_models WHERE project_id = %s 
                     ORDER BY created_at DESC LIMIT 1
                 """, (project_id,))
@@ -443,11 +442,8 @@ def render_historical_data():
                         'model_type': result[0],
                         'r_squared_score': result[1],
                         'training_data_size': result[2],
-                        'forecast_data': result[3],
-                        'consumption_data': result[4],
-                        'temperature_data': result[5],
-                        'occupancy_data': result[6],
-                        'created_at': result[7]
+                        'forecast_years': result[3],
+                        'created_at': result[4]
                     }
             conn.close()
     except Exception as e:
@@ -494,28 +490,29 @@ def render_historical_data():
                             model_date.strftime("%Y-%m-%d")
                         )
                 
-                # Display forecast summary if available
-                forecast_data = existing_ai_model.get('forecast_data')
-                if forecast_data and isinstance(forecast_data, dict):
-                    st.subheader("📈 25-Year Demand Forecast Summary")
-                    
-                    col1, col2, col3, col4 = st.columns(4)
-                    
-                    with col1:
-                        annual_avg = forecast_data.get('annual_average_kwh', 0)
-                        st.metric("Annual Average", f"{annual_avg:,.0f} kWh")
-                    
-                    with col2:
-                        growth_rate = forecast_data.get('annual_growth_rate', 0) * 100
-                        st.metric("Growth Rate", f"{growth_rate:.1f}% /year")
-                    
-                    with col3:
-                        peak_demand = forecast_data.get('peak_year_demand', 0)
-                        st.metric("Peak Demand", f"{peak_demand:,.0f} kWh")
-                    
-                    with col4:
-                        total_25_year = forecast_data.get('total_25_year_demand', 0)
-                        st.metric("25-Year Total", f"{total_25_year/1000000:.1f} MWh")
+                # Display forecast information based on available data
+                forecast_years = existing_ai_model.get('forecast_years', 25)
+                st.subheader(f"📈 {forecast_years}-Year Demand Forecast")
+                
+                # Get historical data to calculate forecast metrics
+                if existing_historical_data:
+                    consumption_data = existing_historical_data.get('consumption_data', [])
+                    if consumption_data:
+                        # Calculate basic forecast metrics from historical data
+                        annual_avg = sum(consumption_data) if len(consumption_data) <= 12 else sum(consumption_data[:12])
+                        
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.metric("Base Annual Consumption", f"{annual_avg:,.0f} kWh")
+                        
+                        with col2:
+                            st.metric("Forecast Period", f"{forecast_years} years")
+                        
+                        with col3:
+                            # Estimate total based on typical 1% growth
+                            estimated_total = annual_avg * forecast_years * 1.01**forecast_years
+                            st.metric("Estimated Total", f"{estimated_total/1000000:.1f} MWh")
                 
                 st.info("💡 **Data is loaded from database.** You can upload new data to recalculate, or proceed to Step 3.")
         
