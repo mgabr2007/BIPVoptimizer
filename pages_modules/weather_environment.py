@@ -351,15 +351,26 @@ def render_weather_environment():
         st.error("Please complete Step 1: Project Setup first.")
         return
     
-    # Get project coordinates
-    coordinates = st.session_state.project_data.get('coordinates', {})
-    location = st.session_state.project_data.get('location', 'Unknown')
+    # Get project data from database using centralized approach
+    from database_manager import DatabaseManager
+    db_manager = DatabaseManager()
+    project_data = db_manager.get_project_data(project_id)
     
-    if not coordinates.get('lat') or not coordinates.get('lon'):
+    if not project_data:
+        st.error("Project data not found. Please complete Step 1 first.")
+        return
+    
+    # Extract coordinates from database
+    lat = project_data.get('latitude')
+    lon = project_data.get('longitude') 
+    location = project_data.get('location', 'Unknown')
+    
+    if not lat or not lon:
         st.error("Project coordinates not found. Please complete Step 1 first.")
         return
     
-    lat, lon = coordinates['lat'], coordinates['lon']
+    # Convert to expected format for compatibility
+    coordinates = {'lat': lat, 'lon': lon}
     
     # Weather data section
     st.subheader("🌤️ Real-Time Weather Integration")
@@ -378,7 +389,7 @@ def render_weather_environment():
     
     with col2:
         # Display selected weather station from Step 1
-        selected_station = st.session_state.project_data.get('selected_weather_station')
+        selected_station = project_data.get('selected_weather_station')
         if selected_station:
             # Handle both old WMO format and new API format
             station_type = selected_station.get('station_type', 'unknown')
