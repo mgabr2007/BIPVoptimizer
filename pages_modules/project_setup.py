@@ -293,18 +293,66 @@ def render_weather_station_selection():
                         if 'error' not in station_data:
                             # Convert API station data to standard format
                             api_stations = []
-                            if 'stations' in station_data:
-                                for station in station_data['stations']:
+                            
+                            if api_to_use == 'tu_berlin':
+                                # Handle TU Berlin API format
+                                if 'all_nearby_stations' in station_data:
+                                    for station_info in station_data['all_nearby_stations']:
+                                        station = station_info.get('station_info', {})
+                                        site_info = station.get('site', {})
+                                        
+                                        # Extract coordinates from TU Berlin format
+                                        coord_str = station.get('coordinates', '')
+                                        station_lat, station_lon = current_coords['lat'], current_coords['lng']
+                                        
+                                        if coord_str and 'POINT(' in coord_str:
+                                            try:
+                                                # Parse "POINT(lon lat)" format
+                                                coords_part = coord_str.replace('POINT(', '').replace(')', '')
+                                                lon_str, lat_str = coords_part.split()
+                                                station_lat, station_lon = float(lat_str), float(lon_str)
+                                            except:
+                                                pass
+                                        
+                                        api_station = {
+                                            'name': site_info.get('name', 'TU Berlin Station'),
+                                            'wmo_id': f"TUB_{site_info.get('id', 'unknown')}",
+                                            'latitude': station_lat,
+                                            'longitude': station_lon,
+                                            'height': site_info.get('elevation', 0),
+                                            'distance_km': station_info.get('distance_km', 0),
+                                            'country': 'Germany'
+                                        }
+                                        api_stations.append(api_station)
+                                elif 'station_info' in station_data:
+                                    # Single station format
+                                    station = station_data['station_info']
+                                    site_info = station.get('site', {})
+                                    
                                     api_station = {
-                                        'name': station.get('name', 'Unknown'),
-                                        'wmo_id': station.get('id', 'API'),
-                                        'latitude': station.get('lat', current_coords['lat']),
-                                        'longitude': station.get('lon', current_coords['lng']),
-                                        'height': station.get('elevation', 0),
-                                        'distance_km': station.get('distance', 0),
-                                        'country': station.get('country', 'Unknown')
+                                        'name': site_info.get('name', 'TU Berlin Station'),
+                                        'wmo_id': f"TUB_{site_info.get('id', 'unknown')}",
+                                        'latitude': current_coords['lat'],  # Use target coordinates as fallback
+                                        'longitude': current_coords['lng'],
+                                        'height': site_info.get('elevation', 0),
+                                        'distance_km': station_data.get('distance_km', 0),
+                                        'country': 'Germany'
                                     }
                                     api_stations.append(api_station)
+                            else:
+                                # Handle OpenWeatherMap API format
+                                if 'stations' in station_data:
+                                    for station in station_data['stations']:
+                                        api_station = {
+                                            'name': station.get('name', 'Unknown'),
+                                            'wmo_id': station.get('id', 'API'),
+                                            'latitude': station.get('lat', current_coords['lat']),
+                                            'longitude': station.get('lon', current_coords['lng']),
+                                            'height': station.get('elevation', 0),
+                                            'distance_km': station.get('distance', 0),
+                                            'country': station.get('country', 'Unknown')
+                                        }
+                                        api_stations.append(api_station)
                             
                             if api_stations:
                                 st.session_state.available_stations = api_stations
