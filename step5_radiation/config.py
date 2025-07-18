@@ -143,13 +143,12 @@ COLUMN_MAPPINGS = {
         "id": "id",
         "project_id": "project_id",
         "element_id": "element_id",
-        "orientation": "orientation",
-        "azimuth": "azimuth",
-        "glass_area": "glass_area",
         "annual_radiation": "annual_radiation",
-        "monthly_radiation": "monthly_radiation",
-        "shading_factor": "shading_factor",
-        "created_at": "created_at"
+        "irradiance": "irradiance",
+        "orientation_multiplier": "orientation_multiplier",
+        "created_at": "created_at",
+        "calculation_method": "calculation_method",
+        "calculated_at": "calculated_at"
     }
 }
 
@@ -171,30 +170,26 @@ SQL_QUERIES = {
     
     "upsert_radiation_result": """
         INSERT INTO element_radiation 
-        (project_id, element_id, orientation, azimuth, glass_area, 
-         annual_radiation, monthly_radiation, shading_factor, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        (project_id, element_id, annual_radiation, irradiance, 
+         orientation_multiplier, calculation_method, calculated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (project_id, element_id) 
         DO UPDATE SET
-            orientation = EXCLUDED.orientation,
-            azimuth = EXCLUDED.azimuth,
-            glass_area = EXCLUDED.glass_area,
             annual_radiation = EXCLUDED.annual_radiation,
-            monthly_radiation = EXCLUDED.monthly_radiation,
-            shading_factor = EXCLUDED.shading_factor,
-            created_at = EXCLUDED.created_at
+            irradiance = EXCLUDED.irradiance,
+            orientation_multiplier = EXCLUDED.orientation_multiplier,
+            calculation_method = EXCLUDED.calculation_method,
+            calculated_at = EXCLUDED.calculated_at
     """,
     
     "get_radiation_summary": """
         SELECT 
             COUNT(*) as total_elements,
             AVG(annual_radiation) as avg_radiation,
-            SUM(glass_area) as total_area,
-            orientation,
-            COUNT(*) as orientation_count
+            AVG(irradiance) as avg_irradiance,
+            AVG(orientation_multiplier) as avg_orientation_multiplier
         FROM element_radiation 
         WHERE project_id = $1
-        GROUP BY orientation
     """,
     
     "clear_radiation_data": """

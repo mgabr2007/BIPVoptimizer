@@ -77,6 +77,7 @@ class RadiationDataQueries:
     
     def __init__(self):
         self.connection_manager = DatabaseConnectionManager()
+        self.config = db_config  # Add missing config reference
     
     async def get_suitable_elements_async(self, project_id: int) -> List[Dict[str, Any]]:
         """Get PV-suitable building elements asynchronously."""
@@ -113,13 +114,12 @@ class RadiationDataQueries:
         
         try:
             async with self.connection_manager.get_async_connection() as conn:
-                # Prepare data for bulk insert
+                # Prepare data for bulk insert - match actual database schema
                 values = [
                     (
-                        r.project_id, r.element_id, r.orientation, r.azimuth,
-                        r.glass_area, r.annual_radiation,
-                        json.dumps(r.monthly_radiation) if r.monthly_radiation else None,
-                        r.shading_factor, r.calculated_at
+                        r.project_id, r.element_id, r.annual_radiation,
+                        getattr(r, 'irradiance', 0.0), getattr(r, 'orientation_multiplier', 1.0),
+                        getattr(r, 'calculation_method', 'advanced'), r.calculated_at
                     )
                     for r in results
                 ]
@@ -159,13 +159,12 @@ class RadiationDataQueries:
         try:
             with self.connection_manager.get_sync_connection() as conn:
                 with conn.cursor() as cursor:
-                    # Prepare data for bulk insert
+                    # Prepare data for bulk insert - match actual database schema
                     values = [
                         (
-                            r.project_id, r.element_id, r.orientation, r.azimuth,
-                            r.glass_area, r.annual_radiation,
-                            json.dumps(r.monthly_radiation) if r.monthly_radiation else None,
-                            r.shading_factor, r.calculated_at
+                            r.project_id, r.element_id, r.annual_radiation,
+                            getattr(r, 'irradiance', 0.0), getattr(r, 'orientation_multiplier', 1.0),
+                            getattr(r, 'calculation_method', 'advanced'), r.calculated_at
                         )
                         for r in results
                     ]
