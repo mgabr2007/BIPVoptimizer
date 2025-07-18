@@ -471,8 +471,6 @@ def render_weather_environment():
         
         if coordinates['lat'] == 0 or coordinates['lon'] == 0:
             st.error("❌ Invalid coordinates in database. Please complete Step 1 project setup.")
-            st.write(f"Debug: Project info - {project_info}")
-            st.write(f"Debug: Coordinates - lat: {coordinates['lat']}, lon: {coordinates['lon']}")
             return
             
         if weather_station['wmo_id'] == 'unknown':
