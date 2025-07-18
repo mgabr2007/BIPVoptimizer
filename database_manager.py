@@ -481,7 +481,7 @@ class BIPVDatabaseManager:
                         # Update progress every 10 elements or at the end
                         if progress_callback and (idx % 10 == 0 or idx == total_elements - 1):
                             progress = 20 + int((idx + 1) / total_elements * 40)  # 20-60% range
-                            progress_callback(progress, f"Saving window elements to database... ({idx + 1}/{total_elements})")
+                            progress_callback(progress, "Saving window elements to database...")
                 
                 conn.commit()
                 return True

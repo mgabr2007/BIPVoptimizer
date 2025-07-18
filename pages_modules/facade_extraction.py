@@ -65,7 +65,7 @@ def save_walls_data_to_database(project_id, walls_df, progress_callback=None):
                 # Update progress every 10 elements or at the end
                 if progress_callback and (idx % 10 == 0 or idx == total_walls - 1):
                     progress = 30 + int((idx + 1) / total_walls * 45)  # 30-75% range
-                    progress_callback(progress, f"Saving wall elements to database... ({idx + 1}/{total_walls})")
+                    progress_callback(progress, "Saving wall elements to database...")
             
             conn.commit()
             return True
@@ -171,8 +171,7 @@ def render_facade_extraction():
                 st.error("The uploaded CSV file is empty or contains only headers. Please upload a file with actual building element data.")
                 return
             
-            # Display preview
-            st.markdown("### 🔍 Windows Data Preview")
+            # Display summary metrics only
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Total Windows", len(windows_df))
@@ -194,9 +193,6 @@ def render_facade_extraction():
                     st.metric("Window Types", families)
                 else:
                     st.metric("Window Types", "N/A")
-                    
-            # Display sample rows
-            st.dataframe(windows_df.head(), use_container_width=True)
             
             # Save to database
             if st.button("💾 Save Windows Data", key="save_windows_data"):
@@ -220,7 +216,7 @@ def render_facade_extraction():
                     progress_bar.progress(15)
                     
                     # Step 4: Save to database with detailed progress
-                    status_text.text(f"Saving window elements to database... (0/{total_elements})")
+                    status_text.text("Saving window elements to database...")
                     progress_bar.progress(20)
                     
                     # Create progress callback function for windows
@@ -230,7 +226,7 @@ def render_facade_extraction():
                     
                     # Call database save with progress callback
                     if db_manager.save_building_elements_with_progress(project_id, windows_df, update_window_progress):
-                        status_text.text(f"Database save completed! ({total_elements}/{total_elements} elements)")
+                        status_text.text("Database save completed!")
                         progress_bar.progress(60)
                         progress_bar.progress(60)
                         status_text.text("Updating consolidated data manager...")
@@ -330,8 +326,7 @@ def render_facade_extraction():
                 st.error("The uploaded walls CSV file is empty or contains only headers. Please upload a file with actual wall element data.")
                 return
             
-            # Display preview
-            st.markdown("### 🔍 Wall Data Preview")
+            # Display summary metrics only
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Total Walls", len(walls_df))
@@ -353,9 +348,6 @@ def render_facade_extraction():
                     st.metric("Orientations", len(orientations))
                 else:
                     st.metric("Orientations", "N/A")
-                    
-            # Display sample rows
-            st.dataframe(walls_df.head(), use_container_width=True)
             
             # Save to database
             if st.button("💾 Save Wall Data", key="save_walls_data"):
@@ -379,7 +371,7 @@ def render_facade_extraction():
                     progress_bar.progress(25)
                     
                     # Step 4: Save to database with detailed progress
-                    status_text.text(f"Saving wall elements to database... (0/{total_walls})")
+                    status_text.text("Saving wall elements to database...")
                     progress_bar.progress(30)
                     
                     # Create progress callback function
@@ -388,7 +380,7 @@ def render_facade_extraction():
                         status_text.text(message)
                     
                     if save_walls_data_to_database(project_id, walls_df, update_wall_progress):
-                        status_text.text(f"Database save completed! ({total_walls}/{total_walls} wall elements)")
+                        status_text.text("Database save completed!")
                         progress_bar.progress(80)
                         progress_bar.progress(80)
                         status_text.text("Updating wall data status...")
