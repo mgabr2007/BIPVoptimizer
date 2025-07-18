@@ -191,6 +191,15 @@ CREATE TABLE IF NOT EXISTS historical_data (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Enhanced weather_data table with comprehensive TMY fields for Steps 5-7
+ALTER TABLE weather_data ADD COLUMN IF NOT EXISTS tmy_data TEXT;
+ALTER TABLE weather_data ADD COLUMN IF NOT EXISTS monthly_profiles TEXT;
+ALTER TABLE weather_data ADD COLUMN IF NOT EXISTS solar_position_data TEXT;
+ALTER TABLE weather_data ADD COLUMN IF NOT EXISTS environmental_factors TEXT;
+ALTER TABLE weather_data ADD COLUMN IF NOT EXISTS clearness_index DECIMAL(5,3);
+ALTER TABLE weather_data ADD COLUMN IF NOT EXISTS station_metadata TEXT;
+ALTER TABLE weather_data ADD COLUMN IF NOT EXISTS generation_method VARCHAR(100);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(project_name);
 CREATE INDEX IF NOT EXISTS idx_building_elements_project ON building_elements(project_id);
@@ -201,6 +210,7 @@ CREATE INDEX IF NOT EXISTS idx_optimization_results_project ON optimization_resu
 CREATE INDEX IF NOT EXISTS idx_building_walls_project ON building_walls(project_id);
 CREATE INDEX IF NOT EXISTS idx_ai_models_project ON ai_models(project_id);
 CREATE INDEX IF NOT EXISTS idx_historical_data_project ON historical_data(project_id);
+CREATE INDEX IF NOT EXISTS idx_weather_data_project ON weather_data(project_id);
 
 -- Create a view for comprehensive project reports
 CREATE OR REPLACE VIEW project_report_view AS

@@ -936,6 +936,132 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
 
+    def save_weather_data(self, project_id, weather_analysis):
+        """Save comprehensive weather data including TMY for Steps 5-7"""
+        conn = self.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            import json
+            with conn.cursor() as cursor:
+                # Delete existing weather data for this project
+                cursor.execute("DELETE FROM weather_data WHERE project_id = %s", (project_id,))
+                
+                # Convert complex data structures to JSON
+                tmy_data = json.dumps(weather_analysis.get('tmy_data', []))
+                monthly_profiles = json.dumps(weather_analysis.get('monthly_profiles', {}))
+                solar_position_data = json.dumps(weather_analysis.get('solar_position_data', {}))
+                environmental_factors = json.dumps(weather_analysis.get('environmental_factors', {}))
+                station_metadata = json.dumps(weather_analysis.get('station_metadata', {}))
+                
+                cursor.execute("""
+                    INSERT INTO weather_data 
+                    (project_id, temperature, humidity, description, annual_ghi, annual_dni, annual_dhi,
+                     tmy_data, monthly_profiles, solar_position_data, environmental_factors,
+                     clearness_index, station_metadata, generation_method)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    project_id,
+                    weather_analysis.get('temperature'),
+                    weather_analysis.get('humidity'),
+                    weather_analysis.get('description', 'TMY Generated'),
+                    weather_analysis.get('annual_ghi', 0),
+                    weather_analysis.get('annual_dni', 0),
+                    weather_analysis.get('annual_dhi', 0),
+                    tmy_data,
+                    monthly_profiles,
+                    solar_position_data,
+                    environmental_factors,
+                    weather_analysis.get('clearness_index', 0.5),
+                    station_metadata,
+                    weather_analysis.get('generation_method', 'ISO_15927-4')
+                ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            st.error(f"Error saving weather data: {str(e)}")
+            return False
+        finally:
+            conn.close()
+
+    def get_weather_data(self, project_id):
+        """Get complete weather data including TMY for radiation analysis"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            import json
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM weather_data 
+                    WHERE project_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (project_id,))
+                
+                result = cursor.fetchone()
+                
+                if result:
+                    weather_data = dict(result)
+                    
+                    # Parse JSON fields safely
+                    try:
+                        if weather_data.get('tmy_data'):
+                            weather_data['tmy_data'] = json.loads(weather_data['tmy_data'])
+                        if weather_data.get('monthly_profiles'):
+                            weather_data['monthly_profiles'] = json.loads(weather_data['monthly_profiles'])
+                        if weather_data.get('solar_position_data'):
+                            weather_data['solar_position_data'] = json.loads(weather_data['solar_position_data'])
+                        if weather_data.get('environmental_factors'):
+                            weather_data['environmental_factors'] = json.loads(weather_data['environmental_factors'])
+                        if weather_data.get('station_metadata'):
+                            weather_data['station_metadata'] = json.loads(weather_data['station_metadata'])
+                    except json.JSONDecodeError as e:
+                        st.warning(f"Error parsing weather JSON data: {str(e)}")
+                    
+                    return weather_data
+                
+                return None
+                
+        except Exception as e:
+            st.error(f"Error getting weather data: {str(e)}")
+            return None
+        finally:
+            conn.close()
+
+    def save_environmental_factors(self, project_id, environmental_factors):
+        """Save environmental factors (trees, buildings) affecting TMY data"""
+        conn = self.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            import json
+            with conn.cursor() as cursor:
+                # Update weather_data with environmental factors
+                environmental_json = json.dumps(environmental_factors)
+                
+                cursor.execute("""
+                    UPDATE weather_data 
+                    SET environmental_factors = %s
+                    WHERE project_id = %s
+                """, (environmental_json, project_id))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            st.error(f"Error saving environmental factors: {str(e)}")
+            return False
+        finally:
+            conn.close()
+
     def get_pv_specifications(self, project_id):
         """Get PV specifications for a project"""
         conn = self.get_connection()
