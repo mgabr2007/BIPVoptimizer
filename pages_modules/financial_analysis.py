@@ -497,13 +497,34 @@ def render_financial_analysis():
                 # Save to database
                 if project_id:
                     try:
+                        # Prepare database-compatible financial data structure
+                        db_financial_data = {
+                            'initial_investment': selected_solution['total_investment'],
+                            'annual_savings': selected_solution['annual_savings'],
+                            'annual_generation': selected_solution['annual_energy_kwh'],
+                            'annual_export_revenue': 0,  # Calculate based on feed-in tariff if available
+                            'annual_om_cost': selected_solution['total_investment'] * financial_params['maintenance_cost_rate'],
+                            'net_annual_benefit': selected_solution['annual_savings'],
+                            'npv': npv,
+                            'irr': irr,
+                            'payback_period': payback_period,
+                            'lcoe': safe_divide(selected_solution['total_investment'], selected_solution['annual_energy_kwh'] * system_lifetime, 0),
+                            'analysis_complete': True,
+                            # Environmental impact data for database
+                            'co2_savings_annual': annual_co2_savings,
+                            'co2_savings_lifetime': lifetime_co2_savings,
+                            'carbon_value': carbon_value,
+                            'trees_equivalent': int(lifetime_co2_savings / 22),  # Approximate trees equivalent
+                            'cars_equivalent': int(lifetime_co2_savings / 4.6)   # Approximate cars equivalent
+                        }
+                        
                         # Save using database helper
-                        db_helper.save_step_data("financial_analysis", financial_results)
+                        db_helper.save_step_data("financial_analysis", db_financial_data)
                         
                         # Legacy save method for compatibility
                         db_manager.save_financial_analysis(
                             project_id,
-                            financial_analysis_results
+                            db_financial_data
                         )
                     except Exception as db_error:
                         st.warning(f"Database save failed: {str(db_error)}")
