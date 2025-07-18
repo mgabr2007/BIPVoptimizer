@@ -255,11 +255,6 @@ def render_pv_specification():
     
     st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_analysis_data.get('element_radiation', []))} radiation records")
     
-    # Debug: Check azimuth distribution in loaded data
-    azimuth_values = [float(element.get('azimuth', 0)) for element in building_elements[:10]]
-    st.info(f"📊 Sample azimuth values: {azimuth_values}")
-    st.info(f"📊 Sample data: {[{'element_id': element.get('element_id'), 'azimuth': element.get('azimuth')} for element in building_elements[:3]]}")
-    
     # Apply BIPV suitability filtering based on azimuth with hash-based azimuth generation
     suitable_elements = []
     for element in building_elements:
@@ -373,10 +368,17 @@ def render_pv_specification():
             
             if len(bipv_specifications) > 0:
                 
-                # Save to database with standardized format
+                # Save to database with standardized format - fix required field structure
                 pv_data = {
                     'bipv_specifications': bipv_specifications.to_dict('records'),
-                    'panel_specifications': panel_specs,
+                    'panel_specs': {
+                        'efficiency': panel_specs['efficiency'],
+                        'transparency': panel_specs['transparency'], 
+                        'cost_per_m2': panel_specs['cost_per_m2'],
+                        'power_density': panel_specs['power_density'],
+                        'panel_type': panel_specs.get('technology_name', selected_panel),
+                        'installation_factor': 1.2  # Default installation factor
+                    },
                     'coverage_factor': coverage_factor,
                     'technology_used': panel_specs['technology_name'],
                     'calculation_date': datetime.now().isoformat(),
