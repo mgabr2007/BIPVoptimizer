@@ -81,20 +81,38 @@ def render_yield_demand():
         
         with col4:
             # Try to get electricity rate from Step 1 project data
-            from utils.database_helper import DatabaseHelper
-            db_helper = DatabaseHelper()
-            project_data = db_helper.get_step_data("1")
-            
             default_rate = 0.25
-            if project_data and project_data.get('electricity_rates'):
-                rates = project_data['electricity_rates']
-                default_rate = rates.get('import_rate', 0.25)
-                st.info(f"Using electricity rate from Step 1: {default_rate:.3f} €/kWh")
+            rate_source = "Default"
+            
+            try:
+                from services.io import get_current_project_id
+                from database_manager import BIPVDatabaseManager
+                
+                project_id = get_current_project_id()
+                if project_id:
+                    db_manager = BIPVDatabaseManager()
+                    project_data = db_manager.get_project_data(project_id)
+                    
+                    if project_data and 'electricity_rates' in project_data:
+                        rates = project_data['electricity_rates']
+                        if isinstance(rates, dict) and 'import_rate' in rates:
+                            default_rate = float(rates['import_rate'])
+                            rate_source = f"Step 1 ({rates.get('source', 'Unknown')})"
+                            st.info(f"✅ Using electricity rate from Step 1: {default_rate:.3f} €/kWh")
+                        else:
+                            st.warning("⚠️ Electricity rates from Step 1 are not in expected format")
+                    else:
+                        st.warning("⚠️ No electricity rates found from Step 1 - please configure rates in Step 1")
+                else:
+                    st.warning("⚠️ No project ID found - using default rate")
+                    
+            except Exception as e:
+                st.warning(f"⚠️ Error retrieving electricity rates from Step 1: {str(e)}")
             
             electricity_price = st.number_input(
                 "Electricity Price (€/kWh)",
                 0.10, 0.50, default_rate, 0.01,
-                help="Electricity rate (automatically loaded from Step 1 project setup)"
+                help=f"Electricity rate (Source: {rate_source})"
             )
         
         # Comprehensive analysis button
