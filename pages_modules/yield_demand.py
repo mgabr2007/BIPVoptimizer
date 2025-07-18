@@ -88,10 +88,17 @@ def render_yield_demand():
                 # Use already imported functions from module level
                 project_id = get_current_project_id()
                 if project_id:
-                    project_data = db_manager.get_project_data(project_id)
+                    project_data = db_manager.get_project_by_id(project_id)
                     
-                    if project_data and 'electricity_rates' in project_data:
-                        rates = project_data['electricity_rates']
+                    if project_data and project_data.get('electricity_rates'):
+                        import json
+                        # Parse JSON string to dict if needed
+                        rates_data = project_data['electricity_rates']
+                        if isinstance(rates_data, str):
+                            rates = json.loads(rates_data)
+                        else:
+                            rates = rates_data
+                            
                         if isinstance(rates, dict) and 'import_rate' in rates:
                             default_rate = float(rates['import_rate'])
                             rate_source = f"Step 1 ({rates.get('source', 'Unknown')})"
