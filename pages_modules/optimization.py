@@ -370,6 +370,9 @@ def render_optimization():
                 result = cursor.fetchone()
                 if result:
                     annual_generation, annual_demand = result
+                    # Convert decimal.Decimal to float to prevent arithmetic errors
+                    annual_generation = float(annual_generation) if annual_generation is not None else 0.0
+                    annual_demand = float(annual_demand) if annual_demand is not None else 0.0
                     # Use authentic database values for optimization
                     energy_balance = [{'predicted_demand': annual_demand, 'total_yield_kwh': annual_generation}]
                     st.success(f"✅ Using authentic Step 7 data: {annual_generation:,.0f} kWh generation, {annual_demand:,.0f} kWh demand")
@@ -407,9 +410,19 @@ def render_optimization():
         st.error("⚠️ PV specifications data format error from database. Expected dict with 'bipv_specifications' key, list, or DataFrame.")
         return
     
+    # Convert all numeric columns to float to prevent decimal.Decimal arithmetic errors
+    numeric_columns = ['total_cost_eur', 'capacity_kw', 'annual_energy_kwh', 'glass_area', 'total_cost', 'total_installation_cost']
+    for col in numeric_columns:
+        if col in pv_specs.columns:
+            pv_specs[col] = pd.to_numeric(pv_specs[col], errors='coerce').fillna(0.0)
+    
     # Convert authentic energy_balance to DataFrame - database data only
     if isinstance(energy_balance, list):
         energy_balance = pd.DataFrame(energy_balance)
+        # Convert numeric columns to float
+        for col in ['predicted_demand', 'total_yield_kwh']:
+            if col in energy_balance.columns:
+                energy_balance[col] = pd.to_numeric(energy_balance[col], errors='coerce').fillna(0.0)
     
     # Success confirmation after data conversion
     st.success(f"✅ Database verification complete: {len(pv_specs)} BIPV systems ready for optimization")
@@ -515,7 +528,7 @@ def render_optimization():
                 if result and result[0]:
                     import json
                     rates_data = json.loads(result[0])
-                    electricity_price = rates_data.get('import_rate')
+                    electricity_price = float(rates_data.get('import_rate', 0.25))  # Convert to float
                     source = rates_data.get('source', 'Step 1')
                     st.success(f"✅ Using authentic electricity rate from database: €{electricity_price:.3f}/kWh (Source: {source})")
             conn.close()
