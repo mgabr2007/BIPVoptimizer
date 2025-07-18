@@ -25,36 +25,94 @@ The platform follows a complete 11-step workflow from welcome through AI consult
 - **APIs**: Multi-source integration (TU Berlin Climate Portal, OpenWeatherMap, live electricity rates)
 
 ### Module Structure
+
+#### Core Infrastructure
 ```
 core/
 ├── solar_math.py             # Mathematical functions and solar calculations
+├── carbon_factors.py         # Grid carbon intensity database with 20+ countries
 └── __init__.py
 
 services/
-├── io.py                     # External I/O services (DB, APIs, file parsing)
+├── io.py                     # External I/O services and centralized project ID system
+├── weather_api_manager.py    # Hybrid weather API integration (TU Berlin + OpenWeatherMap)
 └── __init__.py
 
-pages/
-├── welcome.py                # Welcome and introduction page
-├── project_setup.py          # Project configuration and location setup
-├── historical_data.py        # Energy consumption analysis and AI model training
-├── weather_environment.py    # Weather data integration and TMY generation
-├── facade_extraction.py      # Building facade and window extraction from BIM
-├── reporting.py              # Report generation and data export
+utils/
+├── comprehensive_report_generator.py  # Consolidated reporting system for all workflow steps
+├── database_helper.py        # ConsolidatedDataManager for unified data flow
 └── __init__.py
-
-Legacy modules/ (to be refactored):
-├── radiation_grid.py         # Solar radiation grid generation and shading analysis
-├── pv_specification.py       # PV panel specification and layout calculation
-├── yield_demand.py          # Energy yield vs demand calculation
-├── optimization.py          # Multi-objective optimization using genetic algorithms
-├── financial_analysis.py    # Financial modeling and environmental impact
-└── visualization_3d.py      # 3D building and PV system visualization
 ```
 
-## Key Components
+#### Main Application Pages
+```
+pages_modules/
+├── welcome.py                # Welcome page with BIPV overview and workflow guide
+├── project_setup.py          # Interactive map location selection with weather station integration
+├── historical_data.py        # AI model training with RandomForestRegressor and R² tracking
+├── weather_environment.py    # ISO 15927-4 compliant TMY generation with authentic meteorological data
+├── facade_extraction.py      # BIM data upload and building element extraction (MANDATORY step)
+├── radiation_grid.py         # OptimizedRadiationAnalyzer with authentic TMY data integration
+├── pv_specification_unified.py  # BIPV glass specification with 5 commercial technology types
+├── yield_demand.py          # Energy yield vs demand analysis with authentic building data
+├── optimization.py          # NSGA-II genetic algorithm optimization with weighted objectives
+├── financial_analysis.py    # NPV, IRR, payback analysis with location-specific electricity rates
+├── reporting.py             # Comprehensive report generation and data export
+└── __init__.py
+```
 
-### 1. Project Setup Module
+#### Step-Specific Modules
+```
+step5_radiation/
+├── ui.py                     # Radiation analysis user interface components
+├── analysis.py               # OptimizedRadiationAnalyzer with TMY data integration
+└── __init__.py
+
+step7_yield_demand/
+├── data_validation.py        # Input validation and dependency checking (4.5KB)
+├── calculation_engine.py     # Core yield calculations with caching (11KB)
+├── ui_components.py          # User interface rendering components (15.8KB)
+└── __init__.py              # Workflow orchestration (1.2KB)
+```
+
+#### Components & Static Assets
+```
+components/
+├── navigation.py             # Dynamic workflow navigation with progress tracking
+├── project_selector.py       # Database-driven project management interface
+└── __init__.py
+
+static/
+├── BIPVOptiLogoLightGreen_*.png  # BIPV Optimizer branding assets
+├── MainBanner_*.jpg          # Welcome page banner image
+└── app_styles.css            # Custom styling for professional interface
+```
+
+#### Database & Configuration
+```
+database_manager.py           # PostgreSQL integration with 18 database tables
+database_schema.sql           # Complete database schema with TMY data storage
+wmo_stations_complete.py      # CLIMAT station database for weather data
+project_selector.py.backup   # Project selector backup for database management
+```
+
+#### Legacy & Utility Files
+```
+app.py                        # Main Streamlit application entry point
+pyproject.toml               # Python dependencies and project configuration
+uv.lock                      # Dependency lock file for reproducible builds
+.replit                      # Replit deployment configuration
+```
+
+## Key Workflow Components
+
+### 1. Welcome & Introduction (Entry Point)
+- **Purpose**: Comprehensive BIPV platform introduction with workflow overview and scientific methodology
+- **Features**: BIPV technology explanation, 11-step workflow guide, research context at TU Berlin
+- **Branding**: Professional BIPV Optimizer interface with OptiSunny character integration
+- **Standards**: ISO 15927-4, ISO 9060, EN 410, ASHRAE 90.1 implementation mapping
+
+### 2. Project Setup Module (Step 1)
 - **Purpose**: Initialize project configuration with precise location selection and weather station integration
 - **Location Detection**: Interactive folium map with dual input methods (map click/manual coordinates)
 - **Geocoding**: Hierarchical location names with neighborhood-level precision using OpenWeatherMap reverse geocoding
@@ -64,52 +122,66 @@ Legacy modules/ (to be refactored):
 - **Configuration**: Automatic timezone detection, standardized EUR currency, project naming with location context
 - **Data Persistence**: Weather station metadata saved for Step 3 TMY generation and meteorological accuracy
 
-### 2. Historical Data & AI Model
+### 3. Historical Data & AI Model Training (Step 2)
 - **Purpose**: Analyze historical energy consumption and train demand prediction models
 - **Technology**: RandomForestRegressor for baseline demand modeling
 - **Input**: CSV files with monthly consumption data, temperature, and environmental factors
 
-### 3. Weather & Environment Integration
+### 4. Weather & Environment Integration (Step 3)
 - **Purpose**: Fetch weather data and generate Typical Meteorological Year (TMY) datasets
 - **API Integration**: OpenWeatherMap API for current and historical weather data
 - **Output**: Hourly DNI/DHI/GHI solar irradiance data with quality reports
 
-### 4. Facade & Window Extraction (REQUIRED)
+### 5. Facade & Window Extraction (Step 4 - MANDATORY)
 - **Purpose**: Extract building geometry from BIM models for PV suitability analysis
 - **Technology**: CSV upload from BIM model extraction with comprehensive window element data
 - **Requirement**: This step is MANDATORY - all subsequent analysis steps require building element data
 - **Output**: Facade and window elements with geometry metadata and PV suitability flags
 
-### 5. Radiation & Shading Grid
+### 6. Radiation & Shading Analysis (Step 5)
 - **Purpose**: Calculate solar radiation on building surfaces with shading analysis
 - **Technology**: pvlib for solar position calculations and irradiance modeling
 - **Features**: Orientation/tilt corrections, tree shading factors, spatial radiation grids
 
-### 6. PV Panel Specification
+### 7. BIPV Glass Specification (Step 6)
 - **Purpose**: Define BIPV glass specifications and calculate system layouts
-- **Database**: Built-in BIPV glass database with efficiency, transparency, and cost data
-- **Panel Types**: Five commercial BIPV presets (Heliatek HeliaSol, SUNOVATION eFORM, Solarnova SOL_GT, Solarwatt Vision AM 4.5, AVANCIS SKALA) plus custom options
+- **Database**: Built-in BIPV glass database with authentic technology specifications and academic references
+- **Technology Types**: Five verified commercial BIPV glass systems with complete technical parameters:
+  - Heliatek HeliaSol 436-2000: Ultra-light OPV film (8.9% efficiency, 85 W/m²)
+  - SUNOVATION eFORM: Customizable crystalline silicon (15-20% efficiency, 150-200 W/m²)
+  - Solarnova SOL_GT: High-transparency options (10-15% efficiency, 100-150 W/m²)
+  - Solarwatt Vision AM 4.5: Aesthetic integration focus (17% efficiency, 170 W/m²)
+  - AVANCIS SKALA: CIGS thin-film technology (12% efficiency, 120 W/m²)
+- **Customization**: Panel modification interface with visual indicators and comprehensive help system
 
-### 7. Yield vs Demand Calculation
+### 8. Yield vs Demand Analysis (Step 7)
 - **Purpose**: Compare PV energy generation with predicted building demand
 - **Integration**: Uses trained demand model and calculated PV yields
 - **Output**: Net import calculations and energy balance profiles
 
-### 8. Multi-Objective Optimization
-- **Purpose**: Optimize PV system selection using genetic algorithms
-- **Technology**: DEAP for evolutionary optimization
-- **Objectives**: Minimize net energy import, maximize return on investment (ROI)
-- **Output**: Pareto-optimal solutions with alternative configurations
+### 9. Multi-Objective Optimization (Step 8)
+- **Purpose**: Multi-objective BIPV system optimization using advanced genetic algorithms
+- **Technology**: DEAP NSGA-II implementation with weighted fitness functions
+- **Objectives**: Three-objective optimization with user-configurable weights:
+  - Minimize total system cost (installation + maintenance)
+  - Maximize annual energy yield (kWh/year)
+  - Maximize return on investment (ROI percentage)
+- **Features**: Automatic weight balancing, orientation preferences, system size constraints
+- **Output**: Pareto-optimal solutions with comprehensive performance visualization and authentic Element ID tracking
 
-### 9. Financial & Environmental Analysis
-- **Purpose**: Comprehensive financial modeling and environmental impact assessment
-- **Calculations**: NPV, IRR, payback period, CO₂ savings
-- **Features**: Cash flow analysis, sensitivity analysis, emissions tracking
+### 10. Financial & Environmental Analysis (Step 9)
+- **Purpose**: Comprehensive financial modeling with location-specific parameters and environmental impact
+- **Financial Metrics**: NPV (5% discount rate), IRR, payback period, lifecycle cost analysis
+- **Economic Integration**: Real-time electricity rates from official APIs (German SMARD, UK Ofgem, US EIA)
+- **Environmental Impact**: CO₂ savings using official grid carbon factors from national TSOs and IEA data
+- **Features**: 25-year cash flow projections, maintenance cost integration (1.5% annual), sensitivity analysis
 
-### 10. Reporting & Export
-- **Purpose**: Generate comprehensive reports and export analysis results
-- **Formats**: PDF/HTML reports, CSV/JSON data export
-- **Content**: Executive summary, technical analysis, financial projections
+### 11. Comprehensive Reporting (Step 10)
+- **Purpose**: Generate comprehensive reports with authentic workflow data and individual step documentation
+- **Architecture**: Consolidated reporting system replacing step-by-step data export with master analysis
+- **Formats**: Individual step HTML reports with interactive Plotly charts and golden-themed styling
+- **Content**: Complete workflow analysis, technical methodology, financial projections, environmental impact
+- **Integration**: Report upload system for AI consultation with data aggregation and progress tracking
 
 ## Data Flow
 
