@@ -34,10 +34,11 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
         selected_specs = pv_specs[selection_mask]
         
         # Calculate total metrics (handle different possible column names)
-        if 'total_installation_cost' in selected_specs.columns:
-            total_cost = selected_specs['total_installation_cost'].sum()
-        elif 'total_cost_eur' in selected_specs.columns:
+        # Use standardized field names with fallback support
+        if 'total_cost_eur' in selected_specs.columns:
             total_cost = selected_specs['total_cost_eur'].sum()
+        elif 'total_installation_cost' in selected_specs.columns:
+            total_cost = selected_specs['total_installation_cost'].sum()
         elif 'total_cost' in selected_specs.columns:
             total_cost = selected_specs['total_cost'].sum()
         else:
@@ -77,10 +78,11 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
         
         # Normalize objectives (0-1 scale)
         # For cost: lower is better, so use 1/(1+normalized_cost)
-        if 'total_installation_cost' in pv_specs.columns:
-            max_possible_cost = pv_specs['total_installation_cost'].sum()
-        elif 'total_cost_eur' in pv_specs.columns:
+        # Use standardized field names with fallback support
+        if 'total_cost_eur' in pv_specs.columns:
             max_possible_cost = pv_specs['total_cost_eur'].sum()
+        elif 'total_installation_cost' in pv_specs.columns:
+            max_possible_cost = pv_specs['total_installation_cost'].sum()
         elif 'total_cost' in pv_specs.columns:
             max_possible_cost = pv_specs['total_cost'].sum()
         else:
@@ -230,17 +232,19 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
         
         if len(selected_specs) > 0:
             # Calculate solution metrics
-            if 'system_power_kw' in selected_specs.columns:
-                total_power_kw = selected_specs['system_power_kw'].sum()
-            elif 'capacity_kw' in selected_specs.columns:
+            # Use standardized field names with fallback support
+            if 'capacity_kw' in selected_specs.columns:
                 total_power_kw = selected_specs['capacity_kw'].sum()
+            elif 'system_power_kw' in selected_specs.columns:
+                total_power_kw = selected_specs['system_power_kw'].sum()
             else:
                 total_power_kw = 0
                 
             # Handle different cost column names
-            if 'total_installation_cost' in selected_specs.columns:
-                total_cost = selected_specs['total_installation_cost'].sum()
-            elif 'total_cost_eur' in selected_specs.columns:
+            # Use standardized field names with fallback support  
+            if 'total_cost_eur' in selected_specs.columns:
+                total_cost = selected_specs['total_cost_eur'].sum()
+            elif 'total_installation_cost' in selected_specs.columns:
                 total_cost = selected_specs['total_cost_eur'].sum()
             elif 'total_cost' in selected_specs.columns:
                 total_cost = selected_specs['total_cost'].sum()

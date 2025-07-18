@@ -620,49 +620,10 @@ def calculate_bipv_system_specifications(suitable_elements, panel_specs, coverag
     return pd.DataFrame(bipv_specifications)
 
 def render_pv_specification():
-    """Render the simplified PV panel specification and layout module."""
-    
-    # Enhanced production-grade interface option - prominent placement
-    st.info("🚀 **NEW: Enhanced Production-Grade Interface Available**")
-    use_production = st.checkbox("✅ Enable Production-Grade BIPV Analysis", value=False, 
-                                help="Switch to enterprise-grade interface with vectorized calculations, database persistence, and advanced features")
-    
-    if use_production:
-        try:
-            # Import the production interface with proper error handling
-            import sys
-            sys.path.append('/home/runner/workspace')
-            
-            # Direct import of fixed models
-            from step6_pv_spec.models_v2_fixed import (
-                PanelSpecification, ElementPVSpecification, ProjectPVSummary,
-                BuildingElement, RadiationRecord, SpecificationConfiguration
-            )
-            
-            # Get project_id from database
-            from services.io import get_current_project_id
-            project_id = get_current_project_id()
-            if not project_id:
-                st.error("No project ID found. Please complete Step 1 first.")
-                return
-            
-            st.success("🎯 **Production-Grade Interface Loaded Successfully**")
-            st.markdown("---")
-            
-            # Render enhanced interface directly here
-            render_production_pv_interface(project_id)
-            return
-            
-        except ImportError as e:
-            st.error(f"Production interface dependencies missing: {e}")
-            st.info("Some required packages may need installation...")
-        except Exception as e:
-            st.error(f"Error loading production interface: {e}")
-            st.info("Falling back to legacy interface...")
-    
-    # Legacy interface header
-    if not use_production:
-        st.warning("📝 **Using Legacy Interface** - Enable production-grade interface above for enhanced features")
+    """Unified Step 6: BIPV Panel Specifications interface"""
+    # Import the unified interface
+    from pages_modules.pv_specification_unified import render_pv_specification as render_unified
+    render_unified()
     
     # Add OptiSunny character header image
     st.image("attached_assets/step06_1751436847830.png", width=400)
