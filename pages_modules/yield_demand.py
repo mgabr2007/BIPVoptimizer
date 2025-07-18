@@ -83,31 +83,107 @@ def render_yield_demand():
                 help="Your current electricity rate"
             )
         
-        # Simple analysis button
+        # Comprehensive analysis button
         if st.button("🚀 Run Analysis", type="primary"):
             with st.spinner("Running yield vs demand analysis..."):
                 try:
-                    # Simple calculation placeholder
+                    # Get PV specifications from database
+                    pv_specs = db_manager.get_pv_specifications(project_id)
+                    historical_data = db_manager.get_historical_data(project_id)
+                    
+                    if not pv_specs or not historical_data:
+                        st.error("Missing required data for analysis")
+                        return
+                    
+                    # Parse PV specifications from JSON
+                    import json
+                    if isinstance(pv_specs[0].get('specification_data'), str):
+                        spec_data = json.loads(pv_specs[0]['specification_data'])
+                    else:
+                        spec_data = pv_specs[0].get('specification_data', {})
+                    
+                    bipv_specs = spec_data.get('bipv_specifications', [])
+                    
+                    if not bipv_specs:
+                        st.error("No BIPV specifications found in database")
+                        return
+                    
+                    # Calculate totals using actual field names
+                    total_capacity_kw = sum(float(spec.get('capacity_kw', 0)) for spec in bipv_specs)
+                    total_annual_yield = sum(float(spec.get('annual_energy_kwh', 0)) for spec in bipv_specs)
+                    total_cost_eur = sum(float(spec.get('total_cost_eur', 0)) for spec in bipv_specs)
+                    
+                    # Get annual demand from historical data
+                    annual_demand = float(historical_data.get('annual_consumption', 0))
+                    
+                    # Calculate key metrics
+                    coverage_ratio = (total_annual_yield / annual_demand * 100) if annual_demand > 0 else 0
+                    specific_yield = (total_annual_yield / total_capacity_kw) if total_capacity_kw > 0 else 0
+                    
+                    # Calculate savings
+                    annual_savings = total_annual_yield * electricity_price
+                    
                     st.success("✅ Analysis completed successfully!")
                     
-                    # Display basic results
+                    # Display real results
                     st.subheader("📊 Analysis Results")
                     
                     col5, col6, col7 = st.columns(3)
                     
                     with col5:
-                        st.metric("Annual Generation", "45,000 kWh", "vs 52,000 kWh demand")
+                        st.metric(
+                            "Annual Generation", 
+                            f"{total_annual_yield:,.0f} kWh",
+                            f"vs {annual_demand:,.0f} kWh demand"
+                        )
                     
                     with col6:
-                        st.metric("Energy Coverage", "86.5%", "of building demand")
+                        st.metric(
+                            "Energy Coverage", 
+                            f"{coverage_ratio:.1f}%",
+                            "of building demand"
+                        )
                     
                     with col7:
-                        st.metric("Annual Savings", "€3,750", "€312/month")
+                        st.metric(
+                            "Annual Savings", 
+                            f"€{annual_savings:,.0f}",
+                            f"€{annual_savings/12:,.0f}/month"
+                        )
                     
-                    st.info("This is a simplified implementation to resolve the refresh loop issue. Full analysis will be restored once the technical issue is fixed.")
+                    # Additional metrics
+                    st.subheader("📈 System Performance Metrics")
+                    
+                    col8, col9, col10 = st.columns(3)
+                    
+                    with col8:
+                        st.metric("Total Capacity", f"{total_capacity_kw:.2f} kW")
+                    
+                    with col9:
+                        st.metric("Specific Yield", f"{specific_yield:.0f} kWh/kW")
+                    
+                    with col10:
+                        st.metric("Total Investment", f"€{total_cost_eur:,.0f}")
+                    
+                    # Save results to database
+                    yield_data = {
+                        'total_annual_yield': total_annual_yield,
+                        'annual_demand': annual_demand,
+                        'coverage_ratio': coverage_ratio,
+                        'total_capacity_kw': total_capacity_kw,
+                        'total_cost_eur': total_cost_eur,
+                        'annual_savings': annual_savings,
+                        'specific_yield': specific_yield
+                    }
+                    
+                    db_manager.save_yield_demand_data(project_id, yield_data)
                     
                 except Exception as e:
                     st.error(f"Analysis failed: {str(e)}")
+                    st.write("**Debug Info:**")
+                    st.write(f"Project ID: {project_id}")
+                    st.write(f"PV Specs Available: {bool(pv_specs)}")
+                    st.write(f"Historical Data Available: {bool(historical_data)}")
         
         # Individual step report download
         st.markdown("---")
