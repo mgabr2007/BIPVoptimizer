@@ -178,49 +178,47 @@ def load_dashboard_data():
             
             # Optimization Results (Step 8)
             cursor.execute("""
-                SELECT selected_systems, total_capacity_kw, total_cost_eur,
-                       annual_savings_eur, roi_percentage
+                SELECT solution_id, capacity, total_cost, roi, net_import
                 FROM optimization_results WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
             """, (project_id,))
             optimization_result = cursor.fetchone()
             
             if optimization_result:
                 dashboard_data['optimization'] = {
-                    'selected_systems': optimization_result[0],
-                    'total_capacity_kw': optimization_result[1],
-                    'total_cost_eur': optimization_result[2],
-                    'annual_savings_eur': optimization_result[3],
-                    'roi_percentage': optimization_result[4]
+                    'selected_systems': optimization_result[0],  # solution_id
+                    'total_capacity_kw': optimization_result[1],  # capacity
+                    'total_cost_eur': optimization_result[2],     # total_cost
+                    'annual_savings_eur': optimization_result[4], # net_import (savings)
+                    'roi_percentage': optimization_result[3]      # roi
                 }
             
             # Financial Analysis (Step 9)
             cursor.execute("""
-                SELECT total_investment_eur, npv_eur, irr_percentage,
-                       payback_period_years, total_savings_25_years
+                SELECT initial_investment, npv, irr, payback_period, annual_savings
                 FROM financial_analysis WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
             """, (project_id,))
             financial_result = cursor.fetchone()
             
             if financial_result:
                 dashboard_data['financial'] = {
-                    'total_investment_eur': financial_result[0],
-                    'npv_eur': financial_result[1],
-                    'irr_percentage': financial_result[2],
-                    'payback_period_years': financial_result[3],
-                    'total_savings_25_years': financial_result[4]
+                    'total_investment_eur': financial_result[0],  # initial_investment
+                    'npv_eur': financial_result[1],              # npv
+                    'irr_percentage': financial_result[2],       # irr
+                    'payback_period_years': financial_result[3], # payback_period
+                    'total_savings_25_years': financial_result[4] * 25 if financial_result[4] else 0  # annual_savings * 25
                 }
             
             # Environmental Impact
             cursor.execute("""
-                SELECT annual_co2_reduction_kg, lifetime_co2_reduction_kg
+                SELECT co2_savings_annual, co2_savings_lifetime
                 FROM environmental_impact WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
             """, (project_id,))
             environmental_result = cursor.fetchone()
             
             if environmental_result:
                 dashboard_data['environmental'] = {
-                    'annual_co2_reduction_kg': environmental_result[0],
-                    'lifetime_co2_reduction_kg': environmental_result[1]
+                    'annual_co2_reduction_kg': environmental_result[0],  # co2_savings_annual
+                    'lifetime_co2_reduction_kg': environmental_result[1] # co2_savings_lifetime
                 }
         
         conn.close()
