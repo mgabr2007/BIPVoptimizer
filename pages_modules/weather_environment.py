@@ -258,12 +258,13 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
                     except (ValueError, TypeError):
                         continue
         
-        # Update weather analysis with adjusted data
+        # Update weather analysis with adjusted data - ensure all values are float
         weather_analysis.update({
             'tmy_data': adjusted_tmy_data,
-            'annual_ghi': annual_ghi,
-            'original_annual_ghi': original_annual_ghi,
-            'environmental_adjustment': shading_reduction,
+            'annual_ghi': float(annual_ghi),
+            'adjusted_annual_ghi': float(annual_ghi),
+            'original_annual_ghi': float(original_annual_ghi),
+            'environmental_adjustment': float(shading_reduction),
             'generation_timestamp': datetime.now().isoformat(),
             'regenerated': True
         })
@@ -650,18 +651,24 @@ def render_weather_environment():
                             monthly_ghi = sum(monthly_data[month]) / 1000  # Convert to kWh/m²/month
                             monthly_solar[month_names[month-1]] = monthly_ghi
                         
-                        # Enhanced weather analysis structure
+                        # Enhanced weather analysis structure - ensure all numeric values are float
                         weather_analysis = {
                             'tmy_data': tmy_data,
+                            'annual_ghi': float(annual_ghi),
+                            'annual_dni': float(annual_dni),  
+                            'annual_dhi': float(annual_dhi),
+                            'temperature': float(avg_temperature),
+                            'humidity': 65.0,  # Default humidity
                             'summary_stats': {
-                                'annual_ghi': annual_ghi,
-                                'annual_dni': annual_dni,
-                                'annual_dhi': annual_dhi,
-                                'peak_sun_hours': peak_sun_hours,
-                                'avg_temperature': avg_temperature,
+                                'annual_ghi': float(annual_ghi),
+                                'annual_dni': float(annual_dni),
+                                'annual_dhi': float(annual_dhi),
+                                'peak_sun_hours': float(peak_sun_hours),
+                                'avg_temperature': float(avg_temperature),
                                 'data_points': len(tmy_data)
                             },
                             'monthly_solar': monthly_solar,
+                            'monthly_profiles': monthly_solar,
                             'station_info': weather_data.get('station_info', selected_station),
                             'api_source': weather_data.get('api_source', current_api),
                             'data_quality': weather_data.get('data_quality', 'standard'),
@@ -777,8 +784,8 @@ def render_weather_environment():
                             try:
                                 # Save to weather_data table with correct field mapping
                                 weather_data_to_save = {
-                                    'temperature': weather_analysis.get('temperature'),
-                                    'humidity': weather_analysis.get('humidity'),
+                                    'temperature': float(weather_analysis.get('temperature', 15.0) or 15.0),
+                                    'humidity': float(weather_analysis.get('humidity', 65.0) or 65.0),
                                     'description': weather_analysis.get('description', 'TMY Generated'),
                                     'annual_ghi': float(annual_ghi),
                                     'annual_dni': float(weather_analysis.get('annual_dni', 0) or 0),
@@ -1012,16 +1019,16 @@ def render_weather_environment():
             shading_reduction += 10  # 10% reduction from buildings
         
         # Get annual GHI from weather analysis
-        base_ghi = weather_analysis.get('annual_ghi', weather_analysis.get('summary_stats', {}).get('annual_ghi', 1400))
+        base_ghi = float(weather_analysis.get('annual_ghi', weather_analysis.get('summary_stats', {}).get('annual_ghi', 1400)) or 1400)
         
         # Display shading impact
         if shading_reduction > 0:
             st.warning(f"Estimated shading impact: {shading_reduction}% reduction in solar irradiance")
-            adjusted_ghi = base_ghi * (1 - shading_reduction / 100)
+            adjusted_ghi = float(base_ghi) * (1 - shading_reduction / 100)
             st.info(f"Adjusted annual GHI: {adjusted_ghi:,.0f} kWh/m² (accounting for shading)")
         else:
             st.success("No significant shading factors identified")
-            adjusted_ghi = base_ghi
+            adjusted_ghi = float(base_ghi)
         
         # Update environmental data in session state
         st.session_state.project_data['environmental_factors'] = {
@@ -1057,8 +1064,8 @@ def render_weather_environment():
                 
                 # Get regenerated data
                 env_adjustment = weather_analysis.get('environmental_adjustment', 0)
-                original_ghi = weather_analysis.get('original_annual_ghi', 0)
-                adjusted_ghi = weather_analysis.get('annual_ghi', 0)
+                original_ghi = float(weather_analysis.get('original_annual_ghi', 0) or 0)
+                adjusted_ghi = float(weather_analysis.get('annual_ghi', 0) or 0)
                 generation_time = weather_analysis.get('generation_timestamp', 'Unknown')
                 
                 st.success(f"✅ TMY data successfully regenerated with {env_adjustment}% environmental adjustment")
@@ -1070,7 +1077,7 @@ def render_weather_environment():
                 with col2:
                     st.metric("Environmentally Adjusted GHI", f"{adjusted_ghi:,.0f} kWh/m²") 
                 with col3:
-                    reduction = original_ghi - adjusted_ghi
+                    reduction = float(original_ghi) - float(adjusted_ghi)
                     st.metric("Total Reduction", f"{reduction:,.0f} kWh/m²", f"-{env_adjustment}%")
                 
                 st.info(f"📅 Regenerated on: {generation_time[:19].replace('T', ' ')}")
