@@ -485,7 +485,7 @@ def render_facade_extraction():
                         percentage_complete = int(100 * i / total_rows)
                         progress_bar.progress(percentage_complete)
                         progress_percentage.markdown(f"**{percentage_complete}%**")
-                        status_text.text(f"Processing element {i+1} of {total_rows}")
+                        # Element-by-element display removed
                         
                         if len(row) >= len(headers):
                             try:
@@ -499,8 +499,7 @@ def render_facade_extraction():
                                 azimuth = float(element_data.get('Azimuth (°)', 0))
                                 glass_area = float(element_data.get('Glass Area (m²)', 0))
                                 
-                                # Show current element being processed with color coding
-                                element_progress.markdown(f"🏢 **{element_id}** | {category} | {level}")
+                                # Element-by-element display removed
                             
                                 # Extract window dimensions if available
                                 window_width = element_data.get('Width (m)', element_data.get('Window Width', element_data.get('width', None)))

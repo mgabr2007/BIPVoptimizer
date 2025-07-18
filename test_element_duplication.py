@@ -55,7 +55,7 @@ def test_duplication_prevention():
             # CRITICAL: Add to processed set
             processed_element_ids.add(element_id)
             
-            st.info(f"✅ Element {element_id} completed ({annual_radiation} kWh/m²/year)")
+            # Individual element completion display removed
         
         st.subheader("Test Summary:")
         st.write(f"**Total test elements**: {len(test_elements)}")

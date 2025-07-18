@@ -1719,9 +1719,8 @@ def render_radiation_grid():
                         monitor.log_element_skip(element_id, skip_reason)
                         # REMOVED: Dual logging call - unified logger handles all UI output
                         
-                        # Update progress display for skipped elements
+                        # Element skip display removed
                         percentage_complete = int(100 * global_i / len(suitable_elements))
-                        element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} ({skip_reason})</h4>", unsafe_allow_html=True)
                         progress_bar.progress(percentage_complete)
                         
                         # Check for too many consecutive skips but continue to completion
@@ -1745,9 +1744,8 @@ def render_radiation_grid():
                         monitor.log_element_skip(element_id, skip_reason)
                         # REMOVED: Dual logging call - unified logger handles all UI output
                         
-                        # Update progress display for skipped elements
+                        # Element skip display removed
                         percentage_complete = int(100 * global_i / len(suitable_elements))
-                        element_progress.markdown(f"<h4 style='color: #ff9900; margin: 0;'>Skipping element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id} ({skip_reason})</h4>", unsafe_allow_html=True)
                         progress_bar.progress(percentage_complete)
                         
                         # Check for too many consecutive skips but continue to completion
@@ -1770,9 +1768,8 @@ def render_radiation_grid():
                     width = element.get('window_width', element.get('width', element.get('Width', 1.2)))
                     height = element.get('window_height', element.get('height', element.get('Height', 1.5)))
                     
-                    # Progress display with larger font and timeout tracking
+                    # Element-by-element progress display removed
                     percentage_complete = int(100 * global_i / len(suitable_elements))
-                    element_progress.markdown(f"<h4 style='color: #0066cc; margin: 0;'>Processing element {global_i+1} of {len(suitable_elements)} ({percentage_complete}%) - ID: {element_id}</h4>", unsafe_allow_html=True)
                     progress_bar.progress(percentage_complete)
                     
                     # ---- heartbeat update -----------------------------------------

@@ -93,19 +93,15 @@ class AnalysisMonitor:
         self.active_elements.add(element_id)
         
         self.element_count += 1
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        message = f"[{timestamp}] 🔄 Processing {element_id} ({orientation}, {area:.1f}m²)"
-        self.log_messages.append(message)
+        # Individual element logging removed - only track count
         
         # Keep only last 10 messages
         if len(self.log_messages) > 10:
             self.log_messages.pop(0)
         
         # Update displays
-        self.current_element.write(f"**Current:** {element_id}")
-        with self.log_container:
-            for msg in self.log_messages[-5:]:  # Show last 5 messages
-                st.text(msg)
+        # Element-by-element display removed as requested
+        # Only update metrics, no individual element logging
         self.update_metrics()
         return True
     
@@ -134,9 +130,7 @@ class AnalysisMonitor:
             self.active_elements.discard(element_id)
             
         self.success_count += 1
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        message = f"[{timestamp}] ✅ {element_id} completed ({annual_radiation:.0f} kWh/m²/year, {processing_time:.2f}s)"
-        self.log_messages.append(message)
+        # Individual element completion logging removed
         
         if len(self.log_messages) > 10:
             self.log_messages.pop(0)
@@ -147,14 +141,13 @@ class AnalysisMonitor:
         self.update_metrics()
     
     def log_element_error(self, element_id, error_message, processing_time):
-        """Log failed element processing"""
+        """Log failed element processing - individual element display removed"""
         # Use global registry for comprehensive state management
         registry = get_global_registry()
         
         # Mark as failed in global registry
         success, message = registry.fail_processing(element_id)
         if not success:
-            # Element not properly registered - skip logging
             return False
         
         # Remove from active elements set
@@ -162,20 +155,11 @@ class AnalysisMonitor:
             self.active_elements.discard(element_id)
             
         self.error_count += 1
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        message = f"[{timestamp}] ❌ {element_id} failed ({error_message[:50]}..., {processing_time:.2f}s)"
-        self.log_messages.append(message)
-        
-        if len(self.log_messages) > 10:
-            self.log_messages.pop(0)
-        
-        with self.log_container:
-            for msg in self.log_messages[-5:]:
-                st.text(msg)
+        # Individual element error display removed
         self.update_metrics()
     
     def log_element_skip(self, element_id, reason):
-        """Log skipped element"""
+        """Log skipped element - individual element display removed"""
         # Remove from active elements set
         if hasattr(self, 'active_elements'):
             self.active_elements.discard(element_id)
