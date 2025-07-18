@@ -685,12 +685,15 @@ def render_historical_data():
             
             if project_id:
                 save_project_data(st.session_state.project_data)
-                # Save to historical_data table
-                db_helper.save_step_data("historical_data", {
+                # Save to historical_data table with correct field references
+                historical_data_to_save = {
+                    'annual_consumption': total_consumption,
+                    'model_accuracy': r_squared_score,
                     'consumption_data': st.session_state.project_data.get('historical_data', {}),
-                    'ai_model_data': st.session_state.project_data.get('ai_model', {}),
-                    'forecast_data': st.session_state.project_data.get('forecast_data', {})
-                })
+                    'ai_model_data': st.session_state.project_data.get('ai_model_data', {}),
+                    'forecast_data': st.session_state.project_data.get('demand_forecast', {})
+                }
+                db_helper.save_step_data("historical_data", historical_data_to_save)
                 
                 # Save to ai_models table for R² scores and model parameters
                 from database_manager import BIPVDatabaseManager
