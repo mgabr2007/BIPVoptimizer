@@ -308,9 +308,21 @@ class OptimizedRadiationAnalyzer:
         """Process a batch of elements with vectorized calculations."""
         batch_results = {}
         
-        # Default location (Berlin) - should be from project data
-        latitude = 52.52  # Berlin latitude
-        longitude = 13.405  # Berlin longitude
+        # Get project coordinates from database
+        from utils.database_helper import DatabaseHelper
+        
+        latitude = 52.52  # Default Berlin latitude
+        longitude = 13.405  # Default Berlin longitude
+        
+        try:
+            db_helper = DatabaseHelper()
+            project_data = db_helper.get_step_data("1")
+            if project_data and project_data.get('coordinates'):
+                coords = project_data['coordinates']
+                latitude = coords.get('lat', latitude)
+                longitude = coords.get('lng', longitude)
+        except Exception:
+            pass  # Use defaults if database access fails
         
         for element in elements:
             element_id = element['element_id']
@@ -332,14 +344,20 @@ class OptimizedRadiationAnalyzer:
                                        include_shading: bool, orientation: str) -> float:
         """Fast calculation of annual radiation using authentic TMY data."""
         
-        # Try to get authentic TMY data from Step 3
+        # Try to get authentic TMY data from Step 3 database
         import streamlit as st
-        tmy_data = None
-        weather_analysis = st.session_state.get('project_data', {}).get('weather_analysis', {})
+        from utils.database_helper import DatabaseHelper
         
-        if weather_analysis and 'tmy_data' in weather_analysis:
-            tmy_data = weather_analysis['tmy_data']
-            st.info(f"🌤️ Using authentic TMY data with {len(tmy_data)} hourly records from Step 3")
+        tmy_data = None
+        try:
+            db_helper = DatabaseHelper()
+            weather_data = db_helper.get_step_data("3")
+            
+            if weather_data and weather_data.get('tmy_data'):
+                tmy_data = weather_data['tmy_data']
+                st.info(f"🌤️ Using authentic TMY data with {len(tmy_data)} hourly records from Step 3")
+        except Exception as e:
+            st.warning(f"Could not load TMY data from database: {e}")
         
         total_irradiance = 0.0
         

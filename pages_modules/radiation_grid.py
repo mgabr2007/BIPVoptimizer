@@ -427,15 +427,21 @@ def check_dependencies():
         st.error("❌ Database connection failed")
         return False
     
-    # Check weather data  
-    weather_data = st.session_state.get('project_data', {}).get('weather_analysis', {})
-    tmy_data = weather_data.get('tmy_data', weather_data.get('hourly_data', []))
+    # Check weather data from database
+    from utils.database_helper import DatabaseHelper
+    db_helper = DatabaseHelper()
+    weather_data = db_helper.get_step_data("3")
     
-    if not tmy_data:
+    if not weather_data or not weather_data.get('tmy_data'):
         st.error("⚠️ No TMY weather data available. Please complete Step 3 (Weather & Environment) first.")
         return False
     else:
-        st.success("✅ TMY weather data available")
+        tmy_data = weather_data.get('tmy_data', [])
+        if isinstance(tmy_data, list) and len(tmy_data) > 0:
+            st.success(f"✅ TMY weather data available ({len(tmy_data):,} hourly records)")
+        else:
+            st.error("⚠️ TMY weather data is invalid. Please regenerate in Step 3.")
+            return False
     
     return True
 
@@ -522,16 +528,20 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
                 st.error(f"❌ Critical error checking elements: {e2}")
                 return
         
-        # Get weather data
-        weather_data = st.session_state.project_data.get('weather_analysis', {})
-        tmy_data = weather_data.get('tmy_data', weather_data.get('hourly_data', []))
+        # Get weather data from database
+        from utils.database_helper import DatabaseHelper
+        db_helper = DatabaseHelper()
+        weather_data = db_helper.get_step_data("3")
         
-        if not tmy_data:
-            st.error("No TMY data available for analysis")
+        if not weather_data or not weather_data.get('tmy_data'):
+            st.error("No TMY data available for analysis - please complete Step 3 first")
             return
         
-        # Get project coordinates
-        coordinates = st.session_state.project_data.get('coordinates', {})
+        tmy_data = weather_data.get('tmy_data', [])
+        
+        # Get project coordinates from database
+        project_data = db_helper.get_step_data("1") 
+        coordinates = project_data.get('coordinates', {}) if project_data else {}
         latitude = coordinates.get('lat', 52.52)
         longitude = coordinates.get('lng', 13.405)
         
