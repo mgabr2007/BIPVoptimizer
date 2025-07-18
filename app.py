@@ -571,11 +571,64 @@ from services.io import get_current_project_id
 # Ensure database connectivity and project context
 current_project_id = get_current_project_id()
 
-# Database-driven project management
-if current_project_id:
-    st.sidebar.success(f"Project ID: {current_project_id}")
-else:
-    st.sidebar.info("No active project - start with Step 1")
+# Project ID Loader in Sidebar
+from database_manager import db_manager
+
+# Get all available projects
+try:
+    all_projects = db_manager.list_projects()
+    if all_projects and len(all_projects) > 0:
+        # Create project options for selectbox
+        project_options = {}
+        for project in all_projects:
+            project_id = project.get('id')
+            project_name = project.get('project_name', f'Project {project_id}')
+            location = project.get('location', 'Unknown Location')
+            project_options[f"{project_name} ({location}) - ID: {project_id}"] = project_id
+        
+        # Add "No Project Selected" option
+        project_options = {"🔽 Select a Project...": None, **project_options}
+        
+        # Project selector
+        selected_project_display = st.sidebar.selectbox(
+            "📁 Project Loader",
+            options=list(project_options.keys()),
+            index=0 if current_project_id is None else next(
+                (i for i, key in enumerate(project_options.keys()) 
+                 if project_options[key] == current_project_id), 0
+            ),
+            key="project_selector"
+        )
+        
+        selected_project_id = project_options[selected_project_display]
+        
+        # Handle project selection change
+        if selected_project_id and selected_project_id != current_project_id:
+            # Update session state to switch project
+            if 'project_data' not in st.session_state:
+                st.session_state.project_data = {}
+            st.session_state.project_data['project_id'] = selected_project_id
+            
+            # Get project details
+            project_details = db_manager.get_project_by_id(selected_project_id)
+            if project_details:
+                st.session_state.project_data['project_name'] = project_details.get('project_name')
+                st.sidebar.success(f"✅ Switched to Project ID: {selected_project_id}")
+                st.rerun()
+        
+        # Show current project info
+        if current_project_id:
+            project_data = db_manager.get_project_by_id(current_project_id)
+            if project_data:
+                project_name = project_data.get('project_name', 'Unnamed Project')
+                location = project_data.get('location', 'Unknown Location')
+                st.sidebar.info(f"🆔 **Active:** {project_name}\n📍 {location}")
+    else:
+        st.sidebar.info("📂 No projects available - start with Step 1")
+        
+except Exception as e:
+    st.sidebar.warning(f"⚠️ Could not load projects: {str(e)}")
+    st.sidebar.info("🔄 Create a new project in Step 1")
 
 # Database-driven completion tracking (no session state needed)
 

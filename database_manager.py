@@ -947,7 +947,7 @@ class BIPVDatabaseManager:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute("""
-                    SELECT project_name, location, created_at, updated_at
+                    SELECT id, project_name, location, created_at, updated_at
                     FROM projects 
                     ORDER BY updated_at DESC
                 """)
