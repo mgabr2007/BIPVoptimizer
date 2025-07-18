@@ -80,10 +80,21 @@ def render_yield_demand():
             )
         
         with col4:
+            # Try to get electricity rate from Step 1 project data
+            from utils.database_helper import DatabaseHelper
+            db_helper = DatabaseHelper()
+            project_data = db_helper.get_step_data("1")
+            
+            default_rate = 0.25
+            if project_data and project_data.get('electricity_rates'):
+                rates = project_data['electricity_rates']
+                default_rate = rates.get('import_rate', 0.25)
+                st.info(f"Using electricity rate from Step 1: {default_rate:.3f} €/kWh")
+            
             electricity_price = st.number_input(
                 "Electricity Price (€/kWh)",
-                0.10, 0.50, 0.25, 0.01,
-                help="Your current electricity rate"
+                0.10, 0.50, default_rate, 0.01,
+                help="Electricity rate (automatically loaded from Step 1 project setup)"
             )
         
         # Comprehensive analysis button
