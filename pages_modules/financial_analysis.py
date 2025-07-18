@@ -434,8 +434,8 @@ def render_financial_analysis():
                 sensitivity_ranges = {
                     'electricity_price': np.linspace(electricity_price * 0.8, electricity_price * 1.2, 5),
                     'discount_rate': np.linspace(max(0.01, (discount_rate/100) * 0.5), (discount_rate/100) * 1.5, 5),
-                    'system_cost': np.linspace(selected_solution['total_investment'] * 0.8, 
-                                             selected_solution['total_investment'] * 1.2, 5)
+                    'system_cost': np.linspace(selected_solution['total_cost'] * 0.8, 
+                                             selected_solution['total_cost'] * 1.2, 5)
                 }
                 
                 sensitivity_results = {}
@@ -450,7 +450,7 @@ def render_financial_analysis():
                         elif param == 'discount_rate':
                             temp_params['discount_rate'] = value
                         elif param == 'system_cost':
-                            temp_solution['total_investment'] = value
+                            temp_solution['total_cost'] = value
                         
                         temp_cash_flows, _ = create_cash_flow_analysis(temp_solution, temp_params, system_lifetime)
                         temp_npv = calculate_npv(temp_cash_flows, temp_params['discount_rate'])
@@ -464,7 +464,7 @@ def render_financial_analysis():
                         'npv': npv,
                         'irr': irr * 100 if irr else None,
                         'payback_period': payback_period,
-                        'total_investment': selected_solution['total_investment'],
+                        'total_investment': selected_solution['total_cost'],
                         'annual_savings': selected_solution['annual_savings'],
                         'lifetime_savings': sum(cash_flows[1:])  # Exclude initial investment
                     },
@@ -496,7 +496,7 @@ def render_financial_analysis():
                         'npv': npv,
                         'irr': irr * 100 if irr else None,
                         'payback_period': payback_period,
-                        'total_investment': selected_solution['total_investment'],
+                        'total_investment': selected_solution['total_cost'],
                         'annual_savings': selected_solution['annual_savings'],
                         'lifetime_savings': sum(cash_flows[1:])  # Exclude initial investment
                     },
@@ -509,16 +509,16 @@ def render_financial_analysis():
                     try:
                         # Prepare database-compatible financial data structure
                         db_financial_data = {
-                            'initial_investment': selected_solution['total_investment'],
+                            'initial_investment': selected_solution['total_cost'],
                             'annual_savings': selected_solution['annual_savings'],
                             'annual_generation': selected_solution['annual_energy_kwh'],
                             'annual_export_revenue': 0,  # Calculate based on feed-in tariff if available
-                            'annual_om_cost': selected_solution['total_investment'] * financial_params['maintenance_cost_rate'],
+                            'annual_om_cost': selected_solution['total_cost'] * financial_params['maintenance_cost_rate'],
                             'net_annual_benefit': selected_solution['annual_savings'],
                             'npv': npv,
                             'irr': irr,
                             'payback_period': payback_period,
-                            'lcoe': safe_divide(selected_solution['total_investment'], selected_solution['annual_energy_kwh'] * system_lifetime, 0),
+                            'lcoe': safe_divide(selected_solution['total_cost'], selected_solution['annual_energy_kwh'] * system_lifetime, 0),
                             'analysis_complete': True,
                             # Environmental impact data for database
                             'co2_savings_annual': annual_co2_savings,
@@ -692,12 +692,12 @@ def render_financial_analysis():
                         'CO₂ Savings Value'
                     ],
                     'Value': [
-                        f"€{selected_solution['total_investment']:,.0f}",
+                        f"€{selected_solution['total_cost']:,.0f}",
                         f"{selected_solution['annual_energy_kwh']:,.0f} kWh",
                         f"€{selected_solution['annual_savings']:,.0f}",
                         f"€{metrics.get('npv', 0):,.0f}",
-                        f"{safe_divide(metrics.get('npv', 0), selected_solution['total_investment'], 0) * 100:.1f}%",
-                        f"€{safe_divide(selected_solution['total_investment'], selected_solution['annual_energy_kwh'] * system_lifetime, 0):.3f}",
+                        f"{safe_divide(metrics.get('npv', 0), selected_solution['total_cost'], 0) * 100:.1f}%",
+                        f"€{safe_divide(selected_solution['total_cost'], selected_solution['annual_energy_kwh'] * system_lifetime, 0):.3f}",
                         f"€{env_data.get('carbon_value', 0):,.0f}"
                     ]
                 }
@@ -713,15 +713,15 @@ def render_financial_analysis():
                 st.write("**Financial Performance Indicators:**")
                 
                 # Calculate additional metrics
-                total_investment = selected_solution['total_investment']
+                total_investment = selected_solution['total_cost']
                 annual_production = selected_solution['annual_energy_kwh']
                 
                 cost_per_kwh_installed = safe_divide(total_investment, annual_production * system_lifetime, 0)
-                capacity_factor = safe_divide(annual_production, selected_solution['total_power_kw'] * 8760, 0)
+                capacity_factor = safe_divide(annual_production, selected_solution['capacity'] * 8760, 0)
                 
                 comparison_metrics = {
                     'Cost per kWh (Lifetime)': f"€{cost_per_kwh_installed:.3f}",
-                    'Cost per kW Installed': f"€{safe_divide(total_investment, selected_solution['total_power_kw'], 0):,.0f}",
+                    'Cost per kW Installed': f"€{safe_divide(total_investment, selected_solution['capacity'], 0):,.0f}",
                     'Capacity Factor': f"{capacity_factor * 100:.1f}%",
                     'Annual Yield per €1000': f"{safe_divide(annual_production, total_investment / 1000, 0):.0f} kWh",
                     'ROI (Simple)': f"{safe_divide(selected_solution['annual_savings'] * system_lifetime, total_investment, 0) * 100:.1f}%",
