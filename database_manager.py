@@ -715,6 +715,32 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
+    def get_building_elements(self, project_id):
+        """Get building elements for a project"""
+        conn = self.get_connection()
+        if not conn:
+            return []
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT DISTINCT element_id, element_type, orientation, azimuth, 
+                           glass_area, building_level, family, pv_suitable,
+                           host_wall_id, wall_type
+                    FROM building_elements 
+                    WHERE project_id = %s AND element_type = 'Window'
+                    ORDER BY element_id
+                """, (project_id,))
+                
+                results = cursor.fetchall()
+                return [dict(row) for row in results]
+                
+        except Exception as e:
+            st.error(f"Error getting building elements: {str(e)}")
+            return []
+        finally:
+            conn.close()
+
     def get_pv_specifications(self, project_id):
         """Get PV specifications for a project"""
         conn = self.get_connection()

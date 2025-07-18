@@ -173,10 +173,14 @@ def render_pv_specification():
         st.error("⚠️ Radiation analysis required. Complete Step 5 first.")
         return
     
-    # Check for building elements
-    building_elements = db_manager.get_building_elements(project_id)
-    if not building_elements or len(building_elements) == 0:
-        st.error("⚠️ Building elements required. Complete Step 4 first.")
+    # Check for building elements from database
+    try:
+        building_elements = db_manager.get_building_elements(project_id)
+        if not building_elements or len(building_elements) == 0:
+            st.error("⚠️ Building elements required. Complete Step 4 first.")
+            return
+    except Exception as e:
+        st.error(f"⚠️ Error loading building elements: {e}")
         return
     
     st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_analysis_data.get('element_radiation', []))} radiation records")
