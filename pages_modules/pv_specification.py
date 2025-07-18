@@ -191,12 +191,14 @@ def render_production_pv_interface(project_id: int):
                 db_manager = BIPVDatabaseManager()
                 
                 # Convert specifications to proper format for database
+                from step6_pv_spec.config import COST_PARAMETERS
                 pv_data = {
                     'panel_specs': {
                         'efficiency': panel_specs['efficiency'],
                         'transparency': panel_specs['transparency'],
                         'cost_per_m2': panel_specs['cost_per_m2'],
                         'power_density': panel_specs['power_density'],
+                        'installation_factor': COST_PARAMETERS['installation_factor'],  # Required field
                         'selected_panel': selected_panel
                     },
                     'bipv_specifications': specifications,
@@ -1045,8 +1047,13 @@ def render_pv_specification():
                     # Legacy save method for compatibility
                     project_id = db_helper.get_project_id(project_name)
                     if project_id:
+                        from step6_pv_spec.config import COST_PARAMETERS
+                        # Add installation_factor to final_panel_specs for database save
+                        final_panel_specs_with_factor = final_panel_specs.copy()
+                        final_panel_specs_with_factor['installation_factor'] = COST_PARAMETERS['installation_factor']
+                        
                         db_manager.save_pv_specifications(int(project_id), {
-                            'panel_specs': final_panel_specs,
+                            'panel_specs': final_panel_specs_with_factor,
                             'bipv_specifications': bipv_specifications.to_dict('records'),
                             'summary_stats': {
                                 'total_elements': len(bipv_specifications),

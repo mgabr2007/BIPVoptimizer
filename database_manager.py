@@ -671,7 +671,9 @@ class BIPVDatabaseManager:
                 
                 installation_factor = panel_specs.get('installation_factor')
                 if installation_factor is None:
-                    raise ValueError("Installation factor is required for PV specifications")
+                    # Provide default installation factor if missing (1.2 = 20% markup)
+                    installation_factor = 1.2
+                    st.warning("⚠️ Installation factor not provided, using default value of 1.2 (20% markup)")
                 
                 # Insert PV specifications - only authentic data, validated
                 cursor.execute("""
