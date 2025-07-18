@@ -204,8 +204,9 @@ def generate_pv_performance_chart(pv_specs):
                 orientation_data[orientation] = {'count': 0, 'total_power': 0, 'total_yield': 0}
             
             orientation_data[orientation]['count'] += 1
-            orientation_data[orientation]['total_power'] += spec.get('system_power_kw', 0)
-            orientation_data[orientation]['total_yield'] += spec.get('annual_energy_kwh', 0)
+            # Use standardized field names with fallback
+            orientation_data[orientation]['total_power'] += spec.get('capacity_kw', spec.get('system_power_kw', 0))
+            orientation_data[orientation]['total_yield'] += spec.get('annual_energy_kwh', spec.get('annual_yield_kwh', 0))
     
     if not orientation_data:
         return "<p>No PV performance data available</p>"
@@ -382,7 +383,8 @@ def generate_comprehensive_detailed_report():
             if isinstance(elem, dict):
                 if elem.get('pv_suitable', False):
                     suitable_elements += 1
-                glass_area = elem.get('glass_area', 0)
+                # Use standardized field names with fallback
+                glass_area = elem.get('glass_area_m2', elem.get('glass_area', 0))
                 if glass_area:
                     try:
                         total_glass_area += float(glass_area)
@@ -402,8 +404,9 @@ def generate_comprehensive_detailed_report():
         for spec in pv_specs:
             if isinstance(spec, dict):
                 try:
-                    capacity = float(spec.get('system_power_kw', 0))
-                    yield_kwh = float(spec.get('annual_energy_kwh', 0))
+                    # Use standardized field names with fallback
+                    capacity = float(spec.get('capacity_kw', spec.get('system_power_kw', 0)))
+                    yield_kwh = float(spec.get('annual_energy_kwh', spec.get('annual_yield_kwh', 0)))
                     total_capacity += capacity
                     total_annual_yield += yield_kwh
                 except (ValueError, TypeError):
@@ -413,14 +416,17 @@ def generate_comprehensive_detailed_report():
         if total_capacity == 0 and total_annual_yield == 0:
             yield_summary = yield_demand_analysis.get('summary', {})
             if isinstance(yield_summary, dict):
-                total_capacity = float(yield_summary.get('total_capacity_kw', 0))
+                # Use standardized field names with fallback
+                total_capacity = float(yield_summary.get('total_capacity_kw', 
+                                     yield_summary.get('capacity_kw', 0)))
                 total_annual_yield = float(yield_summary.get('total_annual_yield_kwh', 0))
         
         # If still no data, calculate from building elements with realistic estimates
         if total_capacity == 0 and total_annual_yield == 0 and building_elements:
             for elem in building_elements:
                 if isinstance(elem, dict) and elem.get('pv_suitable', False):
-                    glass_area = float(elem.get('glass_area', 1.5))  # Default window size
+                    # Use standardized field names with fallback
+                    glass_area = float(elem.get('glass_area_m2', elem.get('glass_area', 1.5)))  # Default window size
                     # BIPV glass: 8-12% efficiency typical, 80% performance ratio (more realistic)
                     bipv_efficiency = 0.10  # 10% average efficiency
                     performance_ratio = 0.80  # Performance ratio including losses
@@ -799,7 +805,9 @@ def generate_comprehensive_detailed_report():
                 orientation_data[orientation]['count'] += 1
                 try:
                     glass_area = float(elem.get('glass_area', 0))
-                    orientation_data[orientation]['total_area'] += glass_area
+                    # Use standardized field names with fallback
+                    glass_area_value = float(elem.get('glass_area_m2', elem.get('glass_area', 0)))
+                    orientation_data[orientation]['total_area'] += glass_area_value
                 except (ValueError, TypeError):
                     continue
 

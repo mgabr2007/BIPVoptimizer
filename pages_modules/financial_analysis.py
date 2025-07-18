@@ -221,8 +221,13 @@ def render_financial_analysis():
     with auto_col2:
         selected_solution = project_data.get('selected_optimization_solution', {})
         if isinstance(selected_solution, dict) and selected_solution:
-            total_cost = selected_solution.get('total_investment', selected_solution.get('total_cost_eur', 0))
-            annual_energy = selected_solution.get('annual_energy_kwh', selected_solution.get('annual_yield_kwh', 0))
+            # Use standardized field names with comprehensive fallback
+            total_cost = selected_solution.get('total_cost_eur', 
+                        selected_solution.get('total_investment', 
+                        selected_solution.get('total_installation_cost', 0)))
+            annual_energy = selected_solution.get('annual_energy_kwh', 
+                           selected_solution.get('annual_yield_kwh', 
+                           selected_solution.get('energy_generation', 0)))
             st.info(f"**💼 System Cost:** {total_cost:,.0f} €\n"
                     f"**⚡ Annual Energy:** {annual_energy:,.0f} kWh\n"
                     f"**🎯 Solution:** {selected_solution.get('solution_id', 'Selected')}")

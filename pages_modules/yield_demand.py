@@ -209,7 +209,7 @@ def calculate_pv_yield_profiles(pv_specs, radiation_data, tmy_data, environmenta
                 'element_id': element_id,
                 'month': month,
                 'yield_kwh': monthly_yield,
-                'system_power_kw': system['system_power_kw'],
+                'system_power_kw': system.get('capacity_kw', system.get('system_power_kw', 0)),
                 'irradiation': month_irradiation,
                 'orientation': system.get('orientation', 'Unknown'),
                 'shading_factor': shading_factor,
@@ -1206,7 +1206,7 @@ def render_yield_demand():
                         monthly_yields = system.get('monthly_yields', [0]*12)
                         row = {
                             'Element_ID': system.get('element_id', f'System_{i+1}'),
-                            'System_Power_kW': system.get('system_power_kw', 0),
+                            'System_Power_kW': system.get('capacity_kw', system.get('system_power_kw', 0)),
                             'Annual_Yield_kWh': system.get('annual_yield', 0),
                             'Specific_Yield_kWh_kW': system.get('specific_yield', 0),
                             'Environmental_Shading_Reduction_%': system.get('environmental_shading_reduction', 0),

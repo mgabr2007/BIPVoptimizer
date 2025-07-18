@@ -78,6 +78,45 @@ def get_bipv_panel_database():
         }
     }
 
+def standardize_field_names(df):
+    """Apply comprehensive field name standardization to ensure workflow compatibility"""
+    if df is None or len(df) == 0:
+        return df
+        
+    # Complete field mapping from actual codebase analysis
+    field_mapping = {
+        # Power/Capacity variations found in codebase
+        'system_power_kw': 'capacity_kw',
+        'total_power_kw': 'capacity_kw', 
+        'total_capacity_kw': 'capacity_kw',
+        
+        # Cost variations found in codebase
+        'total_installation_cost': 'total_cost_eur',
+        'total_investment': 'total_cost_eur',
+        'total_cost': 'total_cost_eur',
+        'investment_cost': 'total_cost_eur',
+        
+        # Energy variations found in codebase
+        'annual_yield_kwh': 'annual_energy_kwh',
+        'energy_generation': 'annual_energy_kwh',
+        'annual_production': 'annual_energy_kwh',
+        
+        # Area variations found in codebase
+        'glass_area': 'glass_area_m2',
+        'area_m2': 'glass_area_m2',
+        'bipv_area': 'glass_area_m2',
+        
+        # Element ID variations found in codebase
+        'Element_ID': 'element_id',
+        'ElementId': 'element_id',
+        'Element ID': 'element_id',
+        'system_id': 'element_id'
+    }
+    
+    # Apply standardization
+    standardized_df = df.rename(columns=field_mapping)
+    return standardized_df
+
 def calculate_unified_bipv_specifications(building_elements, radiation_lookup, panel_specs, coverage_factor=0.85):
     """Calculate BIPV specifications with standardized field names for consistent dataflow"""
     bipv_specifications = []
@@ -125,7 +164,9 @@ def calculate_unified_bipv_specifications(building_elements, radiation_lookup, p
         
         bipv_specifications.append(bipv_spec)
     
-    return pd.DataFrame(bipv_specifications)
+    # Create DataFrame and apply standardization
+    df = pd.DataFrame(bipv_specifications)
+    return standardize_field_names(df)
 
 def render_pv_specification():
     """Unified Step 6: BIPV Panel Specifications interface"""
