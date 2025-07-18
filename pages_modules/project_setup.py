@@ -532,8 +532,7 @@ def render_project_setup():
         if 'selected_weather_station' not in st.session_state:
             st.error("❌ Please select a weather station before saving")
         else:
-            if save_project_configuration(project_name):
-                st.balloons()
+            save_project_configuration(project_name)
     
     # Navigation
     try:
