@@ -257,6 +257,8 @@ def render_pv_specification():
     
     # Apply BIPV suitability filtering based on azimuth with hash-based azimuth generation
     suitable_elements = []
+    azimuth_debug = {'north': 0, 'east': 0, 'south': 0, 'west': 0, 'total': 0}
+    
     for element in building_elements:
         try:
             azimuth = float(element.get('azimuth', 0))
@@ -270,12 +272,31 @@ def render_pv_specification():
                 # Update element data with generated azimuth
                 element['azimuth'] = azimuth
             
+            # Debug: Count elements by orientation
+            azimuth_debug['total'] += 1
+            if 315 <= azimuth <= 360 or 0 <= azimuth <= 45:
+                azimuth_debug['north'] += 1
+            elif 45 < azimuth <= 135:
+                azimuth_debug['east'] += 1
+            elif 135 < azimuth <= 225:
+                azimuth_debug['south'] += 1
+            elif 225 < azimuth < 315:
+                azimuth_debug['west'] += 1
+            
             # BIPV suitable: South (135-225°), East (45-135°), West (225-315°)
             # Exclude North (315-45°) - poor solar performance
-            if not (315 <= azimuth or azimuth <= 45):
+            if not (315 <= azimuth <= 360 or 0 <= azimuth <= 45):
                 suitable_elements.append(element)
         except (ValueError, TypeError):
             continue  # Skip elements with invalid azimuth data
+    
+    # Display azimuth distribution for debugging
+    st.info(f"🧭 **Azimuth Distribution Debug:**\n"
+           f"- North (315-45°): {azimuth_debug['north']} elements\n"
+           f"- East (45-135°): {azimuth_debug['east']} elements\n"
+           f"- South (135-225°): {azimuth_debug['south']} elements\n"
+           f"- West (225-315°): {azimuth_debug['west']} elements\n"
+           f"- Total processed: {azimuth_debug['total']} elements")
     
     if len(suitable_elements) == 0:
         st.error("❌ No suitable elements found for BIPV installation. Check building orientation data.")
