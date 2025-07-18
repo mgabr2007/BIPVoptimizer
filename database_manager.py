@@ -415,6 +415,84 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
+    def save_building_elements_with_progress(self, project_id, building_elements, progress_callback=None):
+        """Save BIM building elements data with enhanced field name handling and progress tracking"""
+        conn = self.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            with conn.cursor() as cursor:
+                # Delete existing building elements for this project
+                cursor.execute("DELETE FROM building_elements WHERE project_id = %s", (project_id,))
+                
+                total_elements = len(building_elements)
+                
+                # Handle multiple data formats - DataFrame, list, dict
+                if hasattr(building_elements, 'iterrows'):
+                    # DataFrame format with progress tracking
+                    for idx, (_, element) in enumerate(building_elements.iterrows()):
+                        # Enhanced glass area extraction with debug logging
+                        glass_area_value = None
+                        for glass_col in ['Glass Area (m²)', 'glass_area', 'Glass_Area', 'window_area', 'Glass Area', 'area']:
+                            if glass_col in element and element[glass_col] not in [None, '', 0, '0']:
+                                try:
+                                    glass_area_value = float(element[glass_col])
+                                    if glass_area_value > 0:
+                                        break
+                                except (ValueError, TypeError):
+                                    continue
+                        
+                        # Fallback to 0 if no valid glass area found (will be calculated later)
+                        if glass_area_value is None:
+                            glass_area_value = 0
+                        
+                        # Extract azimuth with proper handling
+                        azimuth_value = 0
+                        for azimuth_col in ['Azimuth (°)', 'azimuth', 'Azimuth']:
+                            if azimuth_col in element and element[azimuth_col] not in [None, '']:
+                                try:
+                                    azimuth_value = float(element[azimuth_col])
+                                    break
+                                except (ValueError, TypeError):
+                                    continue
+                        
+                        cursor.execute("""
+                            INSERT INTO building_elements 
+                            (project_id, element_id, wall_element_id, element_type, orientation, 
+                             azimuth, glass_area, window_width, window_height, building_level, 
+                             family, pv_suitable)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            project_id,
+                            element.get('ElementId', element.get('Element_ID', element.get('element_id', ''))),
+                            element.get('HostWallId', element.get('Wall_Element_ID', element.get('wall_element_id', ''))),
+                            element.get('element_type', 'Window'),
+                            element.get('orientation', ''),
+                            azimuth_value,
+                            glass_area_value,
+                            element.get('window_width', 0),
+                            element.get('window_height', 0),
+                            element.get('Level', element.get('level', '')),
+                            element.get('Family', element.get('family', '')),
+                            element.get('pv_suitable', element.get('PV_Suitable', element.get('suitable', False)))
+                        ))
+                        
+                        # Update progress every 10 elements or at the end
+                        if progress_callback and (idx % 10 == 0 or idx == total_elements - 1):
+                            progress = 20 + int((idx + 1) / total_elements * 40)  # 20-60% range
+                            progress_callback(progress, f"Saving window elements to database... ({idx + 1}/{total_elements})")
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            st.error(f"Error saving building elements: {str(e)}")
+            return False
+        finally:
+            conn.close()
+    
     def save_radiation_analysis(self, project_id, radiation_data):
         """Save radiation analysis results - fully database-driven"""
         conn = self.get_connection()

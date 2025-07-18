@@ -32,8 +32,8 @@ def get_orientation_from_azimuth(azimuth):
     else:
         return "West"
 
-def save_walls_data_to_database(project_id, walls_df):
-    """Save wall data to building_walls table"""
+def save_walls_data_to_database(project_id, walls_df, progress_callback=None):
+    """Save wall data to building_walls table with progress tracking"""
     conn = db_manager.get_connection()
     if not conn:
         return False
@@ -43,8 +43,10 @@ def save_walls_data_to_database(project_id, walls_df):
             # Delete existing wall data for this project
             cursor.execute("DELETE FROM building_walls WHERE project_id = %s", (project_id,))
             
-            # Insert new wall data
-            for _, row in walls_df.iterrows():
+            total_walls = len(walls_df)
+            
+            # Insert new wall data with progress tracking
+            for idx, (_, row) in enumerate(walls_df.iterrows()):
                 cursor.execute("""
                     INSERT INTO building_walls 
                     (project_id, element_id, name, wall_type, level, area, azimuth, orientation)
@@ -59,6 +61,11 @@ def save_walls_data_to_database(project_id, walls_df):
                     float(row.get('Azimuth (°)', 0)) if pd.notna(row.get('Azimuth (°)')) else None,
                     get_orientation_from_azimuth(row.get('Azimuth (°)'))
                 ))
+                
+                # Update progress every 10 elements or at the end
+                if progress_callback and (idx % 10 == 0 or idx == total_walls - 1):
+                    progress = 30 + int((idx + 1) / total_walls * 45)  # 30-75% range
+                    progress_callback(progress, f"Saving wall elements to database... ({idx + 1}/{total_walls})")
             
             conn.commit()
             return True
@@ -198,15 +205,33 @@ def render_facade_extraction():
                 status_text = st.empty()
                 
                 try:
+                    total_elements = len(windows_df)
+                    
                     # Step 1: Initialize database save
-                    status_text.text("Initializing database save...")
+                    status_text.text(f"Initializing database save for {total_elements} window elements...")
+                    progress_bar.progress(5)
+                    
+                    # Step 2: Prepare data processing
+                    status_text.text("Preparing window data for database insertion...")
                     progress_bar.progress(10)
                     
-                    # Step 2: Save to database
-                    status_text.text("Saving window elements to database...")
-                    progress_bar.progress(30)
+                    # Step 3: Process elements batch by batch with progress tracking
+                    status_text.text(f"Processing {total_elements} window elements...")
+                    progress_bar.progress(15)
                     
-                    if db_manager.save_building_elements(project_id, windows_df):
+                    # Step 4: Save to database with detailed progress
+                    status_text.text(f"Saving window elements to database... (0/{total_elements})")
+                    progress_bar.progress(20)
+                    
+                    # Create progress callback function for windows
+                    def update_window_progress(progress, message):
+                        progress_bar.progress(progress)
+                        status_text.text(message)
+                    
+                    # Call database save with progress callback
+                    if db_manager.save_building_elements_with_progress(project_id, windows_df, update_window_progress):
+                        status_text.text(f"Database save completed! ({total_elements}/{total_elements} elements)")
+                        progress_bar.progress(60)
                         progress_bar.progress(60)
                         status_text.text("Updating consolidated data manager...")
                         
@@ -339,19 +364,32 @@ def render_facade_extraction():
                 status_text = st.empty()
                 
                 try:
+                    total_walls = len(walls_df)
+                    
                     # Step 1: Initialize database save
-                    status_text.text("Initializing wall data save...")
-                    progress_bar.progress(10)
+                    status_text.text(f"Initializing database save for {total_walls} wall elements...")
+                    progress_bar.progress(5)
                     
                     # Step 2: Process orientations
-                    status_text.text("Processing wall orientations...")
+                    status_text.text(f"Processing orientations for {total_walls} wall elements...")
+                    progress_bar.progress(15)
+                    
+                    # Step 3: Prepare database insertion
+                    status_text.text("Preparing wall data for database insertion...")
+                    progress_bar.progress(25)
+                    
+                    # Step 4: Save to database with detailed progress
+                    status_text.text(f"Saving wall elements to database... (0/{total_walls})")
                     progress_bar.progress(30)
                     
-                    # Step 3: Save to database
-                    status_text.text("Saving wall elements to database...")
-                    progress_bar.progress(50)
+                    # Create progress callback function
+                    def update_wall_progress(progress, message):
+                        progress_bar.progress(progress)
+                        status_text.text(message)
                     
-                    if save_walls_data_to_database(project_id, walls_df):
+                    if save_walls_data_to_database(project_id, walls_df, update_wall_progress):
+                        status_text.text(f"Database save completed! ({total_walls}/{total_walls} wall elements)")
+                        progress_bar.progress(80)
                         progress_bar.progress(80)
                         status_text.text("Updating wall data status...")
                         
