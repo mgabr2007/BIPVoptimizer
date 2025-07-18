@@ -307,23 +307,44 @@ class BIPVDatabaseManager:
                     if building_area > 0:
                         energy_yield_per_m2 = total_annual_yield / building_area
                 
-                # Update energy_analysis table with all fields matching database schema
-                cursor.execute("""
-                    UPDATE energy_analysis SET 
-                        annual_generation = %s,
-                        annual_demand = %s,
-                        net_energy_balance = %s,
-                        self_consumption_rate = %s,
-                        energy_yield_per_m2 = %s
-                    WHERE project_id = %s
-                """, (
-                    total_annual_yield,
-                    annual_demand,
-                    net_energy_balance,
-                    self_consumption_rate,
-                    energy_yield_per_m2,
-                    project_id
-                ))
+                # Check if record exists for this project
+                cursor.execute("SELECT id FROM energy_analysis WHERE project_id = %s", (project_id,))
+                existing = cursor.fetchone()
+                
+                if existing:
+                    # Update existing record
+                    cursor.execute("""
+                        UPDATE energy_analysis SET 
+                            annual_generation = %s,
+                            annual_demand = %s,
+                            net_energy_balance = %s,
+                            self_consumption_rate = %s,
+                            energy_yield_per_m2 = %s,
+                            created_at = CURRENT_TIMESTAMP
+                        WHERE project_id = %s
+                    """, (
+                        total_annual_yield,
+                        annual_demand,
+                        net_energy_balance,
+                        self_consumption_rate,
+                        energy_yield_per_m2,
+                        project_id
+                    ))
+                else:
+                    # Insert new record
+                    cursor.execute("""
+                        INSERT INTO energy_analysis (
+                            project_id, annual_generation, annual_demand, 
+                            net_energy_balance, self_consumption_rate, energy_yield_per_m2
+                        ) VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (
+                        project_id,
+                        total_annual_yield,
+                        annual_demand,
+                        net_energy_balance,
+                        self_consumption_rate,
+                        energy_yield_per_m2
+                    ))
                 
                 conn.commit()
                 return True
