@@ -460,20 +460,20 @@ def render_weather_environment():
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                annual_ghi = existing_weather_data.get('annual_ghi', 0) or 0
+                annual_ghi = float(existing_weather_data.get('annual_ghi', 0) or 0)
                 st.metric("Annual GHI", f"{annual_ghi:,.0f} kWh/m²")
             
             with col2:
-                annual_dni = existing_weather_data.get('annual_dni', 0) or 0
+                annual_dni = float(existing_weather_data.get('annual_dni', 0) or 0)
                 st.metric("Annual DNI", f"{annual_dni:,.0f} kWh/m²")
             
             with col3:
-                annual_dhi = existing_weather_data.get('annual_dhi', 0) or 0
+                annual_dhi = float(existing_weather_data.get('annual_dhi', 0) or 0)
                 st.metric("Annual DHI", f"{annual_dhi:,.0f} kWh/m²")
             
             with col4:
                 # Calculate peak sun hours from GHI (GHI / 1000 W/m²)
-                annual_ghi = existing_weather_data.get('annual_ghi', 0) or 0
+                annual_ghi = float(existing_weather_data.get('annual_ghi', 0) or 0)
                 peak_sun_hours = annual_ghi / 365 if annual_ghi and annual_ghi > 0 else 0
                 st.metric("Peak Sun Hours", f"{peak_sun_hours:.1f} h/day")
             
@@ -483,9 +483,9 @@ def render_weather_environment():
                 humidity = existing_weather_data.get('humidity', 0)
                 description = existing_weather_data.get('description', 'N/A')
                 
-                # Handle None values safely
-                temp_display = f"{temp:.1f}°C" if temp is not None else "N/A"
-                humidity_display = f"{humidity:.0f}%" if humidity is not None else "N/A"
+                # Handle None values and convert Decimal to float safely
+                temp_display = f"{float(temp):.1f}°C" if temp is not None else "N/A"
+                humidity_display = f"{float(humidity):.0f}%" if humidity is not None else "N/A"
                 description_display = description if description is not None else "N/A"
                 
                 st.info(f"""
@@ -508,9 +508,9 @@ def render_weather_environment():
             # Show weather data quality and TMY status
             st.subheader("📊 TMY Data Status")
             
-            annual_ghi = existing_weather_data.get('annual_ghi', 0) or 0
-            annual_dni = existing_weather_data.get('annual_dni', 0) or 0
-            annual_dhi = existing_weather_data.get('annual_dhi', 0) or 0
+            annual_ghi = float(existing_weather_data.get('annual_ghi', 0) or 0)
+            annual_dni = float(existing_weather_data.get('annual_dni', 0) or 0)
+            annual_dhi = float(existing_weather_data.get('annual_dhi', 0) or 0)
             
             if annual_ghi > 0:
                 col1, col2 = st.columns(2)
