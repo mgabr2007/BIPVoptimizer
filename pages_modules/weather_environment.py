@@ -440,18 +440,64 @@ def render_weather_environment():
     # Initialize controller
     controller = WeatherEnvironmentController()
     
-    # Check dependencies
-    if 'project_data' not in st.session_state:
+    # Check dependencies - load from both session state and database
+    project_data = st.session_state.get('project_data')
+    
+    # If no session state data, try to load from database
+    if not project_data:
+        try:
+            project_id = controller.project_id
+            if project_id:
+                # Load project data from database
+                project_info = controller.db_manager.get_project_info(project_id)
+                if project_info:
+                    project_data = {
+                        'coordinates': {
+                            'lat': float(project_info.get('latitude', 0)),
+                            'lon': float(project_info.get('longitude', 0))
+                        },
+                        'selected_weather_station': {
+                            'name': project_info.get('weather_station_name', 'Unknown'),
+                            'wmo_id': project_info.get('weather_station_id', 'unknown'),
+                            'distance_km': float(project_info.get('weather_station_distance', 0))
+                        }
+                    }
+        except Exception as e:
+            st.warning(f"Could not load project data from database: {str(e)}")
+    
+    if not project_data:
         st.error("❌ No project data found. Please complete Step 1 first.")
         return
     
-    project_data = st.session_state.project_data
     coordinates = project_data.get('coordinates')
     weather_station = project_data.get('selected_weather_station')
     
-    if not coordinates or not weather_station:
-        st.error("❌ Missing location data or weather station. Please complete Step 1.")
+    # Debug information
+    with st.expander("🔍 Debug: Available Project Data", expanded=False):
+        st.write("**Project Data Keys:**", list(project_data.keys()) if project_data else "No data")
+        st.write("**Coordinates:**", coordinates)
+        st.write("**Weather Station:**", weather_station)
+        if project_data:
+            st.json(project_data)
+    
+    if not coordinates:
+        st.error("❌ Missing location coordinates. Please complete Step 1 project setup.")
         return
+    
+    # If no weather station from Step 1, try to find nearest WMO station
+    if not weather_station:
+        st.warning("⚠️ No weather station from Step 1. Finding nearest WMO station...")
+        try:
+            nearest_stations = find_nearest_wmo_station(coordinates['lat'], coordinates['lon'])
+            if nearest_stations:
+                weather_station = nearest_stations[0]  # Use closest station
+                st.success(f"✅ Found nearest WMO station: {weather_station.get('name', 'Unknown')}")
+            else:
+                st.error("❌ Could not find any nearby weather stations.")
+                return
+        except Exception as e:
+            st.error(f"❌ Error finding weather station: {str(e)}")
+            return
     
     # Display project and weather station info
     col1, col2 = st.columns(2)
