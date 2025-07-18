@@ -22,6 +22,14 @@ class DatabaseHelper:
         """Get project name by project ID"""
         return self.db_manager.get_project_name_by_id(project_id)
     
+    def save_project_data(self, project_data):
+        """Save project configuration data to database"""
+        try:
+            return self.db_manager.save_project(project_data)
+        except Exception as e:
+            st.error(f"Error saving project data: {str(e)}")
+            return None
+    
     def save_step_data(self, step_name, data, project_name=None):
         """Save data for a specific workflow step"""
         project_id = self.get_project_id(project_name)
