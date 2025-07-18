@@ -568,6 +568,10 @@ from components.workflow_visualization import (
 from services.database_state_manager import db_state_manager
 from services.io import get_current_project_id
 
+# Add BIPV Optimizer logo to top of sidebar
+st.sidebar.image("attached_assets/BIPVOptiLogoLightGreen_1751289503547.png", width=200)
+st.sidebar.markdown("---")
+
 # Ensure database connectivity and project context
 current_project_id = get_current_project_id()
 
@@ -635,9 +639,6 @@ except Exception as e:
 
 def main():
     """Main application entry point"""
-    # Add BIPV Optimizer logo to sidebar
-    st.sidebar.image("attached_assets/BIPVOptiLogoLightGreen_1751289503547.png", width=200)
-    st.sidebar.markdown("---")
     
     # Define workflow steps with yellow-themed emojis
     workflow_steps = [
