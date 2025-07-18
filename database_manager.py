@@ -46,11 +46,17 @@ class BIPVDatabaseManager:
                 
                 if existing:
                     # Update existing project
+                    # Prepare electricity rates JSON
+                    import json
+                    electricity_rates_json = None
+                    if 'electricity_rates' in project_data:
+                        electricity_rates_json = json.dumps(project_data['electricity_rates'])
+                    
                     cursor.execute("""
                         UPDATE projects SET 
                             location = %s, latitude = %s, longitude = %s, 
                             timezone = %s, currency = %s, weather_api_choice = %s, 
-                            location_method = %s, search_radius = %s, updated_at = CURRENT_TIMESTAMP
+                            location_method = %s, search_radius = %s, electricity_rates = %s, updated_at = CURRENT_TIMESTAMP
                         WHERE project_name = %s
                         RETURNING id
                     """, (
@@ -62,13 +68,20 @@ class BIPVDatabaseManager:
                         project_data.get('weather_api_choice', 'auto'),
                         project_data.get('location_method', 'map'),
                         project_data.get('search_radius', 500),
+                        electricity_rates_json,
                         project_data.get('project_name')
                     ))
                 else:
                     # Insert new project
+                    # Prepare electricity rates JSON
+                    import json
+                    electricity_rates_json = None
+                    if 'electricity_rates' in project_data:
+                        electricity_rates_json = json.dumps(project_data['electricity_rates'])
+                    
                     cursor.execute("""
-                        INSERT INTO projects (project_name, location, latitude, longitude, timezone, currency, weather_api_choice, location_method, search_radius)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO projects (project_name, location, latitude, longitude, timezone, currency, weather_api_choice, location_method, search_radius, electricity_rates)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
                     """, (
                         project_data.get('project_name'),
@@ -79,7 +92,8 @@ class BIPVDatabaseManager:
                         project_data.get('currency', 'EUR'),
                         project_data.get('weather_api_choice', 'auto'),
                         project_data.get('location_method', 'map'),
-                        project_data.get('search_radius', 500)
+                        project_data.get('search_radius', 500),
+                        electricity_rates_json
                     ))
                 
                 project_id = cursor.fetchone()[0]

@@ -481,7 +481,7 @@ def render_optimization():
     # Financial parameters section
     st.write("**Financial Parameters**")
     
-    # Get electricity rates from database only - no fallbacks
+    # Get electricity rates from database first, then fallback to session state
     electricity_price = None
     try:
         conn = db_manager.get_connection()
@@ -502,6 +502,28 @@ def render_optimization():
             conn.close()
     except Exception as e:
         st.error(f"Database connection error: {str(e)}")
+    
+    # Fallback to session state/consolidated data if not in database
+    if electricity_price is None:
+        # Check session state
+        project_data = st.session_state.get('project_data', {})
+        electricity_rates = project_data.get('electricity_rates', {})
+        electricity_price = electricity_rates.get('import_rate')
+        
+        if electricity_price:
+            source = electricity_rates.get('source', 'Session state')
+            st.info(f"ℹ️ Using electricity rate from session state: €{electricity_price:.3f}/kWh (Source: {source})")
+        else:
+            # Check consolidated data manager
+            from utils.consolidated_data_manager import ConsolidatedDataManager
+            consolidated_manager = ConsolidatedDataManager()
+            step1_data = consolidated_manager.get_step1_data()
+            if step1_data and 'electricity_rates' in step1_data:
+                rates = step1_data['electricity_rates']
+                electricity_price = rates.get('import_rate')
+                if electricity_price:
+                    source = rates.get('source', 'Consolidated data')
+                    st.info(f"ℹ️ Using electricity rate from consolidated data: €{electricity_price:.3f}/kWh (Source: {source})")
     
     if electricity_price is None:
         st.error("⚠️ Electricity rate not found. Please complete Step 1 (Project Setup) first.")
