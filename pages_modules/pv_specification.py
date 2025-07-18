@@ -21,6 +21,10 @@ def render_production_pv_interface(project_id: int):
     st.markdown("**Enterprise Interface** - Vectorized calculations with advanced features")
     
     # Check prerequisites - enhanced data source checking
+    # Initialize database manager first
+    from database_manager import BIPVDatabaseManager
+    db_manager = BIPVDatabaseManager()
+    
     # Get project data from database only
     project_data = db_manager.get_project_by_id(project_id) or {}
     radiation_data = project_data.get('radiation_data', {})
@@ -44,8 +48,6 @@ def render_production_pv_interface(project_id: int):
     
     if not building_elements:
         # Try to load from database if not in session state
-        from database_manager import BIPVDatabaseManager
-        db_manager = BIPVDatabaseManager()
         try:
             conn = db_manager.get_connection()
             if conn:
@@ -670,6 +672,10 @@ def render_pv_specification():
     # Get current project ID from database
     from services.io import get_current_project_id
     project_id = get_current_project_id()
+    
+    # Initialize database manager at start to prevent scope issues
+    from database_manager import BIPVDatabaseManager
+    db_manager = BIPVDatabaseManager()
     
     if not project_id:
         st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
