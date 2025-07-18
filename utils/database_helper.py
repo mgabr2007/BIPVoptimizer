@@ -18,6 +18,10 @@ class DatabaseHelper:
         from services.io import get_current_project_id
         return get_current_project_id()
     
+    def get_project_name_by_id(self, project_id):
+        """Get project name by project ID"""
+        return self.db_manager.get_project_name_by_id(project_id)
+    
     def save_step_data(self, step_name, data, project_name=None):
         """Save data for a specific workflow step"""
         project_id = self.get_project_id(project_name)

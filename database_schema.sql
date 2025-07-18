@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS pv_specifications (
     cost_per_m2 DECIMAL(10, 2),
     power_density DECIMAL(8, 2),
     installation_factor DECIMAL(5, 2),
+    specification_data TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

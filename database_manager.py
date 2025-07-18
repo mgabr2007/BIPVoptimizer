@@ -726,7 +726,7 @@ class BIPVDatabaseManager:
                 cursor.execute("""
                     SELECT DISTINCT element_id, element_type, orientation, azimuth, 
                            glass_area, building_level, family, pv_suitable,
-                           host_wall_id, wall_type
+                           wall_element_id
                     FROM building_elements 
                     WHERE project_id = %s AND element_type = 'Window'
                     ORDER BY element_id
@@ -738,6 +738,23 @@ class BIPVDatabaseManager:
         except Exception as e:
             st.error(f"Error getting building elements: {str(e)}")
             return []
+        finally:
+            conn.close()
+
+    def get_project_name_by_id(self, project_id):
+        """Get project name by project ID"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT project_name FROM projects WHERE id = %s", (project_id,))
+                result = cursor.fetchone()
+                return result[0] if result else None
+        except Exception as e:
+            st.error(f"Error getting project name: {str(e)}")
+            return None
         finally:
             conn.close()
 
