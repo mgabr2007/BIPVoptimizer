@@ -12,8 +12,8 @@ from database_manager import db_manager
 from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from core.carbon_factors import get_grid_carbon_factor, display_carbon_factor_info
-from utils.consolidated_data_manager import ConsolidatedDataManager
-from utils.session_state_standardizer import BIPVSessionStateManager
+# Removed ConsolidatedDataManager - using database-only approach
+# Removed session state dependency - using database-only approach
 
 def calculate_npv(cash_flows, discount_rate):
     """Calculate Net Present Value of cash flows."""
@@ -151,7 +151,8 @@ def render_financial_analysis():
         return
     
     # AI Model Performance Impact Notice
-    project_data = st.session_state.get('project_data', {})
+    # Get project data from database only
+    project_data = db_manager.get_project_by_id(project_id) or {}
     if project_data.get('model_r2_score') is not None:
         r2_score = project_data['model_r2_score']
         status = project_data.get('model_performance_status', 'Unknown')
@@ -170,13 +171,14 @@ def render_financial_analysis():
         
         # Removed persistent warning message
     
-    # Check dependencies
-    if not st.session_state.get('optimization_completed', False):
+    # Check dependencies - check database for optimization results
+    optimization_results = db_manager.get_optimization_results(project_id)
+    if not optimization_results:
         st.error("⚠️ Optimization results required. Please complete Step 8 (Multi-Objective Optimization) first.")
         return
     
-    # Load required data
-    project_data = st.session_state.get('project_data', {})
+    # Load required data from database only
+    project_data = db_manager.get_project_by_id(project_id) or {}
     optimization_results = project_data.get('optimization_results', {})
     solutions = optimization_results.get('solutions')
     
@@ -194,7 +196,8 @@ def render_financial_analysis():
         selected_solution = solutions[solutions['solution_id'] == selected_id].iloc[0]
         
         if st.button("Use This Solution", key="use_solution_financial"):
-            st.session_state.project_data['selected_optimization_solution'] = selected_solution
+            # Save selected solution to database
+            db_manager.save_selected_optimization_solution(project_id, selected_solution)
             st.rerun()
         return
     
@@ -245,8 +248,8 @@ def render_financial_analysis():
             key="discount_rate_fin"
         )
         
-        # Get electricity price from Step 1 project setup
-        project_data = st.session_state.get('project_data', {})
+        # Get electricity price from Step 1 project setup (database only)
+        project_data = db_manager.get_project_by_id(project_id) or {}
         electricity_rates = project_data.get('electricity_rates', {})
         default_price = electricity_rates.get('import_rate', 0.25)
         
@@ -468,11 +471,10 @@ def render_financial_analysis():
                     'analysis_parameters': financial_params
                 }
                 
-                st.session_state.project_data['financial_analysis'] = financial_analysis_results
-                st.session_state.financial_completed = True
+                # Save financial analysis to database only
+                db_manager.save_financial_analysis(project_id, financial_analysis_results)
                 
-                # Save to consolidated data manager
-                consolidated_manager = ConsolidatedDataManager()
+                # Database save completed above
                 step9_data = {
                     'financial_analysis': financial_analysis_results,
                     'cash_flow_analysis': annual_details,
@@ -492,7 +494,7 @@ def render_financial_analysis():
                     },
                     'financial_complete': True
                 }
-                consolidated_manager.save_step9_data(step9_data)
+                # Data saved to database above - no consolidated manager needed
                 
                 # Save to database
                 if project_id:
@@ -538,8 +540,9 @@ def render_financial_analysis():
                 return
     
     # Display results if available
-    if st.session_state.get('financial_completed', False):
-        financial_data = st.session_state.project_data.get('financial_analysis', {})
+    # Check if financial analysis exists in database
+    financial_data = db_manager.get_financial_analysis(project_id)
+    if financial_data:
         
         if financial_data:
             st.subheader("📊 Financial Performance Results")

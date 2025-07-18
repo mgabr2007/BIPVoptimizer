@@ -12,29 +12,30 @@ from database_manager import db_manager
 from utils.database_helper import db_helper
 from datetime import datetime
 from core.solar_math import safe_divide
-from utils.consolidated_data_manager import ConsolidatedDataManager
-from utils.session_state_standardizer import BIPVSessionStateManager
+# Removed ConsolidatedDataManager - using database-only approach
+# Removed session state dependency - using database-only approach
 
 def render_production_pv_interface(project_id: int):
-    """Render the production-grade PV specification interface."""
+    """Render the production-grade PV specification interface.""" 
     st.header("⚡ Production-Grade BIPV Specification System")
     st.markdown("**Enterprise Interface** - Vectorized calculations with advanced features")
     
     # Check prerequisites - enhanced data source checking
-    project_data = st.session_state.get('project_data', {})
+    # Get project data from database only
+    project_data = db_manager.get_project_by_id(project_id) or {}
     radiation_data = project_data.get('radiation_data', {})
     
     # Check multiple sources for building elements
     building_elements = (
         project_data.get('building_elements', []) or
         project_data.get('facade_data', {}).get('building_elements', []) or
-        st.session_state.get('consolidated_analysis_data', {}).get('step4_facade_extraction', {}).get('building_elements', [])
+        db_manager.get_building_elements(project_id) or []
     )
     
     # Also check if radiation analysis data exists (Step 5 completion indicator)
     radiation_analysis_data = (
         project_data.get('radiation_analysis', {}) or
-        st.session_state.get('consolidated_analysis_data', {}).get('step5_radiation_analysis', {})
+        db_manager.get_radiation_analysis_data(project_id) or {}
     )
     
     if not radiation_data and not radiation_analysis_data:
@@ -178,12 +179,9 @@ def render_production_pv_interface(project_id: int):
             )
             
             # Save to session state
-            st.session_state.project_data['pv_specifications'] = specifications
-            st.session_state['pv_specs_completed'] = True
-            st.session_state['pv_specifications'] = specifications  # Also save to direct session state
+            # PV specifications saved to database above - no session state needed
             
-            # Update session state standardizer
-            BIPVSessionStateManager.update_step_completion('pv_specs', True)
+            # Completion tracked in database via save operation
             
             # Save to database for persistent storage
             try:
@@ -221,8 +219,10 @@ def render_production_pv_interface(project_id: int):
             st.success(f"✅ Calculated specifications for {len(specifications)} suitable elements")
     
     # Display results if available
-    if st.session_state.project_data.get('pv_specifications'):
-        display_production_results(st.session_state.project_data['pv_specifications'])
+    # Check for existing PV specifications in database
+    existing_pv_specs = db_manager.get_pv_specifications(project_id)
+    if existing_pv_specs:
+        display_production_results(existing_pv_specs)
 
 def calculate_vectorized_specifications(building_elements, radiation_data, panel_specs, 
                                       coverage_factor, performance_ratio, min_radiation, selected_panel="Custom BIPV"):
@@ -701,10 +701,13 @@ def render_pv_specification():
         - **Cost breakdown analysis** → Economic feasibility reporting and investment recommendations
         """)
     
-    # Check for radiation data from Step 5 (multiple possible locations)
-    project_data = st.session_state.get('project_data', {})
+    # Check for radiation data from Step 5 (database only)
+    # Get project data from database only
+    project_data = db_manager.get_project_by_id(project_id) or {}
     radiation_data = project_data.get('radiation_data')
-    radiation_completed = st.session_state.get('radiation_completed', False)
+    # Check radiation completion from database
+    radiation_analysis_data = db_manager.get_radiation_analysis_data(project_id)
+    radiation_completed = radiation_analysis_data is not None and len(radiation_analysis_data) > 0
     
     # Also check database for radiation analysis data and load if available
     radiation_from_db = False
@@ -760,7 +763,8 @@ def render_pv_specification():
         st.success(f"✅ Radiation analysis data found ({elements_count} elements analyzed)")
     
     # Check for building elements data from Step 4 - enhanced with database fallback
-    building_elements = st.session_state.get('building_elements')
+    # Get building elements from database only
+    building_elements = db_manager.get_building_elements(project_id)
     
     # If no building elements in session state, try to load from database
     if building_elements is None or len(building_elements) == 0:
@@ -1018,20 +1022,18 @@ def render_pv_specification():
             )
             
             if bipv_specifications is not None and len(bipv_specifications) > 0:
-                st.session_state['pv_specifications'] = bipv_specifications.to_dict('records')
+                # PV specifications will be saved to database - no session state needed
                 
-                # Save to consolidated data manager
-                consolidated_manager = ConsolidatedDataManager()
+                # Database save completed below - no consolidated manager needed
                 step6_data = {
                     'pv_specifications': {'individual_systems': bipv_specifications.to_dict('records')},
                     'bipv_specifications': final_panel_specs,
                     'individual_systems': bipv_specifications.to_dict('records'),
                     'specifications_complete': True
                 }
-                consolidated_manager.save_step6_data(step6_data)
                 
                 # Save to database
-                project_name = st.session_state.get('project_name', 'Unnamed Project')
+                project_name = db_helper.get_project_name_by_id(project_id) or 'Unnamed Project'
                 try:
                     # Save using database helper
                     db_helper.save_step_data("pv_specifications", {
@@ -1099,6 +1101,7 @@ def render_pv_specification():
                 st.dataframe(top_systems, use_container_width=True)
                 
                 # Store CSV data in session state for download functionality
+                # Store CSV data temporarily for download (minimal session state usage)
                 st.session_state['csv_download_data'] = {
                     'bipv_specifications': bipv_specifications,
                     'final_panel_specs': final_panel_specs
@@ -1110,12 +1113,13 @@ def render_pv_specification():
                 st.error("Could not calculate BIPV specifications. Please check your data.")
     
     # CSV Download functionality (always available when data exists)
+    # Check for temporary CSV download data (minimal session state usage for downloads)
     if 'csv_download_data' in st.session_state:
         st.markdown("---")
         st.subheader("📥 Download BIPV Specifications")
         
         # Get data from session state
-        csv_data = st.session_state['csv_download_data']
+        csv_data = st.session_state['csv_download_data']  # Temporary data for download
         bipv_specifications = csv_data['bipv_specifications']
         final_panel_specs = csv_data['final_panel_specs']
         

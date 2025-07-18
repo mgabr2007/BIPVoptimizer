@@ -12,8 +12,8 @@ import pickle
 from database_manager import db_manager
 from utils.database_helper import db_helper
 from core.solar_math import safe_divide
-from utils.consolidated_data_manager import ConsolidatedDataManager
-from utils.session_state_standardizer import BIPVSessionStateManager
+# Removed ConsolidatedDataManager - using database-only approach
+# Removed session state dependency - using database-only approach
 
 def safe_float(value, default=0.0):
     """Safely convert value to float."""
@@ -22,10 +22,12 @@ def safe_float(value, default=0.0):
     except (ValueError, TypeError):
         return default
 
-def load_demand_model():
-    """Load the trained demand prediction model from session state."""
+def load_demand_model(project_id):
+    """Load the trained demand prediction model from database."""
     try:
-        model_data = st.session_state.project_data.get('demand_model')
+        # Get demand model from database
+        project_data = db_manager.get_historical_data(project_id)
+        model_data = project_data.get('demand_model') if project_data else None
         if model_data:
             # If model_data is already a dict, return it directly
             if isinstance(model_data, dict):
@@ -287,10 +289,8 @@ def render_yield_demand():
         """)
     
     # AI Model Performance Indicator
-    project_data = st.session_state.get('project_data', {})
-    
-    # AI Model Performance Indicator
-    project_data = st.session_state.get('project_data', {})
+    # Get project data from database only
+    project_data = db_manager.get_project_by_id(project_id) or {}
     if project_data.get('model_r2_score') is not None:
         r2_score = project_data['model_r2_score']
         status = project_data.get('model_performance_status', 'Unknown')
@@ -313,13 +313,13 @@ def render_yield_demand():
     
     # Check for PV specifications from Step 6 - enhanced with database fallback
     pv_specs = project_data.get('pv_specifications')
+    # Try to get PV specs from database if not in project data
     if pv_specs is None:
-        pv_specs = st.session_state.get('pv_specifications')
+        pv_specs = db_manager.get_pv_specifications(project_id)
     
     # If no PV specs in session state, try to load from database
     if pv_specs is None or len(pv_specs) == 0:
         try:
-            from database_manager import db_manager
             
             project_id = get_current_project_id()
             if project_id:
@@ -358,16 +358,18 @@ def render_yield_demand():
     
     # Check for radiation data from Step 5 (multiple possible locations)
     radiation_data = project_data.get('radiation_data')
-    radiation_completed = st.session_state.get('radiation_completed', False)
+    # Check radiation analysis completion from database
+    radiation_data = db_manager.get_radiation_analysis_data(project_id)
+    radiation_completed = radiation_data is not None and len(radiation_data) > 0
     
-    # Enhanced validation - check consolidated data manager and database
-    consolidated_manager = ConsolidatedDataManager()
+    # Enhanced validation - check database only
     
     # Try to get radiation data from multiple sources
     if radiation_data is None and not radiation_completed:
         # Check consolidated data manager
         try:
-            step5_data = consolidated_manager.get_step_data('step5_radiation')
+            # Get radiation data from database only
+            step5_data = db_manager.get_radiation_analysis_data(project_id)
             if step5_data and step5_data.get('radiation_analysis'):
                 radiation_data = step5_data.get('radiation_analysis')
                 radiation_completed = True
@@ -947,10 +949,10 @@ def render_yield_demand():
                     }
                 }
                 
-                st.session_state.project_data['yield_demand_analysis'] = yield_demand_analysis
+                # Save yield demand analysis to database
+                db_manager.save_yield_demand_analysis(project_id, yield_demand_analysis)
                 
-                # Save to consolidated data manager
-                consolidated_manager = ConsolidatedDataManager()
+                # Database save completed above
                 step7_data = {
                     'yield_demand_analysis': yield_demand_analysis,
                     'energy_balance': energy_balance,
@@ -964,7 +966,7 @@ def render_yield_demand():
                     },
                     'yield_complete': True
                 }
-                consolidated_manager.save_step7_data(step7_data)
+                # Data saved to database above - no consolidated manager needed
                 
                 # Display results immediately after calculation
                 st.success("✅ Energy balance analysis completed!")
@@ -1068,7 +1070,7 @@ def render_yield_demand():
                 else:
                     st.info("Analysis saved to session only (no project ID available)")
                 
-                st.session_state.yield_demand_completed = True
+                # Completion tracked in database via save operation
                 
                 st.success("✅ Energy yield vs demand analysis completed successfully!")
                 
@@ -1077,8 +1079,9 @@ def render_yield_demand():
                 return
     
     # Display results if available
-    if st.session_state.get('yield_demand_completed', False):
-        analysis_data = st.session_state.project_data.get('yield_demand_analysis', {})
+    # Check if yield demand analysis exists in database
+    analysis_data = db_manager.get_yield_demand_analysis(project_id)
+    if analysis_data:
         
         if analysis_data and 'energy_balance' in analysis_data:
             st.subheader("📊 Yield vs Demand Analysis Results")

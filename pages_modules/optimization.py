@@ -13,7 +13,7 @@ from database_manager import db_manager
 from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from utils.color_schemes import CHART_COLORS, get_chart_color
-from utils.consolidated_data_manager import ConsolidatedDataManager
+# Removed ConsolidatedDataManager - using database-only approach
 # Removed session state dependency - using database-only approach
 
 def create_individual(n_elements):
@@ -481,7 +481,7 @@ def render_optimization():
     # Financial parameters section
     st.write("**Financial Parameters**")
     
-    # Get electricity rates from database first, then fallback to session state
+    # Get electricity rates from database only - no session state fallbacks
     electricity_price = None
     try:
         conn = db_manager.get_connection()
@@ -498,35 +498,13 @@ def render_optimization():
                     rates_data = json.loads(result[0])
                     electricity_price = rates_data.get('import_rate')
                     source = rates_data.get('source', 'Step 1')
-                    st.success(f"✅ Using authentic electricity rate from Step 1: €{electricity_price:.3f}/kWh (Source: {source})")
+                    st.success(f"✅ Using authentic electricity rate from database: €{electricity_price:.3f}/kWh (Source: {source})")
             conn.close()
     except Exception as e:
         st.error(f"Database connection error: {str(e)}")
     
-    # Fallback to session state/consolidated data if not in database
     if electricity_price is None:
-        # Check session state
-        project_data = st.session_state.get('project_data', {})
-        electricity_rates = project_data.get('electricity_rates', {})
-        electricity_price = electricity_rates.get('import_rate')
-        
-        if electricity_price:
-            source = electricity_rates.get('source', 'Session state')
-            st.info(f"ℹ️ Using electricity rate from session state: €{electricity_price:.3f}/kWh (Source: {source})")
-        else:
-            # Check consolidated data manager
-            from utils.consolidated_data_manager import ConsolidatedDataManager
-            consolidated_manager = ConsolidatedDataManager()
-            step1_data = consolidated_manager.get_step1_data()
-            if step1_data and 'electricity_rates' in step1_data:
-                rates = step1_data['electricity_rates']
-                electricity_price = rates.get('import_rate')
-                if electricity_price:
-                    source = rates.get('source', 'Consolidated data')
-                    st.info(f"ℹ️ Using electricity rate from consolidated data: €{electricity_price:.3f}/kWh (Source: {source})")
-    
-    if electricity_price is None:
-        st.error("⚠️ Electricity rate not found. Please complete Step 1 (Project Setup) first.")
+        st.error("⚠️ Electricity rate not found in database. Please complete Step 1 (Project Setup) first.")
         return
     
     col3, col4 = st.columns(2)
