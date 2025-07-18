@@ -445,6 +445,10 @@ def save_project_configuration(project_name):
         project_data = {
             'project_name': project_name,
             'location': location_name,
+            'coordinates': {
+                'lat': coords['lat'],
+                'lon': coords['lng']
+            },
             'latitude': coords['lat'],
             'longitude': coords['lng'],
             'currency': 'EUR'
@@ -457,6 +461,7 @@ def save_project_configuration(project_name):
         # Add weather station data if selected
         if 'selected_weather_station' in st.session_state:
             station = st.session_state.selected_weather_station
+            project_data['selected_weather_station'] = station
             project_data.update({
                 'weather_station_name': station['name'],
                 'weather_station_id': station['wmo_id'],
