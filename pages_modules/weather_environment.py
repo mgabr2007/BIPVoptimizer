@@ -453,20 +453,20 @@ def render_weather_environment():
             st.error("❌ Project not found in database. Please complete Step 1 first.")
             return
         
-        # Extract coordinates from database
+        # Extract coordinates from database with None checking
         coordinates = {
-            'lat': float(project_info.get('latitude', 0)),
-            'lon': float(project_info.get('longitude', 0))
+            'lat': float(project_info.get('latitude') or 0),
+            'lon': float(project_info.get('longitude') or 0)
         }
         
-        # Extract WMO weather station from database
+        # Extract WMO weather station from database with None checking
         weather_station = {
-            'name': project_info.get('weather_station_name', 'Unknown'),
-            'wmo_id': project_info.get('weather_station_id', 'unknown'),
-            'distance_km': float(project_info.get('weather_station_distance', 0)),
-            'latitude': float(project_info.get('weather_station_latitude', coordinates['lat'])),
-            'longitude': float(project_info.get('weather_station_longitude', coordinates['lon'])),
-            'height': float(project_info.get('weather_station_elevation', 0))
+            'name': project_info.get('weather_station_name') or 'Unknown',
+            'wmo_id': project_info.get('weather_station_id') or 'unknown',
+            'distance_km': float(project_info.get('weather_station_distance') or 0),
+            'latitude': float(project_info.get('weather_station_latitude') or coordinates['lat']),
+            'longitude': float(project_info.get('weather_station_longitude') or coordinates['lon']),
+            'height': float(project_info.get('weather_station_elevation') or 0)
         }
         
         if coordinates['lat'] == 0 or coordinates['lon'] == 0:
