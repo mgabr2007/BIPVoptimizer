@@ -65,20 +65,23 @@ def load_dashboard_data():
             
             # Weather Data (Step 3)
             cursor.execute("""
-                SELECT station_metadata, tmy_data, annual_ghi, annual_dni, annual_dhi
+                SELECT temperature, humidity, description, annual_ghi, annual_dni, annual_dhi
                 FROM weather_data WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
             """, (project_id,))
             weather_result = cursor.fetchone()
             
             if weather_result:
-                station_metadata = weather_result[0]
-                tmy_data = weather_result[1] 
+                temperature = weather_result[0]
+                humidity = weather_result[1] 
                 dashboard_data['weather'] = {
-                    'station_metadata': station_metadata,
-                    'annual_ghi': float(weather_result[2]) if weather_result[2] else 0,
-                    'annual_dni': float(weather_result[3]) if weather_result[3] else 0,
-                    'annual_dhi': float(weather_result[4]) if weather_result[4] else 0,
-                    'tmy_data': tmy_data,
+                    'temperature': float(temperature) if temperature else 0,
+                    'humidity': float(humidity) if humidity else 0,
+                    'annual_ghi': float(weather_result[3]) if weather_result[3] else 0,
+                    'annual_dni': float(weather_result[4]) if weather_result[4] else 0,
+                    'annual_dhi': float(weather_result[5]) if weather_result[5] else 0,
+                    'total_solar_resource': (float(weather_result[3]) if weather_result[3] else 0) + 
+                                          (float(weather_result[4]) if weather_result[4] else 0) + 
+                                          (float(weather_result[5]) if weather_result[5] else 0),
                     'data_points': 8760  # Standard TMY hours per year
                 }
             
@@ -102,11 +105,11 @@ def load_dashboard_data():
             if building_stats:
                 dashboard_data['building'] = {
                     'total_elements': building_stats[0],
-                    'total_glass_area': building_stats[1],
+                    'total_glass_area': float(building_stats[1]) if building_stats[1] else 0,
                     'unique_orientations': building_stats[2],
                     'building_levels': building_stats[3],
                     'orientation_distribution': [
-                        {'orientation': row[0], 'count': row[1], 'avg_area': row[2]}
+                        {'orientation': row[0], 'count': row[1], 'avg_area': float(row[2]) if row[2] else 0}
                         for row in orientation_data
                     ]
                 }
@@ -134,12 +137,12 @@ def load_dashboard_data():
             if radiation_stats:
                 dashboard_data['radiation'] = {
                     'analyzed_elements': radiation_stats[0],
-                    'avg_radiation': radiation_stats[1],
-                    'max_radiation': radiation_stats[2],
-                    'min_radiation': radiation_stats[3],
-                    'std_radiation': radiation_stats[4],
+                    'avg_radiation': float(radiation_stats[1]) if radiation_stats[1] else 0,
+                    'max_radiation': float(radiation_stats[2]) if radiation_stats[2] else 0,
+                    'min_radiation': float(radiation_stats[3]) if radiation_stats[3] else 0,
+                    'std_radiation': float(radiation_stats[4]) if radiation_stats[4] else 0,
                     'by_orientation': [
-                        {'orientation': row[0], 'avg_radiation': row[1], 'count': row[2]}
+                        {'orientation': row[0], 'avg_radiation': float(row[1]) if row[1] else 0, 'count': row[2]}
                         for row in radiation_by_orientation
                     ]
                 }
@@ -172,11 +175,11 @@ def load_dashboard_data():
             
             if energy_result:
                 dashboard_data['energy_analysis'] = {
-                    'annual_generation': energy_result[0],
-                    'annual_demand': energy_result[1],
-                    'net_energy_balance': energy_result[2],
-                    'self_consumption_rate': energy_result[3],
-                    'energy_yield_per_m2': energy_result[4]
+                    'annual_generation': float(energy_result[0]) if energy_result[0] else 0,
+                    'annual_demand': float(energy_result[1]) if energy_result[1] else 0,
+                    'net_energy_balance': float(energy_result[2]) if energy_result[2] else 0,
+                    'self_consumption_rate': float(energy_result[3]) if energy_result[3] else 0,
+                    'energy_yield_per_m2': float(energy_result[4]) if energy_result[4] else 0
                 }
             
             # Optimization Results (Step 8)
@@ -189,10 +192,10 @@ def load_dashboard_data():
             if optimization_result:
                 dashboard_data['optimization'] = {
                     'selected_systems': optimization_result[0],  # solution_id
-                    'total_capacity_kw': optimization_result[1],  # capacity
-                    'total_cost_eur': optimization_result[2],     # total_cost
-                    'annual_savings_eur': optimization_result[4], # net_import (savings)
-                    'roi_percentage': optimization_result[3]      # roi
+                    'total_capacity_kw': float(optimization_result[1]) if optimization_result[1] else 0,  # capacity
+                    'total_cost_eur': float(optimization_result[2]) if optimization_result[2] else 0,     # total_cost
+                    'annual_savings_eur': float(optimization_result[4]) if optimization_result[4] else 0, # net_import (savings)
+                    'roi_percentage': float(optimization_result[3]) if optimization_result[3] else 0      # roi
                 }
             
             # Financial Analysis (Step 9)
@@ -204,11 +207,11 @@ def load_dashboard_data():
             
             if financial_result:
                 dashboard_data['financial'] = {
-                    'total_investment_eur': financial_result[0],  # initial_investment
-                    'npv_eur': financial_result[1],              # npv
-                    'irr_percentage': financial_result[2],       # irr
-                    'payback_period_years': financial_result[3], # payback_period
-                    'total_savings_25_years': financial_result[4] * 25 if financial_result[4] else 0  # annual_savings * 25
+                    'total_investment_eur': float(financial_result[0]) if financial_result[0] else 0,  # initial_investment
+                    'npv_eur': float(financial_result[1]) if financial_result[1] else 0,              # npv
+                    'irr_percentage': float(financial_result[2]) if financial_result[2] else 0,       # irr
+                    'payback_period_years': float(financial_result[3]) if financial_result[3] else 0, # payback_period
+                    'total_savings_25_years': float(financial_result[4]) * 25 if financial_result[4] else 0  # annual_savings * 25
                 }
             
             # Environmental Impact
@@ -220,8 +223,8 @@ def load_dashboard_data():
             
             if environmental_result:
                 dashboard_data['environmental'] = {
-                    'annual_co2_reduction_kg': environmental_result[0],  # co2_savings_annual
-                    'lifetime_co2_reduction_kg': environmental_result[1] # co2_savings_lifetime
+                    'annual_co2_reduction_kg': float(environmental_result[0]) if environmental_result[0] else 0,  # co2_savings_annual
+                    'lifetime_co2_reduction_kg': float(environmental_result[1]) if environmental_result[1] else 0 # co2_savings_lifetime
                 }
         
         conn.close()
@@ -253,10 +256,12 @@ def create_overview_cards(data):
     
     with col2:
         if 'pv_systems' in data:
+            avg_power = data['pv_systems']['avg_power_density']
+            total_systems = data['pv_systems']['total_systems']
             st.metric(
-                "Total PV Capacity",
-                f"{data['pv_systems']['total_capacity_kw']:.1f} kW",
-                f"{data['pv_systems']['total_systems']} systems"
+                "PV Power Density",
+                f"{avg_power:.1f} W/m²",
+                f"{total_systems} systems"
             )
         else:
             st.metric("Total PV Capacity", "No data", "")
