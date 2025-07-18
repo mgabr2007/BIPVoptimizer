@@ -208,7 +208,7 @@ def render_facade_extraction():
                         facade_data_to_save = {
                             'building_elements': windows_df.to_dict('records'),
                             'element_count': len(windows_df),
-                            'glass_area_total': windows_df['Glass Area (m²)'].sum() if 'Glass Area (m²)' in windows_df.columns else 0,
+                            'glass_area_total': windows_df['Glass Area (m²)'].sum(),
                             'extraction_complete': True
                         }
                         consolidated_manager.save_step_data('4', facade_data_to_save)
