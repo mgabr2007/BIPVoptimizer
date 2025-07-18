@@ -162,11 +162,99 @@ def render_location_selection():
         st.write(f"**Longitude:** {current_coords['lng']:.4f}°")
 
 
-def render_weather_station_selection():
-    """Render WMO weather station selection"""
-    st.subheader("3️⃣ Weather Station Selection")
+def render_weather_api_selection():
+    """Render weather API selection section"""
+    st.subheader("3️⃣ Weather API Selection")
     
     current_coords = st.session_state.map_coordinates
+    
+    # Import weather API manager
+    try:
+        from services.weather_api_manager import weather_api_manager
+        
+        # Get API coverage information
+        coverage_info = weather_api_manager.get_api_coverage_info(current_coords['lat'], current_coords['lng'])
+        
+        # Display coverage analysis
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**📍 Location Coverage Analysis**")
+            st.info(f"**Coordinates:** {coverage_info['location']}")
+            
+            rec_api = coverage_info['recommended_api']
+            rec_details = coverage_info['recommendation']
+            
+            if rec_api == 'tu_berlin':
+                st.success("🎓 **Recommended:** TU Berlin Climate Portal")
+                st.write(f"**Coverage:** {rec_details['coverage_area']}")
+                st.write(f"**Quality:** {rec_details['coverage_level'].title()}")
+            else:
+                st.info("🌍 **Recommended:** OpenWeatherMap")
+                st.write(f"**Coverage:** {rec_details['coverage_area']}")
+        
+        with col2:
+            st.write("**⚙️ API Selection**")
+            
+            api_options = {
+                'auto': f"🤖 Automatic ({coverage_info['recommended_api'].replace('_', ' ').title()})",
+                'tu_berlin': "🎓 TU Berlin Climate Portal",
+                'openweathermap': "🌍 OpenWeatherMap Global"
+            }
+            
+            selected_api = st.selectbox(
+                "Choose Weather Data Source:",
+                options=list(api_options.keys()),
+                format_func=lambda x: api_options[x],
+                index=0,
+                key="weather_api_choice"
+            )
+            
+            # Store API selection
+            st.session_state.selected_weather_api = selected_api
+        
+        # API comparison
+        with st.expander("📊 Weather Service Comparison", expanded=False):
+            comp_col1, comp_col2 = st.columns(2)
+            
+            with comp_col1:
+                st.write("**🎓 TU Berlin Climate Portal**")
+                tu_info = coverage_info['coverage_details']['tu_berlin']
+                st.write(f"**Available:** {'✅ Yes' if tu_info['available'] else '❌ Outside coverage'}")
+                st.write(f"**Quality:** {tu_info['quality']}")
+                st.write(f"**Coverage:** {tu_info['coverage']}")
+                
+                st.write("**Advantages:**")
+                for adv in tu_info['advantages']:
+                    st.write(f"• {adv}")
+            
+            with comp_col2:
+                st.write("**🌍 OpenWeatherMap Global**")
+                ow_info = coverage_info['coverage_details']['openweathermap']
+                st.write(f"**Available:** ✅ Yes")
+                st.write(f"**Quality:** {ow_info['quality']}")
+                st.write(f"**Coverage:** {ow_info['coverage']}")
+                
+                st.write("**Advantages:**")
+                for adv in ow_info['advantages']:
+                    st.write(f"• {adv}")
+    
+    except ImportError:
+        st.warning("Weather API manager not available. Using WMO stations only.")
+        selected_api = 'wmo_stations'
+        st.session_state.selected_weather_api = selected_api
+
+
+def render_weather_station_selection():
+    """Render WMO weather station selection"""
+    st.subheader("4️⃣ Weather Station Selection")
+    
+    current_coords = st.session_state.map_coordinates
+    
+    # Show selected API
+    selected_api = st.session_state.get('selected_weather_api', 'wmo_stations')
+    if selected_api != 'wmo_stations':
+        st.info(f"🌤️ **Active Weather API:** {selected_api.replace('_', ' ').title()}")
     
     # Search radius selection
     search_radius = st.selectbox(
@@ -249,6 +337,10 @@ def save_project_configuration(project_name):
             'currency': 'EUR'
         }
         
+        # Add weather API selection
+        if 'selected_weather_api' in st.session_state:
+            project_data['weather_api_choice'] = st.session_state.selected_weather_api
+        
         # Add weather station data if selected
         if 'selected_weather_station' in st.session_state:
             station = st.session_state.selected_weather_station
@@ -289,10 +381,11 @@ def render_project_setup():
     # Render sections
     project_name = render_project_info_section()
     render_location_selection()
+    render_weather_api_selection()
     render_weather_station_selection()
     
     # Configuration summary and save
-    st.subheader("4️⃣ Configuration Summary")
+    st.subheader("5️⃣ Configuration Summary")
     
     # Display current configuration
     coords = st.session_state.map_coordinates
@@ -305,6 +398,11 @@ def render_project_setup():
         st.write(f"• Location: {location}")
         st.write(f"• Coordinates: {coords['lat']:.4f}°, {coords['lng']:.4f}°")
         st.write(f"• Currency: EUR")
+        
+        # Show weather API selection
+        weather_api = st.session_state.get('selected_weather_api', 'Not selected')
+        if weather_api != 'Not selected':
+            st.write(f"• Weather API: {weather_api.replace('_', ' ').title()}")
     
     with col2:
         if 'selected_weather_station' in st.session_state:
