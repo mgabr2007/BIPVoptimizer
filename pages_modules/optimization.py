@@ -337,8 +337,34 @@ def render_optimization():
     pv_specs = db_manager.get_pv_specifications(project_id)
     
     # Check for yield/demand analysis from Step 7 database
+    # First try the database state manager, then check the database directly
     yield_demand_data = db_state_manager.get_step_data('yield_demand')
     energy_balance = yield_demand_data.get('energy_balance') if yield_demand_data else None
+    
+    # If not found, check database directly for energy analysis
+    if energy_balance is None:
+        try:
+            # Query the energy_analysis table directly for Step 7 data
+            conn = db_manager.get_connection()
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT annual_generation, annual_demand, net_energy_balance 
+                        FROM energy_analysis 
+                        WHERE project_id = %s AND annual_generation IS NOT NULL
+                        ORDER BY created_at DESC LIMIT 1
+                    """, (project_id,))
+                    
+                    result = cursor.fetchone()
+                    if result:
+                        # Create a simple energy balance from database data
+                        annual_generation, annual_demand, net_energy_balance = result
+                        # Create a minimal energy balance for validation
+                        energy_balance = [{'predicted_demand': annual_demand, 'total_yield_kwh': annual_generation}]
+                        st.info(f"✅ Found Step 7 data: {annual_generation:,.0f} kWh generation, {annual_demand:,.0f} kWh demand")
+                conn.close()
+        except Exception as e:
+            st.warning(f"Could not check energy analysis data: {str(e)}")
     
     # Validate required data
     missing_data = []
