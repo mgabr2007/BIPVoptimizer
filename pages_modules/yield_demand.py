@@ -1049,22 +1049,20 @@ def render_yield_demand():
                 # Save to database with error handling
                 if project_id:
                     try:
-                        # Save using database helper - use the actual analysis_config from yield_demand_analysis
-                        actual_analysis_config = yield_demand_analysis.get('analysis_config', {})
-                        db_helper.save_step_data("yield_demand", {
-                            'energy_balance': energy_balance,
-                            'analysis_config': actual_analysis_config,
-                            'yield_analysis': yield_analysis_results if 'yield_analysis_results' in locals() else {},
-                            'demand_data': monthly_demand_data if 'monthly_demand_data' in locals() else [],
-                            'pv_data': monthly_pv_generation if 'monthly_pv_generation' in locals() else []
-                        })
-                        
-                        # Legacy save method for compatibility
-                        if project_id:
+                        # Save only authentic yield demand data - no fallbacks
+                        if energy_balance and len(energy_balance) > 0:
+                            db_helper.save_step_data("yield_demand", {
+                                'energy_balance': energy_balance,
+                                'analysis_config': yield_demand_analysis.get('analysis_config', {}),
+                            })
+                            
+                            # Save authentic energy analysis data to energy_analysis table
                             db_manager.save_yield_demand_data(
-                            project_id,
-                            st.session_state.project_data['yield_demand_analysis']
-                        )
+                                project_id,
+                                yield_demand_analysis
+                            )
+                        else:
+                            st.error("Cannot save - no authentic energy balance data generated")
                     except Exception as db_error:
                         st.warning(f"Could not save to database: {str(db_error)}")
                 else:

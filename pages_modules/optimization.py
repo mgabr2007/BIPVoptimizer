@@ -336,42 +336,35 @@ def render_optimization():
     # Check for PV specifications from database (Step 6)
     pv_specs = db_manager.get_pv_specifications(project_id)
     
-    # Check for yield/demand analysis from Step 7 database
-    # First try the database state manager, then check the database directly
-    yield_demand_data = db_state_manager.get_step_data('yield_demand')
-    energy_balance = yield_demand_data.get('energy_balance') if yield_demand_data else None
+    # Check for authentic Step 7 data from energy_analysis table
+    energy_balance = None
+    try:
+        conn = db_manager.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT annual_generation, annual_demand 
+                    FROM energy_analysis 
+                    WHERE project_id = %s AND annual_generation IS NOT NULL AND annual_demand IS NOT NULL
+                    ORDER BY created_at DESC LIMIT 1
+                """, (project_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    annual_generation, annual_demand = result
+                    # Use authentic database values for optimization
+                    energy_balance = [{'predicted_demand': annual_demand, 'total_yield_kwh': annual_generation}]
+                    st.success(f"✅ Using authentic Step 7 data: {annual_generation:,.0f} kWh generation, {annual_demand:,.0f} kWh demand")
+            conn.close()
+    except Exception as e:
+        st.error(f"Database connection error: {str(e)}")
     
-    # If not found, check database directly for energy analysis
-    if energy_balance is None:
-        try:
-            # Query the energy_analysis table directly for Step 7 data
-            conn = db_manager.get_connection()
-            if conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT annual_generation, annual_demand, net_energy_balance 
-                        FROM energy_analysis 
-                        WHERE project_id = %s AND annual_generation IS NOT NULL
-                        ORDER BY created_at DESC LIMIT 1
-                    """, (project_id,))
-                    
-                    result = cursor.fetchone()
-                    if result:
-                        # Create a simple energy balance from database data
-                        annual_generation, annual_demand, net_energy_balance = result
-                        # Create a minimal energy balance for validation
-                        energy_balance = [{'predicted_demand': annual_demand, 'total_yield_kwh': annual_generation}]
-                        st.info(f"✅ Found Step 7 data: {annual_generation:,.0f} kWh generation, {annual_demand:,.0f} kWh demand")
-                conn.close()
-        except Exception as e:
-            st.warning(f"Could not check energy analysis data: {str(e)}")
-    
-    # Validate required data
+    # Validate required authentic data only
     missing_data = []
     if pv_specs is None or (isinstance(pv_specs, (list, dict)) and len(pv_specs) == 0):
         missing_data.append("Step 6 (PV Specification)")
     
-    if energy_balance is None or len(energy_balance) == 0:
+    if energy_balance is None:
         missing_data.append("Step 7 (Yield vs Demand Analysis)")
     
     if missing_data:
@@ -395,12 +388,9 @@ def render_optimization():
         st.error("⚠️ PV specifications not available.")
         return
     
-    # Convert energy_balance to DataFrame if it's a list
-    if energy_balance is not None:
-        if isinstance(energy_balance, list):
-            energy_balance = pd.DataFrame(energy_balance)
-        elif not isinstance(energy_balance, pd.DataFrame):
-            energy_balance = None
+    # Convert authentic energy_balance to DataFrame - no fallbacks
+    if energy_balance is not None and isinstance(energy_balance, list):
+        energy_balance = pd.DataFrame(energy_balance)
     
     st.success(f"✅ Optimizing selection from {len(pv_specs)} suitable BIPV systems")
     st.info("💡 Optimization includes only South/East/West-facing elements for realistic solar performance")

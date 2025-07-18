@@ -38,9 +38,8 @@ class DatabaseHelper:
             elif step_name == "pv_specifications":
                 return self.db_manager.save_pv_specifications(project_id, data)
             elif step_name == "yield_demand":
-                # Extract the correct data structure for saving yield demand data
-                if 'energy_balance' in data:
-                    # This is the consolidated data structure from Step 7
+                # Only save authentic yield demand data to database
+                if 'energy_balance' in data and data['energy_balance']:
                     yield_demand_analysis = {
                         'total_annual_yield': sum([row.get('total_yield_kwh', 0) for row in data['energy_balance']]),
                         'annual_demand': sum([row.get('predicted_demand', 0) for row in data['energy_balance']]),
@@ -49,8 +48,8 @@ class DatabaseHelper:
                     }
                     return self.db_manager.save_yield_demand_data(project_id, yield_demand_analysis)
                 else:
-                    # Direct yield demand analysis data
-                    return self.db_manager.save_yield_demand_data(project_id, data)
+                    st.warning("No authentic energy balance data to save")
+                    return False
             elif step_name == "optimization":
                 return self.db_manager.save_optimization_results(project_id, data)
             elif step_name == "financial_analysis":
@@ -64,20 +63,41 @@ class DatabaseHelper:
             return False
     
     def get_step_data(self, step_name, project_name=None):
-        """Get data for a specific workflow step"""
+        """Get authentic data for a specific workflow step from database only"""
         project_id = self.get_project_id(project_name)
         if not project_id:
             return None
         
         try:
-            # Get project report data and extract specific step
+            # Only retrieve authentic database data - no fallbacks
+            if step_name == "yield_demand":
+                # Get from energy_analysis table
+                conn = self.db_manager.get_connection()
+                if conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT annual_generation, annual_demand, net_energy_balance 
+                            FROM energy_analysis 
+                            WHERE project_id = %s AND annual_generation IS NOT NULL
+                            ORDER BY created_at DESC LIMIT 1
+                        """, (project_id,))
+                        
+                        result = cursor.fetchone()
+                        if result:
+                            return {
+                                'energy_balance': [{'predicted_demand': result[1], 'total_yield_kwh': result[0]}],
+                                'annual_generation': result[0],
+                                'annual_demand': result[1]
+                            }
+                    conn.close()
+            
+            # For other steps, use project report data
             project_data = self.db_manager.get_project_report_data(project_name or st.session_state.get('project_name'))
             if project_data:
                 return project_data.get(step_name, {})
             return None
             
         except Exception as e:
-            st.warning(f"Could not retrieve {step_name} data: {str(e)}")
             return None
     
     def update_session_from_database(self, project_name=None):
