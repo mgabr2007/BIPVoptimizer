@@ -273,16 +273,17 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
         
         # Save to database if project exists
         project_data = st.session_state.get('project_data', {})
-        project_id = project_data.get('project_id')
         project_name = project_data.get('project_name')
         
-        if project_id or project_name:
+        if project_name:
             try:
-                from database_manager import BIPVDatabaseManager
-                db_manager = BIPVDatabaseManager()
-                # Use project_id if available, otherwise use project_name
-                identifier = project_id if project_id else project_name
-                db_manager.save_weather_data(identifier, weather_analysis)
+                from services.io import get_current_project_id
+                project_id = get_current_project_id()
+                
+                if project_id:
+                    from database_manager import BIPVDatabaseManager
+                    db_manager = BIPVDatabaseManager()
+                    db_manager.save_weather_data(project_id, weather_analysis)
             except Exception as db_error:
                 st.warning(f"Database save failed: {str(db_error)}")
         
@@ -631,13 +632,18 @@ def render_weather_environment():
                         
                         if project_id:
                             try:
-                                # Save to weather_data table with 8,760 hourly records
-                                db_helper.save_step_data("weather_analysis", {
-                                    'tmy_data': tmy_data,
-                                    'weather_data': st.session_state.project_data.get('weather_analysis', {}),
+                                # Save to weather_data table with correct field mapping
+                                weather_data_to_save = {
+                                    'temperature': weather_analysis.get('temperature'),
+                                    'humidity': weather_analysis.get('humidity'),
+                                    'description': weather_analysis.get('description', 'TMY Generated'),
                                     'annual_ghi': annual_ghi,
+                                    'annual_dni': weather_analysis.get('annual_dni', 0),
+                                    'annual_dhi': weather_analysis.get('annual_dhi', 0),
+                                    'tmy_data': tmy_data,
                                     'monthly_profiles': monthly_solar
-                                })
+                                }
+                                db_helper.save_step_data("weather_analysis", weather_data_to_save)
                                 
                                 # Save to weather_data table with full TMY dataset
                                 from database_manager import BIPVDatabaseManager
