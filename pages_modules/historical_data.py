@@ -799,16 +799,40 @@ def render_historical_data():
                 }
                 db_helper.save_step_data("historical_data", historical_data_to_save)
                 
-                # Save to ai_models table for R² scores and model parameters
+                # Save comprehensive AI model data for Step 7 data flow
                 from database_manager import BIPVDatabaseManager
                 db_manager = BIPVDatabaseManager()
-                if r_squared_score is not None:
-                    db_manager.save_ai_model_data(project_id, {
-                        'model_type': 'RandomForestRegressor',
-                        'r_squared_score': r_squared_score,
-                        'training_data_size': len(consumption_data),
-                        'forecast_years': 25
-                    })
+                
+                # Save historical data first
+                historical_data_complete = {
+                    'annual_consumption': total_consumption,
+                    'consumption_data': consumption_data,
+                    'temperature_data': temperature_data or [],
+                    'occupancy_data': occupancy_data or [],
+                    'date_data': date_data or [],
+                    'model_accuracy': r_squared_score,
+                    'energy_intensity': sample_data.get('energy_intensity', 0),
+                    'peak_load_factor': sample_data.get('peak_load_factor', 0),
+                    'seasonal_variation': sample_data.get('seasonal_variation', 0)
+                }
+                db_manager.save_historical_data(project_id, historical_data_complete)
+                
+                # Save AI model data with forecast predictions for Step 7
+                ai_model_complete = {
+                    'model_type': 'RandomForestRegressor',
+                    'r_squared_score': r_squared_score,
+                    'training_data_size': len(consumption_data),
+                    'forecast_years': 25,
+                    'forecast_data': forecast_data if 'forecast_data' in locals() else {},
+                    'demand_predictions': forecast_data.get('annual_predictions', []) if 'forecast_data' in locals() else [],
+                    'growth_rate': forecast_data.get('growth_rate', 0.01) if 'forecast_data' in locals() else 0.01,
+                    'base_consumption': total_consumption,
+                    'peak_demand': max_consumption,
+                    'building_area': building_area,
+                    'occupancy_pattern': occupancy_pattern,
+                    'building_type': building_type
+                }
+                db_manager.save_ai_model_data(project_id, ai_model_complete)
         
         # Display analysis results
         st.success("Historical data processed and AI model trained successfully!")

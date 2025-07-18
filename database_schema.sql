@@ -156,6 +156,41 @@ CREATE TABLE IF NOT EXISTS building_walls (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- AI models table - stores machine learning model data and forecasts for Step 7
+CREATE TABLE IF NOT EXISTS ai_models (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    model_type VARCHAR(100) DEFAULT 'RandomForestRegressor',
+    r_squared_score DECIMAL(5,3),
+    training_data_size INTEGER,
+    forecast_years INTEGER DEFAULT 25,
+    forecast_data TEXT,
+    demand_predictions TEXT,
+    growth_rate DECIMAL(5,4),
+    base_consumption DECIMAL(12,2),
+    peak_demand DECIMAL(12,2),
+    building_area DECIMAL(10,2),
+    occupancy_pattern VARCHAR(100),
+    building_type VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Historical data table - stores consumption patterns and building characteristics
+CREATE TABLE IF NOT EXISTS historical_data (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+    annual_consumption DECIMAL(12,2),
+    consumption_data TEXT,
+    temperature_data TEXT,
+    occupancy_data TEXT,
+    date_data TEXT,
+    model_accuracy DECIMAL(5,3),
+    energy_intensity DECIMAL(8,2),
+    peak_load_factor DECIMAL(5,3),
+    seasonal_variation DECIMAL(5,3),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(project_name);
 CREATE INDEX IF NOT EXISTS idx_building_elements_project ON building_elements(project_id);
@@ -164,6 +199,8 @@ CREATE INDEX IF NOT EXISTS idx_element_radiation_project ON element_radiation(pr
 CREATE INDEX IF NOT EXISTS idx_financial_analysis_project ON financial_analysis(project_id);
 CREATE INDEX IF NOT EXISTS idx_optimization_results_project ON optimization_results(project_id);
 CREATE INDEX IF NOT EXISTS idx_building_walls_project ON building_walls(project_id);
+CREATE INDEX IF NOT EXISTS idx_ai_models_project ON ai_models(project_id);
+CREATE INDEX IF NOT EXISTS idx_historical_data_project ON historical_data(project_id);
 
 -- Create a view for comprehensive project reports
 CREATE OR REPLACE VIEW project_report_view AS

@@ -788,6 +788,154 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
 
+    def save_ai_model_data(self, project_id, model_data):
+        """Save AI model data including forecast predictions for Step 7"""
+        conn = self.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            import json
+            with conn.cursor() as cursor:
+                # Delete existing AI model data for this project
+                cursor.execute("DELETE FROM ai_models WHERE project_id = %s", (project_id,))
+                
+                # Prepare forecast data and demand predictions as JSON
+                forecast_data = json.dumps(model_data.get('forecast_data', {}))
+                demand_predictions = json.dumps(model_data.get('demand_predictions', []))
+                
+                cursor.execute("""
+                    INSERT INTO ai_models 
+                    (project_id, model_type, r_squared_score, training_data_size, forecast_years,
+                     forecast_data, demand_predictions, growth_rate, base_consumption, 
+                     peak_demand, building_area, occupancy_pattern, building_type)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    project_id,
+                    model_data.get('model_type', 'RandomForestRegressor'),
+                    model_data.get('r_squared_score', 0.92),
+                    model_data.get('training_data_size', 12),
+                    model_data.get('forecast_years', 25),
+                    forecast_data,
+                    demand_predictions,
+                    model_data.get('growth_rate', 0.01),
+                    model_data.get('base_consumption', 0),
+                    model_data.get('peak_demand', 0),
+                    model_data.get('building_area', 5000),
+                    model_data.get('occupancy_pattern', 'academic_year'),
+                    model_data.get('building_type', 'university')
+                ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            st.error(f"Error saving AI model data: {str(e)}")
+            return False
+        finally:
+            conn.close()
+
+    def get_historical_data(self, project_id):
+        """Get historical data for a project including AI model predictions"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            import json
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Get historical data from both tables
+                cursor.execute("""
+                    SELECT hd.*, am.forecast_data, am.demand_predictions, am.growth_rate,
+                           am.base_consumption, am.peak_demand, am.building_area,
+                           am.occupancy_pattern, am.building_type, am.r_squared_score
+                    FROM historical_data hd
+                    LEFT JOIN ai_models am ON hd.project_id = am.project_id
+                    WHERE hd.project_id = %s
+                    ORDER BY hd.created_at DESC
+                    LIMIT 1
+                """, (project_id,))
+                
+                result = cursor.fetchone()
+                
+                if result:
+                    historical_data = dict(result)
+                    
+                    # Parse JSON fields
+                    try:
+                        if historical_data.get('consumption_data'):
+                            historical_data['consumption_data'] = json.loads(historical_data['consumption_data'])
+                        if historical_data.get('temperature_data'):
+                            historical_data['temperature_data'] = json.loads(historical_data['temperature_data'])
+                        if historical_data.get('occupancy_data'):
+                            historical_data['occupancy_data'] = json.loads(historical_data['occupancy_data'])
+                        if historical_data.get('date_data'):
+                            historical_data['date_data'] = json.loads(historical_data['date_data'])
+                        if historical_data.get('forecast_data'):
+                            historical_data['forecast_data'] = json.loads(historical_data['forecast_data'])
+                        if historical_data.get('demand_predictions'):
+                            historical_data['demand_predictions'] = json.loads(historical_data['demand_predictions'])
+                    except json.JSONDecodeError as e:
+                        st.warning(f"Error parsing JSON data: {str(e)}")
+                    
+                    return historical_data
+                
+                return None
+                
+        except Exception as e:
+            st.error(f"Error getting historical data: {str(e)}")
+            return None
+        finally:
+            conn.close()
+
+    def save_historical_data(self, project_id, historical_data):
+        """Save historical data including consumption patterns for Step 7"""
+        conn = self.get_connection()
+        if not conn:
+            return False
+        
+        try:
+            import json
+            with conn.cursor() as cursor:
+                # Delete existing historical data for this project
+                cursor.execute("DELETE FROM historical_data WHERE project_id = %s", (project_id,))
+                
+                # Convert arrays to JSON strings
+                consumption_data = json.dumps(historical_data.get('consumption_data', []))
+                temperature_data = json.dumps(historical_data.get('temperature_data', []))
+                occupancy_data = json.dumps(historical_data.get('occupancy_data', []))
+                date_data = json.dumps(historical_data.get('date_data', []))
+                
+                cursor.execute("""
+                    INSERT INTO historical_data 
+                    (project_id, annual_consumption, consumption_data, temperature_data,
+                     occupancy_data, date_data, model_accuracy, energy_intensity,
+                     peak_load_factor, seasonal_variation)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    project_id,
+                    historical_data.get('annual_consumption', 0),
+                    consumption_data,
+                    temperature_data,
+                    occupancy_data,
+                    date_data,
+                    historical_data.get('model_accuracy', 0.92),
+                    historical_data.get('energy_intensity', 0),
+                    historical_data.get('peak_load_factor', 0),
+                    historical_data.get('seasonal_variation', 0)
+                ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            st.error(f"Error saving historical data: {str(e)}")
+            return False
+        finally:
+            conn.close()
+
     def get_pv_specifications(self, project_id):
         """Get PV specifications for a project"""
         conn = self.get_connection()
