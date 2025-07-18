@@ -547,7 +547,7 @@ from pages_modules.historical_data import render_historical_data
 from pages_modules.weather_environment import render_weather_environment
 from pages_modules.facade_extraction import render_facade_extraction
 from pages_modules.radiation_grid import render_radiation_grid
-from pages_modules.pv_specification import render_pv_specification
+from pages_modules.pv_specification_unified import render_pv_specification
 from pages_modules.yield_demand import render_yield_demand
 from pages_modules.optimization import render_optimization
 from pages_modules.financial_analysis import render_financial_analysis

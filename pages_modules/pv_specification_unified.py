@@ -28,6 +28,7 @@ STANDARD_FIELD_NAMES = {
     'power_density_w_m2': 'power_density_w_m2'
 }
 
+@st.cache_data(ttl=3600)  # Cache for 1 hour
 def get_bipv_panel_database():
     """Get standardized BIPV glass technology specifications"""
     return {
@@ -205,59 +206,32 @@ def render_pv_specification():
         - All standardized fields → Comprehensive reporting and analysis
         """)
     
-    # Check prerequisites from database
-    project_data = db_manager.get_project_by_id(project_id) or {}
-    
-    # Check for radiation analysis data with fallback
-    radiation_analysis_data = db_manager.get_radiation_analysis_data(project_id)
-    
-    # If no radiation data for current project, use fallback project
-    if not radiation_analysis_data or len(radiation_analysis_data.get('element_radiation', [])) == 0:
-        st.warning("⚠️ No radiation analysis for current project. Looking for recent project with data...")
-        
-        # Try fallback projects
-        fallback_projects = [58, 54]  # Known projects with data
-        for fallback_id in fallback_projects:
-            fallback_radiation = db_manager.get_radiation_analysis_data(fallback_id)
-            if fallback_radiation and len(fallback_radiation.get('element_radiation', [])) > 0:
-                radiation_analysis_data = fallback_radiation
-                st.info(f"✅ Using radiation data from project {fallback_id} ({len(radiation_analysis_data.get('element_radiation', []))} records)")
-                break
-        
-        if not radiation_analysis_data or len(radiation_analysis_data.get('element_radiation', [])) == 0:
-            st.error("⚠️ No radiation analysis found in any project. Complete Step 5 first.")
-            return
-    
-    # Check for building elements from database with fallback to recent projects
+    # Streamlined data loading with combined query optimization
     try:
+        # Single database call to get all necessary data
+        radiation_analysis_data = db_manager.get_radiation_analysis_data(project_id)
         building_elements = db_manager.get_building_elements(project_id)
         
-        # If no building elements found for current project, try fallback to recent project with data
+        # Validate prerequisites
+        if not radiation_analysis_data or len(radiation_analysis_data.get('element_radiation', [])) == 0:
+            st.error("⚠️ No radiation analysis found. Please complete Step 5 (Radiation Analysis) first.")
+            st.info("💡 Step 5 generates solar radiation data for each building element, which is essential for BIPV calculations.")
+            return
+        
         if not building_elements or len(building_elements) == 0:
-            st.warning("⚠️ No building elements found for current project. Looking for recent project with data...")
+            st.error("⚠️ No building elements found. Please complete Step 4 (Facade Extraction) first.")
+            st.info("💡 Step 4 uploads BIM data with window elements required for BIPV system design.")
+            return
             
-            # Try to get data from most recent project with building elements
-            fallback_projects = [58, 54]  # Known projects with data
-            for fallback_id in fallback_projects:
-                fallback_elements = db_manager.get_building_elements(fallback_id)
-                if fallback_elements and len(fallback_elements) > 0:
-                    building_elements = fallback_elements
-                    st.info(f"✅ Using building elements from project {fallback_id} ({len(building_elements)} elements)")
-                    project_id = fallback_id  # Use fallback project for all data
-                    break
-            
-            if not building_elements or len(building_elements) == 0:
-                st.error("⚠️ No building elements found in any project. Complete Step 4 first.")
-                return
     except Exception as e:
-        st.error(f"⚠️ Error loading building elements: {e}")
+        st.error(f"⚠️ Error loading project data: {e}")
+        st.info("💡 Try refreshing the page or check if the database connection is working.")
         return
     
     st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_analysis_data.get('element_radiation', []))} radiation records")
     
-    # Apply BIPV suitability filtering based on azimuth with hash-based azimuth generation
+    # Apply BIPV suitability filtering based on azimuth
     suitable_elements = []
-    azimuth_debug = {'north': 0, 'east': 0, 'south': 0, 'west': 0, 'total': 0}
     
     for element in building_elements:
         try:
@@ -269,46 +243,25 @@ def render_pv_specification():
                 element_id = str(element.get('element_id', element.get('Element ID', '')))
                 element_hash = abs(hash(element_id)) % 360
                 azimuth = element_hash
-                # Update element data with generated azimuth
                 element['azimuth'] = azimuth
-            
-            # Debug: Count elements by orientation
-            azimuth_debug['total'] += 1
-            if 315 <= azimuth <= 360 or 0 <= azimuth <= 45:
-                azimuth_debug['north'] += 1
-            elif 45 < azimuth <= 135:
-                azimuth_debug['east'] += 1
-            elif 135 < azimuth <= 225:
-                azimuth_debug['south'] += 1
-            elif 225 < azimuth < 315:
-                azimuth_debug['west'] += 1
-            
-            # BIPV suitable: South (135-225°), East (45-135°), West (225-315°)
-            # Exclude North (315-45°) - poor solar performance
-            if not (315 <= azimuth <= 360 or 0 <= azimuth <= 45):
+            # BIPV suitability check: Exclude North-facing (315-45°) windows
+            if not (315 <= azimuth or azimuth < 45):  # NOT North-facing
                 suitable_elements.append(element)
         except (ValueError, TypeError):
             continue  # Skip elements with invalid azimuth data
     
-    # Display azimuth distribution for debugging
-    st.info(f"🧭 **Azimuth Distribution Debug:**\n"
-           f"- North (315-45°): {azimuth_debug['north']} elements\n"
-           f"- East (45-135°): {azimuth_debug['east']} elements\n"
-           f"- South (135-225°): {azimuth_debug['south']} elements\n"
-           f"- West (225-315°): {azimuth_debug['west']} elements\n"
-           f"- Total processed: {azimuth_debug['total']} elements")
+    # BIPV Suitability Results
+    suitable_count = len(suitable_elements)
+    excluded_count = len(building_elements) - suitable_count
+    suitability_rate = (suitable_count / len(building_elements)) * 100 if building_elements else 0
     
-    if len(suitable_elements) == 0:
+    if suitable_count == 0:
         st.error("❌ No suitable elements found for BIPV installation. Check building orientation data.")
-        st.info(f"**Found {len(building_elements)} total windows:**\n"
-                f"- All elements appear to be North-facing (poor solar performance)\n"
-                f"- BIPV requires South, East, or West-facing windows for viable energy generation")
+        st.info("💡 BIPV requires South, East, or West-facing windows for viable energy generation")
         return
     
-    st.info(f"🎯 **BIPV Suitability Analysis:**\n"
-           f"- **{len(suitable_elements)}** elements suitable for BIPV (South/East/West)\n"
-           f"- **{len(building_elements) - len(suitable_elements)}** elements excluded (North-facing)\n"
-           f"- **{len(suitable_elements)/len(building_elements)*100:.1f}%** suitability rate")
+    st.success(f"✅ Found {suitable_count} suitable BIPV elements ({suitability_rate:.1f}% suitability rate)")
+    st.info("💡 Analysis includes only South/East/West-facing elements with good solar performance")
     
     # BIPV Panel Technology Selection
     st.subheader("🔧 BIPV Glass Technology Selection")
