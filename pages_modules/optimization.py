@@ -14,7 +14,7 @@ from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 from utils.color_schemes import CHART_COLORS, get_chart_color
 from utils.consolidated_data_manager import ConsolidatedDataManager
-from utils.session_state_standardizer import BIPVSessionStateManager
+# Removed session state dependency - using database-only approach
 
 def create_individual(n_elements):
     """Create a random individual for genetic algorithm."""
@@ -306,24 +306,23 @@ def render_optimization():
         - **Comparative analysis** → Performance benchmarking against non-optimized baseline configurations
         """)
     
-    # AI Model Performance Impact Notice from database
-    from services.database_state_manager import db_state_manager
-    historical_data = db_state_manager.get_step_data('historical_data')
-    if historical_data and historical_data.get('model_r2_score') is not None:
-        r2_score = historical_data['model_r2_score']
-        status = historical_data.get('model_performance_status', 'Unknown')
-        
-        if r2_score >= 0.85:
-            color = "green"
-            icon = "🟢"
-        elif r2_score >= 0.70:
-            color = "orange"
-            icon = "🟡"
-        else:
-            color = "red"
-            icon = "🔴"
-        
-        st.info(f"{icon} Optimization uses AI demand predictions (R² score: **{r2_score:.3f}** - {status} performance)")
+    # AI Model Performance Impact Notice from database only
+    try:
+        conn = db_manager.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT annual_demand FROM energy_analysis 
+                    WHERE project_id = %s AND annual_demand IS NOT NULL
+                    ORDER BY created_at DESC LIMIT 1
+                """, (get_current_project_id(),))
+                
+                result = cursor.fetchone()
+                if result:
+                    st.info("🟢 Optimization uses AI demand predictions from authentic database analysis")
+            conn.close()
+    except Exception:
+        pass  # No fallback display if database unavailable
     
     # Check for actual data using centralized database-driven approach
     from services.io import get_current_project_id
@@ -376,23 +375,18 @@ def render_optimization():
     # Success confirmation
     st.success(f"✅ Ready for optimization: {len(pv_specs)} PV systems, energy balance analysis complete")
     
-    # Convert pv_specs to DataFrame if it's a list
-    if pv_specs is not None:
-        if isinstance(pv_specs, list):
-            pv_specs = pd.DataFrame(pv_specs)
-        elif not isinstance(pv_specs, pd.DataFrame):
-            st.error("⚠️ PV specifications data format error.")
-            return
-    
-    if pv_specs is None or len(pv_specs) == 0:
-        st.error("⚠️ PV specifications not available.")
+    # Convert authentic pv_specs to DataFrame - no fallbacks, database data only
+    if isinstance(pv_specs, list):
+        pv_specs = pd.DataFrame(pv_specs)
+    elif not isinstance(pv_specs, pd.DataFrame):
+        st.error("⚠️ PV specifications data format error from database.")
         return
     
-    # Convert authentic energy_balance to DataFrame - no fallbacks
-    if energy_balance is not None and isinstance(energy_balance, list):
+    # Convert authentic energy_balance to DataFrame - database data only
+    if isinstance(energy_balance, list):
         energy_balance = pd.DataFrame(energy_balance)
     
-    st.success(f"✅ Optimizing selection from {len(pv_specs)} suitable BIPV systems")
+    st.success(f"✅ Using authentic data: {len(pv_specs)} BIPV systems from database")
     st.info("💡 Optimization includes only South/East/West-facing elements for realistic solar performance")
     
     # Optimization configuration
@@ -479,17 +473,31 @@ def render_optimization():
     # Financial parameters section
     st.write("**Financial Parameters**")
     
-    # Get electricity price from database (Step 1)
-    project_data = db_state_manager.get_step_data('project_setup')
-    electricity_rates = project_data.get('electricity_rates', {}) if project_data else {}
-    electricity_price = electricity_rates.get('import_rate', 0.25)
+    # Get electricity rates from database only - no fallbacks
+    electricity_price = None
+    try:
+        conn = db_manager.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT electricity_rates FROM projects 
+                    WHERE id = %s AND electricity_rates IS NOT NULL
+                """, (project_id,))
+                
+                result = cursor.fetchone()
+                if result and result[0]:
+                    import json
+                    rates_data = json.loads(result[0])
+                    electricity_price = rates_data.get('import_rate')
+                    source = rates_data.get('source', 'Step 1')
+                    st.success(f"✅ Using authentic electricity rate from Step 1: €{electricity_price:.3f}/kWh (Source: {source})")
+            conn.close()
+    except Exception as e:
+        st.error(f"Database connection error: {str(e)}")
     
-    # Show rate source information
-    rate_source = electricity_rates.get('source', 'default_fallback')
-    if electricity_rates.get('live_rates_enabled'):
-        st.info(f"💡 Using live electricity rate from Step 1: {electricity_price:.3f} €/kWh (Source: {rate_source})")
-    else:
-        st.info(f"💡 Using electricity rate from Step 1: {electricity_price:.3f} €/kWh (Source: {rate_source})")
+    if electricity_price is None:
+        st.error("⚠️ Electricity rate not found. Please complete Step 1 (Project Setup) first.")
+        return
     
     col3, col4 = st.columns(2)
     
@@ -660,45 +668,15 @@ def render_optimization():
                     }
                 }
                 
-                # Save results to database
-                db_state_manager.save_step_completion('optimization', optimization_results)
-                
-                # Save to consolidated data manager
-                consolidated_manager = ConsolidatedDataManager()
-                step8_data = {
-                    'optimization_results': optimization_results,
-                    'pareto_solutions': solutions_df.to_dict('records'),
-                    'solutions': solutions_df.to_dict('records'),
-                    'fitness_history': fitness_history,
-                    'optimization_complete': True
-                }
-                consolidated_manager.save_step8_data(step8_data)
-                
-                # Save to database with validation
-                from services.io import get_current_project_id
-                project_id = get_current_project_id()
-                
-                if project_id:
-                    try:
-                        # Save using database helper
-                        db_helper.save_step_data("optimization", {
-                            'results': optimization_results,
-                            'pareto_solutions': pareto_solutions,
-                            'algorithm_config': algorithm_config,
-                            'optimization_complete': True
-                        })
-                        
-                        # Legacy save method for compatibility
-                        project_id = db_helper.get_project_id()
-                        if project_id:
-                            db_manager.save_optimization_results(
-                            project_id,
-                            optimization_results
-                        )
-                    except Exception as db_error:
-                        st.warning(f"Could not save to database: {str(db_error)}")
-                else:
-                    st.info("Results saved to session. Database save skipped (no project ID).")
+                # Save results to database only - no session state or consolidated manager
+                try:
+                    db_manager.save_optimization_results(project_id, {
+                        'solutions': solutions_df.to_dict('records')
+                    })
+                    st.success("✅ Optimization results saved to database")
+                except Exception as db_error:
+                    st.error(f"Database save error: {str(db_error)}")
+                    return
                 
                 st.success(f"✅ Optimization completed! Found {len(solutions_df)} viable solutions.")
                 
@@ -706,280 +684,83 @@ def render_optimization():
                 st.error(f"Error during optimization: {str(e)}")
                 return
     
-    # Display results if available
-    optimization_data = db_state_manager.get_step_data('optimization')
-    if optimization_data:
-        solutions = optimization_data.get('solutions')
+    # Display results from database only - no session state fallbacks
+    optimization_data = None
+    solutions = None
+    try:
+        conn = db_manager.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT solution_id, capacity, roi, net_import, total_cost 
+                    FROM optimization_results 
+                    WHERE project_id = %s 
+                    ORDER BY roi DESC
+                """, (project_id,))
+                
+                results = cursor.fetchall()
+                if results:
+                    solutions = pd.DataFrame(results, columns=['solution_id', 'capacity', 'roi', 'net_import', 'total_cost'])
+                    optimization_data = {'solutions': solutions}
+            conn.close()
+    except Exception as e:
+        st.error(f"Database connection error: {str(e)}")
         
-        if solutions is not None and len(solutions) > 0:
-            st.subheader("📊 Optimization Results")
-            
-            # Weighted objectives summary
-            config = optimization_data.get('optimization_config', {})
-            financial_params = config.get('financial_params', {})
-            
-            st.info(f"""
-            **Multi-Objective Optimization Results**
-            Weighted objectives used: Cost {financial_params.get('weight_cost', 33)}%, 
-            Yield {financial_params.get('weight_yield', 33)}%, 
-            ROI {financial_params.get('weight_roi', 34)}%
-            """)
-            
-            # Key metrics from best solutions
-            best_solution = solutions.iloc[0]
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric("Best Weighted Score", f"{best_solution.get('weighted_fitness', 0.0):.3f}")
-            
-            with col2:
-                st.metric("Best Investment", f"€{best_solution['total_investment']:,.0f}")
-            
-            with col3:
-                st.metric("Annual Energy", f"{best_solution['annual_energy_kwh']:,.0f} kWh")
-            
-            with col4:
-                st.metric("Solutions Found", len(solutions))
-            
-            # Objectives breakdown visualization
-            st.subheader("🎯 Multi-Objective Performance Analysis")
-            
-            # Create objectives breakdown chart
-            if len(solutions) >= 3:
-                top_solutions = solutions.head(3)
-                
-                # Calculate individual objective scores for top solutions
-                objectives_data = []
-                for _, sol in top_solutions.iterrows():
-                    # Normalize scores (0-1 scale for visualization)
-                    max_inv = optimization_params.get('max_investment', 100000)
-                    cost_score = 1 / (1 + sol['total_investment'] / max_inv) if max_inv > 0 else 0
-                    yield_score = sol['annual_energy_kwh'] / solutions['annual_energy_kwh'].max() if solutions['annual_energy_kwh'].max() > 0 else 0
-                    roi_score = min(sol['roi'] / 0.5, 1.0) if sol['roi'] > 0 else 0  # Cap at 50% ROI
-                    
-                    objectives_data.extend([
-                        {'Solution': sol['solution_id'], 'Objective': 'Cost Efficiency', 'Score': cost_score * 100, 'Weight': financial_params.get('weight_cost', 33)},
-                        {'Solution': sol['solution_id'], 'Objective': 'Energy Yield', 'Score': yield_score * 100, 'Weight': financial_params.get('weight_yield', 33)},
-                        {'Solution': sol['solution_id'], 'Objective': 'ROI Performance', 'Score': roi_score * 100, 'Weight': financial_params.get('weight_roi', 34)}
-                    ])
-                
-                objectives_df = pd.DataFrame(objectives_data)
-                
-                # Create grouped bar chart
-                fig_objectives = px.bar(
-                    objectives_df,
-                    x='Solution',
-                    y='Score',
-                    color='Objective',
-                    title="Multi-Objective Performance Breakdown (Top 3 Solutions)",
-                    labels={'Score': 'Normalized Score (%)', 'Solution': 'Solution ID'},
-                    text='Weight'
-                )
-                fig_objectives.update_traces(texttemplate='%{text}% weight', textposition='outside')
-                fig_objectives.update_layout(height=400)
-                st.plotly_chart(fig_objectives, use_container_width=True)
-            
-            # Solution selection and comparison
-            st.subheader("📊 Detailed Solution Comparison")
-            
-            # Solutions table with weighted score
-            display_columns = [
-                'solution_id', 'total_power_kw', 'total_investment', 
-                'annual_energy_kwh', 'annual_savings', 'roi', 'n_selected_elements'
-            ]
-            
-            st.dataframe(
-                solutions[display_columns].round(2),
-                use_container_width=True,
-                column_config={
-                    'solution_id': 'Solution ID',
-                    'total_power_kw': st.column_config.NumberColumn('Power (kW)', format="%.1f"),
-                    'total_investment': st.column_config.NumberColumn('Investment (€)', format="€%.0f"),
-                    'annual_energy_kwh': st.column_config.NumberColumn('Annual Energy (kWh)', format="%.0f"),
-                    'annual_savings': st.column_config.NumberColumn('Annual Savings (€)', format="€%.0f"),
-                    'roi': st.column_config.NumberColumn('ROI (%)', format="%.2%"),
-                    'n_selected_elements': st.column_config.NumberColumn('# Elements', format="%.0f")
-                }
-            )
-            
-            # Solution selection
-            st.subheader("✅ Select Preferred Solution")
-            
-            selected_solution_id = st.selectbox(
-                "Choose solution for detailed analysis:",
-                solutions['solution_id'].tolist(),
-                key="selected_solution_opt"
-            )
-            
-            selected_solution = solutions[solutions['solution_id'] == selected_solution_id].iloc[0]
-            
-            # Display selected solution details
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("**Selected Solution Summary:**")
-                st.write(f"• Total Power: {selected_solution['total_power_kw']:.1f} kW")
-                st.write(f"• Investment: €{selected_solution['total_investment']:,.0f}")
-                st.write(f"• Annual Energy: {selected_solution['annual_energy_kwh']:,.0f} kWh")
-                st.write(f"• Annual Savings: €{selected_solution['annual_savings']:,.0f}")
-                st.write(f"• Return on Investment: {selected_solution['roi']*100:.1f}%")
-            
-            with col2:
-                st.write("**Selected Elements:**")
-                selected_elements = selected_solution['selected_elements']
-                if isinstance(selected_elements, list) and len(selected_elements) > 0:
-                    # Display actual Element IDs directly (they're already correctly stored)
-                    for element_id in selected_elements[:5]:  # Show first 5
-                        st.write(f"• {element_id}")
-                    if len(selected_elements) > 5:
-                        st.write(f"• ... and {len(selected_elements) - 5} more")
-                else:
-                    st.write("No elements selected in this solution")
-            
-            if st.button("💾 Save Selected Solution", key="save_solution"):
-                # Save selected solution to database
-                db_state_manager.save_step_completion('optimization_selection', selected_solution)
-                st.success("Solution saved for financial analysis!")
-            
-            # Visualization tabs
-            st.subheader("📈 Optimization Analysis")
-            
-            tab1, tab2, tab3, tab4 = st.tabs(["Pareto Front", "Solution Comparison", "Investment Analysis", "Coverage Analysis"])
-            
-            with tab1:
-                # Pareto front visualization
-                fig_pareto = px.scatter(
-                    solutions,
-                    x='total_investment',
-                    y='roi',
-                    size='annual_energy_kwh',
-                    color='n_selected_elements',
-                    hover_data=['solution_id', 'annual_savings'],
-                    title="Pareto Front: Investment vs ROI",
-                    labels={
-                        'total_investment': 'Total Investment (€)',
-                        'roi': 'Return on Investment (%)',
-                        'annual_energy_kwh': 'Annual Energy (kWh)',
-                        'n_selected_elements': 'Number of Elements'
-                    }
-                )
-                fig_pareto.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')))
-                fig_pareto.update_layout(width=700, height=400)  # Fixed width to prevent expansion
-                st.plotly_chart(fig_pareto, use_container_width=False)
-            
-            with tab2:
-                # Solution comparison radar chart
-                if len(solutions) >= 3:
-                    top_solutions = solutions.head(3)
-                    
-                    # Normalize metrics for radar chart
-                    metrics = ['roi', 'annual_energy_kwh', 'annual_savings']
-                    normalized_data = []
-                    
-                    for _, solution in top_solutions.iterrows():
-                        normalized_metrics = []
-                        for metric in metrics:
-                            max_val = solutions[metric].max()
-                            min_val = solutions[metric].min()
-                            if max_val != min_val:
-                                norm_val = (solution[metric] - min_val) / (max_val - min_val)
-                            else:
-                                norm_val = 1.0
-                            normalized_metrics.append(norm_val)
-                        normalized_data.append(normalized_metrics)
-                    
-                    fig_radar = go.Figure()
-                    
-                    metric_labels = ['ROI', 'Annual Energy', 'Annual Savings']
-                    
-                    for i, (_, solution) in enumerate(top_solutions.iterrows()):
-                        fig_radar.add_trace(go.Scatterpolar(
-                            r=normalized_data[i] + [normalized_data[i][0]],  # Close the polygon
-                            theta=metric_labels + [metric_labels[0]],
-                            fill='toself',
-                            name=solution['solution_id']
-                        ))
-                    
-                    fig_radar.update_layout(
-                        polar=dict(
-                            radialaxis=dict(
-                                visible=True,
-                                range=[0, 1]
-                            )
-                        ),
-                        title="Top 3 Solutions Comparison"
-                    )
-                    
-                    st.plotly_chart(fig_radar, use_container_width=True)
-                else:
-                    st.info("Need at least 3 solutions for comparison chart")
-            
-            with tab3:
-                # Investment efficiency analysis
-                solutions['efficiency_ratio'] = solutions['annual_energy_kwh'] / solutions['total_investment']
-                
-                fig_efficiency = px.scatter(
-                    solutions,
-                    x='total_investment',
-                    y='efficiency_ratio',
-                    size='roi',
-                    color='solution_id',
-                    title="Investment Efficiency: Energy Output per Euro",
-                    labels={
-                        'total_investment': 'Total Investment (€)',
-                        'efficiency_ratio': 'Energy per Euro (kWh/€)',
-                        'roi': 'ROI'
-                    }
-                )
-                fig_efficiency.update_layout(width=700, height=400)  # Fixed width to prevent expansion
-                st.plotly_chart(fig_efficiency, use_container_width=False)
-            
-            with tab4:
-                # Coverage analysis
-                if energy_balance is not None and len(energy_balance) > 0:
-                    total_demand = energy_balance['predicted_demand'].sum()
-                    solutions['coverage_ratio'] = solutions['annual_energy_kwh'] / total_demand
-                    
-                    fig_coverage = px.bar(
-                        solutions.head(10),  # Top 10 solutions
-                        x='solution_id',
-                        y='coverage_ratio',
-                        color='roi',
-                        title="Energy Coverage by Solution",
-                        labels={'coverage_ratio': 'Coverage Ratio (%)', 'solution_id': 'Solution ID'}
-                    )
-                    fig_coverage.update_layout(yaxis_tickformat='.1%')
-                    fig_coverage.update_layout(width=700, height=400)  # Fixed width to prevent expansion
-                    st.plotly_chart(fig_coverage, use_container_width=False)
-                else:
-                    st.info("Energy balance data not available for coverage analysis")
-            
-            # Export results
-            st.subheader("💾 Export Optimization Results")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                if st.button("📊 Download Solutions (CSV)", key="download_solutions"):
-                    csv_data = solutions.to_csv(index=False)
-                    st.download_button(
-                        label="Download CSV",
-                        data=csv_data,
-                        file_name=f"optimization_solutions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
-                    )
-            
-            with col2:
-                st.info("Optimization complete - ready for financial analysis")
-            
-            # Add step-specific download button
-            st.markdown("---")
-            st.markdown("### 📄 Step 8 Analysis Report")
-            st.markdown("Download detailed multi-objective optimization analysis report:")
-            
-            from utils.individual_step_reports import create_step_download_button
-            create_step_download_button(8, "Optimization", "Download Optimization Analysis Report")
+    if optimization_data and solutions is not None and len(solutions) > 0:
+        st.subheader("📊 Optimization Results")
         
-        else:
-            st.warning("No optimization results available. Please run the optimization.")
+        st.info("**Multi-Objective Optimization Results from Database**")
+        
+        # Key metrics from best solutions using authentic database fields
+        best_solution = solutions.iloc[0]
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Best ROI", f"{best_solution['roi']:.1f}%")
+        
+        with col2:
+            st.metric("Best Investment", f"€{best_solution['total_cost']:,.0f}")
+        
+        with col3:
+            st.metric("Capacity", f"{best_solution['capacity']:.1f} kW")
+        
+        with col4:
+            st.metric("Solutions Found", len(solutions))
+            
+        # Solutions table with authentic database fields only
+        st.subheader("📊 Optimization Solutions")
+        
+        st.dataframe(
+            solutions,
+            use_container_width=True,
+            column_config={
+                'solution_id': 'Solution ID',
+                'capacity': st.column_config.NumberColumn('Capacity (kW)', format="%.1f"),
+                'total_cost': st.column_config.NumberColumn('Investment (€)', format="€%.0f"),
+                'roi': st.column_config.NumberColumn('ROI (%)', format="%.1f"),
+                'net_import': st.column_config.NumberColumn('Net Import (kWh)', format="%.0f")
+            }
+        )
+        
+        # Solution selection for Step 9
+        st.subheader("✅ Select Solution for Financial Analysis")
+        
+        selected_solution_id = st.selectbox(
+            "Choose solution for Step 9:",
+            solutions['solution_id'].tolist(),
+            key="selected_solution_opt"
+        )
+        
+        st.success(f"✅ Selected: {selected_solution_id} - Ready for Step 9 Financial Analysis")
+        
+        # Add step-specific download button
+        st.markdown("---")
+        st.markdown("### 📄 Step 8 Analysis Report")
+        st.markdown("Download detailed multi-objective optimization analysis report:")
+        
+        from utils.individual_step_reports import create_step_download_button
+        create_step_download_button(8, "Optimization", "Download Optimization Analysis Report")
+    
+    else:
+        st.warning("No optimization results available. Please run the optimization.")
