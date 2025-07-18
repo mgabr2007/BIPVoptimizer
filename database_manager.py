@@ -224,6 +224,12 @@ class BIPVDatabaseManager:
                 annual_demand = yield_demand_data.get('annual_demand', 0)
                 net_energy_balance = total_annual_yield - annual_demand
                 
+                # Calculate self-consumption rate
+                self_consumption_rate = 0
+                if annual_demand > 0:
+                    consumed_energy = min(total_annual_yield, annual_demand)
+                    self_consumption_rate = (consumed_energy / annual_demand) * 100
+                
                 # Calculate energy yield per m2 if building area available
                 energy_yield_per_m2 = 0
                 if 'analysis_config' in yield_demand_data:
@@ -231,18 +237,20 @@ class BIPVDatabaseManager:
                     if building_area > 0:
                         energy_yield_per_m2 = total_annual_yield / building_area
                 
-                # Update energy_analysis table with correct field mapping
+                # Update energy_analysis table with all fields matching database schema
                 cursor.execute("""
                     UPDATE energy_analysis SET 
                         annual_generation = %s,
                         annual_demand = %s,
                         net_energy_balance = %s,
+                        self_consumption_rate = %s,
                         energy_yield_per_m2 = %s
                     WHERE project_id = %s
                 """, (
                     total_annual_yield,
                     annual_demand,
                     net_energy_balance,
+                    self_consumption_rate,
                     energy_yield_per_m2,
                     project_id
                 ))
