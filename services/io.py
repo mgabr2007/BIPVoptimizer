@@ -10,22 +10,45 @@ from database_manager import db_manager
 
 
 def get_current_project_id():
-    """Get current project ID from database based on project name"""
-    project_name = st.session_state.get('project_name')
-    if not project_name:
-        return None
+    """Get current project ID from session state or database"""
     
-    try:
-        conn = db_manager.get_connection()
-        if conn:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_name,))
-                result = cursor.fetchone()
-                if result:
-                    return result[0]
-            conn.close()
-    except Exception as e:
-        st.error(f"Error getting project ID: {str(e)}")
+    # First, check if project_id is directly set in project_data (from project switching)
+    if 'project_data' in st.session_state and st.session_state.project_data.get('project_id'):
+        return st.session_state.project_data['project_id']
+    
+    # Second, check if project_id is directly in session state
+    if 'project_id' in st.session_state:
+        return st.session_state.project_id
+    
+    # Third, try to get from project_name in session state
+    project_name = st.session_state.get('project_name')
+    if project_name:
+        try:
+            conn = db_manager.get_connection()
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_name,))
+                    result = cursor.fetchone()
+                    if result:
+                        return result[0]
+                conn.close()
+        except Exception as e:
+            st.error(f"Error getting project ID: {str(e)}")
+    
+    # Fourth, try to get from project_name in project_data
+    if 'project_data' in st.session_state and st.session_state.project_data.get('project_name'):
+        project_name = st.session_state.project_data['project_name']
+        try:
+            conn = db_manager.get_connection()
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_name,))
+                    result = cursor.fetchone()
+                    if result:
+                        return result[0]
+                conn.close()
+        except Exception as e:
+            st.error(f"Error getting project ID: {str(e)}")
     
     return None
 
