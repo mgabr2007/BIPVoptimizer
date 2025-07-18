@@ -395,6 +395,45 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
+    def get_optimization_results(self, project_id):
+        """Get optimization results for a project"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            import pandas as pd
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT solution_id, capacity, roi, net_import, total_cost, rank_position, pareto_optimal
+                    FROM optimization_results 
+                    WHERE project_id = %s 
+                    ORDER BY rank_position
+                """, (project_id,))
+                
+                results = cursor.fetchall()
+                if results:
+                    # Convert to DataFrame and ensure float conversion for decimal.Decimal values
+                    solutions_data = []
+                    for row in results:
+                        solution = dict(row)
+                        # Convert decimal.Decimal to float to prevent arithmetic errors
+                        for key in ['capacity', 'roi', 'net_import', 'total_cost']:
+                            if solution[key] is not None:
+                                solution[key] = float(solution[key])
+                        solutions_data.append(solution)
+                    
+                    solutions_df = pd.DataFrame(solutions_data)
+                    return {'solutions': solutions_df}
+                
+                return None
+                
+        except Exception as e:
+            st.error(f"Error getting optimization results: {str(e)}")
+            return None
+        finally:
+            conn.close()
+    
     def save_building_elements(self, project_id, building_elements):
         """Save BIM building elements data with enhanced field name handling"""
         conn = self.get_connection()
