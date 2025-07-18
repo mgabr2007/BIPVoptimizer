@@ -446,6 +446,125 @@ def render_weather_station_selection():
         st.success(f"✅ Selected: {station['name']} (WMO: {station['wmo_id']})")
 
 
+def render_electricity_rate_integration():
+    """Render electricity rate integration based on location"""
+    st.subheader("5️⃣ Data Integration & Configuration")
+    
+    # Get location information
+    coords = st.session_state.map_coordinates
+    location_name = st.session_state.location_name
+    
+    # Get country code from reverse geocoding
+    try:
+        from services.weather_api_manager import get_geocoding_data
+        geocoding_data = get_geocoding_data(coords['lat'], coords['lng'])
+        country_code = geocoding_data.get('country_code', 'DE')
+    except:
+        # Extract from location name or default to Germany
+        if 'Germany' in location_name or 'Deutschland' in location_name:
+            country_code = 'DE'
+        elif 'France' in location_name:
+            country_code = 'FR'
+        elif 'Italy' in location_name:
+            country_code = 'IT'
+        elif 'Spain' in location_name:
+            country_code = 'ES'
+        elif 'Netherlands' in location_name:
+            country_code = 'NL'
+        elif 'United Kingdom' in location_name or 'UK' in location_name:
+            country_code = 'UK'
+        else:
+            country_code = 'DE'  # Default to Germany
+    
+    st.write("**🔌 Live Electricity Rate Integration**")
+    
+    # Fetch live electricity rates
+    if st.button("🔄 Fetch Live Electricity Rates", key="fetch_rates"):
+        with st.spinner("Fetching live electricity rates..."):
+            try:
+                from services.api_integrations import get_live_electricity_rates
+                rates_result = get_live_electricity_rates(country_code, location_name)
+                
+                if rates_result.get('success'):
+                    st.session_state.electricity_rates = {
+                        'import_rate': rates_result['import_rate'],
+                        'export_rate': rates_result['export_rate'],
+                        'source': rates_result['source'],
+                        'timestamp': rates_result['timestamp'],
+                        'country_code': country_code
+                    }
+                    st.success(f"✅ Retrieved rates from: {rates_result['source']}")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Import Rate", f"{rates_result['import_rate']:.3f} €/kWh")
+                    with col2:
+                        st.metric("Export Rate", f"{rates_result['export_rate']:.3f} €/kWh")
+                        
+                else:
+                    st.warning(f"⚠️ Live rates not available for {country_code}")
+                    st.write("Available manual input below")
+                    
+            except Exception as e:
+                st.error(f"Error fetching live rates: {str(e)}")
+    
+    # Manual rate input as fallback
+    if 'electricity_rates' not in st.session_state:
+        st.write("**⚙️ Manual Rate Configuration**")
+        
+        # Regional guidance
+        rate_guidance = {
+            'DE': {'import': 0.315, 'export': 0.082, 'note': 'German average residential rate'},
+            'FR': {'import': 0.276, 'export': 0.060, 'note': 'French residential rate (EDF base)'},
+            'IT': {'import': 0.284, 'export': 0.070, 'note': 'Italian residential rate'},
+            'ES': {'import': 0.264, 'export': 0.055, 'note': 'Spanish residential rate'},
+            'NL': {'import': 0.298, 'export': 0.075, 'note': 'Netherlands residential rate'},
+            'UK': {'import': 0.285, 'export': 0.050, 'note': 'UK average residential rate'},
+        }
+        
+        guidance = rate_guidance.get(country_code, rate_guidance['DE'])
+        st.info(f"💡 **Regional Guidance ({country_code}):** {guidance['note']}")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            import_rate = st.number_input(
+                "Import Rate (€/kWh)",
+                0.10, 0.50, guidance['import'], 0.001,
+                help="Your electricity purchase rate",
+                key="manual_import_rate"
+            )
+        with col2:
+            export_rate = st.number_input(
+                "Export Rate (€/kWh)", 
+                0.01, 0.20, guidance['export'], 0.001,
+                help="Feed-in tariff for excess solar energy",
+                key="manual_export_rate"
+            )
+        
+        if st.button("💾 Save Manual Rates", key="save_manual_rates"):
+            st.session_state.electricity_rates = {
+                'import_rate': import_rate,
+                'export_rate': export_rate,
+                'source': f'Manual Input - {guidance["note"]}',
+                'timestamp': datetime.now().isoformat(),
+                'country_code': country_code
+            }
+            st.success("✅ Manual electricity rates saved")
+    
+    # Display saved rates
+    if 'electricity_rates' in st.session_state:
+        rates = st.session_state.electricity_rates
+        st.write("**✅ Configured Electricity Rates**")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Import", f"{rates['import_rate']:.3f} €/kWh")
+        with col2:
+            st.metric("Export", f"{rates['export_rate']:.3f} €/kWh")
+        with col3:
+            st.write(f"**Source:** {rates['source']}")
+
+
 def save_project_configuration(project_name):
     """Save project configuration to database"""
     try:
@@ -469,6 +588,10 @@ def save_project_configuration(project_name):
         # Add weather API selection
         if 'selected_weather_api' in st.session_state:
             project_data['weather_api_choice'] = st.session_state.selected_weather_api
+        
+        # Add electricity rates if configured
+        if 'electricity_rates' in st.session_state:
+            project_data['electricity_rates'] = st.session_state.electricity_rates
         
         # Add weather station data if selected
         if 'selected_weather_station' in st.session_state:
@@ -513,9 +636,10 @@ def render_project_setup():
     render_location_selection()
     render_weather_api_selection()
     render_weather_station_selection()
+    render_electricity_rate_integration()
     
     # Configuration summary and save
-    st.subheader("5️⃣ Configuration Summary")
+    st.subheader("6️⃣ Configuration Summary")
     
     # Display current configuration
     coords = st.session_state.map_coordinates
@@ -543,11 +667,27 @@ def render_project_setup():
             st.write(f"• Distance: {station['distance_km']:.1f} km")
         else:
             st.warning("⚠️ No weather station selected")
+        
+        # Show electricity rates if configured
+        if 'electricity_rates' in st.session_state:
+            rates = st.session_state.electricity_rates
+            st.write("**Electricity Rates:**")
+            st.write(f"• Import: {rates['import_rate']:.3f} €/kWh")
+            st.write(f"• Export: {rates['export_rate']:.3f} €/kWh")
+            st.write(f"• Source: {rates['source'][:30]}...")
+        else:
+            st.warning("⚠️ No electricity rates configured")
     
     # Save configuration button
     if st.button("💾 Save Project Configuration", type="primary", key="save_config"):
+        missing_requirements = []
         if 'selected_weather_station' not in st.session_state:
-            st.error("❌ Please select a weather station before saving")
+            missing_requirements.append("Weather station")
+        if 'electricity_rates' not in st.session_state:
+            missing_requirements.append("Electricity rates")
+            
+        if missing_requirements:
+            st.error(f"❌ Please configure: {', '.join(missing_requirements)}")
         else:
             save_project_configuration(project_name)
     
