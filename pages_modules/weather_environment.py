@@ -354,7 +354,7 @@ def render_weather_environment():
     # Get project data from database using centralized approach
     from database_manager import BIPVDatabaseManager
     db_manager = BIPVDatabaseManager()
-    project_data = db_manager.get_project_data(project_id)
+    project_data = db_manager.get_project_by_id(project_id)
     
     if not project_data:
         st.error("Project data not found. Please complete Step 1 first.")
