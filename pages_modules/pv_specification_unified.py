@@ -127,19 +127,19 @@ def calculate_unified_bipv_specifications(building_elements, radiation_lookup, p
         orientation = element.get('orientation', element.get('Orientation', 'Unknown'))
         azimuth = float(element.get('azimuth', 180))  # Default South
         
-        # Get radiation data
-        annual_radiation = radiation_lookup.get(str(element_id), 1000)  # kWh/m²/year
+        # Get radiation data (ensure float type)
+        annual_radiation = float(radiation_lookup.get(str(element_id), 1000))  # kWh/m²/year
         
-        # Calculate BIPV system parameters using standard field names
-        bipv_area = glass_area * coverage_factor
-        capacity_kw = bipv_area * panel_specs['power_density'] / 1000  # Convert W/m² to kW
+        # Calculate BIPV system parameters using standard field names (ensure all float types)
+        bipv_area = float(glass_area) * float(coverage_factor)
+        capacity_kw = float(bipv_area) * float(panel_specs['power_density']) / 1000.0  # Convert W/m² to kW
         
-        # Calculate annual energy yield
-        specific_yield_kwh_m2 = annual_radiation * panel_specs['efficiency']
-        annual_energy_kwh = bipv_area * specific_yield_kwh_m2
+        # Calculate annual energy yield (ensure all float types)
+        specific_yield_kwh_m2 = float(annual_radiation) * float(panel_specs['efficiency'])
+        annual_energy_kwh = float(bipv_area) * float(specific_yield_kwh_m2)
         
-        # Calculate costs
-        total_cost_eur = bipv_area * panel_specs['cost_per_m2']
+        # Calculate costs (ensure all float types)
+        total_cost_eur = float(bipv_area) * float(panel_specs['cost_per_m2'])
         
         # Create specification with STANDARD field names for workflow consistency
         bipv_spec = {
@@ -180,8 +180,6 @@ def render_pv_specification():
         st.error("⚠️ No project ID found. Please complete Step 1 first.")
         return
     
-    st.write(f"🔍 **Debug Info:** Using project_id = {project_id}")
-    
     # Initialize database manager
     db_manager = BIPVDatabaseManager()
     
@@ -219,7 +217,7 @@ def render_pv_specification():
     # Check for building elements from database
     try:
         building_elements = db_manager.get_building_elements(project_id)
-        st.write(f"🔍 **Debug Info:** Retrieved {len(building_elements) if building_elements else 0} building elements for project_id {project_id}")
+        # Building elements loaded successfully
         if not building_elements or len(building_elements) == 0:
             st.error("⚠️ Building elements required. Complete Step 4 first.")
             return
@@ -228,14 +226,6 @@ def render_pv_specification():
         return
     
     st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_analysis_data.get('element_radiation', []))} radiation records")
-    
-    # Debug: Check actual azimuth values in building elements
-    azimuth_debug = []
-    for element in building_elements:
-        azimuth = element.get('azimuth', 0)
-        azimuth_debug.append(azimuth)
-    
-    st.write(f"🔍 **Debug Info:** Sample azimuth values: {azimuth_debug[:10]}")
     
     # Apply BIPV suitability filtering based on azimuth (not database pv_suitable flag)
     suitable_elements = []
@@ -246,11 +236,8 @@ def render_pv_specification():
             # Exclude North (315-45°) - poor solar performance
             if not (315 <= azimuth <= 360 or 0 <= azimuth <= 45):
                 suitable_elements.append(element)
-                st.write(f"✅ Element {element.get('element_id')} suitable - azimuth: {azimuth}°")
-            else:
-                st.write(f"❌ Element {element.get('element_id')} excluded - azimuth: {azimuth}° (North-facing)")
-        except (ValueError, TypeError) as e:
-            st.write(f"⚠️ Invalid azimuth for element {element.get('element_id')}: {element.get('azimuth')} - {e}")
+        except (ValueError, TypeError):
+            continue  # Skip elements with invalid azimuth data
     
     if len(suitable_elements) == 0:
         st.error("❌ No suitable elements found for BIPV installation. Check building orientation data.")
