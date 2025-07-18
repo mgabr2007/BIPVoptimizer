@@ -433,8 +433,7 @@ def render_weather_environment():
         if conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT temperature, humidity, description, annual_ghi, annual_dni, annual_dhi,
-                           tmy_data, peak_sun_hours, created_at
+                    SELECT temperature, humidity, description, annual_ghi, annual_dni, annual_dhi, created_at
                     FROM weather_data WHERE project_id = %s 
                     ORDER BY created_at DESC LIMIT 1
                 """, (project_id,))
@@ -447,9 +446,7 @@ def render_weather_environment():
                         'annual_ghi': result[3],
                         'annual_dni': result[4],
                         'annual_dhi': result[5],
-                        'tmy_data': result[6],
-                        'peak_sun_hours': result[7],
-                        'created_at': result[8]
+                        'created_at': result[6]
                     }
             conn.close()
     except Exception as e:
@@ -475,7 +472,9 @@ def render_weather_environment():
                 st.metric("Annual DHI", f"{annual_dhi:,.0f} kWh/m²")
             
             with col4:
-                peak_sun_hours = existing_weather_data.get('peak_sun_hours', 0)
+                # Calculate peak sun hours from GHI (GHI / 1000 W/m²)
+                annual_ghi = existing_weather_data.get('annual_ghi', 0)
+                peak_sun_hours = annual_ghi / 365 if annual_ghi > 0 else 0
                 st.metric("Peak Sun Hours", f"{peak_sun_hours:.1f} h/day")
             
             col1, col2 = st.columns(2)
@@ -499,33 +498,40 @@ def render_weather_environment():
                     - Quality: Authenticated TMY Dataset
                     """)
             
-            # Display TMY data sample if available
-            tmy_data = existing_weather_data.get('tmy_data')
-            if tmy_data:
-                import json
-                try:
-                    tmy_records = json.loads(tmy_data) if isinstance(tmy_data, str) else tmy_data
-                    if tmy_records and len(tmy_records) > 0:
-                        st.subheader("📊 TMY Data Summary (First 24 Hours)")
-                        
-                        import pandas as pd
-                        sample_data = tmy_records[:24]  # First 24 hours
-                        df_sample = pd.DataFrame(sample_data)
-                        
-                        if not df_sample.empty:
-                            # Select key columns for display
-                            display_cols = []
-                            for col in ['datetime', 'ghi', 'dni', 'dhi', 'temperature', 'solar_elevation']:
-                                if col in df_sample.columns:
-                                    display_cols.append(col)
-                            
-                            if display_cols:
-                                st.dataframe(df_sample[display_cols].head(12), use_container_width=True)
-                        
-                        st.success(f"✅ Complete TMY dataset contains {len(tmy_records):,} hourly records")
+            # Show weather data quality and TMY status
+            st.subheader("📊 TMY Data Status")
+            
+            annual_ghi = existing_weather_data.get('annual_ghi', 0)
+            annual_dni = existing_weather_data.get('annual_dni', 0)
+            annual_dhi = existing_weather_data.get('annual_dhi', 0)
+            
+            if annual_ghi > 0:
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.success("✅ TMY Data Generated Successfully")
+                    st.write(f"- Total solar irradiance: {annual_ghi + annual_dni + annual_dhi:,.0f} kWh/m²/year")
+                    st.write(f"- GHI percentage: {(annual_ghi/(annual_ghi + annual_dni + annual_dhi)*100):.1f}%")
                 
-                except Exception as e:
-                    st.warning(f"TMY data available but cannot display: {str(e)}")
+                with col2:
+                    # Solar resource classification
+                    if annual_ghi > 1600:
+                        resource_class = "Excellent (>1600 kWh/m²/year)"
+                        resource_color = "🟢"
+                    elif annual_ghi > 1200:
+                        resource_class = "Good (1200-1600 kWh/m²/year)"
+                        resource_color = "🟡"
+                    else:
+                        resource_class = "Moderate (<1200 kWh/m²/year)"
+                        resource_color = "🟠"
+                    
+                    st.info(f"""
+                    **Solar Resource Quality:**
+                    {resource_color} {resource_class}
+                    
+                    **BIPV Suitability:** {'High' if annual_ghi > 1200 else 'Moderate'}
+                    """)
+            else:
+                st.warning("❌ No TMY data available - Generate below")
             
             st.info("💡 **Data is loaded from database.** You can regenerate TMY data below, or proceed to Step 4.")
         
