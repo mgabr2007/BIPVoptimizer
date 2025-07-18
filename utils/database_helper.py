@@ -38,6 +38,23 @@ class DatabaseHelper:
             return False
         
         try:
+            # Convert numeric step names to proper step names
+            step_mapping = {
+                "1": "project_setup",
+                "2": "historical_data", 
+                "3": "weather_analysis",
+                "4": "building_elements",
+                "5": "radiation_analysis",
+                "6": "pv_specifications",
+                "7": "yield_demand",
+                "8": "optimization",
+                "9": "financial_analysis"
+            }
+            
+            # Map numeric step names to proper names
+            if str(step_name) in step_mapping:
+                step_name = step_mapping[str(step_name)]
+            
             # Choose appropriate save method based on step
             if step_name == "weather_analysis":
                 return self.db_manager.save_weather_data(project_id, data)
@@ -81,8 +98,62 @@ class DatabaseHelper:
             return None
         
         try:
+            # Convert numeric step names to proper step names
+            step_mapping = {
+                "1": "project_setup",
+                "2": "historical_data", 
+                "3": "weather_analysis",
+                "4": "building_elements",
+                "5": "radiation_analysis",
+                "6": "pv_specifications",
+                "7": "yield_demand",
+                "8": "optimization",
+                "9": "financial_analysis"
+            }
+            
+            # Map numeric step names to proper names
+            if str(step_name) in step_mapping:
+                step_name = step_mapping[str(step_name)]
+            
             # Only retrieve authentic database data - no fallbacks
-            if step_name == "yield_demand":
+            if step_name == "weather_analysis":
+                # Get weather data from database
+                conn = self.db_manager.get_connection()
+                if conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT temperature, annual_ghi, tmy_data, monthly_profiles, environmental_factors
+                            FROM weather_data 
+                            WHERE project_id = %s
+                            ORDER BY created_at DESC LIMIT 1
+                        """, (project_id,))
+                        
+                        result = cursor.fetchone()
+                        if result:
+                            weather_data = {
+                                'temperature': result[0],
+                                'annual_ghi': result[1]
+                            }
+                            # Parse JSON fields if they exist
+                            if result[2]:  # tmy_data
+                                try:
+                                    weather_data['tmy_data'] = json.loads(result[2])
+                                except:
+                                    pass
+                            if result[3]:  # monthly_profiles
+                                try:
+                                    weather_data['monthly_profiles'] = json.loads(result[3])
+                                except:
+                                    pass
+                            if result[4]:  # environmental_factors
+                                try:
+                                    weather_data['environmental_factors'] = json.loads(result[4])
+                                except:
+                                    pass
+                            return weather_data
+                    conn.close()
+                return None
+            elif step_name == "yield_demand":
                 # Get from energy_analysis table
                 conn = self.db_manager.get_connection()
                 if conn:

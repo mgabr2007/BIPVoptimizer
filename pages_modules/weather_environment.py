@@ -495,7 +495,7 @@ def render_weather_environment():
     # TMY Generation Section
     st.subheader("🌤️ TMY Data Generation")
     
-    existing_weather_data = controller.data_manager.get_step_data(3)
+    existing_weather_data = controller.data_manager.get_step_data("3")
     has_existing_tmy = existing_weather_data and existing_weather_data.get('tmy_data')
     
     if has_existing_tmy:
@@ -534,7 +534,7 @@ def render_weather_environment():
                 
                 try:
                     controller.db_manager.save_weather_data(controller.project_id, weather_data)
-                    controller.data_manager.save_step_data(3, {
+                    controller.data_manager.save_step_data("3", {
                         'tmy_data': tmy_data,
                         'monthly_stats': monthly_stats,
                         'annual_stats': annual_stats,
@@ -550,7 +550,7 @@ def render_weather_environment():
                 return
     
     # Load existing data for display
-    step_data = controller.data_manager.get_step_data(3)
+    step_data = controller.data_manager.get_step_data("3")
     if step_data:
         tmy_data = step_data.get('tmy_data', [])
         monthly_stats = step_data.get('monthly_stats', {})
@@ -625,7 +625,7 @@ def render_weather_environment():
                              f"({original_ghi:.0f} → {adjusted_ghi:.0f} kWh/m²)")
                     
                     # Update stored data with environmental adjustments
-                    controller.data_manager.save_step_data(3, {
+                    controller.data_manager.save_step_data("3", {
                         'tmy_data': adjusted_tmy_data,
                         'monthly_stats': calculate_monthly_solar_profiles(adjusted_tmy_data),
                         'annual_stats': adjusted_annual_stats,
