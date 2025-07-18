@@ -618,7 +618,7 @@ try:
             if project_details:
                 st.session_state.project_data['project_name'] = project_details.get('project_name')
                 st.sidebar.success(f"✅ Switched to Project ID: {selected_project_id}")
-                st.rerun()
+                # Remove st.rerun() to prevent refresh loop - the page will update naturally
         
         # Show current project info
         if current_project_id:
