@@ -34,12 +34,27 @@ def validate_step7_dependencies(project_id):
         # Fetch all project data in single database call
         project_data = db_manager.get_project_data(project_id)
         
-        # Validate historical data (Step 2)
+        # Validate historical data (Step 2) - check both ai_models and energy_analysis tables
         historical_data = db_manager.get_historical_data(project_id)
-        if historical_data and historical_data.get('consumption_data'):
+        if historical_data and (historical_data.get('annual_consumption') or historical_data.get('data_analysis_complete')):
             validation_results['historical_data'] = True
         else:
-            validation_results['errors'].append("Historical energy data missing. Please complete Step 2 (Historical Data Analysis).")
+            # Also check ai_models table directly
+            try:
+                conn = db_manager.get_connection()
+                if conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("SELECT COUNT(*) FROM ai_models WHERE project_id = %s", (project_id,))
+                        ai_model_count = cursor.fetchone()[0]
+                        if ai_model_count > 0:
+                            validation_results['historical_data'] = True
+                        else:
+                            validation_results['errors'].append("Historical energy data missing. Please complete Step 2 (Historical Data Analysis).")
+                    conn.close()
+                else:
+                    validation_results['errors'].append("Historical energy data missing. Please complete Step 2 (Historical Data Analysis).")
+            except Exception:
+                validation_results['errors'].append("Historical energy data missing. Please complete Step 2 (Historical Data Analysis).")
         
         # Validate PV specifications (Step 6)
         pv_specs = db_manager.get_pv_specifications(project_id)
