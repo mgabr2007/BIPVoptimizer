@@ -197,7 +197,7 @@ def render_weather_api_selection():
             st.write("**⚙️ API Selection**")
             
             api_options = {
-                'auto': f"🤖 Automatic ({coverage_info['recommended_api'].replace('_', ' ').title()})",
+                'wmo_stations': "🏢 WMO Weather Stations (Nearest)",
                 'tu_berlin': "🎓 TU Berlin Climate Portal",
                 'openweathermap': "🌍 OpenWeatherMap Global"
             }
@@ -240,7 +240,7 @@ def render_weather_api_selection():
                     st.write(f"• {adv}")
     
     except ImportError:
-        st.warning("Weather API manager not available. Using WMO stations only.")
+        st.info("Using WMO weather stations for reliable global coverage.")
         selected_api = 'wmo_stations'
         st.session_state.selected_weather_api = selected_api
 
@@ -259,9 +259,9 @@ def render_weather_station_selection():
     # Search radius selection
     search_radius = st.selectbox(
         "Search Radius for Weather Stations",
-        [100, 200, 500, 1000],
-        index=1,
-        help="Maximum distance to search for WMO weather stations (km)",
+        [20, 50, 100, 200, 500, 1000],
+        index=0,
+        help="Maximum distance to search for weather stations (km)",
         key="search_radius"
     )
     
@@ -377,7 +377,13 @@ def render_weather_station_selection():
                         if not stations_df.empty:
                             stations_list = stations_df.to_dict('records')
                             st.session_state.available_stations = stations_list
-                            st.success(f"Found {len(stations_list)} WMO weather stations within {search_radius} km")
+                            # Auto-select nearest station within 20km if search radius is 20km
+                            if search_radius == 20 and len(stations_list) > 0:
+                                nearest_station = stations_list[0]  # First station is nearest
+                                st.session_state.selected_weather_station = nearest_station
+                                st.success(f"✅ Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
+                            else:
+                                st.success(f"Found {len(stations_list)} WMO weather stations within {search_radius} km")
                         else:
                             st.warning(f"No WMO stations found within {search_radius} km.")
                 else:
@@ -391,7 +397,13 @@ def render_weather_station_selection():
                     if not stations_df.empty:
                         stations_list = stations_df.to_dict('records')
                         st.session_state.available_stations = stations_list
-                        st.success(f"Found {len(stations_list)} WMO weather stations within {search_radius} km")
+                        # Auto-select nearest station within 20km if search radius is 20km
+                        if search_radius == 20 and len(stations_list) > 0:
+                            nearest_station = stations_list[0]  # First station is nearest
+                            st.session_state.selected_weather_station = nearest_station
+                            st.success(f"✅ Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
+                        else:
+                            st.success(f"Found {len(stations_list)} WMO weather stations within {search_radius} km")
                     else:
                         st.warning(f"No WMO stations found within {search_radius} km. Try increasing the search radius.")
                         
