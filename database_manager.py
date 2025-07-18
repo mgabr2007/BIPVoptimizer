@@ -651,19 +651,19 @@ class BIPVDatabaseManager:
                 # Extract panel specs if nested
                 panel_specs = pv_specs.get('panel_specs', pv_specs)
                 
-                # Insert PV specifications with complete data
+                # Insert PV specifications - only authentic data, no fallbacks
                 cursor.execute("""
                     INSERT INTO pv_specifications 
                     (project_id, panel_type, efficiency, transparency, cost_per_m2, power_density, installation_factor, specification_data)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
-                    panel_specs.get('panel_type', panel_specs.get('name', 'Custom BIPV')),
+                    panel_specs.get('panel_type') or panel_specs.get('name'),
                     panel_specs.get('efficiency'),
                     panel_specs.get('transparency'),
                     panel_specs.get('cost_per_m2'),
                     panel_specs.get('power_density'),
-                    panel_specs.get('installation_factor', 0.85),
+                    panel_specs.get('installation_factor'),
                     json.dumps(pv_specs)  # Store complete specifications as JSON
                 ))
                 
