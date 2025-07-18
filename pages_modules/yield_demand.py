@@ -94,8 +94,11 @@ def render_yield_demand():
                     pv_specs = db_manager.get_pv_specifications(project_id)
                     historical_data = db_manager.get_historical_data(project_id)
                     
-                    st.write(f"Debug - PV specs: {pv_specs}")
-                    st.write(f"Debug - Historical data: {historical_data}")
+                    st.write(f"Debug - PV specs type: {type(pv_specs)}")
+                    if isinstance(pv_specs, dict) and 'bipv_specifications' in pv_specs:
+                        st.write(f"Debug - BIPV specs count: {len(pv_specs['bipv_specifications'])}")
+                    st.write(f"Debug - Historical data type: {type(historical_data)}")
+                    st.write(f"Debug - Historical data keys: {list(historical_data.keys()) if isinstance(historical_data, dict) else 'Not a dict'}")
                     
                     if not pv_specs or not historical_data:
                         st.error("Missing required data for analysis")
@@ -141,10 +144,28 @@ def render_yield_demand():
                     annual_demand = 0
                     try:
                         if isinstance(historical_data, dict):
-                            annual_demand = float(historical_data.get('annual_consumption', 0))
+                            # Try multiple possible field names for annual consumption
+                            possible_fields = ['annual_consumption', 'total_annual_consumption', 'base_consumption']
+                            for field in possible_fields:
+                                if field in historical_data and historical_data[field]:
+                                    annual_demand = float(historical_data[field])
+                                    st.write(f"Debug - Found annual demand from '{field}': {annual_demand}")
+                                    break
+                            
+                            # If still no annual demand, try to calculate from consumption data
+                            if annual_demand == 0 and 'consumption_data' in historical_data:
+                                consumption_data = historical_data['consumption_data']
+                                if isinstance(consumption_data, list) and len(consumption_data) > 0:
+                                    annual_demand = sum(float(x) for x in consumption_data if x is not None)
+                                    st.write(f"Debug - Calculated annual demand from consumption data: {annual_demand}")
+                                elif isinstance(consumption_data, dict):
+                                    annual_demand = sum(float(v) for v in consumption_data.values() if v is not None)
+                                    st.write(f"Debug - Calculated annual demand from consumption dict: {annual_demand}")
+                                    
                             if annual_demand == 0:
-                                # Try alternative field names
-                                annual_demand = float(historical_data.get('total_annual_consumption', 0))
+                                st.error("No annual consumption data found in historical data")
+                                st.write(f"Available fields: {list(historical_data.keys())}")
+                                return
                         else:
                             st.error(f"Historical data format unexpected: {type(historical_data)}")
                             return
@@ -152,12 +173,34 @@ def render_yield_demand():
                         st.error(f"Error parsing annual demand: {e}")
                         return
                     
-                    # Calculate key metrics
-                    coverage_ratio = (total_annual_yield / annual_demand * 100) if annual_demand > 0 else 0
-                    specific_yield = (total_annual_yield / total_capacity_kw) if total_capacity_kw > 0 else 0
+                    # Validate calculations before proceeding
+                    st.write(f"Debug - Calculation inputs:")
+                    st.write(f"  Total capacity: {total_capacity_kw} kW")
+                    st.write(f"  Total annual yield: {total_annual_yield} kWh")
+                    st.write(f"  Total cost: {total_cost_eur} EUR")
+                    st.write(f"  Annual demand: {annual_demand} kWh")
+                    st.write(f"  Electricity price: {electricity_price} EUR/kWh")
+                    
+                    # Calculate key metrics with validation
+                    if annual_demand > 0:
+                        coverage_ratio = (total_annual_yield / annual_demand * 100)
+                    else:
+                        coverage_ratio = 0
+                        st.warning("Annual demand is zero - cannot calculate coverage ratio")
+                    
+                    if total_capacity_kw > 0:
+                        specific_yield = (total_annual_yield / total_capacity_kw)
+                    else:
+                        specific_yield = 0
+                        st.warning("Total capacity is zero - cannot calculate specific yield")
                     
                     # Calculate savings
                     annual_savings = total_annual_yield * electricity_price
+                    
+                    # Validate all calculations are reasonable
+                    if total_capacity_kw == 0 or total_annual_yield == 0 or total_cost_eur == 0:
+                        st.error("Some calculated values are zero - check BIPV specifications data")
+                        return
                     
                     st.success("✅ Analysis completed successfully!")
                     
