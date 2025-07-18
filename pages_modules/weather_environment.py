@@ -213,7 +213,7 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
         
         # Get the current weather analysis to preserve original annual GHI
         weather_analysis = st.session_state.project_data.get('weather_analysis', {})
-        original_annual_ghi = weather_analysis.get('annual_ghi', 0)
+        original_annual_ghi = float(weather_analysis.get('annual_ghi', 0) or 0)
         
         # If original_annual_ghi is 0, calculate it from current TMY data
         if original_annual_ghi == 0:
@@ -248,7 +248,7 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
             adjusted_tmy_data.append(adjusted_hour)
         
         # Calculate new annual GHI using the same field names as original
-        annual_ghi = 0
+        annual_ghi = 0.0
         for hour in adjusted_tmy_data:
             for key in ['ghi', 'GHI', 'Global_Horizontal_Irradiance', 'ghi_wm2']:
                 if key in hour and hour[key] is not None:
@@ -296,7 +296,7 @@ def regenerate_tmy_with_environmental_factors(lat, lon, original_tmy_data, shadi
         with col2:
             st.metric("Adjusted Annual GHI", f"{annual_ghi:,.0f} kWh/m²")
         with col3:
-            reduction_amount = original_annual_ghi - annual_ghi
+            reduction_amount = float(original_annual_ghi) - float(annual_ghi)
             st.metric("Reduction", f"{reduction_amount:,.0f} kWh/m²", f"-{shading_reduction}%")
         
         return True
@@ -777,9 +777,9 @@ def render_weather_environment():
                                     'temperature': weather_analysis.get('temperature'),
                                     'humidity': weather_analysis.get('humidity'),
                                     'description': weather_analysis.get('description', 'TMY Generated'),
-                                    'annual_ghi': annual_ghi,
-                                    'annual_dni': weather_analysis.get('annual_dni', 0),
-                                    'annual_dhi': weather_analysis.get('annual_dhi', 0),
+                                    'annual_ghi': float(annual_ghi),
+                                    'annual_dni': float(weather_analysis.get('annual_dni', 0) or 0),
+                                    'annual_dhi': float(weather_analysis.get('annual_dhi', 0) or 0),
                                     'tmy_data': tmy_data,
                                     'monthly_profiles': monthly_solar
                                 }
