@@ -147,9 +147,9 @@ def load_dashboard_data():
             # PV Specifications (Step 6)
             cursor.execute("""
                 SELECT COUNT(*) as pv_systems,
-                       SUM(capacity_kw) as total_capacity,
+                       AVG(power_density) as avg_power_density,
                        AVG(efficiency) as avg_efficiency,
-                       SUM(annual_energy_kwh) as total_annual_generation
+                       AVG(cost_per_m2) as avg_cost_per_m2
                 FROM pv_specifications WHERE project_id = %s
             """, (project_id,))
             pv_stats = cursor.fetchone()
@@ -157,9 +157,9 @@ def load_dashboard_data():
             if pv_stats:
                 dashboard_data['pv_systems'] = {
                     'total_systems': pv_stats[0],
-                    'total_capacity_kw': pv_stats[1],
-                    'avg_efficiency': pv_stats[2],
-                    'total_annual_generation': pv_stats[3]
+                    'avg_power_density': float(pv_stats[1]) if pv_stats[1] else 0,
+                    'avg_efficiency': float(pv_stats[2]) if pv_stats[2] else 0,
+                    'avg_cost_per_m2': float(pv_stats[3]) if pv_stats[3] else 0
                 }
             
             # Energy Analysis (Step 7)
