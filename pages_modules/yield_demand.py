@@ -27,7 +27,10 @@ def load_demand_model(project_id):
     try:
         # Get demand model from database
         project_data = db_manager.get_historical_data(project_id)
-        model_data = project_data.get('demand_model') if project_data else None
+        if project_data and isinstance(project_data, dict):
+            model_data = project_data.get('demand_model')
+        else:
+            model_data = None
         if model_data:
             # If model_data is already a dict, return it directly
             if isinstance(model_data, dict):
@@ -312,7 +315,7 @@ def render_yield_demand():
     # Check dependencies - look for actual data instead of flags
     
     # Check for PV specifications from Step 6 - enhanced with database fallback
-    pv_specs = project_data.get('pv_specifications')
+    pv_specs = project_data.get('pv_specifications') if isinstance(project_data, dict) else None
     # Try to get PV specs from database if not in project data
     if pv_specs is None:
         pv_specs = db_manager.get_pv_specifications(project_id)
