@@ -172,12 +172,12 @@ class BIPVDatabaseManager:
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
-                    temperature,
-                    humidity,
+                    float(temperature) if temperature is not None else 15.0,
+                    float(humidity) if humidity is not None else 65.0,
                     description,
-                    annual_ghi,
-                    annual_dni,
-                    annual_dhi
+                    float(annual_ghi) if annual_ghi is not None else 0.0,
+                    float(annual_dni) if annual_dni is not None else 0.0,
+                    float(annual_dhi) if annual_dhi is not None else 0.0
                 ))
                 
                 conn.commit()
@@ -963,17 +963,17 @@ class BIPVDatabaseManager:
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
-                    weather_analysis.get('temperature'),
-                    weather_analysis.get('humidity'),
+                    float(weather_analysis.get('temperature', 15.0) or 15.0),
+                    float(weather_analysis.get('humidity', 65.0) or 65.0),
                     weather_analysis.get('description', 'TMY Generated'),
-                    weather_analysis.get('annual_ghi', 0),
-                    weather_analysis.get('annual_dni', 0),
-                    weather_analysis.get('annual_dhi', 0),
+                    float(weather_analysis.get('annual_ghi', 0) or 0),
+                    float(weather_analysis.get('annual_dni', 0) or 0),
+                    float(weather_analysis.get('annual_dhi', 0) or 0),
                     tmy_data,
                     monthly_profiles,
                     solar_position_data,
                     environmental_factors,
-                    weather_analysis.get('clearness_index', 0.5),
+                    float(weather_analysis.get('clearness_index', 0.5) or 0.5),
                     station_metadata,
                     weather_analysis.get('generation_method', 'ISO_15927-4')
                 ))
@@ -1008,6 +1008,12 @@ class BIPVDatabaseManager:
                 
                 if result:
                     weather_data = dict(result)
+                    
+                    # Convert decimal.Decimal values to float immediately to prevent arithmetic errors
+                    numeric_fields = ['annual_ghi', 'annual_dni', 'annual_dhi', 'temperature', 'humidity', 'clearness_index']
+                    for field in numeric_fields:
+                        if field in weather_data and weather_data[field] is not None:
+                            weather_data[field] = float(weather_data[field])
                     
                     # Parse JSON fields safely
                     try:

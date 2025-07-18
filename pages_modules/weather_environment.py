@@ -510,9 +510,9 @@ def render_weather_environment():
             st.subheader("📊 TMY Data Status")
             
             # Data is already converted to float in extraction above, but ensure safety
-            annual_ghi = existing_weather_data.get('annual_ghi', 0)
-            annual_dni = existing_weather_data.get('annual_dni', 0)
-            annual_dhi = existing_weather_data.get('annual_dhi', 0)
+            annual_ghi = float(existing_weather_data.get('annual_ghi', 0) or 0)
+            annual_dni = float(existing_weather_data.get('annual_dni', 0) or 0) 
+            annual_dhi = float(existing_weather_data.get('annual_dhi', 0) or 0)
             
             if annual_ghi > 0:
                 col1, col2 = st.columns(2)
