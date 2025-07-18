@@ -348,13 +348,16 @@ def render_yield_demand():
     st.success(f"✅ PV specifications found ({suitable_count} suitable BIPV systems)")
     st.info("💡 Analysis includes only South/East/West-facing elements with good solar performance")
     
-    # Check for historical data from Step 2 - look in correct location
-    historical_data_project = project_data.get('historical_data')  # This is where Step 2 saves it
-    data_analysis_complete = project_data.get('data_analysis_complete', False)
+    # Check for historical data from Step 2 - check database directly
+    historical_data_project = db_manager.get_historical_data(project_id)
+    data_analysis_complete = historical_data_project is not None and historical_data_project.get('data_analysis_complete', False)
     
-    if historical_data_project is None and not data_analysis_complete:
+    if historical_data_project is None:
         st.error("⚠️ Historical data analysis not available. Please complete Step 2 (Historical Data Analysis).")
+        st.info("💡 **Next Steps:**\n1. Go to Step 2 (Historical Data Analysis)\n2. Upload historical energy data and train the AI model\n3. Return to this step")
         return
+    else:
+        st.success(f"✅ Historical data found - Annual consumption: {historical_data_project.get('annual_consumption', 0):,.0f} kWh")
     
     # Check for radiation data from Step 5 (multiple possible locations)
     radiation_data = project_data.get('radiation_data')
@@ -406,26 +409,26 @@ def render_yield_demand():
     if radiation_data_df is not None:
         st.success(f"✅ Radiation analysis found ({len(radiation_data_df)} elements)")
     
-    # Use historical data from Step 2
-    if historical_data_project:
-        # Use actual AI forecast data with seasonal variation from Step 2
-        forecast_data = historical_data_project.get('forecast_25_years', [])
-        consumption_pattern = historical_data_project.get('consumption', [])
-        avg_consumption = historical_data_project.get('avg_consumption', 2500)
+    # Extract baseline energy demand from database historical data
+    annual_consumption = historical_data_project.get('annual_consumption', 0)
+    avg_consumption = annual_consumption / 12 if annual_consumption > 0 else 0
+    
+    # Also check project_data for forecast data if available
+    forecast_data = project_data.get('forecast_data', [])
+    consumption_pattern = project_data.get('consumption_pattern', [])
+    
+    if avg_consumption > 0:
+        st.success(f"Using historical data: {annual_consumption:.0f} kWh/year ({avg_consumption:.0f} kWh/month average)")
         
-        st.success(f"Using AI forecast data: {avg_consumption:.0f} kWh/month average with seasonal variation")
-        
-        # Use actual monthly consumption pattern from Step 2
+        # Use actual monthly consumption pattern from Step 2 if available
         if consumption_pattern and len(consumption_pattern) >= 12:
             monthly_demand = consumption_pattern[:12]  # Use first 12 months
+        elif forecast_data and len(forecast_data) >= 12:
+            monthly_demand = forecast_data[:12]
         else:
-            # Calculate from forecast if available
-            if forecast_data and len(forecast_data) >= 12:
-                monthly_demand = forecast_data[:12]
-            else:
-                # Apply seasonal factors to average
-                seasonal_factors = [1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]
-                monthly_demand = [avg_consumption * factor for factor in seasonal_factors]
+            # Apply realistic seasonal factors to average
+            seasonal_factors = [1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2]
+            monthly_demand = [avg_consumption * factor for factor in seasonal_factors]
         
         baseline_demand = {
             'avg_consumption': avg_consumption,
@@ -434,14 +437,8 @@ def render_yield_demand():
             'monthly_demand': monthly_demand
         }
     else:
-        # Fallback if somehow data is missing
-        baseline_demand = {
-            'avg_consumption': 2500,
-            'total_consumption': 30000,
-            'consumption': [2400, 2200, 2100, 2000, 1900, 1800, 2000, 2100, 2200, 2400, 2500, 2600],
-            'monthly_demand': [2400, 2200, 2100, 2000, 1900, 1800, 2000, 2100, 2200, 2400, 2500, 2600]
-        }
-        st.info("Using baseline demand patterns for analysis.")
+        st.error("⚠️ Historical consumption data appears to be missing or zero. Please verify Step 2 completion.")
+        return
     
     # Load demand model (optional)
     model, feature_columns, metrics = load_demand_model(project_id)

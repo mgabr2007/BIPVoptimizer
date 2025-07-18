@@ -225,6 +225,36 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
+    def get_historical_data(self, project_id):
+        """Get historical data analysis results from energy_analysis table"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT annual_demand, self_consumption_rate 
+                    FROM energy_analysis 
+                    WHERE project_id = %s
+                """, (project_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    annual_demand, model_accuracy = result
+                    return {
+                        'annual_consumption': annual_demand,
+                        'model_accuracy': model_accuracy,
+                        'data_analysis_complete': True
+                    }
+                return None
+                
+        except Exception as e:
+            st.error(f"Error retrieving historical data: {str(e)}")
+            return None
+        finally:
+            conn.close()
+    
     def save_yield_demand_data(self, project_id, yield_demand_data):
         """Save yield vs demand analysis results"""
         conn = self.get_connection()
