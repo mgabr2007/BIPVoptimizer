@@ -763,14 +763,16 @@ def render_pv_specification():
         st.success(f"✅ Radiation analysis data found ({elements_count} elements analyzed)")
     
     # Check for building elements data from Step 4 - enhanced with database fallback
+    # Initialize database manager first
+    from database_manager import BIPVDatabaseManager
+    db_manager = BIPVDatabaseManager()
+    
     # Get building elements from database only
     building_elements = db_manager.get_building_elements(project_id)
     
-    # If no building elements in session state, try to load from database
+    # If no building elements found, try enhanced database loading
     if building_elements is None or len(building_elements) == 0:
         try:
-            from database_manager import BIPVDatabaseManager
-            db_manager = BIPVDatabaseManager()
             conn = db_manager.get_connection()
             
             if conn:
