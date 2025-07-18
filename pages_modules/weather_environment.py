@@ -460,32 +460,39 @@ def render_weather_environment():
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                annual_ghi = existing_weather_data.get('annual_ghi', 0)
+                annual_ghi = existing_weather_data.get('annual_ghi', 0) or 0
                 st.metric("Annual GHI", f"{annual_ghi:,.0f} kWh/m²")
             
             with col2:
-                annual_dni = existing_weather_data.get('annual_dni', 0)
+                annual_dni = existing_weather_data.get('annual_dni', 0) or 0
                 st.metric("Annual DNI", f"{annual_dni:,.0f} kWh/m²")
             
             with col3:
-                annual_dhi = existing_weather_data.get('annual_dhi', 0)
+                annual_dhi = existing_weather_data.get('annual_dhi', 0) or 0
                 st.metric("Annual DHI", f"{annual_dhi:,.0f} kWh/m²")
             
             with col4:
                 # Calculate peak sun hours from GHI (GHI / 1000 W/m²)
-                annual_ghi = existing_weather_data.get('annual_ghi', 0)
-                peak_sun_hours = annual_ghi / 365 if annual_ghi > 0 else 0
+                annual_ghi = existing_weather_data.get('annual_ghi', 0) or 0
+                peak_sun_hours = annual_ghi / 365 if annual_ghi and annual_ghi > 0 else 0
                 st.metric("Peak Sun Hours", f"{peak_sun_hours:.1f} h/day")
             
             col1, col2 = st.columns(2)
             with col1:
                 temp = existing_weather_data.get('temperature', 0)
                 humidity = existing_weather_data.get('humidity', 0)
+                description = existing_weather_data.get('description', 'N/A')
+                
+                # Handle None values safely
+                temp_display = f"{temp:.1f}°C" if temp is not None else "N/A"
+                humidity_display = f"{humidity:.0f}%" if humidity is not None else "N/A"
+                description_display = description if description is not None else "N/A"
+                
                 st.info(f"""
                 **Current Weather:**
-                - Temperature: {temp:.1f}°C
-                - Humidity: {humidity:.0f}%
-                - Conditions: {existing_weather_data.get('description', 'N/A')}
+                - Temperature: {temp_display}
+                - Humidity: {humidity_display}
+                - Conditions: {description_display}
                 """)
             
             with col2:
@@ -501,16 +508,23 @@ def render_weather_environment():
             # Show weather data quality and TMY status
             st.subheader("📊 TMY Data Status")
             
-            annual_ghi = existing_weather_data.get('annual_ghi', 0)
-            annual_dni = existing_weather_data.get('annual_dni', 0)
-            annual_dhi = existing_weather_data.get('annual_dhi', 0)
+            annual_ghi = existing_weather_data.get('annual_ghi', 0) or 0
+            annual_dni = existing_weather_data.get('annual_dni', 0) or 0
+            annual_dhi = existing_weather_data.get('annual_dhi', 0) or 0
             
             if annual_ghi > 0:
                 col1, col2 = st.columns(2)
                 with col1:
                     st.success("✅ TMY Data Generated Successfully")
-                    st.write(f"- Total solar irradiance: {annual_ghi + annual_dni + annual_dhi:,.0f} kWh/m²/year")
-                    st.write(f"- GHI percentage: {(annual_ghi/(annual_ghi + annual_dni + annual_dhi)*100):.1f}%")
+                    total_irradiance = annual_ghi + annual_dni + annual_dhi
+                    st.write(f"- Total solar irradiance: {total_irradiance:,.0f} kWh/m²/year")
+                    
+                    # Avoid division by zero
+                    if total_irradiance > 0:
+                        ghi_percentage = (annual_ghi / total_irradiance) * 100
+                        st.write(f"- GHI percentage: {ghi_percentage:.1f}%")
+                    else:
+                        st.write("- GHI percentage: N/A")
                 
                 with col2:
                     # Solar resource classification
