@@ -440,12 +440,12 @@ def render_weather_environment():
                 result = cursor.fetchone()
                 if result:
                     existing_weather_data = {
-                        'temperature': result[0],
-                        'humidity': result[1],
+                        'temperature': float(result[0]) if result[0] is not None else None,
+                        'humidity': float(result[1]) if result[1] is not None else None,
                         'description': result[2],
-                        'annual_ghi': result[3],
-                        'annual_dni': result[4],
-                        'annual_dhi': result[5],
+                        'annual_ghi': float(result[3]) if result[3] is not None else 0,
+                        'annual_dni': float(result[4]) if result[4] is not None else 0,
+                        'annual_dhi': float(result[5]) if result[5] is not None else 0,
                         'created_at': result[6]
                     }
             conn.close()
@@ -473,8 +473,8 @@ def render_weather_environment():
             
             with col4:
                 # Calculate peak sun hours from GHI (GHI / 1000 W/m²)
-                annual_ghi = float(existing_weather_data.get('annual_ghi', 0) or 0)
-                peak_sun_hours = annual_ghi / 365 if annual_ghi and annual_ghi > 0 else 0
+                annual_ghi_calc = float(existing_weather_data.get('annual_ghi', 0) or 0)
+                peak_sun_hours = annual_ghi_calc / 365 if annual_ghi_calc and annual_ghi_calc > 0 else 0
                 st.metric("Peak Sun Hours", f"{peak_sun_hours:.1f} h/day")
             
             col1, col2 = st.columns(2)
@@ -508,30 +508,33 @@ def render_weather_environment():
             # Show weather data quality and TMY status
             st.subheader("📊 TMY Data Status")
             
-            annual_ghi = float(existing_weather_data.get('annual_ghi', 0) or 0)
-            annual_dni = float(existing_weather_data.get('annual_dni', 0) or 0)
-            annual_dhi = float(existing_weather_data.get('annual_dhi', 0) or 0)
+            # Data is already converted to float in extraction above, but ensure safety
+            annual_ghi = existing_weather_data.get('annual_ghi', 0)
+            annual_dni = existing_weather_data.get('annual_dni', 0)
+            annual_dhi = existing_weather_data.get('annual_dhi', 0)
             
             if annual_ghi > 0:
                 col1, col2 = st.columns(2)
                 with col1:
                     st.success("✅ TMY Data Generated Successfully")
-                    total_irradiance = annual_ghi + annual_dni + annual_dhi
+                    # Convert all to float to avoid decimal.Decimal arithmetic errors
+                    total_irradiance = float(annual_ghi) + float(annual_dni) + float(annual_dhi)
                     st.write(f"- Total solar irradiance: {total_irradiance:,.0f} kWh/m²/year")
                     
                     # Avoid division by zero
                     if total_irradiance > 0:
-                        ghi_percentage = (annual_ghi / total_irradiance) * 100
+                        ghi_percentage = (float(annual_ghi) / float(total_irradiance)) * 100
                         st.write(f"- GHI percentage: {ghi_percentage:.1f}%")
                     else:
                         st.write("- GHI percentage: N/A")
                 
                 with col2:
-                    # Solar resource classification
-                    if annual_ghi > 1600:
+                    # Solar resource classification - ensure float comparison
+                    annual_ghi_float = float(annual_ghi)
+                    if annual_ghi_float > 1600:
                         resource_class = "Excellent (>1600 kWh/m²/year)"
                         resource_color = "🟢"
-                    elif annual_ghi > 1200:
+                    elif annual_ghi_float > 1200:
                         resource_class = "Good (1200-1600 kWh/m²/year)"
                         resource_color = "🟡"
                     else:
@@ -542,7 +545,7 @@ def render_weather_environment():
                     **Solar Resource Quality:**
                     {resource_color} {resource_class}
                     
-                    **BIPV Suitability:** {'High' if annual_ghi > 1200 else 'Moderate'}
+                    **BIPV Suitability:** {'High' if annual_ghi_float > 1200 else 'Moderate'}
                     """)
             else:
                 st.warning("❌ No TMY data available - Generate below")
