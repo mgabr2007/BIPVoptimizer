@@ -46,10 +46,15 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
             
         total_annual_yield = selected_specs['annual_energy_kwh'].sum()
         
-        # Calculate net import reduction
+        # Calculate net import reduction with proper data handling
         if energy_balance is not None and len(energy_balance) > 0:
-            total_annual_demand = energy_balance['predicted_demand'].sum()
-            net_import_reduction = min(total_annual_yield, total_annual_demand)
+            if hasattr(energy_balance, 'columns') and 'predicted_demand' in energy_balance.columns:
+                total_annual_demand = energy_balance['predicted_demand'].sum()
+            elif isinstance(energy_balance, list) and len(energy_balance) > 0:
+                total_annual_demand = energy_balance[0].get('predicted_demand', 0)
+            else:
+                total_annual_demand = 0
+            net_import_reduction = min(total_annual_yield, total_annual_demand) if total_annual_demand > 0 else total_annual_yield
         else:
             net_import_reduction = total_annual_yield
         
@@ -125,22 +130,34 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
             # Increase ROI weight relative to others
             roi_fitness *= 1.2  # 20% boost to ROI fitness
         
-        # Calculate weighted fitness (single objective)
+        # Calculate weighted fitness (single objective) 
+        # Ensure all fitness components are properly calculated
+        if total_cost == 0 or total_annual_yield == 0:
+            return (0.0,)  # Invalid solution
+            
         weighted_fitness = (
             weight_cost * cost_fitness +
             weight_yield * yield_fitness + 
             weight_roi * roi_fitness
         ) * bonus_factor
         
-        # Apply minimum coverage constraint as hard constraint
-        min_coverage = financial_params.get('min_coverage', 0.30)
+        # Apply minimum coverage constraint with proper data handling
+        min_coverage = financial_params.get('min_coverage', 0.3)  # Default 30%
         if energy_balance is not None and len(energy_balance) > 0:
-            total_demand = energy_balance['predicted_demand'].sum()
-            coverage_ratio = net_import_reduction / total_demand if total_demand > 0 else 0
-            if coverage_ratio < min_coverage:
-                weighted_fitness *= 0.1  # Heavy penalty for not meeting minimum coverage
+            if hasattr(energy_balance, 'columns') and 'predicted_demand' in energy_balance.columns:
+                total_annual_demand = energy_balance['predicted_demand'].sum()
+            elif isinstance(energy_balance, list) and len(energy_balance) > 0:
+                total_annual_demand = energy_balance[0].get('predicted_demand', 0)
+            else:
+                total_annual_demand = 0
+                
+            if total_annual_demand > 0:
+                coverage_ratio = total_annual_yield / total_annual_demand
+                if coverage_ratio < min_coverage:
+                    weighted_fitness *= 0.5  # Reduce penalty to allow more solutions
         
-        return (weighted_fitness,)
+        # Ensure positive fitness value
+        return (max(weighted_fitness, 0.001),)  # Minimum positive value
     
     except Exception as e:
         return (0.0,)
@@ -231,12 +248,15 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
         selected_specs = pv_specs[selection_mask]
         
         if len(selected_specs) > 0:
-            # Calculate solution metrics
+            # Calculate solution metrics with debugging
             # Use standardized field names with fallback support
             if 'capacity_kw' in selected_specs.columns:
                 total_power_kw = selected_specs['capacity_kw'].sum()
             elif 'system_power_kw' in selected_specs.columns:
                 total_power_kw = selected_specs['system_power_kw'].sum()
+            elif 'power_density' in selected_specs.columns and 'glass_area' in selected_specs.columns:
+                # Calculate capacity from power density and glass area
+                total_power_kw = (selected_specs['power_density'] * selected_specs['glass_area'] / 1000).sum()
             else:
                 total_power_kw = 0
                 
@@ -261,23 +281,39 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
             else:
                 net_import = 0
             
-            # Calculate ROI
+            # Calculate ROI with proper demand handling
             electricity_price = financial_params.get('electricity_price', 0.25)
-            annual_savings = min(total_annual_yield, total_annual_demand if 'total_annual_demand' in locals() else total_annual_yield) * electricity_price
-            roi = (annual_savings / total_cost * 100) if total_cost > 0 else 0
+            
+            # Get proper total annual demand
+            if energy_balance is not None and len(energy_balance) > 0:
+                if hasattr(energy_balance, 'columns') and 'predicted_demand' in energy_balance.columns:
+                    total_annual_demand = energy_balance['predicted_demand'].sum()
+                elif isinstance(energy_balance, list) and len(energy_balance) > 0:
+                    total_annual_demand = energy_balance[0].get('predicted_demand', 0)
+                else:
+                    total_annual_demand = total_annual_yield
+            else:
+                total_annual_demand = total_annual_yield
+                
+            # Calculate annual savings (grid import reduction)
+            energy_offset = min(total_annual_yield, total_annual_demand) if total_annual_demand > 0 else total_annual_yield
+            annual_savings = energy_offset * electricity_price
+            
+            # Calculate ROI
+            roi = (annual_savings / total_cost * 100) if total_cost > 0 and annual_savings > 0 else 0
             
             solution = {
                 'solution_id': f"Solution_{i+1}",
-                'total_power_kw': total_power_kw,
-                'total_investment': total_cost,
-                'annual_energy_kwh': total_annual_yield,
-                'annual_savings': annual_savings,
-                'roi': roi,
-                'net_import_kwh': net_import,
+                'total_power_kw': float(total_power_kw),  # Ensure float conversion
+                'total_investment': float(total_cost),    # Ensure float conversion
+                'annual_energy_kwh': float(total_annual_yield),  # Ensure float conversion
+                'annual_savings': float(annual_savings),  # Ensure float conversion
+                'roi': float(roi),                        # Ensure float conversion
+                'net_import_kwh': float(net_import),     # Ensure float conversion
                 'selected_elements': selected_elements,
                 'n_selected_elements': len(selected_elements),
-                'investment_per_kw': safe_divide(total_cost, total_power_kw, 0),
-                'energy_cost_per_kwh': safe_divide(total_cost, total_annual_yield * 25, 0),  # 25-year lifetime
+                'investment_per_kw': float(safe_divide(total_cost, total_power_kw, 0)),
+                'energy_cost_per_kwh': float(safe_divide(total_cost, total_annual_yield * 25, 0)),  # 25-year lifetime
                 'selection_mask': individual
             }
             
