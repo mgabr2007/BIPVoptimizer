@@ -93,10 +93,43 @@ class PerplexityBIPVAgent:
         irr = financial_metrics.get('irr', 0)
         total_investment = financial_metrics.get('total_investment', 0)
         
-        # Historical data
-        historical_data = project_data.get('historical_data', {})
-        r_squared = historical_data.get('r_squared', 0)
-        total_consumption = historical_data.get('total_consumption', 0)
+        # Historical data and AI model metrics from database
+        r_squared = 0
+        total_consumption = 0
+        
+        # Get AI model R² score from database
+        try:
+            from database_manager import BIPVDatabaseManager
+            db_manager = BIPVDatabaseManager()
+            
+            # Get AI model data for R² score
+            project_id = project_data.get('id') or project_data.get('project_id')
+            if project_id:
+                # Get historical data with AI model metrics
+                historical_data = db_manager.get_historical_data(project_id)
+                if historical_data:
+                    r_squared = float(historical_data.get('r_squared_score', 0) or historical_data.get('model_accuracy', 0))
+                    total_consumption = float(historical_data.get('annual_consumption', 0))
+                    
+                # If no data from historical_data, try energy_analysis
+                if total_consumption == 0:
+                    try:
+                        with db_manager.get_connection().cursor() as cursor:
+                            cursor.execute("""
+                                SELECT annual_demand FROM energy_analysis 
+                                WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
+                            """, (project_id,))
+                            result = cursor.fetchone()
+                            if result:
+                                total_consumption = float(result[0])
+                    except Exception as inner_e:
+                        print(f"Error querying energy_analysis: {inner_e}")
+        except Exception as e:
+            print(f"Error retrieving R² and consumption data: {e}")
+            # Fallback to project_data structure
+            historical_data = project_data.get('historical_data', {})
+            r_squared = historical_data.get('r_squared', 0)
+            total_consumption = historical_data.get('total_consumption', 0)
         
         # Weather data
         weather_data = project_data.get('weather_analysis', {})

@@ -529,3 +529,153 @@ def render_facade_extraction():
         if st.button("Radiation Grid →", key="step4_next_btn", use_container_width=True):
             st.session_state.current_step = 'radiation_grid'
             st.rerun()
+
+
+def save_windows_data_to_database(project_id, windows_df, progress_callback=None):
+    """Save windows data to building_elements table"""
+    conn = db_manager.get_connection()
+    if not conn:
+        return False
+        
+    try:
+        with conn.cursor() as cursor:
+            # Delete existing window data for this project
+            cursor.execute("DELETE FROM building_elements WHERE project_id = %s", (project_id,))
+            
+            total_windows = len(windows_df)
+            
+            # Insert new window data
+            for idx, (_, row) in enumerate(windows_df.iterrows()):
+                cursor.execute("""
+                    INSERT INTO building_elements 
+                    (project_id, element_id, category, family, level, host_wall_id, azimuth, glass_area, orientation, pv_suitable)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    project_id,
+                    str(row.get('ElementId', '')),
+                    str(row.get('Category', 'Windows')),
+                    str(row.get('Family', '')),
+                    str(row.get('Level', '')),
+                    str(row.get('HostWallId', '')),
+                    float(row.get('Azimuth (°)', 0)) if pd.notna(row.get('Azimuth (°)')) else None,
+                    float(row.get('Glass Area (m²)', 1.5)) if pd.notna(row.get('Glass Area (m²)')) else 1.5,
+                    get_orientation_from_azimuth(row.get('Azimuth (°)')),
+                    False  # Will be updated after radiation analysis
+                ))
+                
+                # Update progress if callback provided
+                if progress_callback and (idx % 10 == 0 or idx == total_windows - 1):
+                    progress = int((idx + 1) / total_windows * 100)
+                    progress_callback(progress, f"Saving window element {idx + 1}/{total_windows}")
+            
+            conn.commit()
+            return True
+            
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Error saving window data: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def render_facade_extraction():
+    """Main render function for facade extraction module"""
+    
+    # Import required functions
+    from services.io import get_current_project_id, ensure_project_data_loaded
+    
+    # Check if project setup is complete
+    if not ensure_project_data_loaded():
+        st.error("Please complete Step 1: Project Setup first.")
+        return
+    
+    project_id = get_current_project_id()
+    if not project_id:
+        st.error("Project ID not found. Please complete Step 1 first.")
+        return
+    
+    st.header("Step 4: Integrated BIM Data Extraction")
+    st.markdown("Upload both window elements and wall self-shading data for comprehensive BIPV analysis.")
+    
+    # Data Usage Information
+    with st.expander("📊 How This Data Will Be Used", expanded=False):
+        st.markdown("""
+        ### BIM Data Flow Through BIPV Analysis:
+        
+        **Windows & Glass Areas:**
+        - Element IDs → Unique identification for radiation calculations
+        - Orientations → Solar exposure calculations
+        - Glass Areas → BIPV glass replacement sizing
+        
+        **Wall Self-Shading:**
+        - Wall geometries → Shadow calculations
+        - Multi-story effects → Height-dependent analysis
+        """)
+    
+    project_name = st.session_state.get('project_name', 'Unnamed')
+    st.info(f"📋 Current Project: **{project_name}** (ID: {project_id})")
+    
+    # Windows Upload Section
+    st.subheader("🏢 Window Elements Upload")
+    
+    windows_file = st.file_uploader(
+        "📁 Upload Windows CSV",
+        type=['csv'],
+        key="windows_csv_upload",
+        help="Upload BIM-extracted window elements"
+    )
+    
+    if windows_file is not None:
+        if st.button("💾 Save Windows Data", key="save_windows", use_container_width=True):
+            try:
+                windows_df = pd.read_csv(windows_file)
+                
+                # Simple processing without progress callback
+                success = save_windows_data_to_database(project_id, windows_df)
+                
+                if success:
+                    st.success(f"Successfully processed {len(windows_df)} window elements")
+                    st.rerun()
+                else:
+                    st.error("Failed to save windows data")
+                    
+            except Exception as e:
+                st.error(f"Error processing windows file: {e}")
+    
+    # Check data status
+    conn = db_manager.get_connection()
+    windows_uploaded = False
+    
+    if conn:
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) FROM building_elements WHERE project_id = %s", (project_id,))
+                windows_count = cursor.fetchone()[0]
+                windows_uploaded = windows_count > 0
+                
+        except Exception as e:
+            st.error(f"Error checking data status: {e}")
+        finally:
+            conn.close()
+    
+    # Status display
+    if windows_uploaded:
+        st.success("✅ Window data uploaded successfully")
+    else:
+        st.info("📋 Ready to upload window CSV files")
+    
+    # Navigation
+    st.markdown("---")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col1:
+        if st.button("← Weather Environment", key="step4_prev", use_container_width=True):
+            st.session_state.current_step = 'weather_environment'
+            st.rerun()
+    
+    with col3:
+        if st.button("Radiation Grid →", key="step4_next", use_container_width=True):
+            st.session_state.current_step = 'radiation_grid'
+            st.rerun()
