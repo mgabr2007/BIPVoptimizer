@@ -182,79 +182,42 @@ def load_dashboard_data():
                     'energy_yield_per_m2': float(energy_result[4]) if energy_result[4] else 0
                 }
             
-            # Optimization Results (Step 8)
-            cursor.execute("""
-                SELECT COUNT(*) as total_solutions,
-                       AVG(capacity) as avg_capacity,
-                       AVG(roi) as avg_roi,
-                       AVG(total_cost) as avg_cost,
-                       MIN(total_cost) as min_cost,
-                       MAX(roi) as max_roi
-                FROM optimization_results WHERE project_id = %s
-            """, (project_id,))
-            opt_stats = cursor.fetchone()
+            # Optimization Results (Step 8) - Direct database approach
+            optimization_results = db_manager.get_optimization_results(project_id)
             
-            # Get top 5 optimization solutions
-            cursor.execute("""
-                SELECT solution_id, capacity, roi, total_cost, net_import, rank_position
-                FROM optimization_results 
-                WHERE project_id = %s 
-                ORDER BY rank_position 
-                LIMIT 5
-            """, (project_id,))
-            top_solutions = cursor.fetchall()
+            if optimization_results and 'solutions' in optimization_results:
+                solutions_df = optimization_results['solutions']
+                if not solutions_df.empty:
+                    # Get top 5 solutions
+                    top_5 = solutions_df.head(5)
+                    
+                    dashboard_data['optimization'] = {
+                        'total_solutions': len(solutions_df),
+                        'avg_capacity_kw': float(solutions_df['capacity'].mean()),
+                        'avg_roi_percentage': float(solutions_df['roi'].mean()),
+                        'avg_cost_eur': float(solutions_df['total_cost'].mean()),
+                        'min_cost_eur': float(solutions_df['total_cost'].min()),
+                        'max_roi_percentage': float(solutions_df['roi'].max()),
+                        'top_solutions': [
+                            {
+                                'solution_id': row['solution_id'],
+                                'capacity_kw': float(row['capacity']),
+                                'roi_percentage': float(row['roi']),
+                                'total_cost_eur': float(row['total_cost']),
+                                'net_import_kwh': float(row['net_import']),
+                                'rank': row['rank_position']
+                            }
+                            for _, row in top_5.iterrows()
+                        ],
+                        'recommended_solution': {
+                            'solution_id': top_5.iloc[0]['solution_id'],
+                            'capacity_kw': float(top_5.iloc[0]['capacity']),
+                            'roi_percentage': float(top_5.iloc[0]['roi']),
+                            'total_cost_eur': float(top_5.iloc[0]['total_cost'])
+                        } if not top_5.empty else None
+                    }
             
-            if opt_stats and opt_stats[0] > 0:
-                dashboard_data['optimization'] = {
-                    'total_solutions': opt_stats[0],
-                    'avg_capacity_kw': float(opt_stats[1]) if opt_stats[1] else 0,
-                    'avg_roi_percentage': float(opt_stats[2]) if opt_stats[2] else 0,
-                    'avg_cost_eur': float(opt_stats[3]) if opt_stats[3] else 0,
-                    'min_cost_eur': float(opt_stats[4]) if opt_stats[4] else 0,
-                    'max_roi_percentage': float(opt_stats[5]) if opt_stats[5] else 0,
-                    'top_solutions': [
-                        {
-                            'solution_id': row[0],
-                            'capacity_kw': float(row[1]) if row[1] else 0,
-                            'roi_percentage': float(row[2]) if row[2] else 0,
-                            'total_cost_eur': float(row[3]) if row[3] else 0,
-                            'net_import_kwh': float(row[4]) if row[4] else 0,
-                            'rank': row[5]
-                        }
-                        for row in top_solutions
-                    ],
-                    'recommended_solution': {
-                        'solution_id': top_solutions[0][0] if top_solutions else 'N/A',
-                        'capacity_kw': float(top_solutions[0][1]) if top_solutions and top_solutions[0][1] else 0,
-                        'roi_percentage': float(top_solutions[0][2]) if top_solutions and top_solutions[0][2] else 0,
-                        'total_cost_eur': float(top_solutions[0][3]) if top_solutions and top_solutions[0][3] else 0
-                    } if top_solutions else None
-                }
-            
-            if energy_result:
-                dashboard_data['energy_analysis'] = {
-                    'annual_generation': float(energy_result[0]) if energy_result[0] else 0,
-                    'annual_demand': float(energy_result[1]) if energy_result[1] else 0,
-                    'net_energy_balance': float(energy_result[2]) if energy_result[2] else 0,
-                    'self_consumption_rate': float(energy_result[3]) if energy_result[3] else 0,
-                    'energy_yield_per_m2': float(energy_result[4]) if energy_result[4] else 0
-                }
-            
-            # Optimization Results (Step 8)
-            cursor.execute("""
-                SELECT solution_id, capacity, total_cost, roi, net_import
-                FROM optimization_results WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
-            """, (project_id,))
-            optimization_result = cursor.fetchone()
-            
-            if optimization_result:
-                dashboard_data['optimization'] = {
-                    'selected_systems': optimization_result[0],  # solution_id
-                    'total_capacity_kw': float(optimization_result[1]) if optimization_result[1] else 0,  # capacity
-                    'total_cost_eur': float(optimization_result[2]) if optimization_result[2] else 0,     # total_cost
-                    'annual_savings_eur': float(optimization_result[4]) if optimization_result[4] else 0, # net_import (savings)
-                    'roi_percentage': float(optimization_result[3]) if optimization_result[3] else 0      # roi
-                }
+
             
             # Financial Analysis (Step 9)
             cursor.execute("""
@@ -489,16 +452,18 @@ def create_optimization_section(data):
     
     opt = data['optimization']
     
-    # Overview metrics
+
+    
+    # Overview metrics with safe key access
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("Total Solutions", opt['total_solutions'])
+        st.metric("Total Solutions", opt.get('total_solutions', 0))
     with col2:
-        st.metric("Avg Capacity", f"{opt['avg_capacity_kw']:.1f} kW")
+        st.metric("Avg Capacity", f"{opt.get('avg_capacity_kw', 0):.1f} kW")
     with col3:
-        st.metric("Best ROI", f"{opt['max_roi_percentage']:.1f}%")
+        st.metric("Best ROI", f"{opt.get('max_roi_percentage', 0):.1f}%")
     with col4:
-        st.metric("Min Cost", f"€{opt['min_cost_eur']:,.0f}")
+        st.metric("Min Cost", f"€{opt.get('min_cost_eur', 0):,.0f}")
     
     # Recommended solution highlight
     if opt.get('recommended_solution'):
