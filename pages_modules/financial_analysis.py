@@ -625,6 +625,29 @@ def render_financial_analysis():
                 carbon_value = env_data.get('carbon_value', 0)
                 st.metric("Carbon Value", f"€{carbon_value:,.0f}")
             
+            # Debug selected solution data structure
+            st.write("🔍 **DEBUG: Available Solution Data:**")
+            st.write(f"Selected solution keys: {list(selected_solution.keys()) if hasattr(selected_solution, 'keys') else 'Not a dict'}")
+            st.write(f"Selected solution data: {selected_solution}")
+            
+            # Calculate missing fields if needed
+            solution_dict = selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution
+            
+            # Ensure we have annual energy data
+            if 'annual_energy_kwh' not in solution_dict and 'annual_energy' not in solution_dict:
+                # Get from database based on capacity
+                capacity = solution_dict.get('capacity', 0)
+                estimated_annual_energy = capacity * 1200  # Conservative estimate: 1200 kWh/kW/year
+                solution_dict['annual_energy_kwh'] = estimated_annual_energy
+                st.info(f"📊 Estimated annual energy: {estimated_annual_energy:,.0f} kWh (capacity × 1200 kWh/kW/year)")
+            
+            # Ensure we have annual savings
+            if 'annual_savings' not in solution_dict:
+                annual_energy = solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0))
+                estimated_savings = annual_energy * electricity_price
+                solution_dict['annual_savings'] = estimated_savings
+                st.info(f"💰 Estimated annual savings: €{estimated_savings:,.0f} (energy × electricity price)")
+            
             # Detailed analysis tabs
             st.subheader("📈 Detailed Financial Analysis")
             
@@ -705,7 +728,7 @@ def render_financial_analysis():
                     st.info("Sensitivity analysis data not available")
             
             with tab3:
-                # Investment summary
+                # Investment summary - use calculated solution_dict
                 st.write("**Investment Summary:**")
                 
                 summary_data = {
@@ -719,12 +742,12 @@ def render_financial_analysis():
                         'CO₂ Savings Value'
                     ],
                     'Value': [
-                        f"€{selected_solution.get('total_cost', 0):,.0f}",
-                        f"{selected_solution.get('annual_energy_kwh', selected_solution.get('annual_energy', 0)):,.0f} kWh",
-                        f"€{selected_solution.get('annual_savings', 0):,.0f}",
+                        f"€{solution_dict.get('total_cost', 0):,.0f}",
+                        f"{solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0)):,.0f} kWh",
+                        f"€{solution_dict.get('annual_savings', 0):,.0f}",
                         f"€{metrics.get('npv', 0):,.0f}",
-                        f"{safe_divide(metrics.get('npv', 0), selected_solution.get('total_cost', 1), 0) * 100:.1f}%",
-                        f"€{safe_divide(selected_solution.get('total_cost', 0), selected_solution.get('annual_energy_kwh', selected_solution.get('annual_energy', 1)) * system_lifetime, 0):.3f}",
+                        f"{safe_divide(metrics.get('npv', 0), solution_dict.get('total_cost', 1), 0) * 100:.1f}%",
+                        f"€{safe_divide(solution_dict.get('total_cost', 0), solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 1)) * system_lifetime, 0):.3f}",
                         f"€{env_data.get('carbon_value', 0):,.0f}"
                     ]
                 }
@@ -736,22 +759,22 @@ def render_financial_analysis():
                 )
             
             with tab4:
-                # Comparative metrics
+                # Comparative metrics - use calculated solution_dict
                 st.write("**Financial Performance Indicators:**")
                 
                 # Calculate additional metrics
-                total_investment = selected_solution.get('total_cost', 0)
-                annual_production = selected_solution.get('annual_energy_kwh', selected_solution.get('annual_energy', 0))
+                total_investment = solution_dict.get('total_cost', 0)
+                annual_production = solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0))
                 
                 cost_per_kwh_installed = safe_divide(total_investment, annual_production * system_lifetime, 0)
-                capacity_factor = safe_divide(annual_production, selected_solution.get('capacity', 1) * 8760, 0)
+                capacity_factor = safe_divide(annual_production, solution_dict.get('capacity', 1) * 8760, 0)
                 
                 comparison_metrics = {
                     'Cost per kWh (Lifetime)': f"€{cost_per_kwh_installed:.3f}",
-                    'Cost per kW Installed': f"€{safe_divide(total_investment, selected_solution.get('capacity', 1), 0):,.0f}",
+                    'Cost per kW Installed': f"€{safe_divide(total_investment, solution_dict.get('capacity', 1), 0):,.0f}",
                     'Capacity Factor': f"{capacity_factor * 100:.1f}%",
                     'Annual Yield per €1000': f"{safe_divide(annual_production, total_investment / 1000, 0):.0f} kWh",
-                    'ROI (Simple)': f"{safe_divide(selected_solution.get('annual_savings', 0) * system_lifetime, total_investment, 0) * 100:.1f}%",
+                    'ROI (Simple)': f"{safe_divide(solution_dict.get('annual_savings', 0) * system_lifetime, total_investment, 0) * 100:.1f}%",
                     'Energy Independence': f"{min(100, safe_divide(annual_production * 100, 10000, 0)):.1f}%"  # Assume 10,000 kWh annual demand
                 }
                 
