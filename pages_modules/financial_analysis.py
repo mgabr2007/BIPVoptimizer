@@ -570,13 +570,18 @@ def render_financial_analysis():
                 
                 st.success("✅ Financial and environmental analysis completed successfully!")
                 
+                # Store calculated data in session state for immediate tab display
+                st.session_state['current_financial_analysis'] = financial_analysis_results
+                st.session_state['current_solution_dict'] = solution_dict
+                
             except Exception as e:
                 st.error(f"Error during financial analysis: {str(e)}")
                 return
     
-    # Display results if available
-    # Check if financial analysis exists in database
-    financial_data = db_manager.get_financial_analysis(project_id)
+    # Display results if available - use current analysis if just calculated, otherwise from database
+    financial_data = st.session_state.get('current_financial_analysis') or db_manager.get_financial_analysis(project_id)
+    current_solution = st.session_state.get('current_solution_dict') or (selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution)
+    
     if financial_data:
         
         if financial_data:
@@ -630,23 +635,27 @@ def render_financial_analysis():
             st.write(f"Selected solution keys: {list(selected_solution.keys()) if hasattr(selected_solution, 'keys') else 'Not a dict'}")
             st.write(f"Selected solution data: {selected_solution}")
             
-            # Calculate missing fields if needed
-            solution_dict = selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution
-            
-            # Ensure we have annual energy data
-            if 'annual_energy_kwh' not in solution_dict and 'annual_energy' not in solution_dict:
-                # Get from database based on capacity
-                capacity = solution_dict.get('capacity', 0)
-                estimated_annual_energy = capacity * 1200  # Conservative estimate: 1200 kWh/kW/year
-                solution_dict['annual_energy_kwh'] = estimated_annual_energy
-                st.info(f"📊 Estimated annual energy: {estimated_annual_energy:,.0f} kWh (capacity × 1200 kWh/kW/year)")
-            
-            # Ensure we have annual savings
-            if 'annual_savings' not in solution_dict:
-                annual_energy = solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0))
-                estimated_savings = annual_energy * electricity_price
-                solution_dict['annual_savings'] = estimated_savings
-                st.info(f"💰 Estimated annual savings: €{estimated_savings:,.0f} (energy × electricity price)")
+            # Use current solution data if available, otherwise calculate missing fields
+            if current_solution and 'annual_energy_kwh' in current_solution:
+                solution_dict = current_solution
+                st.info("✅ Using calculated solution data from financial analysis")
+            else:
+                solution_dict = selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution
+                
+                # Ensure we have annual energy data
+                if 'annual_energy_kwh' not in solution_dict and 'annual_energy' not in solution_dict:
+                    # Get from database based on capacity
+                    capacity = solution_dict.get('capacity', 0)
+                    estimated_annual_energy = capacity * 1200  # Conservative estimate: 1200 kWh/kW/year
+                    solution_dict['annual_energy_kwh'] = estimated_annual_energy
+                    st.info(f"📊 Estimated annual energy: {estimated_annual_energy:,.0f} kWh (capacity × 1200 kWh/kW/year)")
+                
+                # Ensure we have annual savings
+                if 'annual_savings' not in solution_dict:
+                    annual_energy = solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0))
+                    estimated_savings = annual_energy * electricity_price
+                    solution_dict['annual_savings'] = estimated_savings
+                    st.info(f"💰 Estimated annual savings: €{estimated_savings:,.0f} (energy × electricity price)")
             
             # Detailed analysis tabs
             st.subheader("📈 Detailed Financial Analysis")
