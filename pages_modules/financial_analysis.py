@@ -182,10 +182,7 @@ def render_financial_analysis():
     # Extract solutions from optimization data
     solutions = optimization_data.get('solutions')
     
-    # Debug info to understand the data structure
-    st.write("DEBUG - optimization_data keys:", list(optimization_data.keys()) if optimization_data else "None")
-    st.write("DEBUG - solutions type:", type(solutions))
-    st.write("DEBUG - solutions shape:", solutions.shape if hasattr(solutions, 'shape') else "No shape attribute")
+
     
     if solutions is None or (hasattr(solutions, 'empty') and solutions.empty) or (hasattr(solutions, '__len__') and len(solutions) == 0):
         st.error("⚠️ No optimization solutions available.")

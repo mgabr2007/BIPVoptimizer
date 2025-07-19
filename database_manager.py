@@ -1413,29 +1413,7 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
-    def get_optimization_results(self, project_id):
-        """Get optimization results for a project"""
-        conn = self.get_connection()
-        if not conn:
-            return None
-        
-        try:
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("""
-                    SELECT * FROM optimization_results 
-                    WHERE project_id = %s
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """, (project_id,))
-                
-                result = cursor.fetchone()
-                return dict(result) if result else None
-                
-        except Exception as e:
-            st.error(f"Error getting optimization results: {str(e)}")
-            return None
-        finally:
-            conn.close()
+
     
     def get_weather_data(self, project_id):
         """Get weather data for a project (already exists but added for completeness)"""
