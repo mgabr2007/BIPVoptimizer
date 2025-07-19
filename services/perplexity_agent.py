@@ -121,19 +121,51 @@ class PerplexityBIPVAgent:
                         if result:
                             r_squared = float(result[0]) if result[0] else 0
                             total_consumption = float(result[3]) if result[3] else 0
-                            building_area = float(result[4]) if result[4] else 0
+                            building_area = float(result[4]) if result[4] else 5000  # Default building area
                             growth_rate = float(result[5]) if result[5] else 0
+                            
+                            # Debug output
+                            print(f"DEBUG Step 2 AI Model Data Retrieved:")
+                            print(f"  R² Score: {r_squared}")
+                            print(f"  Base Consumption: {total_consumption}")
+                            print(f"  Building Area: {building_area}")
+                            print(f"  Growth Rate: {growth_rate}")
                 except Exception:
                     r_squared = 0
                 
-                # Fallback to individual queries if JOIN fails
+                # Always get consumption from historical_data table (primary source)
+                try:
+                    with db_manager.get_connection().cursor() as cursor:
+                        cursor.execute("""
+                            SELECT annual_consumption, energy_intensity, peak_load_factor, seasonal_variation
+                            FROM historical_data 
+                            WHERE project_id = %s 
+                            ORDER BY created_at DESC LIMIT 1
+                        """, (project_id,))
+                        hist_result = cursor.fetchone()
+                        if hist_result and hist_result[0]:
+                            total_consumption = float(hist_result[0])
+                            print(f"DEBUG: Retrieved annual consumption from historical_data: {total_consumption} kWh")
+                        
+                        # Get building area from ai_models if available
+                        if building_area == 0:
+                            # Calculate from energy intensity if available
+                            if hist_result and hist_result[1] and total_consumption > 0:
+                                energy_intensity = float(hist_result[1])
+                                building_area = total_consumption / energy_intensity
+                                print(f"DEBUG: Calculated building area: {building_area} m² from energy intensity")
+                except Exception as e:
+                    print(f"Error retrieving historical data: {e}")
+                
+                # Fallback to individual queries if still needed
                 if r_squared == 0:
                     historical_data = db_manager.get_historical_data(project_id)
                     if historical_data:
                         r_squared = float(historical_data.get('r_squared_score', 0) or historical_data.get('model_accuracy', 0))
-                        total_consumption = float(historical_data.get('annual_consumption', 0))
-                        building_area = float(historical_data.get('building_area', 0))
-                        growth_rate = float(historical_data.get('growth_rate', 0))
+                        if total_consumption == 0:
+                            total_consumption = float(historical_data.get('annual_consumption', 0))
+                        if building_area == 0:
+                            building_area = float(historical_data.get('building_area', 0))
                     
                 # If no data from historical_data, get from energy_analysis
                 if total_consumption == 0:
@@ -290,7 +322,7 @@ class PerplexityBIPVAgent:
         - Site Annual Solar Irradiance (GHI): {annual_ghi:.0f} kWh/m²
         - Calculated Total PV System Capacity: {total_capacity:.1f} kW
         - Projected Annual PV Generation: {total_annual_yield:.0f} kWh
-        - Building Self-Sufficiency Ratio: {safe_divide(total_annual_yield, total_consumption, 0)*100:.1f}%
+        - Building Self-Sufficiency Ratio: {safe_divide(total_annual_yield, total_consumption, 0)*100:.1f}% (Generation: {total_annual_yield:,.0f} kWh vs. Consumption: {total_consumption:,.0f} kWh)
         - Average Yield per BIPV Element: {avg_yield_per_element:.0f} kWh/element/year
         
         FINANCIAL ANALYSIS RESULTS:
