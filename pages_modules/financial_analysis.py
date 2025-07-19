@@ -663,8 +663,11 @@ def render_financial_analysis():
             tab1, tab2, tab3, tab4 = st.tabs(["Cash Flow", "Sensitivity Analysis", "Investment Summary", "Comparative Metrics"])
             
             with tab1:
-                # Cash flow visualization
+                # Cash flow visualization - debug data availability
                 cash_flow_data = financial_data.get('cash_flow_analysis', [])
+                st.write(f"🔍 DEBUG: Cash flow data available: {len(cash_flow_data) if cash_flow_data else 0} records")
+                st.write(f"🔍 DEBUG: Financial data keys: {list(financial_data.keys()) if financial_data else 'None'}")
+                
                 if cash_flow_data:
                     cash_flow_df = pd.DataFrame(cash_flow_data)
                     
@@ -710,10 +713,14 @@ def render_financial_analysis():
                             'inverter_cost': st.column_config.NumberColumn('Inverter (€)', format="€%.0f")
                         }
                     )
+                else:
+                    st.info("Cash flow data not available. Please run financial analysis first.")
             
             with tab2:
-                # Sensitivity analysis
+                # Sensitivity analysis - debug data availability  
                 sensitivity_data = financial_data.get('sensitivity_analysis', {})
+                st.write(f"🔍 DEBUG: Sensitivity data keys: {list(sensitivity_data.keys()) if sensitivity_data else 'None'}")
+                st.write(f"🔍 DEBUG: Sensitivity data content: {sensitivity_data}")
                 
                 if sensitivity_data:
                     st.write("**NPV Sensitivity to Key Parameters:**")
@@ -734,7 +741,7 @@ def render_financial_analysis():
                         fig_sens.update_layout(width=700, height=400)  # Fixed width to prevent expansion
                         st.plotly_chart(fig_sens, use_container_width=False)
                 else:
-                    st.info("Sensitivity analysis data not available")
+                    st.info("Sensitivity analysis data not available. Please run financial analysis first.")
             
             with tab3:
                 # Investment summary - use calculated solution_dict

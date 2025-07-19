@@ -1215,6 +1215,11 @@ class BIPVDatabaseManager:
                 # Delete existing financial analysis for this project
                 cursor.execute("DELETE FROM financial_analysis WHERE project_id = %s", (project_id,))
                 
+                # Store detailed analysis data as JSON
+                import json
+                cash_flow_json = json.dumps(financial_data.get('cash_flow_analysis', []))
+                sensitivity_json = json.dumps(financial_data.get('sensitivity_analysis', {}))
+                
                 # Insert financial analysis
                 cursor.execute("""
                     INSERT INTO financial_analysis 
@@ -1236,6 +1241,14 @@ class BIPVDatabaseManager:
                     financial_data.get('lcoe'),
                     financial_data.get('analysis_complete', True)
                 ))
+                
+                # Save detailed analysis data in a separate table or update existing if supported
+                cursor.execute("DELETE FROM detailed_financial_analysis WHERE project_id = %s", (project_id,))
+                cursor.execute("""
+                    INSERT INTO detailed_financial_analysis 
+                    (project_id, cash_flow_data, sensitivity_data, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                """, (project_id, cash_flow_json, sensitivity_json))
                 
                 # Save environmental impact data
                 cursor.execute("DELETE FROM environmental_impact WHERE project_id = %s", (project_id,))
@@ -1291,6 +1304,29 @@ class BIPVDatabaseManager:
                 
                 environmental_result = cursor.fetchone()
                 
+                # Get detailed analysis data (cash flow, sensitivity)
+                cursor.execute("""
+                    SELECT cash_flow_data, sensitivity_data FROM detailed_financial_analysis 
+                    WHERE project_id = %s
+                    ORDER BY created_at DESC LIMIT 1
+                """, (project_id,))
+                
+                detailed_result = cursor.fetchone()
+                
+                # Parse detailed analysis JSON data
+                cash_flow_analysis = []
+                sensitivity_analysis = {}
+                
+                if detailed_result:
+                    try:
+                        import json
+                        if detailed_result['cash_flow_data']:
+                            cash_flow_analysis = json.loads(detailed_result['cash_flow_data'])
+                        if detailed_result['sensitivity_data']:
+                            sensitivity_analysis = json.loads(detailed_result['sensitivity_data'])
+                    except json.JSONDecodeError:
+                        pass  # Use empty defaults
+                
                 # Format data structure similar to what the UI expects
                 financial_data = {
                     'financial_metrics': {
@@ -1301,7 +1337,9 @@ class BIPVDatabaseManager:
                         'annual_savings': float(financial_result['annual_savings']) if financial_result['annual_savings'] else 0,
                         'lcoe': float(financial_result['lcoe']) if financial_result['lcoe'] else 0
                     },
-                    'environmental_impact': {}
+                    'environmental_impact': {},
+                    'cash_flow_analysis': cash_flow_analysis,
+                    'sensitivity_analysis': sensitivity_analysis
                 }
                 
                 if environmental_result:
