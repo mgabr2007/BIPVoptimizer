@@ -164,6 +164,32 @@ class BIPVDatabaseManager:
         """Get project information including weather station data for Step 3"""
         return self.get_project_by_id(project_id)
     
+    def get_project_data(self, project_identifier):
+        """Get project data by ID or name - compatible method for AI consultation"""
+        # If it's a string, treat as project name and get ID first
+        if isinstance(project_identifier, str):
+            conn = self.get_connection()
+            if not conn:
+                return None
+            
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_identifier,))
+                    result = cursor.fetchone()
+                    if result:
+                        project_id = result[0]
+                        conn.close()
+                        return self.get_project_by_id(project_id)
+                    return None
+            except Exception as e:
+                st.error(f"Error getting project by name: {str(e)}")
+                return None
+            finally:
+                conn.close()
+        else:
+            # Treat as project ID
+            return self.get_project_by_id(project_identifier)
+    
     def save_weather_data(self, project_identifier, weather_data):
         """Save weather and TMY data"""
         conn = self.get_connection()
