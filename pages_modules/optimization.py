@@ -1017,15 +1017,208 @@ def render_optimization():
         )
         
         # Solution selection for Step 9
-        st.subheader("✅ Select Solution for Financial Analysis")
+        st.subheader("✅ Select Solution for Detailed Analysis")
         
         selected_solution_id = st.selectbox(
-            "Choose solution for Step 9:",
+            "Choose solution for detailed analysis:",
             solutions['solution_id'].tolist(),
             key="selected_solution_opt"
         )
         
-        st.success(f"✅ Selected: {selected_solution_id} - Ready for Step 9 Financial Analysis")
+        # Get selected solution data
+        selected_solution = solutions[solutions['solution_id'] == selected_solution_id].iloc[0]
+        
+        st.success(f"✅ Selected Solution {selected_solution_id} - Ready for Step 9 Financial Analysis")
+        
+        # Display detailed analysis for selected solution
+        st.subheader(f"📊 Detailed Analysis: Solution {selected_solution_id}")
+        
+        # Solution summary metrics
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("ROI", f"{selected_solution['roi']:.1f}%")
+        with col2:
+            st.metric("Investment", f"€{selected_solution['total_cost']:,.0f}")
+        with col3:
+            st.metric("Capacity", f"{selected_solution['capacity']:.1f} kW")
+        with col4:
+            st.metric("Net Import", f"{selected_solution['net_import']:,.0f} kWh")
+        
+        # Retrieve detailed PV specifications for this solution
+        try:
+            conn = db_manager.get_connection()
+            if conn:
+                with conn.cursor() as cursor:
+                    # Get PV specifications for this solution
+                    cursor.execute("""
+                        SELECT pv.element_id, pv.glass_area, pv.annual_energy_kwh, pv.total_cost_eur, 
+                               be.orientation, be.azimuth
+                        FROM pv_specifications pv
+                        LEFT JOIN building_elements be ON pv.element_id = be.element_id
+                        WHERE pv.project_id = %s
+                        ORDER BY pv.annual_energy_kwh DESC
+                    """, (project_id,))
+                    
+                    pv_elements = cursor.fetchall()
+                    if pv_elements:
+                        pv_df = pd.DataFrame(pv_elements, columns=[
+                            'element_id', 'glass_area', 'annual_energy_kwh', 
+                            'total_cost_eur', 'orientation', 'azimuth'
+                        ])
+                        
+                        # Convert to float for calculations
+                        pv_df['glass_area'] = pd.to_numeric(pv_df['glass_area'], errors='coerce')
+                        pv_df['annual_energy_kwh'] = pd.to_numeric(pv_df['annual_energy_kwh'], errors='coerce') 
+                        pv_df['total_cost_eur'] = pd.to_numeric(pv_df['total_cost_eur'], errors='coerce')
+                        
+                        # Create solution-specific visualizations
+                        st.subheader("🎯 Solution Performance Analysis")
+                        
+                        # 1. Energy Production by Building Element
+                        fig_elements = px.bar(
+                            pv_df.head(10),  # Top 10 elements
+                            x='element_id',
+                            y='annual_energy_kwh',
+                            color='orientation',
+                            title="Top 10 Elements: Annual Energy Production",
+                            labels={
+                                'element_id': 'Building Element ID',
+                                'annual_energy_kwh': 'Annual Energy (kWh)',
+                                'orientation': 'Orientation'
+                            }
+                        )
+                        fig_elements.update_layout(height=400)
+                        st.plotly_chart(fig_elements, use_container_width=True)
+                        
+                        # 2. Performance by Orientation Analysis
+                        orientation_analysis = pv_df.groupby('orientation').agg({
+                            'annual_energy_kwh': ['sum', 'mean', 'count'],
+                            'glass_area': 'sum',
+                            'total_cost_eur': 'sum'
+                        }).round(2)
+                        
+                        # Flatten column names
+                        orientation_analysis.columns = ['Total Energy (kWh)', 'Avg Energy (kWh)', 'Element Count', 
+                                                      'Total Area (m²)', 'Total Cost (€)']
+                        orientation_analysis = orientation_analysis.reset_index()
+                        
+                        col_left, col_right = st.columns(2)
+                        
+                        with col_left:
+                            # Orientation energy pie chart
+                            fig_pie = px.pie(
+                                orientation_analysis,
+                                values='Total Energy (kWh)',
+                                names='orientation',
+                                title="Energy Production by Orientation"
+                            )
+                            fig_pie.update_layout(height=400)
+                            st.plotly_chart(fig_pie, use_container_width=True)
+                        
+                        with col_right:
+                            # Cost vs Energy efficiency scatter
+                            fig_efficiency = px.scatter(
+                                pv_df,
+                                x='total_cost_eur',
+                                y='annual_energy_kwh',
+                                size='glass_area',
+                                color='orientation',
+                                title="Cost vs Energy Efficiency",
+                                labels={
+                                    'total_cost_eur': 'Element Cost (€)',
+                                    'annual_energy_kwh': 'Annual Energy (kWh)',
+                                    'glass_area': 'Glass Area (m²)'
+                                }
+                            )
+                            fig_efficiency.update_layout(height=400)
+                            st.plotly_chart(fig_efficiency, use_container_width=True)
+                        
+                        # 3. Financial Performance Breakdown
+                        st.subheader("💰 Financial Performance Breakdown")
+                        
+                        # Calculate annual savings and payback for this solution
+                        try:
+                            cursor.execute("""
+                                SELECT electricity_rate FROM projects WHERE project_id = %s
+                            """, (project_id,))
+                            rate_result = cursor.fetchone()
+                            electricity_rate = float(rate_result[0]) if rate_result else 0.30
+                        except:
+                            electricity_rate = 0.30
+                        
+                        annual_generation = float(selected_solution['capacity']) * 1000  # Rough estimate
+                        annual_savings = annual_generation * electricity_rate
+                        payback_years = float(selected_solution['total_cost']) / annual_savings if annual_savings > 0 else 0
+                        
+                        # Financial metrics display
+                        fin_col1, fin_col2, fin_col3 = st.columns(3)
+                        
+                        with fin_col1:
+                            st.metric("Annual Generation", f"{annual_generation:,.0f} kWh")
+                            st.metric("Electricity Rate", f"€{electricity_rate:.3f}/kWh")
+                        
+                        with fin_col2:
+                            st.metric("Annual Savings", f"€{annual_savings:,.0f}")
+                            st.metric("25-Year Savings", f"€{annual_savings * 25:,.0f}")
+                        
+                        with fin_col3:
+                            st.metric("Simple Payback", f"{payback_years:.1f} years")
+                            st.metric("ROI (25-year)", f"{selected_solution['roi']:.1f}%")
+                        
+                        # 4. 25-Year Cash Flow Projection
+                        years = list(range(1, 26))
+                        annual_cash_flow = [annual_savings] * 25
+                        cumulative_cash_flow = []
+                        cumulative = -float(selected_solution['total_cost'])  # Initial investment
+                        
+                        for year_savings in annual_cash_flow:
+                            cumulative += year_savings
+                            cumulative_cash_flow.append(cumulative)
+                        
+                        fig_cashflow = go.Figure()
+                        
+                        # Annual cash flow
+                        fig_cashflow.add_trace(go.Bar(
+                            x=years,
+                            y=annual_cash_flow,
+                            name='Annual Savings',
+                            marker_color='lightgreen',
+                            yaxis='y'
+                        ))
+                        
+                        # Cumulative cash flow
+                        fig_cashflow.add_trace(go.Scatter(
+                            x=years,
+                            y=cumulative_cash_flow,
+                            mode='lines+markers',
+                            name='Cumulative Cash Flow',
+                            line=dict(color='darkgreen', width=3),
+                            yaxis='y2'
+                        ))
+                        
+                        # Add break-even line
+                        fig_cashflow.add_hline(y=0, line_dash="dash", line_color="red", 
+                                             annotation_text="Break-even")
+                        
+                        fig_cashflow.update_layout(
+                            title=f"25-Year Financial Projection - Solution {selected_solution_id}",
+                            xaxis_title="Year",
+                            yaxis=dict(title="Annual Savings (€)", side="left"),
+                            yaxis2=dict(title="Cumulative Cash Flow (€)", side="right", overlaying="y"),
+                            height=500,
+                            legend=dict(x=0.7, y=0.95)
+                        )
+                        
+                        st.plotly_chart(fig_cashflow, use_container_width=True)
+                        
+                        # Performance summary table
+                        st.subheader("📋 Solution Performance Summary")
+                        st.dataframe(orientation_analysis, use_container_width=True)
+                        
+                conn.close()
+        except Exception as e:
+            st.error(f"Error retrieving solution details: {str(e)}")
+            st.info("Using basic solution metrics for analysis.")
         
         # Add step-specific download button
         st.markdown("---")
