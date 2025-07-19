@@ -355,8 +355,16 @@ def render_financial_analysis():
             key="grid_co2_fin"
         )
         
-        # Display source information
-        display_carbon_factor_info(carbon_data)
+        # Add refresh button for live data
+        col_info, col_refresh = st.columns([3, 1])
+        with col_info:
+            # Display source information
+            display_carbon_factor_info(carbon_data)
+        with col_refresh:
+            if st.button("🔄 Refresh", help="Update carbon factor with latest live data", key="refresh_carbon"):
+                # Force refresh by clearing cache and reloading
+                st.cache_data.clear()
+                st.rerun()
     
     with env_col2:
         carbon_price = st.number_input(

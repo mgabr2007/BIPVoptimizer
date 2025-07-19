@@ -7,13 +7,108 @@ Sources:
 - European Environment Agency (EEA) 2023 data
 - National grid operators and statistics offices
 - IPCC Assessment Report 6 (AR6) electricity factors
+- Live data APIs from national grid operators
 """
 
 import streamlit as st
+import requests
+import json
+import time
+from datetime import datetime, timedelta
+
+def fetch_live_carbon_intensity(country_code):
+    """
+    Fetch live carbon intensity data from official APIs
+    
+    Args:
+        country_code (str): ISO country code (e.g., 'DE', 'GB', 'FR')
+    
+    Returns:
+        dict: Live carbon factor data or None if fetch fails
+    """
+    try:
+        # API mappings for live carbon intensity data
+        api_configs = {
+            'DE': {
+                'url': 'https://www.smard.de/app/chart_data/410/DE/410_DE_quarterhour_',
+                'method': 'smard_de',
+                'name': 'German SMARD API'
+            },
+            'GB': {
+                'url': 'https://api.carbonintensity.org.uk/intensity',
+                'method': 'uk_carbon',
+                'name': 'UK Carbon Intensity API'
+            },
+            'FR': {
+                'url': 'https://digital.iservices.rte-france.com/open_api/co2_emission/v1/co2',
+                'method': 'rte_france',
+                'name': 'RTE France API'
+            },
+            'DK': {
+                'url': 'https://api.energidataservice.dk/dataset/CO2Emis',
+                'method': 'energinet_dk',
+                'name': 'Energinet Denmark API'
+            }
+        }
+        
+        if country_code not in api_configs:
+            return None
+            
+        config = api_configs[country_code]
+        
+        # UK Carbon Intensity API
+        if config['method'] == 'uk_carbon':
+            response = requests.get(config['url'], timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('data') and len(data['data']) > 0:
+                    intensity = data['data'][0]['intensity']
+                    actual = intensity.get('actual') or intensity.get('forecast', 0)
+                    return {
+                        'factor': actual / 1000,  # Convert g/kWh to kg/kWh
+                        'source': f"UK National Grid ESO (Live API) - {datetime.now().strftime('%H:%M %d/%m/%Y')}",
+                        'year': datetime.now().year,
+                        'confidence': 'high',
+                        'region_type': 'live_api_official'
+                    }
+        
+        # German SMARD API
+        elif config['method'] == 'smard_de':
+            # Use simplified approach - get recent data
+            now = datetime.now()
+            yesterday = now - timedelta(days=1)
+            date_str = yesterday.strftime('%Y-%m-%d')
+            
+            # SMARD API for CO2 emissions
+            url = f"https://www.smard.de/app/chart_data/1030/DE/1030_DE_quarterhour_{date_str.replace('-', '')}.json"
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('series') and len(data['series']) > 0:
+                    # Get latest non-null value
+                    latest_values = [x[1] for x in data['series'] if x[1] is not None]
+                    if latest_values:
+                        co2_intensity = latest_values[-1]  # g/kWh
+                        return {
+                            'factor': co2_intensity / 1000,  # Convert to kg/kWh
+                            'source': f"German SMARD API (Live) - {datetime.now().strftime('%H:%M %d/%m/%Y')}",
+                            'year': datetime.now().year,
+                            'confidence': 'high',
+                            'region_type': 'live_api_official'
+                        }
+        
+        # Add more API implementations as needed
+        return None
+        
+    except Exception as e:
+        st.warning(f"Live data fetch failed for {country_code}: {str(e)}")
+        return None
 
 def get_grid_carbon_factor(location_name, coordinates=None):
     """
     Get grid carbon intensity factor (kg CO₂/kWh) based on location
+    Tries live APIs first, falls back to static data
     
     Args:
         location_name (str): Location name from project setup
@@ -29,6 +124,30 @@ def get_grid_carbon_factor(location_name, coordinates=None):
         }
     """
     
+    # First, try to get live data from official APIs
+    country_code = None
+    location_lower = location_name.lower() if location_name else ""
+    
+    # Map location to country codes for API lookup
+    country_mappings = {
+        'germany': 'DE', 'deutschland': 'DE', 'berlin': 'DE', 'munich': 'DE', 'hamburg': 'DE',
+        'united kingdom': 'GB', 'uk': 'GB', 'britain': 'GB', 'london': 'GB', 'manchester': 'GB',
+        'france': 'FR', 'paris': 'FR', 'lyon': 'FR', 'marseille': 'FR',
+        'denmark': 'DK', 'copenhagen': 'DK', 'aarhus': 'DK'
+    }
+    
+    for location_key, code in country_mappings.items():
+        if location_key in location_lower:
+            country_code = code
+            break
+    
+    # Try to fetch live data
+    if country_code:
+        live_data = fetch_live_carbon_intensity(country_code)
+        if live_data:
+            return live_data
+    
+    # Fallback to static official data if live fetch fails
     # Official grid carbon factors (kg CO₂/kWh) - 2023 data
     # Sources: IEA, EEA, national grid operators
     CARBON_FACTORS = {
@@ -328,6 +447,7 @@ def display_carbon_factor_info(carbon_data):
     
     # Region type description
     type_descriptions = {
+        'live_api_official': 'Live official grid API data',
         'national_official': 'Official national grid data',
         'iea_estimate': 'IEA published estimate',
         'regional_estimate': 'IPCC regional average',
@@ -340,3 +460,5 @@ def display_carbon_factor_info(carbon_data):
     
     if confidence == 'low':
         st.warning("⚠️ Using estimated carbon factor. For accurate analysis, please verify local grid emissions data.")
+    elif region_type == 'live_api_official':
+        st.success("🌐 Live carbon intensity data successfully retrieved from official grid operator API!")
