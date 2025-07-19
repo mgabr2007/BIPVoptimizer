@@ -240,12 +240,12 @@ def render_financial_analysis():
     
     # Financial configuration
     st.subheader("🔧 Financial Analysis Configuration")
-    st.write("**Adjust the parameters below based on your specific project requirements:**")
+    st.markdown("**Adjust the parameters below based on your specific project requirements:**")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.write("**System Parameters**")
+        st.markdown("**System Parameters**")
         system_lifetime = st.number_input(
             "System Lifetime (years)",
             15, 30, 25, 1,
@@ -277,7 +277,7 @@ def render_financial_analysis():
             st.info(f"📊 Using rate from Step 1 configuration")
     
     with col2:
-        st.write("**Economic Assumptions**")
+        st.markdown("**Economic Assumptions**")
         price_escalation = st.slider(
             "Annual Price Escalation (%)",
             0.0, 5.0, 2.0, 0.5,
@@ -347,7 +347,7 @@ def render_financial_analysis():
         carbon_data = get_grid_carbon_factor(location_name, coordinates)
         default_co2 = carbon_data['factor']
         
-        st.write("**Grid CO₂ Emissions Factor**")
+        st.markdown("**Grid CO₂ Emissions Factor**")
         grid_co2_factor = st.number_input(
             "Grid CO₂ Factor (kg CO₂/kWh)",
             0.020, 0.900, default_co2, 0.001,
@@ -630,11 +630,6 @@ def render_financial_analysis():
                 carbon_value = env_data.get('carbon_value', 0)
                 st.metric("Carbon Value", f"€{carbon_value:,.0f}")
             
-            # Debug selected solution data structure
-            st.write("🔍 **DEBUG: Available Solution Data:**")
-            st.write(f"Selected solution keys: {list(selected_solution.keys()) if hasattr(selected_solution, 'keys') else 'Not a dict'}")
-            st.write(f"Selected solution data: {selected_solution}")
-            
             # Use current solution data if available, otherwise calculate missing fields
             if current_solution and 'annual_energy_kwh' in current_solution:
                 solution_dict = current_solution
@@ -663,10 +658,8 @@ def render_financial_analysis():
             tab1, tab2, tab3, tab4 = st.tabs(["Cash Flow", "Sensitivity Analysis", "Investment Summary", "Comparative Metrics"])
             
             with tab1:
-                # Cash flow visualization - debug data availability
+                # Cash flow visualization
                 cash_flow_data = financial_data.get('cash_flow_analysis', [])
-                st.write(f"🔍 DEBUG: Cash flow data available: {len(cash_flow_data) if cash_flow_data else 0} records")
-                st.write(f"🔍 DEBUG: Financial data keys: {list(financial_data.keys()) if financial_data else 'None'}")
                 
                 if cash_flow_data:
                     cash_flow_df = pd.DataFrame(cash_flow_data)
@@ -700,7 +693,7 @@ def render_financial_analysis():
                     st.plotly_chart(fig_cashflow, use_container_width=True)
                     
                     # Cash flow table
-                    st.write("**Annual Cash Flow Details:**")
+                    st.markdown("**Annual Cash Flow Details:**")
                     st.dataframe(
                         cash_flow_df.round(0),
                         use_container_width=True,
@@ -717,13 +710,11 @@ def render_financial_analysis():
                     st.info("Cash flow data not available. Please run financial analysis first.")
             
             with tab2:
-                # Sensitivity analysis - debug data availability  
+                # Sensitivity analysis
                 sensitivity_data = financial_data.get('sensitivity_analysis', {})
-                st.write(f"🔍 DEBUG: Sensitivity data keys: {list(sensitivity_data.keys()) if sensitivity_data else 'None'}")
-                st.write(f"🔍 DEBUG: Sensitivity data content: {sensitivity_data}")
                 
                 if sensitivity_data:
-                    st.write("**NPV Sensitivity to Key Parameters:**")
+                    st.markdown("**NPV Sensitivity to Key Parameters:**")
                     
                     for param, data in sensitivity_data.items():
                         param_names = {
@@ -745,7 +736,7 @@ def render_financial_analysis():
             
             with tab3:
                 # Investment summary - use calculated solution_dict
-                st.write("**Investment Summary:**")
+                st.markdown("**Investment Summary:**")
                 
                 summary_data = {
                     'Metric': [
@@ -776,7 +767,7 @@ def render_financial_analysis():
             
             with tab4:
                 # Comparative metrics - use calculated solution_dict
-                st.write("**Financial Performance Indicators:**")
+                st.markdown("**Financial Performance Indicators:**")
                 
                 # Calculate additional metrics
                 total_investment = solution_dict.get('total_cost', 0)
