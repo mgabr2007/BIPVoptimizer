@@ -83,8 +83,9 @@ def calculate_co2_savings(annual_energy_kwh, grid_co2_factor, system_lifetime):
 def create_cash_flow_analysis(solution_data, financial_params, system_lifetime):
     """Create detailed cash flow analysis for a solution."""
     
-    initial_cost = solution_data['total_investment']
-    annual_energy = solution_data['annual_energy_kwh']
+    # Handle different key names for cost
+    initial_cost = solution_data.get('total_investment', solution_data.get('total_cost', 0))
+    annual_energy = solution_data.get('annual_energy_kwh', solution_data.get('annual_energy', 0))
     
     # Financial parameters
     discount_rate = financial_params['discount_rate']
@@ -412,9 +413,10 @@ def render_financial_analysis():
                     'system_degradation': system_degradation / 100
                 }
                 
-                # Create cash flow analysis
+                # Create cash flow analysis - convert Series to dict
+                solution_dict = selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution
                 cash_flows, annual_details = create_cash_flow_analysis(
-                    selected_solution, financial_params, system_lifetime
+                    solution_dict, financial_params, system_lifetime
                 )
                 
                 # Calculate financial metrics
@@ -423,19 +425,22 @@ def render_financial_analysis():
                 payback_period = calculate_payback_period(cash_flows)
                 
                 # Calculate environmental impact
+                annual_energy_kwh = solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0))
                 annual_co2_savings, lifetime_co2_savings = calculate_co2_savings(
-                    selected_solution['annual_energy_kwh'], grid_co2_factor, system_lifetime
+                    annual_energy_kwh, grid_co2_factor, system_lifetime
                 )
                 
                 # Calculate carbon value
                 carbon_value = lifetime_co2_savings * carbon_price
                 
                 # Sensitivity analysis
+                # Get system cost from solution data
+                system_cost = solution_dict.get('total_cost', solution_dict.get('total_investment', 0))
+                
                 sensitivity_ranges = {
                     'electricity_price': np.linspace(electricity_price * 0.8, electricity_price * 1.2, 5),
                     'discount_rate': np.linspace(max(0.01, (discount_rate/100) * 0.5), (discount_rate/100) * 1.5, 5),
-                    'system_cost': np.linspace(selected_solution['total_cost'] * 0.8, 
-                                             selected_solution['total_cost'] * 1.2, 5)
+                    'system_cost': np.linspace(system_cost * 0.8, system_cost * 1.2, 5)
                 }
                 
                 sensitivity_results = {}
@@ -443,7 +448,7 @@ def render_financial_analysis():
                     npv_values = []
                     for value in values:
                         temp_params = financial_params.copy()
-                        temp_solution = selected_solution.copy()
+                        temp_solution = solution_dict.copy()
                         
                         if param == 'electricity_price':
                             temp_params['electricity_price'] = value
@@ -451,6 +456,7 @@ def render_financial_analysis():
                             temp_params['discount_rate'] = value
                         elif param == 'system_cost':
                             temp_solution['total_cost'] = value
+                            temp_solution['total_investment'] = value  # Support both keys
                         
                         temp_cash_flows, _ = create_cash_flow_analysis(temp_solution, temp_params, system_lifetime)
                         temp_npv = calculate_npv(temp_cash_flows, temp_params['discount_rate'])
@@ -459,13 +465,16 @@ def render_financial_analysis():
                     sensitivity_results[param] = {'values': values.tolist(), 'npv': npv_values}
                 
                 # Save results
+                total_investment = solution_dict.get('total_cost', solution_dict.get('total_investment', 0))
+                annual_savings = solution_dict.get('annual_savings', annual_energy_kwh * electricity_price)
+                
                 financial_analysis_results = {
                     'financial_metrics': {
                         'npv': npv,
                         'irr': irr * 100 if irr else None,
                         'payback_period': payback_period,
-                        'total_investment': selected_solution['total_cost'],
-                        'annual_savings': selected_solution['annual_savings'],
+                        'total_investment': total_investment,
+                        'annual_savings': annual_savings,
                         'lifetime_savings': sum(cash_flows[1:])  # Exclude initial investment
                     },
                     'environmental_impact': {
@@ -496,8 +505,8 @@ def render_financial_analysis():
                         'npv': npv,
                         'irr': irr * 100 if irr else None,
                         'payback_period': payback_period,
-                        'total_investment': selected_solution['total_cost'],
-                        'annual_savings': selected_solution['annual_savings'],
+                        'total_investment': total_investment,
+                        'annual_savings': annual_savings,
                         'lifetime_savings': sum(cash_flows[1:])  # Exclude initial investment
                     },
                     'financial_complete': True
@@ -509,16 +518,16 @@ def render_financial_analysis():
                     try:
                         # Prepare database-compatible financial data structure
                         db_financial_data = {
-                            'initial_investment': selected_solution['total_cost'],
-                            'annual_savings': selected_solution['annual_savings'],
-                            'annual_generation': selected_solution['annual_energy_kwh'],
+                            'initial_investment': total_investment,
+                            'annual_savings': annual_savings,
+                            'annual_generation': annual_energy_kwh,
                             'annual_export_revenue': 0,  # Calculate based on feed-in tariff if available
-                            'annual_om_cost': selected_solution['total_cost'] * financial_params['maintenance_cost_rate'],
-                            'net_annual_benefit': selected_solution['annual_savings'],
+                            'annual_om_cost': total_investment * financial_params['maintenance_cost_rate'],
+                            'net_annual_benefit': annual_savings,
                             'npv': npv,
                             'irr': irr,
                             'payback_period': payback_period,
-                            'lcoe': safe_divide(selected_solution['total_cost'], selected_solution['annual_energy_kwh'] * system_lifetime, 0),
+                            'lcoe': safe_divide(total_investment, annual_energy_kwh * system_lifetime, 0),
                             'analysis_complete': True,
                             # Environmental impact data for database
                             'co2_savings_annual': annual_co2_savings,
