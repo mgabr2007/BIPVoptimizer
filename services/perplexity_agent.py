@@ -257,7 +257,17 @@ class PerplexityBIPVAgent:
         
         try:
             response = requests.post(self.base_url, headers=self.headers, json=payload)
-            response.raise_for_status()
+            
+            # Enhanced error handling with response details
+            if response.status_code != 200:
+                error_details = f"Status: {response.status_code}"
+                try:
+                    error_json = response.json()
+                    error_details += f", Response: {error_json}"
+                except:
+                    error_details += f", Text: {response.text[:200]}"
+                
+                return f"Perplexity API Error - {error_details}. Please check your API key and try again."
             
             result = response.json()
             return result['choices'][0]['message']['content']
