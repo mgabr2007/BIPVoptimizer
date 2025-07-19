@@ -331,12 +331,79 @@ def get_step9_data(project_data):
     """Extract Step 9: Financial Analysis data"""
     financial = project_data.get('financial_analysis', {})
     
+    # Debug: Show available financial data structure
+    print(f"DEBUG - Available financial keys: {list(financial.keys()) if financial else 'None'}")
+    
+    # Try multiple data source locations for financial metrics
+    financial_metrics = financial.get('financial_metrics', {})
+    environmental_impact = financial.get('environmental_impact', {})
+    
+    # Primary data sources (direct field names as saved by financial analysis)
+    npv = (
+        safe_float(financial.get('npv'), None) or
+        safe_float(financial_metrics.get('npv'), None) or
+        safe_float(project_data.get('npv'), 0)
+    )
+    
+    irr = (
+        safe_float(financial.get('irr'), None) or
+        safe_float(financial_metrics.get('irr'), None) or
+        safe_float(project_data.get('irr'), 0)
+    )
+    
+    payback = (
+        safe_float(financial.get('payback_period'), None) or
+        safe_float(financial_metrics.get('payback_period'), None) or
+        safe_float(project_data.get('payback_period'), 0)
+    )
+    
+    annual_savings = (
+        safe_float(financial.get('annual_savings'), None) or
+        safe_float(financial_metrics.get('annual_savings'), None) or
+        safe_float(project_data.get('annual_savings'), 0)
+    )
+    
+    # Investment cost from multiple field names
+    investment_cost = (
+        safe_float(financial.get('initial_investment'), None) or
+        safe_float(financial.get('total_investment'), None) or
+        safe_float(financial_metrics.get('total_investment'), None) or
+        safe_float(project_data.get('initial_investment'), 0)
+    )
+    
+    # Environmental data from direct field names  
+    annual_co2 = (
+        safe_float(financial.get('co2_savings_annual'), None) or
+        safe_float(environmental_impact.get('annual_co2_savings'), None) or
+        safe_float(project_data.get('co2_savings_annual'), 0)
+    )
+    
+    lifetime_co2 = (
+        safe_float(financial.get('co2_savings_lifetime'), None) or
+        safe_float(environmental_impact.get('lifetime_co2_savings'), None) or
+        safe_float(project_data.get('co2_savings_lifetime'), 0)
+    )
+    
+    # System capacity
+    system_capacity = (
+        safe_float(financial.get('system_capacity'), None) or
+        safe_float(project_data.get('system_capacity'), 0)
+    )
+    
+    print(f"DEBUG Step 9 - NPV: {npv}, IRR: {irr}, Payback: {payback}")
+    print(f"DEBUG Step 9 - Annual Savings: {annual_savings}, Investment: {investment_cost}")
+    print(f"DEBUG Step 9 - CO2 Annual: {annual_co2}, CO2 Lifetime: {lifetime_co2}")
+    
     return {
-        'npv': safe_float(financial.get('npv', 0), 0),
-        'irr': safe_float(financial.get('irr', 0), 0),
-        'payback_period': safe_float(financial.get('payback_period', 0), 0),
-        'annual_savings': safe_float(financial.get('annual_savings', 0), 0),
-        'system_capacity': safe_float(financial.get('system_capacity', 0), 0),
+        'npv': npv if npv is not None else 0,
+        'irr': irr if irr is not None else 0,
+        'payback_period': payback if payback is not None else 0,
+        'annual_savings': annual_savings if annual_savings is not None else 0,
+        'investment_cost': investment_cost if investment_cost is not None else 0,
+        'annual_co2_savings': annual_co2 if annual_co2 is not None else 0,
+        'lifetime_co2_savings': lifetime_co2 if lifetime_co2 is not None else 0,
+        'system_capacity': system_capacity if system_capacity is not None else 0
+    }
         'installation_cost': safe_float(financial.get('installation_cost', 0), 0),
         'annual_co2_savings': safe_float(financial.get('annual_co2_savings', 0), 0),
         'lifetime_co2_savings': safe_float(financial.get('lifetime_co2_savings', 0), 0)

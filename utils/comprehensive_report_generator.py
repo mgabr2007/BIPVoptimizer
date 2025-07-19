@@ -782,21 +782,22 @@ def generate_step8_section(project_data):
 def generate_step9_section(project_data):
     """Generate Step 9: Financial & Environmental Analysis section"""
     
-    financial_data = project_data.get('financial_analysis', {})
+    # Use step9_data extractor for consistent data access
+    step9_data = get_step9_data(project_data)
     
     # Financial metrics
-    npv = financial_data.get('npv', 0)
-    irr = financial_data.get('irr', 0)
-    payback_period = financial_data.get('payback_period', 0)
+    npv = step9_data.get('npv', 0)
+    irr = step9_data.get('irr', 0)
+    payback_period = step9_data.get('payback_period', 0)
+    annual_savings = step9_data.get('annual_savings', 0)
+    investment_cost = step9_data.get('investment_cost', 0)
     
     # Environmental metrics
-    co2_savings = financial_data.get('annual_co2_savings', 0)
-    lifetime_co2 = financial_data.get('lifetime_co2_savings', 0)
+    co2_savings = step9_data.get('annual_co2_savings', 0)
+    lifetime_co2 = step9_data.get('lifetime_co2_savings', 0)
     
     # System parameters
-    system_capacity = financial_data.get('system_capacity', 0)
-    installation_cost = financial_data.get('installation_cost', 0)
-    annual_savings = financial_data.get('annual_savings', 0)
+    system_capacity = step9_data.get('system_capacity', 0)
     
     return f"""
     <div class="step-section">
@@ -824,10 +825,13 @@ def generate_step9_section(project_data):
                 <strong>System Capacity:</strong> {system_capacity:.1f} kW
             </div>
             <div class="metric">
-                <strong>Total Installation Cost:</strong> €{installation_cost:,.0f}
+                <strong>Total Installation Cost:</strong> €{investment_cost:,.0f}
             </div>
             <div class="metric">
-                <strong>Cost per kW:</strong> €{installation_cost/system_capacity if system_capacity > 0 else 0:,.0f}/kW
+                <strong>Cost per kW:</strong> €{investment_cost/system_capacity if system_capacity > 0 else 0:,.0f}/kW
+            </div>
+            <div class="metric">
+                <strong>25-Year Total Savings:</strong> €{annual_savings * 25:,.0f}
             </div>
         </div>
         
