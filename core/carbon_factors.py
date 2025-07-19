@@ -128,13 +128,19 @@ def get_grid_carbon_factor(location_name, coordinates=None):
     country_code = None
     location_lower = location_name.lower() if location_name else ""
     
-    # Map location to country codes for API lookup
+    # Map location to country codes for API lookup - enhanced for Berlin detection
     country_mappings = {
         'germany': 'DE', 'deutschland': 'DE', 'berlin': 'DE', 'munich': 'DE', 'hamburg': 'DE',
+        'cologne': 'DE', 'frankfurt': 'DE', 'düsseldorf': 'DE', 'dortmund': 'DE', 'essen': 'DE',
         'united kingdom': 'GB', 'uk': 'GB', 'britain': 'GB', 'london': 'GB', 'manchester': 'GB',
         'france': 'FR', 'paris': 'FR', 'lyon': 'FR', 'marseille': 'FR',
         'denmark': 'DK', 'copenhagen': 'DK', 'aarhus': 'DK'
     }
+    
+    # Debug output for Berlin detection
+    if 'berlin' in location_lower:
+        st.info(f"🔍 Detected Berlin in location: '{location_name}' → Country code: DE")
+        print(f"DEBUG: Berlin detected in '{location_name}', setting country_code to DE")
     
     for location_key, code in country_mappings.items():
         if location_key in location_lower:

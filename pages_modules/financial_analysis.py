@@ -432,8 +432,18 @@ def render_financial_analysis():
                 irr = calculate_irr(cash_flows)
                 payback_period = calculate_payback_period(cash_flows)
                 
-                # Calculate environmental impact
-                annual_energy_kwh = solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0))
+                # Calculate environmental impact - get annual energy from multiple possible sources
+                annual_energy_kwh = (
+                    solution_dict.get('annual_energy_kwh') or 
+                    solution_dict.get('annual_energy') or 
+                    solution_dict.get('capacity', 0) * 1200  # Fallback: capacity * average solar hours
+                )
+                
+                # Ensure we have valid energy data
+                if annual_energy_kwh == 0:
+                    st.error("⚠️ No annual energy data found in solution. Please complete Step 7 (Yield vs Demand Analysis) first.")
+                    return
+                
                 annual_co2_savings, lifetime_co2_savings = calculate_co2_savings(
                     annual_energy_kwh, grid_co2_factor, system_lifetime
                 )

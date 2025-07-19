@@ -385,10 +385,13 @@ class BIPVDatabaseManager:
                     net_import = solution.get('net_import_kwh', solution.get('net_import', 0))  # Map net_import_kwh to net_import
                     total_cost = solution.get('total_investment', solution.get('total_cost', 0))  # Map total_investment to total_cost
                     
+                    # Include annual energy in optimization results
+                    annual_energy = solution.get('annual_energy_kwh', solution.get('annual_energy', capacity * 1200 if capacity else 0))
+                    
                     cursor.execute("""
                         INSERT INTO optimization_results 
-                        (project_id, solution_id, capacity, roi, net_import, total_cost, rank_position, pareto_optimal)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        (project_id, solution_id, capacity, roi, net_import, total_cost, annual_energy_kwh, rank_position, pareto_optimal)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         project_id,
                         solution.get('solution_id', f'solution_{i}'),
@@ -396,6 +399,7 @@ class BIPVDatabaseManager:
                         float(solution.get('roi', 0)) if solution.get('roi') is not None else 0,
                         float(net_import) if net_import is not None else 0,
                         float(total_cost) if total_cost is not None else 0,
+                        float(annual_energy) if annual_energy is not None else 0,
                         i + 1,
                         solution.get('pareto_optimal', False)
                     ))

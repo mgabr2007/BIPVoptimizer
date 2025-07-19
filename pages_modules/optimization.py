@@ -796,7 +796,7 @@ def render_optimization():
         if conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT solution_id, capacity, roi, net_import, total_cost 
+                    SELECT solution_id, capacity, roi, net_import, total_cost, annual_energy_kwh 
                     FROM optimization_results 
                     WHERE project_id = %s 
                     ORDER BY roi DESC
@@ -804,7 +804,7 @@ def render_optimization():
                 
                 results = cursor.fetchall()
                 if results:
-                    solutions = pd.DataFrame(results, columns=['solution_id', 'capacity', 'roi', 'net_import', 'total_cost'])
+                    solutions = pd.DataFrame(results, columns=['solution_id', 'capacity', 'roi', 'net_import', 'total_cost', 'annual_energy_kwh'])
                     optimization_data = {'solutions': solutions}
             conn.close()
     except Exception as e:
