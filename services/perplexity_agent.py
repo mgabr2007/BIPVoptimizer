@@ -105,13 +105,27 @@ class PerplexityBIPVAgent:
             # Get AI model data for R² score
             project_id = project_data.get('id') or project_data.get('project_id')
             if project_id:
-                # Get historical data with AI model metrics
+                # Get AI model data directly for R² score
+                try:
+                    with db_manager.get_connection().cursor() as cursor:
+                        cursor.execute("""
+                            SELECT r_squared_score FROM ai_models 
+                            WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
+                        """, (project_id,))
+                        result = cursor.fetchone()
+                        if result:
+                            r_squared = float(result[0])
+                except Exception:
+                    r_squared = 0
+                
+                # Get historical data with AI model metrics - fallback
                 historical_data = db_manager.get_historical_data(project_id)
                 if historical_data:
-                    r_squared = float(historical_data.get('r_squared_score', 0) or historical_data.get('model_accuracy', 0))
+                    if r_squared == 0:  # Only use if not found above
+                        r_squared = float(historical_data.get('r_squared_score', 0) or historical_data.get('model_accuracy', 0))
                     total_consumption = float(historical_data.get('annual_consumption', 0))
                     
-                # If no data from historical_data, try energy_analysis
+                # If no data from historical_data, get from energy_analysis
                 if total_consumption == 0:
                     try:
                         with db_manager.get_connection().cursor() as cursor:
@@ -135,12 +149,21 @@ class PerplexityBIPVAgent:
         weather_data = project_data.get('weather_analysis', {})
         annual_ghi = weather_data.get('annual_ghi', 1200)
         
-        # Enhanced PV specifications extraction with multiple data sources
+        # Enhanced PV specifications extraction with database fallback
         pv_specs = project_data.get('pv_specifications', [])
         total_capacity = 0
         total_annual_yield = 0
         
-        # Try different data structure formats
+        # If no PV specs in project_data, try direct database query
+        if not pv_specs:
+            try:
+                pv_data = db_manager.get_pv_specifications(project_id)
+                if pv_data and 'bipv_specifications' in pv_data:
+                    pv_specs = pv_data['bipv_specifications']
+            except Exception:
+                pass
+        
+        # Process PV specifications data
         if isinstance(pv_specs, dict) and 'system_power_kw' in pv_specs:
             # Convert DataFrame dict format
             capacity_dict = pv_specs.get('system_power_kw', {})
@@ -152,8 +175,11 @@ class PerplexityBIPVAgent:
         elif isinstance(pv_specs, list):
             for spec in pv_specs:
                 if isinstance(spec, dict):
-                    total_capacity += float(spec.get('system_power_kw', 0))
-                    total_annual_yield += float(spec.get('annual_energy_kwh', 0))
+                    # Handle different field name variations
+                    capacity = spec.get('capacity_kw', 0) or spec.get('system_power_kw', 0)
+                    yield_kwh = spec.get('annual_energy_kwh', 0) or spec.get('annual_yield_kwh', 0)
+                    total_capacity += float(capacity)
+                    total_annual_yield += float(yield_kwh)
         
         # If no PV specs found, try yield_demand_analysis
         if total_capacity == 0 and total_annual_yield == 0:
@@ -496,7 +522,15 @@ def render_perplexity_consultation():
     with col1:
         if st.button("🔍 Analyze Complete Results", type="primary"):
             with st.spinner("Consulting AI research expert..."):
-                analysis = agent.analyze_bipv_results(project_data, building_elements, financial_data)
+                # Debug: Show what data we're passing
+                with st.expander("🔍 Debug: Data being analyzed", expanded=False):
+                    st.write("PV specs type:", type(pv_specs), "length:", len(pv_specs) if pv_specs else 0)
+                    st.write("Yield analysis available:", bool(yield_data))
+                    st.write("Building elements:", len(building_elements) if building_elements else 0)
+                    st.write("R² score available:", bool(historical_data and historical_data.get('r_squared_score')))
+                
+                # Pass the comprehensive data to AI agent
+                analysis = agent.analyze_bipv_results(comprehensive_project_data, building_elements, financial_data)
                 st.session_state.perplexity_analysis = analysis
     
     with col2:

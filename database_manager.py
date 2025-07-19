@@ -287,8 +287,8 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
-    def get_historical_data(self, project_id):
-        """Get historical data analysis results from energy_analysis table"""
+    def get_historical_data_basic(self, project_id):
+        """Get basic historical data analysis results from energy_analysis table"""
         conn = self.get_connection()
         if not conn:
             return None
