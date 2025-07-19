@@ -66,7 +66,7 @@ class PerplexityBIPVAgent:
         return self._query_perplexity(prompt)
     
     def _prepare_data_summary(self, project_data, building_elements, financial_analysis):
-        """Prepare comprehensive data summary for AI analysis"""
+        """Prepare comprehensive data summary for AI analysis with authentic Step 2 integration"""
         
         # Extract key metrics
         total_elements = len(building_elements) if building_elements else 0
@@ -86,18 +86,20 @@ class PerplexityBIPVAgent:
                 except (ValueError, TypeError):
                     continue
         
-        # Financial metrics
+        # Financial metrics from multiple sources
         financial_metrics = financial_analysis.get('financial_metrics', {}) if financial_analysis else {}
         npv = financial_metrics.get('npv', 0)
         payback_period = financial_metrics.get('payback_period', 0)
         irr = financial_metrics.get('irr', 0)
         total_investment = financial_metrics.get('total_investment', 0)
         
-        # Historical data and AI model metrics from database
+        # Enhanced Step 2 AI model and historical data integration
         r_squared = 0
         total_consumption = 0
+        building_area = 0
+        growth_rate = 0
         
-        # Get AI model R² score from database
+        # Get comprehensive Step 2 data from database
         try:
             from database_manager import BIPVDatabaseManager
             db_manager = BIPVDatabaseManager()
@@ -105,25 +107,34 @@ class PerplexityBIPVAgent:
             # Get AI model data for R² score
             project_id = project_data.get('id') or project_data.get('project_id')
             if project_id:
-                # Get AI model data directly for R² score
+                # Get comprehensive AI model and historical data
                 try:
                     with db_manager.get_connection().cursor() as cursor:
                         cursor.execute("""
-                            SELECT r_squared_score FROM ai_models 
-                            WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
+                            SELECT am.r_squared_score, am.training_data_size, am.forecast_years,
+                                   hd.annual_consumption, hd.building_area, hd.growth_rate, hd.peak_demand
+                            FROM ai_models am 
+                            LEFT JOIN historical_data hd ON am.project_id = hd.project_id
+                            WHERE am.project_id = %s 
+                            ORDER BY am.created_at DESC LIMIT 1
                         """, (project_id,))
                         result = cursor.fetchone()
                         if result:
-                            r_squared = float(result[0])
+                            r_squared = float(result[0]) if result[0] else 0
+                            total_consumption = float(result[3]) if result[3] else 0
+                            building_area = float(result[4]) if result[4] else 0
+                            growth_rate = float(result[5]) if result[5] else 0
                 except Exception:
                     r_squared = 0
                 
-                # Get historical data with AI model metrics - fallback
-                historical_data = db_manager.get_historical_data(project_id)
-                if historical_data:
-                    if r_squared == 0:  # Only use if not found above
+                # Fallback to individual queries if JOIN fails
+                if r_squared == 0:
+                    historical_data = db_manager.get_historical_data(project_id)
+                    if historical_data:
                         r_squared = float(historical_data.get('r_squared_score', 0) or historical_data.get('model_accuracy', 0))
-                    total_consumption = float(historical_data.get('annual_consumption', 0))
+                        total_consumption = float(historical_data.get('annual_consumption', 0))
+                        building_area = float(historical_data.get('building_area', 0))
+                        growth_rate = float(historical_data.get('growth_rate', 0))
                     
                 # If no data from historical_data, get from energy_analysis
                 if total_consumption == 0:
@@ -149,37 +160,43 @@ class PerplexityBIPVAgent:
         weather_data = project_data.get('weather_analysis', {})
         annual_ghi = weather_data.get('annual_ghi', 1200)
         
-        # Enhanced PV specifications extraction with database fallback
-        pv_specs = project_data.get('pv_specifications', [])
+        # Enhanced PV specifications extraction - prioritize database over project_data
+        pv_specs = []
         total_capacity = 0
         total_annual_yield = 0
+        total_cost = 0
         
-        # If no PV specs in project_data, try direct database query
-        if not pv_specs:
-            try:
-                pv_data = db_manager.get_pv_specifications(project_id)
-                if pv_data and 'bipv_specifications' in pv_data:
-                    pv_specs = pv_data['bipv_specifications']
-            except Exception:
-                pass
+        # Primary source: Direct database query for PV specifications
+        try:
+            pv_data = db_manager.get_pv_specifications(project_id)
+            if pv_data and 'bipv_specifications' in pv_data:
+                pv_specs = pv_data['bipv_specifications']
+        except Exception:
+            # Fallback to project_data if database query fails
+            pv_specs = project_data.get('pv_specifications', [])
         
-        # Process PV specifications data
-        if isinstance(pv_specs, dict) and 'system_power_kw' in pv_specs:
-            # Convert DataFrame dict format
+        # Process PV specifications data with standardized field handling
+        if isinstance(pv_specs, list) and len(pv_specs) > 0:
+            for spec in pv_specs:
+                if isinstance(spec, dict):
+                    # Handle standardized field names from unified PV specification
+                    capacity = spec.get('capacity_kw', 0) or spec.get('system_power_kw', 0) or spec.get('total_power_kw', 0)
+                    yield_kwh = spec.get('annual_energy_kwh', 0) or spec.get('annual_yield_kwh', 0) or spec.get('energy_generation', 0)
+                    cost = spec.get('total_cost_eur', 0) or spec.get('total_installation_cost', 0) or spec.get('total_investment', 0)
+                    total_capacity += float(capacity) if capacity else 0
+                    total_annual_yield += float(yield_kwh) if yield_kwh else 0
+                    total_cost += float(cost) if cost else 0
+        elif isinstance(pv_specs, dict) and 'system_power_kw' in pv_specs:
+            # Convert DataFrame dict format (legacy handling)
             capacity_dict = pv_specs.get('system_power_kw', {})
             yield_dict = pv_specs.get('annual_energy_kwh', {})
+            cost_dict = pv_specs.get('total_cost_eur', {})
             if isinstance(capacity_dict, dict):
                 total_capacity = sum(float(v) for v in capacity_dict.values() if v)
             if isinstance(yield_dict, dict):
                 total_annual_yield = sum(float(v) for v in yield_dict.values() if v)
-        elif isinstance(pv_specs, list):
-            for spec in pv_specs:
-                if isinstance(spec, dict):
-                    # Handle different field name variations
-                    capacity = spec.get('capacity_kw', 0) or spec.get('system_power_kw', 0)
-                    yield_kwh = spec.get('annual_energy_kwh', 0) or spec.get('annual_yield_kwh', 0)
-                    total_capacity += float(capacity)
-                    total_annual_yield += float(yield_kwh)
+            if isinstance(cost_dict, dict):
+                total_cost = sum(float(v) for v in cost_dict.values() if v)
         
         # If no PV specs found, try yield_demand_analysis
         if total_capacity == 0 and total_annual_yield == 0:
@@ -221,6 +238,9 @@ class PerplexityBIPVAgent:
             print(f"- PV specs keys: {list(pv_specs.keys())}")
         print(f"- Total capacity: {total_capacity}")
         print(f"- Total annual yield: {total_annual_yield}")
+        print(f"- Step 2 R² score: {r_squared}")
+        print(f"- Step 2 building area: {building_area}")
+        print(f"- Step 2 annual consumption: {total_consumption}")
         
         # Check if we have yield_demand_analysis data
         yield_analysis = project_data.get('yield_demand_analysis', {})

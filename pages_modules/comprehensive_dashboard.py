@@ -28,15 +28,25 @@ def load_dashboard_data():
             return None
         
         with conn.cursor() as cursor:
-            # Project Information (Step 1)
+            # Project Information (Step 1) with electricity rates
             cursor.execute("""
                 SELECT project_name, location, latitude, longitude, timezone, 
-                       currency, created_at
+                       currency, electricity_rates, created_at
                 FROM projects WHERE id = %s
             """, (project_id,))
             project_info = cursor.fetchone()
             
             if project_info:
+                # Parse electricity rates from JSON
+                electricity_rate = 0.30  # Default fallback
+                if project_info[6]:  # electricity_rates JSON
+                    try:
+                        import json
+                        rates_data = json.loads(project_info[6])
+                        electricity_rate = float(rates_data.get('import_rate', 0.30))
+                    except (json.JSONDecodeError, ValueError, TypeError):
+                        electricity_rate = 0.30
+                
                 dashboard_data['project'] = {
                     'name': project_info[0],
                     'location': project_info[1],
@@ -44,23 +54,31 @@ def load_dashboard_data():
                     'longitude': project_info[3],
                     'timezone': project_info[4],
                     'currency': project_info[5],
-                    'electricity_rate': 0.30,  # Default rate - will be updated from actual data
-                    'created_at': project_info[6]
+                    'electricity_rate': electricity_rate,
+                    'created_at': project_info[7]
                 }
             
             # Historical Data & AI Model (Step 2)
             cursor.execute("""
-                SELECT model_type, r_squared_score, training_data_size, forecast_years
-                FROM ai_models WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
+                SELECT am.model_type, am.r_squared_score, am.training_data_size, am.forecast_years,
+                       hd.annual_consumption, hd.building_area, hd.growth_rate, hd.peak_demand
+                FROM ai_models am 
+                LEFT JOIN historical_data hd ON am.project_id = hd.project_id
+                WHERE am.project_id = %s 
+                ORDER BY am.created_at DESC LIMIT 1
             """, (project_id,))
             ai_model = cursor.fetchone()
             
             if ai_model:
                 dashboard_data['ai_model'] = {
                     'model_type': ai_model[0],
-                    'r2_score': ai_model[1],
+                    'r2_score': float(ai_model[1]) if ai_model[1] else 0.0,
                     'training_data_points': ai_model[2],
-                    'forecast_years': ai_model[3]
+                    'forecast_years': ai_model[3],
+                    'annual_consumption': float(ai_model[4]) if ai_model[4] else 0.0,
+                    'building_area': float(ai_model[5]) if ai_model[5] else 0.0,
+                    'growth_rate': float(ai_model[6]) if ai_model[6] else 0.0,
+                    'peak_demand': float(ai_model[7]) if ai_model[7] else 0.0
                 }
             
             # Weather Data (Step 3)
@@ -147,23 +165,44 @@ def load_dashboard_data():
                     ]
                 }
             
-            # PV Specifications (Step 6)
-            cursor.execute("""
-                SELECT COUNT(*) as pv_systems,
-                       AVG(power_density) as avg_power_density,
-                       AVG(efficiency) as avg_efficiency,
-                       AVG(cost_per_m2) as avg_cost_per_m2
-                FROM pv_specifications WHERE project_id = %s
-            """, (project_id,))
-            pv_stats = cursor.fetchone()
-            
-            if pv_stats:
-                dashboard_data['pv_systems'] = {
-                    'total_systems': pv_stats[0],
-                    'avg_power_density': float(pv_stats[1]) if pv_stats[1] else 0,
-                    'avg_efficiency': float(pv_stats[2]) if pv_stats[2] else 0,
-                    'avg_cost_per_m2': float(pv_stats[3]) if pv_stats[3] else 0
-                }
+            # PV Specifications (Step 6) - Enhanced with BIPV specifications data
+            pv_specs_data = db_manager.get_pv_specifications(project_id)
+            if pv_specs_data and 'bipv_specifications' in pv_specs_data:
+                bipv_specs = pv_specs_data['bipv_specifications']
+                if isinstance(bipv_specs, list) and len(bipv_specs) > 0:
+                    total_capacity = sum(float(spec.get('capacity_kw', 0)) for spec in bipv_specs)
+                    total_annual_yield = sum(float(spec.get('annual_energy_kwh', 0)) for spec in bipv_specs)
+                    total_cost = sum(float(spec.get('total_cost_eur', 0)) for spec in bipv_specs)
+                    total_area = sum(float(spec.get('glass_area_m2', 0)) for spec in bipv_specs)
+                    
+                    dashboard_data['pv_systems'] = {
+                        'total_systems': len(bipv_specs),
+                        'total_capacity_kw': total_capacity,
+                        'total_annual_yield_kwh': total_annual_yield,
+                        'total_cost_eur': total_cost,
+                        'total_area_m2': total_area,
+                        'avg_power_density': (total_capacity / total_area * 1000) if total_area > 0 else 0,  # W/m²
+                        'avg_efficiency': sum(float(spec.get('efficiency', 0)) for spec in bipv_specs) / len(bipv_specs),
+                        'avg_cost_per_m2': (total_cost / total_area) if total_area > 0 else 0
+                    }
+                else:
+                    # Fallback to database query if BIPV specs not properly structured
+                    cursor.execute("""
+                        SELECT COUNT(*) as pv_systems,
+                               AVG(power_density) as avg_power_density,
+                               AVG(efficiency) as avg_efficiency,
+                               AVG(cost_per_m2) as avg_cost_per_m2
+                        FROM pv_specifications WHERE project_id = %s
+                    """, (project_id,))
+                    pv_stats = cursor.fetchone()
+                    
+                    if pv_stats and pv_stats[0] > 0:
+                        dashboard_data['pv_systems'] = {
+                            'total_systems': pv_stats[0],
+                            'avg_power_density': float(pv_stats[1]) if pv_stats[1] else 0,
+                            'avg_efficiency': float(pv_stats[2]) if pv_stats[2] else 0,
+                            'avg_cost_per_m2': float(pv_stats[3]) if pv_stats[3] else 0
+                        }
             
             # Energy Analysis (Step 7)
             cursor.execute("""
