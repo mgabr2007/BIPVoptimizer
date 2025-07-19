@@ -1412,6 +1412,26 @@ class BIPVDatabaseManager:
                 """, (result['project_id'],))
                 result['optimization_results'] = [dict(row) for row in cursor.fetchall()]
                 
+                # Get financial analysis data
+                financial_data = self.get_financial_analysis(result['project_id'])
+                if financial_data:
+                    result['financial_analysis'] = financial_data
+                
+                # Get PV specifications
+                pv_data = self.get_pv_specifications(result['project_id'])
+                if pv_data:
+                    result['pv_specifications'] = pv_data
+                
+                # Get yield vs demand data
+                cursor.execute("""
+                    SELECT * FROM energy_analysis 
+                    WHERE project_id = %s
+                    ORDER BY created_at DESC LIMIT 1
+                """, (result['project_id'],))
+                energy_result = cursor.fetchone()
+                if energy_result:
+                    result['yield_demand_analysis'] = dict(energy_result)
+                
                 return result
                 
         except Exception as e:

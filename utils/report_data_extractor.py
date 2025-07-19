@@ -107,9 +107,6 @@ def get_step4_data(project_data):
     orientation_counts = {}
     level_counts = {}
     
-    # Debug: print first few elements to see data structure
-    print(f"DEBUG: Building elements sample (first 3): {building_elements[:3] if building_elements else 'None'}")
-    
     for elem in building_elements:
         # Try multiple possible orientation field names
         orientation = (
@@ -146,8 +143,6 @@ def get_step4_data(project_data):
         
         orientation_counts[orientation] = orientation_counts.get(orientation, 0) + 1
         level_counts[level] = level_counts.get(level, 0) + 1
-    
-    print(f"DEBUG: Final orientation counts: {orientation_counts}")
     
     return {
         'total_elements': len(building_elements),
@@ -331,9 +326,6 @@ def get_step9_data(project_data):
     """Extract Step 9: Financial Analysis data"""
     financial = project_data.get('financial_analysis', {})
     
-    # Debug: Show available financial data structure
-    print(f"DEBUG - Available financial keys: {list(financial.keys()) if financial else 'None'}")
-    
     # Try multiple data source locations for financial metrics
     financial_metrics = financial.get('financial_metrics', {})
     environmental_impact = financial.get('environmental_impact', {})
@@ -390,9 +382,7 @@ def get_step9_data(project_data):
         safe_float(project_data.get('system_capacity'), 0)
     )
     
-    print(f"DEBUG Step 9 - NPV: {npv}, IRR: {irr}, Payback: {payback}")
-    print(f"DEBUG Step 9 - Annual Savings: {annual_savings}, Investment: {investment_cost}")
-    print(f"DEBUG Step 9 - CO2 Annual: {annual_co2}, CO2 Lifetime: {lifetime_co2}")
+
     
     return {
         'npv': npv if npv is not None else 0,
