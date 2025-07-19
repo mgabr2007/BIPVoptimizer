@@ -845,6 +845,132 @@ def render_optimization():
             st.write("**Database Values Analysis:**")
             st.dataframe(debug_solutions[['solution_id', 'capacity', 'roi', 'net_import', 'total_cost']], use_container_width=True)
         
+        # Comprehensive Optimization Results Visualization
+        st.subheader("📊 Interactive Optimization Results")
+        
+        # Create interactive visualizations
+        import plotly.graph_objects as go
+        import plotly.express as px
+        from plotly.subplots import make_subplots
+        
+        # 1. ROI vs Investment Scatter Plot
+        fig1 = px.scatter(
+            solutions, 
+            x='total_cost', 
+            y='roi',
+            size='capacity',
+            color='net_import',
+            hover_data=['solution_id', 'capacity', 'total_cost', 'roi'],
+            title="ROI vs Total Investment (Size = Capacity, Color = Net Import)",
+            labels={
+                'total_cost': 'Total Investment (€)',
+                'roi': 'Return on Investment (%)',
+                'capacity': 'System Capacity (kW)',
+                'net_import': 'Net Import Reduction (kWh)'
+            }
+        )
+        fig1.update_layout(height=500)
+        st.plotly_chart(fig1, use_container_width=True)
+        
+        # 2. Multi-Objective Performance Comparison
+        fig2 = make_subplots(
+            rows=2, cols=2,
+            subplot_titles=('Investment Cost Distribution', 'ROI Distribution', 
+                          'System Capacity Distribution', 'Energy Reduction Distribution'),
+            specs=[[{"secondary_y": False}, {"secondary_y": False}],
+                   [{"secondary_y": False}, {"secondary_y": False}]]
+        )
+        
+        # Investment histogram
+        fig2.add_trace(
+            go.Histogram(x=solutions['total_cost'], name='Investment (€)', nbinsx=10),
+            row=1, col=1
+        )
+        
+        # ROI histogram
+        fig2.add_trace(
+            go.Histogram(x=solutions['roi'], name='ROI (%)', nbinsx=10),
+            row=1, col=2
+        )
+        
+        # Capacity histogram
+        fig2.add_trace(
+            go.Histogram(x=solutions['capacity'], name='Capacity (kW)', nbinsx=10),
+            row=2, col=1
+        )
+        
+        # Net import histogram
+        fig2.add_trace(
+            go.Histogram(x=solutions['net_import'], name='Net Import (kWh)', nbinsx=10),
+            row=2, col=2
+        )
+        
+        fig2.update_layout(height=600, title_text="Solution Distribution Analysis", showlegend=False)
+        st.plotly_chart(fig2, use_container_width=True)
+        
+        # 3. Pareto Front Analysis (Cost vs Performance Trade-off)
+        fig3 = go.Figure()
+        
+        # Add scatter points
+        fig3.add_trace(go.Scatter(
+            x=solutions['total_cost'],
+            y=solutions['roi'],
+            mode='markers+text',
+            text=solutions['solution_id'],
+            textposition='top center',
+            marker=dict(
+                size=solutions['capacity'] * 3,  # Scale size with capacity
+                color=solutions['net_import'],
+                colorscale='Viridis',
+                showscale=True,
+                colorbar=dict(title="Net Import Reduction (kWh)")
+            ),
+            name='Solutions'
+        ))
+        
+        fig3.update_layout(
+            title="Pareto Front: Investment vs ROI Trade-off Analysis",
+            xaxis_title="Total Investment Cost (€)",
+            yaxis_title="Return on Investment (%)",
+            height=500
+        )
+        st.plotly_chart(fig3, use_container_width=True)
+        
+        # 4. Top Solutions Comparison Bar Chart
+        top_solutions = solutions.head(5)  # Top 5 solutions by ROI
+        
+        fig4 = make_subplots(
+            rows=1, cols=2,
+            subplot_titles=('Top 5 Solutions by ROI', 'Investment vs Energy Performance'),
+            specs=[[{"secondary_y": False}, {"secondary_y": True}]]
+        )
+        
+        # ROI comparison
+        fig4.add_trace(
+            go.Bar(x=top_solutions['solution_id'], y=top_solutions['roi'], 
+                   name='ROI (%)', marker_color='lightblue'),
+            row=1, col=1
+        )
+        
+        # Investment vs Performance
+        fig4.add_trace(
+            go.Bar(x=top_solutions['solution_id'], y=top_solutions['total_cost'], 
+                   name='Investment (€)', marker_color='lightcoral'),
+            row=1, col=2
+        )
+        
+        fig4.add_trace(
+            go.Scatter(x=top_solutions['solution_id'], y=top_solutions['capacity'], 
+                      mode='lines+markers', name='Capacity (kW)', 
+                      line=dict(color='green', width=3)),
+            row=1, col=2, secondary_y=True
+        )
+        
+        fig4.update_yaxes(title_text="Investment (€)", secondary_y=False, row=1, col=2)
+        fig4.update_yaxes(title_text="System Capacity (kW)", secondary_y=True, row=1, col=2)
+        fig4.update_layout(height=500, title_text="Detailed Top Solutions Analysis")
+        st.plotly_chart(fig4, use_container_width=True)
+        
         # Key metrics from best solutions using authentic database fields
         best_solution = solutions.iloc[0]
         
