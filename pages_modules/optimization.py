@@ -853,20 +853,27 @@ def render_optimization():
         import plotly.express as px
         from plotly.subplots import make_subplots
         
+        # Convert Series to numeric arrays for Plotly compatibility
+        solutions_dict = {
+            'total_cost': solutions['total_cost'].values.astype(float),
+            'roi': solutions['roi'].values.astype(float), 
+            'capacity': solutions['capacity'].values.astype(float),
+            'net_import': solutions['net_import'].values.astype(float),
+            'solution_id': solutions['solution_id'].values
+        }
+        
         # 1. ROI vs Investment Scatter Plot
         fig1 = px.scatter(
-            solutions, 
-            x='total_cost', 
-            y='roi',
-            size='capacity',
-            color='net_import',
-            hover_data=['solution_id', 'capacity', 'total_cost', 'roi'],
+            x=solutions_dict['total_cost'], 
+            y=solutions_dict['roi'],
+            size=solutions_dict['capacity'],
+            color=solutions_dict['net_import'],
+            hover_data={'x': solutions_dict['total_cost'], 'y': solutions_dict['roi']},
             title="ROI vs Total Investment (Size = Capacity, Color = Net Import)",
             labels={
-                'total_cost': 'Total Investment (€)',
-                'roi': 'Return on Investment (%)',
-                'capacity': 'System Capacity (kW)',
-                'net_import': 'Net Import Reduction (kWh)'
+                'x': 'Total Investment (€)',
+                'y': 'Return on Investment (%)',
+                'color': 'Net Import Reduction (kWh)'
             }
         )
         fig1.update_layout(height=500)
@@ -883,25 +890,25 @@ def render_optimization():
         
         # Investment histogram
         fig2.add_trace(
-            go.Histogram(x=solutions['total_cost'], name='Investment (€)', nbinsx=10),
+            go.Histogram(x=solutions_dict['total_cost'], name='Investment (€)', nbinsx=10),
             row=1, col=1
         )
         
         # ROI histogram
         fig2.add_trace(
-            go.Histogram(x=solutions['roi'], name='ROI (%)', nbinsx=10),
+            go.Histogram(x=solutions_dict['roi'], name='ROI (%)', nbinsx=10),
             row=1, col=2
         )
         
         # Capacity histogram
         fig2.add_trace(
-            go.Histogram(x=solutions['capacity'], name='Capacity (kW)', nbinsx=10),
+            go.Histogram(x=solutions_dict['capacity'], name='Capacity (kW)', nbinsx=10),
             row=2, col=1
         )
         
         # Net import histogram
         fig2.add_trace(
-            go.Histogram(x=solutions['net_import'], name='Net Import (kWh)', nbinsx=10),
+            go.Histogram(x=solutions_dict['net_import'], name='Net Import (kWh)', nbinsx=10),
             row=2, col=2
         )
         
@@ -913,14 +920,14 @@ def render_optimization():
         
         # Add scatter points
         fig3.add_trace(go.Scatter(
-            x=solutions['total_cost'],
-            y=solutions['roi'],
+            x=solutions_dict['total_cost'],
+            y=solutions_dict['roi'],
             mode='markers+text',
-            text=solutions['solution_id'],
+            text=solutions_dict['solution_id'],
             textposition='top center',
             marker=dict(
-                size=solutions['capacity'] * 3,  # Scale size with capacity
-                color=solutions['net_import'],
+                size=solutions_dict['capacity'] * 3,  # Scale size with capacity
+                color=solutions_dict['net_import'],
                 colorscale='Viridis',
                 showscale=True,
                 colorbar=dict(title="Net Import Reduction (kWh)")
@@ -938,6 +945,12 @@ def render_optimization():
         
         # 4. Top Solutions Comparison Bar Chart
         top_solutions = solutions.head(5)  # Top 5 solutions by ROI
+        top_dict = {
+            'solution_id': top_solutions['solution_id'].values,
+            'roi': top_solutions['roi'].values.astype(float),
+            'total_cost': top_solutions['total_cost'].values.astype(float),
+            'capacity': top_solutions['capacity'].values.astype(float)
+        }
         
         fig4 = make_subplots(
             rows=1, cols=2,
@@ -947,20 +960,20 @@ def render_optimization():
         
         # ROI comparison
         fig4.add_trace(
-            go.Bar(x=top_solutions['solution_id'], y=top_solutions['roi'], 
+            go.Bar(x=top_dict['solution_id'], y=top_dict['roi'], 
                    name='ROI (%)', marker_color='lightblue'),
             row=1, col=1
         )
         
         # Investment vs Performance
         fig4.add_trace(
-            go.Bar(x=top_solutions['solution_id'], y=top_solutions['total_cost'], 
+            go.Bar(x=top_dict['solution_id'], y=top_dict['total_cost'], 
                    name='Investment (€)', marker_color='lightcoral'),
             row=1, col=2
         )
         
         fig4.add_trace(
-            go.Scatter(x=top_solutions['solution_id'], y=top_solutions['capacity'], 
+            go.Scatter(x=top_dict['solution_id'], y=top_dict['capacity'], 
                       mode='lines+markers', name='Capacity (kW)', 
                       line=dict(color='green', width=3)),
             row=1, col=2, secondary_y=True
