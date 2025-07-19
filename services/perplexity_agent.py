@@ -107,16 +107,15 @@ class PerplexityBIPVAgent:
             # Get AI model data for R² score
             project_id = project_data.get('id') or project_data.get('project_id')
             if project_id:
-                # Get comprehensive AI model and historical data
+                # Get comprehensive AI model data directly from ai_models table
                 try:
                     with db_manager.get_connection().cursor() as cursor:
                         cursor.execute("""
-                            SELECT am.r_squared_score, am.training_data_size, am.forecast_years,
-                                   hd.annual_consumption, hd.building_area, hd.growth_rate, hd.peak_demand
-                            FROM ai_models am 
-                            LEFT JOIN historical_data hd ON am.project_id = hd.project_id
-                            WHERE am.project_id = %s 
-                            ORDER BY am.created_at DESC LIMIT 1
+                            SELECT r_squared_score, training_data_size, forecast_years,
+                                   base_consumption, building_area, growth_rate, peak_demand
+                            FROM ai_models 
+                            WHERE project_id = %s 
+                            ORDER BY created_at DESC LIMIT 1
                         """, (project_id,))
                         result = cursor.fetchone()
                         if result:

@@ -14,9 +14,8 @@ from database_manager import db_manager
 from services.io import get_current_project_id
 from utils.database_helper import db_helper
 
-def load_dashboard_data():
+def get_dashboard_data(project_id):
     """Load all authentic data from database for dashboard display"""
-    project_id = get_current_project_id()
     if not project_id:
         return None
     
@@ -61,9 +60,8 @@ def load_dashboard_data():
             # Historical Data & AI Model (Step 2)
             cursor.execute("""
                 SELECT am.model_type, am.r_squared_score, am.training_data_size, am.forecast_years,
-                       hd.annual_consumption, hd.building_area, hd.growth_rate, hd.peak_demand
+                       am.building_area, am.growth_rate, am.peak_demand, am.base_consumption
                 FROM ai_models am 
-                LEFT JOIN historical_data hd ON am.project_id = hd.project_id
                 WHERE am.project_id = %s 
                 ORDER BY am.created_at DESC LIMIT 1
             """, (project_id,))
@@ -75,10 +73,10 @@ def load_dashboard_data():
                     'r2_score': float(ai_model[1]) if ai_model[1] else 0.0,
                     'training_data_points': ai_model[2],
                     'forecast_years': ai_model[3],
-                    'annual_consumption': float(ai_model[4]) if ai_model[4] else 0.0,
-                    'building_area': float(ai_model[5]) if ai_model[5] else 0.0,
-                    'growth_rate': float(ai_model[6]) if ai_model[6] else 0.0,
-                    'peak_demand': float(ai_model[7]) if ai_model[7] else 0.0
+                    'building_area': float(ai_model[4]) if ai_model[4] else 0.0,
+                    'growth_rate': float(ai_model[5]) if ai_model[5] else 0.0,
+                    'peak_demand': float(ai_model[6]) if ai_model[6] else 0.0,
+                    'annual_consumption': float(ai_model[7]) if ai_model[7] else 0.0
                 }
             
             # Weather Data (Step 3)
@@ -634,7 +632,7 @@ def render_comprehensive_dashboard():
     # Load authentic dashboard data
     st.info("🔄 Loading authentic data from all workflow steps...")
     
-    dashboard_data = load_dashboard_data()
+    dashboard_data = get_dashboard_data(get_current_project_id())
     
     if not dashboard_data:
         st.error("❌ No project data found. Please complete the workflow steps first.")
