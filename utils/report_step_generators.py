@@ -315,7 +315,7 @@ def generate_step9_section(step9_data):
                 <strong>Annual CO₂ Savings:</strong> {step9_data['annual_co2_savings']:,.1f} kg CO₂
             </div>
             <div class="metric">
-                <strong>25-Year CO₂ Savings:</strong> {step9_data['lifetime_co2_savings']:,.0f} kg CO₂
+                <strong>25-Year CO₂ Savings:</strong> {step9_data['lifetime_co2_savings']/1000:,.0f} Tons CO₂
             </div>
             <div class="metric">
                 <strong>Annual Energy Savings:</strong> €{step9_data['annual_savings']:,.0f}

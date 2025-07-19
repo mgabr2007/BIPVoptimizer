@@ -841,7 +841,7 @@ def generate_step9_section(project_data):
                 <strong>Annual CO₂ Savings:</strong> {co2_savings:,.0f} kg CO₂
             </div>
             <div class="metric">
-                <strong>25-Year CO₂ Savings:</strong> {lifetime_co2:,.0f} kg CO₂
+                <strong>25-Year CO₂ Savings:</strong> {lifetime_co2/1000:,.0f} Tons CO₂
             </div>
             <div class="metric">
                 <strong>Equivalent Trees Planted:</strong> {lifetime_co2/22:,.0f} trees

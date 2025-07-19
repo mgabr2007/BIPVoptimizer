@@ -419,7 +419,7 @@ def create_financial_analysis_section(data):
             env = data['environmental']
             st.markdown("**Environmental Impact:**")
             st.write(f"• **Annual CO₂ Reduction:** {env['annual_co2_reduction_kg']:,.0f} kg")
-            st.write(f"• **25-Year CO₂ Reduction:** {env['lifetime_co2_reduction_kg']:,.0f} kg")
+            st.write(f"• **25-Year CO₂ Reduction:** {env['lifetime_co2_reduction_kg'] / 1000:,.0f} Tons")
 
 def create_optimization_section(data):
     """Create optimization results section"""
