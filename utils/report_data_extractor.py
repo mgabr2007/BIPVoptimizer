@@ -103,16 +103,51 @@ def get_step4_data(project_data):
     
     total_area = sum([safe_float(elem.get('glass_area', 0), 0) for elem in building_elements])
     
-    # Count orientations
+    # Count orientations with debug info
     orientation_counts = {}
     level_counts = {}
     
+    # Debug: print first few elements to see data structure
+    print(f"DEBUG: Building elements sample (first 3): {building_elements[:3] if building_elements else 'None'}")
+    
     for elem in building_elements:
-        orientation = elem.get('orientation', 'Unknown')
-        level = elem.get('building_level', elem.get('level', 'Unknown'))
+        # Try multiple possible orientation field names
+        orientation = (
+            elem.get('orientation') or 
+            elem.get('Orientation') or 
+            elem.get('orientation_desc') or
+            elem.get('Orientation Desc') or
+            'Unknown'
+        )
+        
+        # Clean up orientation values - map numeric orientations to cardinal directions
+        if isinstance(orientation, (int, float)):
+            if 315 <= orientation or orientation < 45:
+                orientation = 'North'
+            elif 45 <= orientation < 135:
+                orientation = 'East'
+            elif 135 <= orientation < 225:
+                orientation = 'South'
+            elif 225 <= orientation < 315:
+                orientation = 'West'
+        elif isinstance(orientation, str):
+            # Handle descriptive orientations like "East (45-135°)"
+            orientation_lower = orientation.lower()
+            if 'north' in orientation_lower:
+                orientation = 'North'
+            elif 'east' in orientation_lower:
+                orientation = 'East'
+            elif 'south' in orientation_lower:
+                orientation = 'South'
+            elif 'west' in orientation_lower:
+                orientation = 'West'
+        
+        level = elem.get('building_level', elem.get('level', elem.get('Level', 'Unknown')))
         
         orientation_counts[orientation] = orientation_counts.get(orientation, 0) + 1
         level_counts[level] = level_counts.get(level, 0) + 1
+    
+    print(f"DEBUG: Final orientation counts: {orientation_counts}")
     
     return {
         'total_elements': len(building_elements),
@@ -148,10 +183,39 @@ def get_step5_data(project_data):
             'orientation_radiation': {}
         }
     
-    # Calculate radiation by orientation
+    # Calculate radiation by orientation with same mapping logic
     orientation_radiation = {}
     for elem in building_elements:
-        orientation = elem.get('orientation', 'Unknown')
+        # Use same orientation mapping logic as Step 4
+        orientation = (
+            elem.get('orientation') or 
+            elem.get('Orientation') or 
+            elem.get('orientation_desc') or
+            elem.get('Orientation Desc') or
+            'Unknown'
+        )
+        
+        # Clean up orientation values
+        if isinstance(orientation, (int, float)):
+            if 315 <= orientation or orientation < 45:
+                orientation = 'North'
+            elif 45 <= orientation < 135:
+                orientation = 'East'
+            elif 135 <= orientation < 225:
+                orientation = 'South'
+            elif 225 <= orientation < 315:
+                orientation = 'West'
+        elif isinstance(orientation, str):
+            orientation_lower = orientation.lower()
+            if 'north' in orientation_lower:
+                orientation = 'North'
+            elif 'east' in orientation_lower:
+                orientation = 'East'
+            elif 'south' in orientation_lower:
+                orientation = 'South'
+            elif 'west' in orientation_lower:
+                orientation = 'West'
+        
         radiation = safe_float(elem.get('annual_radiation', 0), 0)
         
         if orientation not in orientation_radiation:
