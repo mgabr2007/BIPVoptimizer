@@ -313,46 +313,72 @@ def prepare_master_report_for_ai(master_report_data, uploaded_reports):
 
 
 def render_perplexity_consultation():
-    """Render Perplexity AI consultation interface with master report integration"""
+    """Render Perplexity AI consultation interface with database-driven dataflow"""
     
     # Add OptiSunny character header image
     st.image("attached_assets/step11_1751436847832.png", width=400)
     
     st.header("🤖 AI Research Consultation")
-    st.write("Get expert analysis and optimization recommendations from Perplexity AI based on your comprehensive analysis")
+    st.markdown("Get expert analysis and optimization recommendations from Perplexity AI based on your comprehensive database-stored analysis")
     
-    # Check for master report data from Step 10
-    master_report_data = st.session_state.get('master_report_data', {})
-    uploaded_reports = st.session_state.get('uploaded_reports', {})
+    # Get project ID from centralized system
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
     
-    # Display master report integration status
-    if master_report_data and uploaded_reports:
-        st.success(f"✅ Master analysis data available from Step 10 ({len(uploaded_reports)} individual reports integrated)")
+    if not project_id:
+        st.error("❌ No project ID found. Please complete the project setup first.")
+        return
+    
+    # Get comprehensive project data from database
+    from database_manager import BIPVDatabaseManager
+    db_manager = BIPVDatabaseManager()
+    
+    try:
+        # Retrieve all project data from database
+        project_data = db_manager.get_project_data(project_id)
+        building_elements = db_manager.get_building_elements(project_id)
+        financial_data = db_manager.get_financial_analysis_data(project_id)
+        pv_specs = db_manager.get_pv_specifications(project_id)
+        yield_data = db_manager.get_yield_demand_data(project_id)
+        optimization_data = db_manager.get_optimization_results(project_id)
+        weather_data = db_manager.get_weather_data(project_id)
+        historical_data = db_manager.get_historical_data(project_id)
         
-        # Show master report summary
-        with st.expander("📋 Master Report Summary", expanded=False):
-            master_data = master_report_data.get('data', {})
-            
+        # Check data availability
+        data_sources = []
+        if project_data: data_sources.append("Project Setup")
+        if building_elements: data_sources.append("Building Elements")
+        if weather_data: data_sources.append("Weather Data")
+        if historical_data: data_sources.append("Historical Data")
+        if pv_specs: data_sources.append("PV Specifications")
+        if yield_data: data_sources.append("Yield Analysis")
+        if optimization_data: data_sources.append("Optimization Results")
+        if financial_data: data_sources.append("Financial Analysis")
+        
+        if len(data_sources) < 4:
+            st.error(f"❌ Insufficient data for comprehensive AI analysis. Available sources: {', '.join(data_sources)}")
+            st.info("💡 Please complete more workflow steps to get meaningful AI recommendations.")
+            return
+        
+        st.success(f"✅ Comprehensive database analysis available ({len(data_sources)} data sources loaded)")
+        
+        # Show database data summary
+        with st.expander("📋 Database Analysis Summary", expanded=False):
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Reports Integrated", master_report_data.get('reports_count', 0))
+                st.metric("Data Sources", len(data_sources))
             with col2:
-                st.metric("Data Sources", len(master_data.get('data_sources', [])))
+                st.metric("Building Elements", len(building_elements) if building_elements else 0)
             with col3:
-                st.metric("Generation Time", master_report_data.get('generation_time', 'Unknown'))
+                st.metric("Project ID", project_id)
             
-            # Show key project metrics from master report
-            project_overview = master_data.get('project_overview', {})
-            if project_overview:
-                st.markdown("**Key Project Metrics from Master Report:**")
-                for key, value in list(project_overview.items())[:5]:
-                    st.write(f"• {key}: {value}")
+            # Show available data sources
+            st.markdown("**Available Database Sources:**")
+            for source in data_sources:
+                st.markdown(f"• {source}")
     
-    elif st.session_state.get('project_data'):
-        st.warning("⚠️ No master report data available. For comprehensive AI analysis, please upload individual step reports in Step 10 first.")
-        st.info("💡 Using available session data for basic consultation.")
-    else:
-        st.error("❌ No project data available for AI consultation. Please complete the workflow steps first.")
+    except Exception as e:
+        st.error(f"❌ Error retrieving project data from database: {str(e)}")
         return
     
     # Data Usage Information
@@ -395,47 +421,39 @@ def render_perplexity_consultation():
     
     agent = PerplexityBIPVAgent(api_key)
     
-    # Determine data source for AI analysis
-    if master_report_data and uploaded_reports:
-        # Use comprehensive master report data
-        comprehensive_project_data = prepare_master_report_for_ai(master_report_data, uploaded_reports)
-        building_elements = comprehensive_project_data.get('building_elements', [])
-        financial_analysis = comprehensive_project_data.get('financial_analysis', {})
-        data_source = "Master Report (Comprehensive)"
-        st.info("🎯 Using comprehensive master report data for AI analysis")
-    else:
-        # Fall back to session/database data
-        project_data = st.session_state.get('project_data', {})
-        project_name = project_data.get('project_name', 'Current Project')
-        
-        # Load comprehensive data from database
-        db_data = get_project_report_data(project_name)
-        if not db_data:
-            st.warning("No project data found. Please complete the workflow analysis first or upload step reports in Step 10.")
-            return
-        
-        # Use database data as primary source, fallback to session state
-        building_elements = db_data.get('building_elements', [])
-        financial_analysis = db_data.get('financial_analysis', project_data.get('financial_analysis', {}))
-        
-        # Merge all available data for comprehensive analysis
-        comprehensive_project_data = {
-            **project_data,
-            **db_data,
-            'building_elements': building_elements,
-            'financial_analysis': financial_analysis
-        }
-        data_source = "Session/Database Data"
+    # Prepare comprehensive data for AI analysis from database
+    comprehensive_project_data = {
+        'project_data': project_data,
+        'building_elements': building_elements,
+        'financial_analysis': financial_data,
+        'pv_specifications': pv_specs,
+        'yield_analysis': yield_data,
+        'optimization_results': optimization_data,
+        'weather_data': weather_data,
+        'historical_data': historical_data
+    }
     
-    # Display data source being used
-    st.info(f"📊 **Data Source for AI Analysis:** {data_source}")
+    data_source = "Database (Comprehensive)"
+    st.info("🎯 Using comprehensive database data for AI analysis")
+    
+    # Validate minimum data requirements for AI analysis
+    element_count = len(building_elements) if building_elements else 0
+    has_financial = bool(financial_data and financial_data.get('financial_metrics'))
+    has_project_basics = bool(project_data and project_data.get('location'))
+    
+    if not (element_count > 0 and has_financial and has_project_basics):
+        st.error("❌ Insufficient data for meaningful AI analysis:")
+        st.markdown(f"• Building Elements: {element_count} (need > 0)")
+        st.markdown(f"• Financial Analysis: {'✓' if has_financial else '✗'}")
+        st.markdown(f"• Project Basics: {'✓' if has_project_basics else '✗'}")
+        return
     
     col1, col2 = st.columns(2)
     
     with col1:
         if st.button("🔍 Analyze Complete Results", type="primary"):
             with st.spinner("Consulting AI research expert..."):
-                analysis = agent.analyze_bipv_results(comprehensive_project_data, building_elements, financial_analysis)
+                analysis = agent.analyze_bipv_results(project_data, building_elements, financial_data)
                 st.session_state.perplexity_analysis = analysis
     
     with col2:
@@ -444,12 +462,12 @@ def render_perplexity_consultation():
             low_performance = []
             
             # Check AI model performance
-            r_squared = comprehensive_project_data.get('historical_data', {}).get('r_squared', 0)
+            r_squared = historical_data.get('r_squared', 0) if historical_data else 0
             if r_squared < 0.85:
                 low_performance.append(f"AI model R² score: {r_squared:.3f} (needs improvement)")
             
             # Check economic viability
-            financial_metrics = financial_analysis.get('financial_metrics', {})
+            financial_metrics = financial_data.get('financial_metrics', {}) if financial_data else {}
             npv = financial_metrics.get('npv', 0)
             payback_period = financial_metrics.get('payback_period', 0)
             if npv <= 0:
@@ -478,7 +496,7 @@ def render_perplexity_consultation():
         st.markdown(st.session_state.perplexity_analysis)
         
         # Download option
-        project_name = comprehensive_project_data.get('project_name', 'Current_Project')
+        project_name = project_data.get('project_name', 'Current_Project') if project_data else 'Current_Project'
         st.download_button(
             label="📄 Download Analysis Report",
             data=st.session_state.perplexity_analysis,
@@ -491,7 +509,7 @@ def render_perplexity_consultation():
         st.markdown(st.session_state.perplexity_recommendations)
         
         # Download option
-        project_name = comprehensive_project_data.get('project_name', 'Current_Project')
+        project_name = project_data.get('project_name', 'Current_Project') if project_data else 'Current_Project'
         st.download_button(
             label="📄 Download Recommendations",
             data=st.session_state.perplexity_recommendations,
@@ -503,9 +521,10 @@ def render_perplexity_consultation():
     st.info("""
     **AI Consultation Methodology:**
     - Analysis based on latest BIPV research and industry standards
-    - Recommendations tailored to your specific project data
+    - Recommendations tailored to your specific database-stored project data
     - Focuses on improving calculation accuracy and system performance
     - References current publications and best practices (2023-2025)
+    - Uses 100% authentic data from completed workflow steps
     """)
     
     # Add finish button for workflow completion
