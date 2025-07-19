@@ -1258,6 +1258,65 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
+    def get_financial_analysis(self, project_id):
+        """Get financial analysis results from database"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # Get financial analysis data
+                cursor.execute("""
+                    SELECT * FROM financial_analysis 
+                    WHERE project_id = %s AND analysis_complete = TRUE
+                    ORDER BY created_at DESC LIMIT 1
+                """, (project_id,))
+                
+                financial_result = cursor.fetchone()
+                
+                if not financial_result:
+                    return None
+                
+                # Get environmental impact data
+                cursor.execute("""
+                    SELECT * FROM environmental_impact 
+                    WHERE project_id = %s
+                    ORDER BY created_at DESC LIMIT 1
+                """, (project_id,))
+                
+                environmental_result = cursor.fetchone()
+                
+                # Format data structure similar to what the UI expects
+                financial_data = {
+                    'financial_metrics': {
+                        'npv': float(financial_result['npv']) if financial_result['npv'] else 0,
+                        'irr': float(financial_result['irr']) if financial_result['irr'] else 0,
+                        'payback_period': float(financial_result['payback_period']) if financial_result['payback_period'] else 0,
+                        'total_investment': float(financial_result['initial_investment']) if financial_result['initial_investment'] else 0,
+                        'annual_savings': float(financial_result['annual_savings']) if financial_result['annual_savings'] else 0,
+                        'lcoe': float(financial_result['lcoe']) if financial_result['lcoe'] else 0
+                    },
+                    'environmental_impact': {}
+                }
+                
+                if environmental_result:
+                    financial_data['environmental_impact'] = {
+                        'annual_co2_savings': float(environmental_result['co2_savings_annual']) if environmental_result['co2_savings_annual'] else 0,
+                        'lifetime_co2_savings': float(environmental_result['co2_savings_lifetime']) if environmental_result['co2_savings_lifetime'] else 0,
+                        'carbon_value': float(environmental_result['carbon_value']) if environmental_result['carbon_value'] else 0,
+                        'trees_equivalent': int(environmental_result['trees_equivalent']) if environmental_result['trees_equivalent'] else 0,
+                        'cars_equivalent': int(environmental_result['cars_equivalent']) if environmental_result['cars_equivalent'] else 0
+                    }
+                
+                return financial_data
+                
+        except Exception as e:
+            st.error(f"Error retrieving financial analysis: {str(e)}")
+            return None
+        finally:
+            conn.close()
+    
     def get_project_report_data(self, project_name):
         """Get comprehensive project data for reports"""
         conn = self.get_connection()
