@@ -182,7 +182,12 @@ def render_financial_analysis():
     # Extract solutions from optimization data
     solutions = optimization_data.get('solutions')
     
-    if solutions is None or len(solutions) == 0:
+    # Debug info to understand the data structure
+    st.write("DEBUG - optimization_data keys:", list(optimization_data.keys()) if optimization_data else "None")
+    st.write("DEBUG - solutions type:", type(solutions))
+    st.write("DEBUG - solutions shape:", solutions.shape if hasattr(solutions, 'shape') else "No shape attribute")
+    
+    if solutions is None or (hasattr(solutions, 'empty') and solutions.empty) or (hasattr(solutions, '__len__') and len(solutions) == 0):
         st.error("⚠️ No optimization solutions available.")
         return
         
@@ -190,7 +195,7 @@ def render_financial_analysis():
     project_data = db_manager.get_project_by_id(project_id) or {}
     
     # Check if solution is selected - for now use the best solution (highest ROI)
-    if len(solutions) > 0:
+    if hasattr(solutions, 'iloc') and len(solutions) > 0:
         # Use the best solution (first one, sorted by ROI in Step 8)
         selected_solution = solutions.iloc[0]
         st.success(f"✅ Using best optimization solution: {selected_solution['solution_id']}")
