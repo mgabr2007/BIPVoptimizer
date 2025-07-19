@@ -1385,6 +1385,96 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
     
+    def get_financial_analysis_data(self, project_id):
+        """Alias for get_financial_analysis - compatible method for AI consultation"""
+        return self.get_financial_analysis(project_id)
+    
+    def get_yield_demand_data(self, project_id):
+        """Get yield vs demand analysis data for a project"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM energy_analysis 
+                    WHERE project_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (project_id,))
+                
+                result = cursor.fetchone()
+                return dict(result) if result else None
+                
+        except Exception as e:
+            st.error(f"Error getting yield demand data: {str(e)}")
+            return None
+        finally:
+            conn.close()
+    
+    def get_optimization_results(self, project_id):
+        """Get optimization results for a project"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM optimization_results 
+                    WHERE project_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (project_id,))
+                
+                result = cursor.fetchone()
+                return dict(result) if result else None
+                
+        except Exception as e:
+            st.error(f"Error getting optimization results: {str(e)}")
+            return None
+        finally:
+            conn.close()
+    
+    def get_weather_data(self, project_id):
+        """Get weather data for a project (already exists but added for completeness)"""
+        conn = self.get_connection()
+        if not conn:
+            return None
+        
+        try:
+            import json
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM weather_data 
+                    WHERE project_id = %s
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (project_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    weather_data = dict(result)
+                    # Parse JSON fields if they exist
+                    try:
+                        if weather_data.get('tmy_data'):
+                            weather_data['tmy_data'] = json.loads(weather_data['tmy_data'])
+                        if weather_data.get('monthly_profiles'):
+                            weather_data['monthly_profiles'] = json.loads(weather_data['monthly_profiles'])
+                        if weather_data.get('environmental_factors'):
+                            weather_data['environmental_factors'] = json.loads(weather_data['environmental_factors'])
+                    except json.JSONDecodeError:
+                        pass  # Keep original values if JSON parsing fails
+                    return weather_data
+                return None
+                
+        except Exception as e:
+            st.error(f"Error getting weather data: {str(e)}")
+            return None
+        finally:
+            conn.close()
+    
     def get_project_report_data(self, project_name):
         """Get comprehensive project data for reports"""
         conn = self.get_connection()
