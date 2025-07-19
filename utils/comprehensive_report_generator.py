@@ -713,12 +713,23 @@ def generate_step8_section(project_data):
     """Generate Step 8: Multi-Objective Optimization section"""
     
     optimization_data = project_data.get('optimization_results', {})
-    pareto_solutions = optimization_data.get('pareto_solutions', [])
     
-    # Get best solutions
-    best_cost = min(pareto_solutions, key=lambda x: x.get('cost', float('inf'))) if pareto_solutions else {}
-    best_yield = max(pareto_solutions, key=lambda x: x.get('yield', 0)) if pareto_solutions else {}
-    best_roi = max(pareto_solutions, key=lambda x: x.get('roi', 0)) if pareto_solutions else {}
+    # Use database solutions if available
+    solutions_df = optimization_data.get('solutions') if optimization_data else None
+    if solutions_df is not None and not solutions_df.empty:
+        # Convert DataFrame to list of dicts for processing
+        pareto_solutions = solutions_df.to_dict('records')
+        
+        # Get best solutions from database data
+        best_cost = min(pareto_solutions, key=lambda x: x.get('total_cost', float('inf'))) if pareto_solutions else {}
+        best_yield = max(pareto_solutions, key=lambda x: x.get('capacity', 0)) if pareto_solutions else {}  # Use capacity as proxy for yield
+        best_roi = max(pareto_solutions, key=lambda x: x.get('roi', 0)) if pareto_solutions else {}
+    else:
+        # Fallback to legacy format
+        pareto_solutions = optimization_data.get('pareto_solutions', [])
+        best_cost = min(pareto_solutions, key=lambda x: x.get('cost', float('inf'))) if pareto_solutions else {}
+        best_yield = max(pareto_solutions, key=lambda x: x.get('yield', 0)) if pareto_solutions else {}
+        best_roi = max(pareto_solutions, key=lambda x: x.get('roi', 0)) if pareto_solutions else {}
     
     # Optimization parameters
     weights = optimization_data.get('objective_weights', {})
@@ -756,14 +767,19 @@ def generate_step8_section(project_data):
         <div class="subsection">
             <h3>Best Solutions by Objective</h3>
             <div class="metric">
-                <strong>Lowest Cost Solution:</strong> €{best_cost.get('cost', 0):,.0f}
+                <strong>Lowest Cost Solution:</strong> €{best_cost.get('total_cost', best_cost.get('cost', 0)):,.0f}
             </div>
             <div class="metric">
-                <strong>Highest Yield Solution:</strong> {best_yield.get('yield', 0):,.0f} kWh/year
+                <strong>Highest Capacity Solution:</strong> {best_yield.get('capacity', best_yield.get('yield', 0)):,.0f} kW
             </div>
             <div class="metric">
                 <strong>Best ROI Solution:</strong> {best_roi.get('roi', 0):.1f}%
             </div>
+        </div>
+        
+        <div class="subsection">
+            <h3>Top 5 Recommended Solutions</h3>
+            {get_top_solutions_table(pareto_solutions[:5] if pareto_solutions else [])}
         </div>
         
         <div class="subsection">
@@ -908,22 +924,67 @@ def get_recommended_solution_info(pareto_solutions):
     if not pareto_solutions:
         return "<div class='error'>No solutions available</div>"
     
-    # Find balanced solution (middle of pareto front)
-    best_solution = pareto_solutions[len(pareto_solutions)//2] if pareto_solutions else {}
+    # Get top ranked solution (first in list)
+    best_solution = pareto_solutions[0] if pareto_solutions else {}
     
     return f"""
     <div class="metric">
-        <strong>Recommended Configuration:</strong> Balanced solution
+        <strong>Recommended Configuration:</strong> Top ranked solution
     </div>
     <div class="metric">
-        <strong>Cost:</strong> €{best_solution.get('cost', 0):,.0f}
+        <strong>Solution ID:</strong> {best_solution.get('solution_id', 'N/A')}
     </div>
     <div class="metric">
-        <strong>Annual Yield:</strong> {best_solution.get('yield', 0):,.0f} kWh
+        <strong>Cost:</strong> €{best_solution.get('total_cost', best_solution.get('cost', 0)):,.0f}
+    </div>
+    <div class="metric">
+        <strong>Capacity:</strong> {best_solution.get('capacity', best_solution.get('yield', 0)):,.0f} kW
     </div>
     <div class="metric">
         <strong>ROI:</strong> {best_solution.get('roi', 0):.1f}%
     </div>
+    """
+
+def get_top_solutions_table(solutions):
+    """Generate HTML table for top optimization solutions"""
+    if not solutions:
+        return "<p>No optimization solutions available</p>"
+    
+    table_rows = ""
+    for i, solution in enumerate(solutions[:5], 1):
+        solution_id = solution.get('solution_id', f'Solution_{i}')
+        capacity = solution.get('capacity', solution.get('capacity_kw', 0))
+        cost = solution.get('total_cost', solution.get('cost', 0))
+        roi = solution.get('roi', 0)
+        net_import = solution.get('net_import', 0)
+        
+        table_rows += f"""
+        <tr>
+            <td>{i}</td>
+            <td>{solution_id}</td>
+            <td>{capacity:.1f} kW</td>
+            <td>€{cost:,.0f}</td>
+            <td>{roi:.1f}%</td>
+            <td>{net_import:,.0f} kWh</td>
+        </tr>
+        """
+    
+    return f"""
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f0f0f0;">
+                <th>Rank</th>
+                <th>Solution ID</th>
+                <th>Capacity</th>
+                <th>Total Cost</th>
+                <th>ROI</th>
+                <th>Net Import</th>
+            </tr>
+        </thead>
+        <tbody>
+            {table_rows}
+        </tbody>
+    </table>
     """
 
 def create_download_link(html_content, filename):

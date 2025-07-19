@@ -174,6 +174,64 @@ def load_dashboard_data():
             energy_result = cursor.fetchone()
             
             if energy_result:
+                dashboard_data['energy'] = {
+                    'annual_generation': float(energy_result[0]) if energy_result[0] else 0,
+                    'annual_demand': float(energy_result[1]) if energy_result[1] else 0,
+                    'net_energy_balance': float(energy_result[2]) if energy_result[2] else 0,
+                    'self_consumption_rate': float(energy_result[3]) if energy_result[3] else 0,
+                    'energy_yield_per_m2': float(energy_result[4]) if energy_result[4] else 0
+                }
+            
+            # Optimization Results (Step 8)
+            cursor.execute("""
+                SELECT COUNT(*) as total_solutions,
+                       AVG(capacity) as avg_capacity,
+                       AVG(roi) as avg_roi,
+                       AVG(total_cost) as avg_cost,
+                       MIN(total_cost) as min_cost,
+                       MAX(roi) as max_roi
+                FROM optimization_results WHERE project_id = %s
+            """, (project_id,))
+            opt_stats = cursor.fetchone()
+            
+            # Get top 5 optimization solutions
+            cursor.execute("""
+                SELECT solution_id, capacity, roi, total_cost, net_import, rank_position
+                FROM optimization_results 
+                WHERE project_id = %s 
+                ORDER BY rank_position 
+                LIMIT 5
+            """, (project_id,))
+            top_solutions = cursor.fetchall()
+            
+            if opt_stats and opt_stats[0] > 0:
+                dashboard_data['optimization'] = {
+                    'total_solutions': opt_stats[0],
+                    'avg_capacity_kw': float(opt_stats[1]) if opt_stats[1] else 0,
+                    'avg_roi_percentage': float(opt_stats[2]) if opt_stats[2] else 0,
+                    'avg_cost_eur': float(opt_stats[3]) if opt_stats[3] else 0,
+                    'min_cost_eur': float(opt_stats[4]) if opt_stats[4] else 0,
+                    'max_roi_percentage': float(opt_stats[5]) if opt_stats[5] else 0,
+                    'top_solutions': [
+                        {
+                            'solution_id': row[0],
+                            'capacity_kw': float(row[1]) if row[1] else 0,
+                            'roi_percentage': float(row[2]) if row[2] else 0,
+                            'total_cost_eur': float(row[3]) if row[3] else 0,
+                            'net_import_kwh': float(row[4]) if row[4] else 0,
+                            'rank': row[5]
+                        }
+                        for row in top_solutions
+                    ],
+                    'recommended_solution': {
+                        'solution_id': top_solutions[0][0] if top_solutions else 'N/A',
+                        'capacity_kw': float(top_solutions[0][1]) if top_solutions and top_solutions[0][1] else 0,
+                        'roi_percentage': float(top_solutions[0][2]) if top_solutions and top_solutions[0][2] else 0,
+                        'total_cost_eur': float(top_solutions[0][3]) if top_solutions and top_solutions[0][3] else 0
+                    } if top_solutions else None
+                }
+            
+            if energy_result:
                 dashboard_data['energy_analysis'] = {
                     'annual_generation': float(energy_result[0]) if energy_result[0] else 0,
                     'annual_demand': float(energy_result[1]) if energy_result[1] else 0,
@@ -422,35 +480,89 @@ def create_financial_analysis_section(data):
             st.write(f"• **25-Year CO₂ Reduction:** {env['lifetime_co2_reduction_kg'] / 1000:,.0f} Tons")
 
 def create_optimization_section(data):
-    """Create optimization results section"""
+    """Create optimization results section with selected solutions"""
     if not data or 'optimization' not in data:
-        st.warning("No optimization results available")
+        st.warning("❌ No optimization results available - Complete Step 8 Multi-Objective Optimization")
         return
     
     st.markdown("### 🎯 Optimization Results (Step 8)")
     
     opt = data['optimization']
     
-    col1, col2 = st.columns(2)
-    
+    # Overview metrics
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.markdown("**Optimized System Selection:**")
-        st.write(f"• **Selected Systems:** {opt['selected_systems']}")
-        st.write(f"• **Total Capacity:** {opt['total_capacity_kw']:.1f} kW")
-        st.write(f"• **Total Investment:** €{opt['total_cost_eur']:,.0f}")
-    
+        st.metric("Total Solutions", opt['total_solutions'])
     with col2:
-        st.markdown("**Performance Metrics:**")
-        st.write(f"• **Annual Savings:** €{opt['annual_savings_eur']:,.0f}")
-        st.write(f"• **ROI:** {opt['roi_percentage']:.1f}%")
+        st.metric("Avg Capacity", f"{opt['avg_capacity_kw']:.1f} kW")
+    with col3:
+        st.metric("Best ROI", f"{opt['max_roi_percentage']:.1f}%")
+    with col4:
+        st.metric("Min Cost", f"€{opt['min_cost_eur']:,.0f}")
+    
+    # Recommended solution highlight
+    if opt.get('recommended_solution'):
+        rec = opt['recommended_solution']
+        st.markdown("#### ⭐ **RECOMMENDED SOLUTION**")
+        col1, col2 = st.columns(2)
         
-        # ROI indicator
-        if opt['roi_percentage'] > 8:
-            st.success("✅ Excellent ROI")
-        elif opt['roi_percentage'] > 5:
-            st.info("✓ Good ROI")
-        else:
-            st.warning("⚠️ Low ROI")
+        with col1:
+            st.markdown(f"**Solution ID:** {rec['solution_id']}")
+            st.markdown(f"**Capacity:** {rec['capacity_kw']:.1f} kW")
+            st.markdown(f"**Total Cost:** €{rec['total_cost_eur']:,.0f}")
+        
+        with col2:
+            st.markdown(f"**ROI:** {rec['roi_percentage']:.1f}%")
+            
+            # ROI indicator
+            if rec['roi_percentage'] > 8:
+                st.success("✅ Excellent ROI")
+            elif rec['roi_percentage'] > 5:
+                st.info("✓ Good ROI")
+            else:
+                st.warning("⚠️ Low ROI")
+    
+    # Top 5 solutions table
+    if opt.get('top_solutions'):
+        st.markdown("#### 📊 Top 5 Solutions")
+        
+        solutions_df = pd.DataFrame(opt['top_solutions'])
+        
+        # Format the DataFrame for display
+        display_df = solutions_df.copy()
+        display_df['capacity_kw'] = display_df['capacity_kw'].round(1)
+        display_df['roi_percentage'] = display_df['roi_percentage'].round(1)
+        display_df['total_cost_eur'] = display_df['total_cost_eur'].apply(lambda x: f"€{x:,.0f}")
+        display_df['net_import_kwh'] = display_df['net_import_kwh'].apply(lambda x: f"{x:,.0f}")
+        
+        # Rename columns for better display
+        display_df = display_df.rename(columns={
+            'solution_id': 'Solution ID',
+            'capacity_kw': 'Capacity (kW)',
+            'roi_percentage': 'ROI (%)',
+            'total_cost_eur': 'Total Cost',
+            'net_import_kwh': 'Net Import (kWh)',
+            'rank': 'Rank'
+        })
+        
+        st.dataframe(display_df, use_container_width=True)
+        
+        # Create ROI vs Cost scatter plot
+        fig = px.scatter(
+            solutions_df, 
+            x='total_cost_eur', 
+            y='roi_percentage',
+            size='capacity_kw',
+            hover_data=['solution_id'],
+            title="Optimization Solutions: ROI vs Cost",
+            labels={
+                'total_cost_eur': 'Total Cost (€)',
+                'roi_percentage': 'ROI (%)',
+                'capacity_kw': 'Capacity (kW)'
+            }
+        )
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
 
 def create_project_timeline_section(data):
     """Create project information section"""

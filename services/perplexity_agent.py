@@ -502,6 +502,23 @@ def render_perplexity_consultation():
         'historical_data': historical_data
     }
     
+    # Extract and integrate selected optimization solutions
+    if optimization_data and 'solutions' in optimization_data:
+        solutions_df = optimization_data['solutions']
+        if not solutions_df.empty:
+            # Get top 5 solutions for integration
+            top_solutions = solutions_df.head(5).to_dict('records')
+            comprehensive_project_data['selected_solutions'] = top_solutions
+            comprehensive_project_data['recommended_solution'] = solutions_df.iloc[0].to_dict()  # Best ranked solution
+            
+            # Update project_data with selected solutions for AI analysis
+            comprehensive_project_data['project_data']['selected_optimization_solutions'] = top_solutions
+            comprehensive_project_data['project_data']['recommended_solution'] = solutions_df.iloc[0].to_dict()
+            
+            # Update project_data with selected solutions for AI analysis
+            comprehensive_project_data['project_data']['selected_optimization_solutions'] = top_solutions
+            comprehensive_project_data['project_data']['recommended_solution'] = solutions_df.iloc[0].to_dict()
+    
     data_source = "Database (Comprehensive)"
     st.info("🎯 Using comprehensive database data for AI analysis")
     
