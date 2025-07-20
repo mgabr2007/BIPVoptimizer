@@ -127,11 +127,7 @@ def render_yield_demand():
                     pv_specs = db_manager.get_pv_specifications(project_id)
                     historical_data = db_manager.get_historical_data(project_id)
                     
-                    st.write(f"Debug - PV specs type: {type(pv_specs)}")
-                    if isinstance(pv_specs, dict) and 'bipv_specifications' in pv_specs:
-                        st.write(f"Debug - BIPV specs count: {len(pv_specs['bipv_specifications'])}")
-                    st.write(f"Debug - Historical data type: {type(historical_data)}")
-                    st.write(f"Debug - Historical data keys: {list(historical_data.keys()) if isinstance(historical_data, dict) else 'Not a dict'}")
+                    # Load data from database (silent processing)
                     
                     if not pv_specs or not historical_data:
                         st.error("Missing required data for analysis")
@@ -182,7 +178,6 @@ def render_yield_demand():
                             for field in possible_fields:
                                 if field in historical_data and historical_data[field]:
                                     annual_demand = float(historical_data[field])
-                                    st.write(f"Debug - Found annual demand from '{field}': {annual_demand}")
                                     break
                             
                             # If still no annual demand, try to calculate from consumption data
@@ -190,10 +185,10 @@ def render_yield_demand():
                                 consumption_data = historical_data['consumption_data']
                                 if isinstance(consumption_data, list) and len(consumption_data) > 0:
                                     annual_demand = sum(float(x) for x in consumption_data if x is not None)
-                                    st.write(f"Debug - Calculated annual demand from consumption data: {annual_demand}")
+                                    # Annual demand calculated from consumption data
                                 elif isinstance(consumption_data, dict):
                                     annual_demand = sum(float(v) for v in consumption_data.values() if v is not None)
-                                    st.write(f"Debug - Calculated annual demand from consumption dict: {annual_demand}")
+                                    # Annual demand calculated from consumption dict
                                     
                             if annual_demand == 0:
                                 st.error("No annual consumption data found in historical data")
@@ -206,13 +201,7 @@ def render_yield_demand():
                         st.error(f"Error parsing annual demand: {e}")
                         return
                     
-                    # Validate calculations before proceeding
-                    st.write(f"Debug - Calculation inputs:")
-                    st.write(f"  Total capacity: {total_capacity_kw} kW")
-                    st.write(f"  Total annual yield: {total_annual_yield} kWh")
-                    st.write(f"  Total cost: {total_cost_eur} EUR")
-                    st.write(f"  Annual demand: {annual_demand} kWh")
-                    st.write(f"  Electricity price: {electricity_price} EUR/kWh")
+                    # Validate calculations before proceeding (silent processing)
                     
                     # Calculate key metrics with validation
                     if annual_demand > 0:
