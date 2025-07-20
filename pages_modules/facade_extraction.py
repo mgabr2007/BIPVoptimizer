@@ -548,15 +548,15 @@ def save_windows_data_to_database(project_id, windows_df, progress_callback=None
             for idx, (_, row) in enumerate(windows_df.iterrows()):
                 cursor.execute("""
                     INSERT INTO building_elements 
-                    (project_id, element_id, category, family, level, host_wall_id, azimuth, glass_area, orientation, pv_suitable)
+                    (project_id, element_id, element_type, family, building_level, wall_element_id, azimuth, glass_area, orientation, pv_suitable)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
                     str(row.get('ElementId', '')),
-                    str(row.get('Category', 'Windows')),
+                    str(row.get('Category', 'Windows')),  # Map Category to element_type
                     str(row.get('Family', '')),
-                    str(row.get('Level', '')),
-                    str(row.get('HostWallId', '')),
+                    str(row.get('Level', '')),  # Map Level to building_level
+                    str(row.get('HostWallId', '')),  # Map HostWallId to wall_element_id
                     float(row.get('Azimuth (°)', 0)) if pd.notna(row.get('Azimuth (°)')) else None,
                     float(row.get('Glass Area (m²)', 1.5)) if pd.notna(row.get('Glass Area (m²)')) else 1.5,
                     get_orientation_from_azimuth(row.get('Azimuth (°)')),
