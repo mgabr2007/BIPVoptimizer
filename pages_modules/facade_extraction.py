@@ -47,25 +47,31 @@ def save_walls_data_to_database(project_id, walls_df, progress_callback=None):
             
             # Insert new wall data with progress tracking
             for idx, (_, row) in enumerate(walls_df.iterrows()):
+                # Calculate wall height from area and length if available
+                length = float(row.get('Length (m)', 0)) if pd.notna(row.get('Length (m)')) else 0
+                area = float(row.get('Area (m²)', 0)) if pd.notna(row.get('Area (m²)')) else 0
+                height = area / length if length > 0 else 3.0  # Calculate or default to 3m
+                
                 cursor.execute("""
                     INSERT INTO building_walls 
-                    (project_id, element_id, name, wall_type, level, area, azimuth, orientation)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (project_id, element_id, name, wall_type, level, area, azimuth, orientation, height)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     project_id,
                     str(row.get('ElementId', '')),
                     str(row.get('Name', '')),
-                    str(row.get('Wall Type', '')),
+                    str(row.get('Wall Type', 'Generic Wall')),
                     str(row.get('Level', '')),
-                    float(row.get('Area (m²)', 0)) if pd.notna(row.get('Area (m²)')) else None,
+                    area,
                     float(row.get('Azimuth (°)', 0)) if pd.notna(row.get('Azimuth (°)')) else None,
-                    get_orientation_from_azimuth(row.get('Azimuth (°)'))
+                    get_orientation_from_azimuth(row.get('Azimuth (°)')),
+                    height
                 ))
                 
-                # Update progress every 10 elements or at the end
+                # Update progress if callback provided
                 if progress_callback and (idx % 10 == 0 or idx == total_walls - 1):
-                    progress = 30 + int((idx + 1) / total_walls * 45)  # 30-75% range
-                    progress_callback(progress, "Saving wall elements to database...")
+                    progress = int((idx + 1) / total_walls * 100)
+                    progress_callback(progress, f"Saving wall element {idx + 1}/{total_walls}")
             
             conn.commit()
             return True
@@ -76,6 +82,55 @@ def save_walls_data_to_database(project_id, walls_df, progress_callback=None):
         return False
     finally:
         conn.close()
+
+
+def save_windows_data_to_database(project_id, windows_df, progress_callback=None):
+    """Save windows data to building_elements table"""
+    conn = db_manager.get_connection()
+    if not conn:
+        return False
+        
+    try:
+        with conn.cursor() as cursor:
+            # Delete existing window data for this project
+            cursor.execute("DELETE FROM building_elements WHERE project_id = %s", (project_id,))
+            
+            total_windows = len(windows_df)
+            
+            # Insert new window data
+            for idx, (_, row) in enumerate(windows_df.iterrows()):
+                cursor.execute("""
+                    INSERT INTO building_elements 
+                    (project_id, element_id, element_type, family, building_level, wall_element_id, azimuth, glass_area, orientation, pv_suitable)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    project_id,
+                    str(row.get('ElementId', '')),
+                    str(row.get('Category', 'Windows')),  # Map Category to element_type
+                    str(row.get('Family', '')),
+                    str(row.get('Level', '')),  # Map Level to building_level
+                    str(row.get('HostWallId', '')),  # Map HostWallId to wall_element_id
+                    float(row.get('Azimuth (°)', 0)) if pd.notna(row.get('Azimuth (°)')) else None,
+                    float(row.get('Glass Area (m²)', 1.5)) if pd.notna(row.get('Glass Area (m²)')) else 1.5,
+                    get_orientation_from_azimuth(row.get('Azimuth (°)')),
+                    False  # Will be updated after radiation analysis
+                ))
+                
+                # Update progress if callback provided
+                if progress_callback and (idx % 10 == 0 or idx == total_windows - 1):
+                    progress = int((idx + 1) / total_windows * 100)
+                    progress_callback(progress, f"Saving window element {idx + 1}/{total_windows}")
+            
+            conn.commit()
+            return True
+            
+    except Exception as e:
+        conn.rollback()
+        st.error(f"Error saving window data: {e}")
+        return False
+    finally:
+        conn.close()
+
 
 def render_facade_extraction():
     """Render facade extraction page with proper project data loading"""
@@ -643,27 +698,85 @@ def render_facade_extraction():
             except Exception as e:
                 st.error(f"Error processing windows file: {e}")
     
-    # Check data status
+    # Walls Upload Section
+    st.markdown("---")
+    st.subheader("🏗️ Wall Self-Shading Data Upload")
+    
+    walls_file = st.file_uploader(
+        "📁 Upload Walls CSV",
+        type=['csv'],
+        key="walls_csv_upload",
+        help="Upload BIM-extracted wall elements for self-shading calculations"
+    )
+    
+    if walls_file is not None:
+        if st.button("💾 Save Walls Data", key="save_walls", use_container_width=True):
+            try:
+                walls_df = pd.read_csv(walls_file)
+                
+                # Simple processing without progress callback
+                success = save_walls_data_to_database(project_id, walls_df)
+                
+                if success:
+                    st.success(f"Successfully processed {len(walls_df)} wall elements")
+                    st.rerun()
+                else:
+                    st.error("Failed to save walls data")
+                    
+            except Exception as e:
+                st.error(f"Error processing walls file: {e}")
+    
+    # Check data status for both windows and walls
     conn = db_manager.get_connection()
     windows_uploaded = False
+    walls_uploaded = False
     
     if conn:
         try:
             with conn.cursor() as cursor:
+                # Check windows data
                 cursor.execute("SELECT COUNT(*) FROM building_elements WHERE project_id = %s", (project_id,))
                 windows_count = cursor.fetchone()[0]
                 windows_uploaded = windows_count > 0
+                
+                # Check walls data
+                cursor.execute("SELECT COUNT(*) FROM building_walls WHERE project_id = %s", (project_id,))
+                walls_count = cursor.fetchone()[0]
+                walls_uploaded = walls_count > 0
                 
         except Exception as e:
             st.error(f"Error checking data status: {e}")
         finally:
             conn.close()
     
-    # Status display
-    if windows_uploaded:
-        st.success("✅ Window data uploaded successfully")
+    # Combined Status display
+    st.markdown("---")
+    st.subheader("📊 Upload Status")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if windows_uploaded:
+            st.success("✅ Window data uploaded successfully")
+        else:
+            st.warning("⚠️ Window data needed")
+    
+    with col2:
+        if walls_uploaded:
+            st.success("✅ Wall data uploaded successfully") 
+        else:
+            st.warning("⚠️ Wall data needed")
+    
+    # Overall completion status
+    if windows_uploaded and walls_uploaded:
+        st.success("🎉 **Complete BIM Data**: Both window and wall data uploaded successfully!")
+        st.info("💡 **Ready for Step 5**: Radiation analysis can now use authentic building geometry for self-shading calculations")
+    elif windows_uploaded:
+        st.warning("⚠️ **Partial Upload**: Window data uploaded, but wall data is still needed for complete analysis")
+    elif walls_uploaded:
+        st.warning("⚠️ **Partial Upload**: Wall data uploaded, but window data is still needed for complete analysis")
     else:
-        st.info("📋 Ready to upload window CSV files")
+        st.info("📋 **Ready to Upload**: Please upload both window and wall CSV files to proceed")
     
     # Navigation
     st.markdown("---")
