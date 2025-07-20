@@ -119,44 +119,9 @@ def render_radiation_grid():
     
     details = calculation_details[precision]
     
-    # Visual calculation overview
-    calc_col1, calc_col2, calc_col3, calc_col4 = st.columns(4)
-    
-    with calc_col1:
-        st.metric(
-            "Calculations per Element",
-            f"{details['calculations']:,}",
-            help="Number of time steps calculated for each building element"
-        )
-    
-    with calc_col2:
-        st.metric(
-            "Processing Mode",
-            "Vectorized" if use_optimized else "Sequential",
-            help="Calculation method for performance optimization"
-        )
-    
-    with calc_col3:
-        st.metric(
-            "Accuracy Level",
-            details['accuracy'],
-            help="Expected accuracy of radiation calculations"
-        )
-    
-    with calc_col4:
-        estimated_elements = 2000  # Default estimate
-        total_calculations = details['calculations'] * estimated_elements
-        st.metric(
-            "Total Calculations",
-            f"{total_calculations:,}",
-            help="Estimated total calculations for all elements"
-        )
-    
-    # Processing mode indicator
-    if use_optimized:
-        st.success(f"🚀 **Optimized Mode**: {details['icon']} {details['calculations']:,} calculations per element ({details['description']}) with vectorized processing")
-    else:
-        st.info(f"🔄 **Standard Mode**: {details['icon']} {details['calculations']:,} calculations per element ({details['description']})")
+    # Simple processing mode indicator (compact)
+    mode_text = "Optimized Vectorized" if use_optimized else "Standard Sequential"
+    st.info(f"🔄 **{mode_text} Processing** • {details['accuracy']} accuracy • {details['icon']} {details['description']}")
     
     # Wall data section with enhanced info
     st.markdown("---")

@@ -127,9 +127,7 @@ class OptimizedRadiationAnalyzer:
         if not building_elements:
             return {"error": "No building elements found"}
         
-        st.info(f"📊 **Found {len(building_elements)} total building elements**")
-        
-        # Filter for suitable elements only
+        # Filter for suitable elements only (silent processing)
         suitable_elements = [elem for elem in building_elements 
                            if self._is_pv_suitable(elem)]
         
@@ -140,24 +138,15 @@ class OptimizedRadiationAnalyzer:
             
             if not suitable_elements:
                 return {"error": f"No suitable elements found from {len(building_elements)} total elements"}
-            else:
-                st.warning(f"Using relaxed criteria: {len(suitable_elements)} elements with glass area ≥ 0.5 m²")
-        else:
-            st.success(f"Found {len(suitable_elements)} PV-suitable elements")
         
         # Get precision configuration
         config = self.precision_configs.get(precision, self.precision_configs["Daily Peak"])
         time_steps = config["time_steps"]
         
-        st.info(f"🚀 **Starting Optimized Analysis**\n"
-                f"- Precision: {precision}\n"
-                f"- Elements: {len(suitable_elements)}\n"
-                f"- Time steps: {len(time_steps)}\n"
-                f"- Estimated calculations: {len(suitable_elements) * len(time_steps):,}")
-        
-        # Initialize progress tracking
+        # Initialize clean progress tracking
         progress_bar = st.progress(0)
         status_text = st.empty()
+        status_text.text(f"Starting radiation analysis for {len(suitable_elements)} elements...")
         
         # Vectorized calculation for all elements
         results = {}
@@ -173,10 +162,11 @@ class OptimizedRadiationAnalyzer:
             )
             results.update(batch_results)
             
-            # Update progress
+            # Update progress with clean percentage display
             progress = min(1.0, (i + len(batch)) / total_elements)
             progress_bar.progress(progress)
-            status_text.text(f"Processed {min(i + len(batch), total_elements)}/{total_elements} elements")
+            percentage = int(progress * 100)
+            status_text.text(f"Processing radiation analysis... {percentage}% complete")
         
         # Calculate summary statistics
         total_time = time.time() - start_time
@@ -202,7 +192,7 @@ class OptimizedRadiationAnalyzer:
         }
         
         progress_bar.progress(1.0)
-        status_text.text(f"✅ Completed in {total_time:.1f} seconds")
+        status_text.text(f"✅ Analysis completed successfully in {total_time:.1f} seconds")
         
         return analysis_summary
     
@@ -355,9 +345,11 @@ class OptimizedRadiationAnalyzer:
             
             if weather_data and weather_data.get('tmy_data'):
                 tmy_data = weather_data['tmy_data']
-                st.info(f"🌤️ Using authentic TMY data with {len(tmy_data)} hourly records from Step 3")
+                # TMY data loaded successfully (silent)
+                pass
         except Exception as e:
-            st.warning(f"Could not load TMY data from database: {e}")
+            # Fall back to simplified calculations
+            pass
         
         total_irradiance = 0.0
         
