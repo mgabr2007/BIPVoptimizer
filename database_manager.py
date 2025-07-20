@@ -889,7 +889,7 @@ class BIPVDatabaseManager:
                            glass_area, building_level, family, pv_suitable,
                            wall_element_id
                     FROM building_elements 
-                    WHERE project_id = %s AND element_type = 'Window'
+                    WHERE project_id = %s AND element_type IN ('Window', 'Windows')
                     ORDER BY element_id
                 """, (project_id,))
                 

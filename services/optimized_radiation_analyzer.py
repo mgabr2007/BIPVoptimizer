@@ -219,7 +219,7 @@ class OptimizedRadiationAnalyzer:
                     SELECT DISTINCT element_id, azimuth, glass_area, window_width, window_height, family
                     FROM building_elements 
                     WHERE project_id = %s
-                    AND element_type = 'Window'
+                    AND element_type IN ('Window', 'Windows')
                     ORDER BY element_id
                 """, (project_id,))
                 
