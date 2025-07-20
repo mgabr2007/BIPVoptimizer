@@ -400,9 +400,37 @@ def check_dependencies():
     
     from services.io import get_current_project_id
     project_id = get_current_project_id()
+    
+    # Enhanced project detection with debugging info
     if not project_id:
         st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
+        
+        # Show available projects with data for debugging
+        conn = db_manager.get_connection()
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT p.id, p.project_name, COUNT(be.id) as elements
+                        FROM projects p
+                        LEFT JOIN building_elements be ON p.id = be.project_id
+                        GROUP BY p.id, p.project_name
+                        HAVING COUNT(be.id) > 0
+                        ORDER BY COUNT(be.id) DESC
+                        LIMIT 3
+                    """)
+                    available_projects = cursor.fetchall()
+                    
+                    if available_projects:
+                        st.info("💡 **Available projects with data:** " + 
+                               ", ".join([f"{name} ({count} elements)" for _, name, count in available_projects]))
+                        st.info("👉 Use the Project Selector in the sidebar to switch to a project with uploaded data.")
+                conn.close()
+            except:
+                pass
         return False
+    
+    st.info(f"🎯 **Current Project:** {project_id}")
     
     # Check building elements in database
     conn = db_manager.get_connection()
@@ -412,11 +440,32 @@ def check_dependencies():
                 cursor.execute("SELECT COUNT(*) FROM building_elements WHERE project_id = %s", (project_id,))
                 element_count = cursor.fetchone()[0]
                 
+                cursor.execute("SELECT COUNT(*) FROM building_walls WHERE project_id = %s", (project_id,))
+                wall_count = cursor.fetchone()[0]
+                
                 if element_count == 0:
-                    st.error("⚠️ No building elements found. Please complete Step 4 (Facade Extraction) first.")
+                    st.error(f"⚠️ No building elements found in project {project_id}. Please complete Step 4 (Facade Extraction) first.")
+                    
+                    # Show which projects have data
+                    cursor.execute("""
+                        SELECT p.project_name, COUNT(be.id) as elements
+                        FROM projects p
+                        JOIN building_elements be ON p.id = be.project_id
+                        GROUP BY p.project_name
+                        ORDER BY COUNT(be.id) DESC
+                        LIMIT 3
+                    """)
+                    projects_with_data = cursor.fetchall()
+                    
+                    if projects_with_data:
+                        st.info("💡 **Projects with uploaded data:** " + 
+                               ", ".join([f"{name} ({count})" for name, count in projects_with_data]))
+                    
                     return False
                 else:
                     st.success(f"✅ Found {element_count:,} building elements in database")
+                    if wall_count > 0:
+                        st.success(f"✅ Found {wall_count:,} wall elements for self-shading analysis")
                     
         except Exception as e:
             st.error(f"❌ Error checking building elements: {str(e)}")

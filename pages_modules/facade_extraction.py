@@ -331,6 +331,10 @@ def render_facade_extraction():
                         windows_uploaded = True
                         windows_element_count = len(windows_df)
                         
+                        # Ensure project context is set for Step 5
+                        st.session_state.project_id = project_id
+                        st.session_state.step4_completed = True
+                        
                         # Force refresh to show updated status
                         st.rerun()
                     else:
@@ -466,6 +470,10 @@ def render_facade_extraction():
                         # Complete
                         status_text.text("✅ Wall data saved successfully!")
                         
+                        # Ensure project context is set for Step 5
+                        st.session_state.project_id = project_id
+                        st.session_state.step4_completed = True
+                        
                         # Force refresh to show updated status
                         st.rerun()
                     else:
@@ -510,9 +518,30 @@ def render_facade_extraction():
         else:
             st.error("❌ Wall Elements: Not uploaded")
     
-    # Data relationships analysis
+    # Data relationships analysis and Step 5 readiness
     if windows_uploaded and walls_uploaded:
-        st.success("🔗 **Ready for Step 5**: Both window and wall data uploaded successfully!")
+        st.success("🔗 **Step 5 Ready**: Both window and wall data uploaded successfully!")
+        st.info("✅ **Step 5 Integration Confirmed**: Radiation analysis can now access your building geometry data for self-shading calculations")
+        
+        # Provide navigation guidance
+        with st.expander("📋 What happens next in Step 5", expanded=False):
+            st.markdown(f"""
+            **Your uploaded data is now available for radiation analysis:**
+            - **{windows_element_count:,} Window Elements**: Ready for BIPV suitability analysis
+            - **{wall_element_count:,} Wall Elements**: Ready for self-shading calculations
+            
+            **Step 5 will use this data to:**
+            - Calculate solar radiation on each window element
+            - Apply wall-based self-shading corrections
+            - Determine BIPV potential for each window
+            - Generate comprehensive radiation grid analysis
+            
+            **Project Context**: Your data is saved to Project ID {project_id}
+            """)
+    elif windows_uploaded:
+        st.warning("⚠️ **Partial Upload**: Windows uploaded, but walls data needed for complete self-shading analysis")
+    elif walls_uploaded:
+        st.warning("⚠️ **Partial Upload**: Walls uploaded, but windows data needed for radiation analysis")
         st.markdown("""
         **Next Steps:**
         1. **Step 5 (Radiation Analysis)**: Will use both datasets for precise geometric self-shading calculations
