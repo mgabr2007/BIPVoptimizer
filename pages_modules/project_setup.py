@@ -695,18 +695,26 @@ def render_electricity_rate_integration():
         guidance = rate_guidance.get(country_code, rate_guidance['DE'])
         st.info(f"💡 **Regional Guidance ({country_code}):** {guidance['note']}")
         
+        # Adjust input ranges based on country
+        if country_code in ['EG', 'SA', 'IN']:  # Countries with subsidized/low rates
+            min_import, max_import = 0.020, 0.300
+            min_export, max_export = 0.005, 0.100
+        else:  # European and other countries
+            min_import, max_import = 0.100, 0.500
+            min_export, max_export = 0.010, 0.200
+        
         col1, col2 = st.columns(2)
         with col1:
             import_rate = st.number_input(
                 "Import Rate (€/kWh)",
-                0.10, 0.50, guidance['import'], 0.001,
+                min_import, max_import, guidance['import'], 0.001,
                 help="Your electricity purchase rate",
                 key="manual_import_rate"
             )
         with col2:
             export_rate = st.number_input(
                 "Export Rate (€/kWh)", 
-                0.01, 0.20, guidance['export'], 0.001,
+                min_export, max_export, guidance['export'], 0.001,
                 help="Feed-in tariff for excess solar energy",
                 key="manual_export_rate"
             )
