@@ -168,6 +168,11 @@ def render_location_selection():
                     if 'selected_weather_station' in st.session_state:
                         del st.session_state.selected_weather_station
                     
+                    # Force map component refresh by clearing any cached state
+                    for key in list(st.session_state.keys()):
+                        if key.startswith('map_'):
+                            del st.session_state[key]
+                    
                     st.success(f"📍 Location updated to: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
                     st.rerun()
                 else:
