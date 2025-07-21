@@ -131,15 +131,14 @@ def render_location_selection():
         icon=folium.Icon(color='red', icon='home')
     ).add_to(m)
     
-    # Display map with fixed key to prevent unnecessary refreshes
+    # Display map with stable key to prevent unnecessary refreshes
     st.info("📍 Click on the map to select your project location")
     map_data = st_folium(
         m, 
         key="location_map_stable", 
         height=400, 
         width=700,
-        returned_objects=["last_clicked"],  # Only return click events, not other interactions
-        debounce=1000  # 1 second debounce to prevent rapid updates
+        returned_objects=["last_clicked"]  # Only return click events, not other interactions
     )
     
     # Process map clicks with much higher threshold to prevent excessive refreshing
