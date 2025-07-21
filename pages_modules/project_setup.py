@@ -132,11 +132,12 @@ def render_location_selection():
         icon=folium.Icon(color='red', icon='home')
     ).add_to(m)
     
-    # Display map with stable key to prevent unnecessary refreshes
+    # Display map with location-based key to update when coordinates change
     st.info("📍 Click on the map to select your project location")
+    location_key = f"map_{current_coords['lat']:.3f}_{current_coords['lng']:.3f}"
     map_data = st_folium(
         m, 
-        key="location_map_stable", 
+        key=location_key, 
         height=400, 
         width=700,
         returned_objects=["last_clicked"]  # Only return click events, not other interactions
