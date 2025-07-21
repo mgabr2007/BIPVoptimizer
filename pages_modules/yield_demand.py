@@ -115,7 +115,7 @@ def render_yield_demand():
             
             electricity_price = st.number_input(
                 "Electricity Price (€/kWh)",
-                0.10, 0.50, default_rate, 0.01,
+                0.01, 0.50, default_rate, 0.01,
                 help=f"Electricity rate (Source: {rate_source})"
             )
         
