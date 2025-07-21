@@ -400,17 +400,32 @@ def generate_comprehensive_detailed_report():
         total_capacity = 0.0
         total_annual_yield = 0.0
         
-        # First try to get from processed PV specs
-        for spec in pv_specs:
-            if isinstance(spec, dict):
-                try:
-                    # Use standardized field names with fallback
-                    capacity = float(spec.get('capacity_kw', spec.get('system_power_kw', 0)))
-                    yield_kwh = float(spec.get('annual_energy_kwh', spec.get('annual_yield_kwh', 0)))
-                    total_capacity += capacity
-                    total_annual_yield += yield_kwh
-                except (ValueError, TypeError):
-                    continue
+        # First try to get from processed PV specs - handle JSON structure from database
+        if isinstance(pv_specs, dict) and 'bipv_specifications' in pv_specs:
+            # Database returns JSON with bipv_specifications array
+            bipv_specs = pv_specs['bipv_specifications']
+            for spec in bipv_specs:
+                if isinstance(spec, dict):
+                    try:
+                        # Use standardized field names with fallback
+                        capacity = float(spec.get('capacity_kw', spec.get('system_power_kw', 0)))
+                        yield_kwh = float(spec.get('annual_energy_kwh', spec.get('annual_yield_kwh', 0)))
+                        total_capacity += capacity
+                        total_annual_yield += yield_kwh
+                    except (ValueError, TypeError):
+                        continue
+        elif isinstance(pv_specs, list):
+            # Fallback for direct list format
+            for spec in pv_specs:
+                if isinstance(spec, dict):
+                    try:
+                        # Use standardized field names with fallback
+                        capacity = float(spec.get('capacity_kw', spec.get('system_power_kw', 0)))
+                        yield_kwh = float(spec.get('annual_energy_kwh', spec.get('annual_yield_kwh', 0)))
+                        total_capacity += capacity
+                        total_annual_yield += yield_kwh
+                    except (ValueError, TypeError):
+                        continue
         
         # If no data found, try yield_demand_analysis
         if total_capacity == 0 and total_annual_yield == 0:
