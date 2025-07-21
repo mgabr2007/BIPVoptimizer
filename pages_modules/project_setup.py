@@ -118,10 +118,15 @@ def render_location_selection():
     """Render location selection with interactive map"""
     st.subheader("2️⃣ Location Selection")
     
-    # Get current coordinates (will be updated dynamically)
+    # Display map with location-based key to update when coordinates change
+    st.info("📍 Click on the map to select your project location")
+    
+    # Process any map clicks first before creating new map
+    # This ensures coordinate updates happen before map creation
+    # Always get fresh coordinates after any updates
     current_coords = st.session_state.map_coordinates
     
-    # Create folium map
+    # Create folium map with current coordinates
     m = folium.Map(
         location=[current_coords['lat'], current_coords['lng']],
         zoom_start=10,
@@ -136,8 +141,6 @@ def render_location_selection():
         icon=folium.Icon(color='red', icon='home')
     ).add_to(m)
     
-    # Display map with location-based key to update when coordinates change
-    st.info("📍 Click on the map to select your project location")
     # Use timestamp-based key to ensure map recreation after coordinate changes
     import time
     if 'map_timestamp' not in st.session_state:
@@ -197,8 +200,9 @@ def render_location_selection():
                 
                 st.success(f"📍 Location updated to: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
                 
-                # Update map timestamp to force map recreation
+                # Update map timestamp to force map recreation and trigger rerun
                 st.session_state.map_timestamp = int(time.time())
+                st.rerun()
             else:
                 st.info("📍 Location already updated")
         else:
