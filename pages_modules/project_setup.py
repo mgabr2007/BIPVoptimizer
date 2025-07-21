@@ -134,8 +134,11 @@ def render_location_selection():
     
     # Display map with location-based key to update when coordinates change
     st.info("📍 Click on the map to select your project location")
-    # Use a more dynamic key that changes when coordinates change significantly
-    location_key = f"map_{current_coords['lat']:.2f}_{current_coords['lng']:.2f}"
+    # Use timestamp-based key to ensure map recreation after coordinate changes
+    import time
+    if 'map_timestamp' not in st.session_state:
+        st.session_state.map_timestamp = int(time.time())
+    location_key = f"map_{st.session_state.map_timestamp}_{current_coords['lat']:.1f}_{current_coords['lng']:.1f}"
     map_data = st_folium(
         m, 
         key=location_key, 
@@ -174,6 +177,7 @@ def render_location_selection():
                             "UPDATE projects SET location = %s WHERE id = %s",
                             (new_location_name, project_id)
                         )
+                        st.info(f"✅ Database updated with location: {new_location_name}")
                     except Exception as e:
                         st.warning(f"Could not update database location: {e}")
                 
@@ -182,6 +186,9 @@ def render_location_selection():
                     del st.session_state.selected_weather_station
                 
                 st.success(f"📍 Location updated to: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
+                
+                # Update map timestamp to force map recreation
+                st.session_state.map_timestamp = int(time.time())
             else:
                 st.info("📍 Location already updated")
         else:
