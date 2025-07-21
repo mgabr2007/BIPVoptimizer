@@ -332,6 +332,10 @@ def render_weather_station_selection():
     # Always get fresh coordinates from session state
     current_coords = st.session_state.map_coordinates
     
+    # Show current location for weather station search
+    st.info(f"🌍 **Searching near:** {st.session_state.location_name}")
+    st.write(f"**Coordinates:** {current_coords['lat']:.4f}°, {current_coords['lng']:.4f}°")
+    
     # Show selected API
     selected_api = st.session_state.get('selected_weather_api', 'wmo_stations')
     if selected_api != 'wmo_stations':
@@ -340,14 +344,20 @@ def render_weather_station_selection():
     # Search radius selection
     search_radius = st.selectbox(
         "Search Radius for Weather Stations",
-        [20, 50, 100, 200, 500, 1000],
-        index=0,
+        [50, 100, 200, 500, 1000],
+        index=1,  # Default to 100km
         help="Maximum distance to search for weather stations (km)",
         key="search_radius"
     )
     
-    # Dynamic weather station loading
-    if st.button("🔍 Find Weather Stations", key="find_stations"):
+    # Check if coordinates have changed and auto-refresh stations
+    coord_key = f"{current_coords['lat']:.4f},{current_coords['lng']:.4f}"
+    force_search = st.session_state.get('last_station_search_coord') != coord_key
+    
+    # Manual refresh button or auto-search on coordinate change
+    manual_search = st.button("🔄 Refresh Weather Stations", key="refresh_stations")
+    
+    if manual_search or force_search:
         with st.spinner("Searching for weather stations..."):
             try:
                 selected_api = st.session_state.get('selected_weather_api', 'wmo_stations')
@@ -458,11 +468,16 @@ def render_weather_station_selection():
                         if not stations_df.empty:
                             stations_list = stations_df.to_dict('records')
                             st.session_state.available_stations = stations_list
-                            # Auto-select nearest station within 20km if search radius is 20km
-                            if search_radius == 20 and len(stations_list) > 0:
+                            st.session_state.last_station_search_coord = coord_key
+                            
+                            # Auto-select nearest station for automatic searches or small radius
+                            if (force_search and not manual_search) or (search_radius <= 100 and len(stations_list) > 0):
                                 nearest_station = stations_list[0]  # First station is nearest
                                 st.session_state.selected_weather_station = nearest_station
-                                st.success(f"✅ Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
+                                if force_search:
+                                    st.success(f"🔄 Location updated - Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
+                                else:
+                                    st.success(f"✅ Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
                             else:
                                 st.success(f"Found {len(stations_list)} WMO weather stations within {search_radius} km")
                         else:
@@ -478,11 +493,16 @@ def render_weather_station_selection():
                     if not stations_df.empty:
                         stations_list = stations_df.to_dict('records')
                         st.session_state.available_stations = stations_list
-                        # Auto-select nearest station within 20km if search radius is 20km
-                        if search_radius == 20 and len(stations_list) > 0:
+                        st.session_state.last_station_search_coord = coord_key
+                        
+                        # Auto-select nearest station for automatic searches or small radius
+                        if (force_search and not manual_search) or (search_radius <= 100 and len(stations_list) > 0):
                             nearest_station = stations_list[0]  # First station is nearest
                             st.session_state.selected_weather_station = nearest_station
-                            st.success(f"✅ Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
+                            if force_search:
+                                st.success(f"🔄 Location updated - Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
+                            else:
+                                st.success(f"✅ Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
                         else:
                             st.success(f"Found {len(stations_list)} WMO weather stations within {search_radius} km")
                     else:
