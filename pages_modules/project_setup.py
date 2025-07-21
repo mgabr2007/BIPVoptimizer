@@ -134,7 +134,8 @@ def render_location_selection():
     
     # Display map with location-based key to update when coordinates change
     st.info("📍 Click on the map to select your project location")
-    location_key = f"map_{current_coords['lat']:.3f}_{current_coords['lng']:.3f}"
+    # Use a more dynamic key that changes when coordinates change significantly
+    location_key = f"map_{current_coords['lat']:.2f}_{current_coords['lng']:.2f}"
     map_data = st_folium(
         m, 
         key=location_key, 
@@ -155,17 +156,32 @@ def render_location_selection():
             # Check if we haven't already processed this exact coordinate
             coord_key = f"{new_coords['lat']:.4f},{new_coords['lng']:.4f}"
             if st.session_state.get('last_updated_coord') != coord_key:
-                # Update coordinates
+                # Update coordinates and location name
+                new_location_name = get_location_name(new_coords['lat'], new_coords['lng'])
                 st.session_state.map_coordinates = new_coords
-                st.session_state.location_name = get_location_name(new_coords['lat'], new_coords['lng'])
+                st.session_state.location_name = new_location_name
                 st.session_state.last_updated_coord = coord_key
+                
+                # Update database to sync sidebar location display
+                from services.io import get_current_project_id
+                project_id = get_current_project_id()
+                if project_id:
+                    try:
+                        from database_manager import BIPVDatabaseManager
+                        db_manager = BIPVDatabaseManager()
+                        # Update project location in database
+                        db_manager.execute_query(
+                            "UPDATE projects SET location = %s WHERE id = %s",
+                            (new_location_name, project_id)
+                        )
+                    except Exception as e:
+                        st.warning(f"Could not update database location: {e}")
                 
                 # Clear weather station selection when location changes
                 if 'selected_weather_station' in st.session_state:
                     del st.session_state.selected_weather_station
                 
                 st.success(f"📍 Location updated to: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
-                # No st.rerun() to prevent refresh loop
             else:
                 st.info("📍 Location already updated")
         else:
