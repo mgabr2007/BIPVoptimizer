@@ -563,30 +563,65 @@ def render_electricity_rate_integration():
     try:
         from services.weather_api_manager import get_geocoding_data
         geocoding_data = get_geocoding_data(coords['lat'], coords['lng'])
-        country_code = geocoding_data.get('country_code', 'DE')
+        country_code = geocoding_data.get('country_code', None)
+        
+        # If reverse geocoding fails, use coordinate-based detection
+        if not country_code:
+            raise Exception("No country code from geocoding")
+            
     except:
-        # Enhanced country detection from location name
+        # Enhanced country detection from coordinates and location name
+        lat, lng = coords['lat'], coords['lng']
         location_lower = location_name.lower()
-        if any(x in location_lower for x in ['germany', 'deutschland', 'berlin', 'munich', 'hamburg']):
-            country_code = 'DE'
-        elif any(x in location_lower for x in ['france', 'paris', 'lyon', 'marseille']):
-            country_code = 'FR'
-        elif any(x in location_lower for x in ['italy', 'italia', 'rome', 'milan', 'naples']):
-            country_code = 'IT'
-        elif any(x in location_lower for x in ['spain', 'españa', 'madrid', 'barcelona', 'seville']):
-            country_code = 'ES'
-        elif any(x in location_lower for x in ['netherlands', 'holland', 'amsterdam', 'rotterdam']):
-            country_code = 'NL'
-        elif any(x in location_lower for x in ['united kingdom', 'uk', 'london', 'manchester', 'birmingham']):
-            country_code = 'UK'
-        elif any(x in location_lower for x in ['poland', 'polska', 'warsaw', 'krakow', 'poznan']):
-            country_code = 'PL'
-        elif any(x in location_lower for x in ['czech', 'praha', 'prague', 'brno']):
-            country_code = 'CZ'
-        elif any(x in location_lower for x in ['india', 'delhi', 'mumbai', 'bangalore', 'hyderabad']):
+        
+        # Coordinate-based country detection for major regions
+        if 24 <= lat <= 42 and 25 <= lng <= 35:  # Egypt/Middle East region
+            if any(x in location_lower for x in ['egypt', 'cairo', 'suez', 'alexandria']):
+                country_code = 'EG'
+            elif any(x in location_lower for x in ['saudi', 'riyadh', 'jeddah']):
+                country_code = 'SA'
+            else:
+                country_code = 'EG'  # Default for this region
+        elif 6 <= lat <= 37 and 68 <= lng <= 97:  # India region
             country_code = 'IN'
+        elif 49 <= lat <= 55 and 14 <= lng <= 24:  # Poland/Czech region
+            if any(x in location_lower for x in ['poland', 'polska', 'warsaw', 'krakow', 'poznan']):
+                country_code = 'PL'
+            elif any(x in location_lower for x in ['czech', 'praha', 'prague', 'brno']):
+                country_code = 'CZ'
+            else:
+                country_code = 'PL'
+        elif 47 <= lat <= 55 and 5 <= lng <= 15:  # Central Europe
+            if any(x in location_lower for x in ['germany', 'deutschland', 'berlin', 'munich', 'hamburg']):
+                country_code = 'DE'
+            elif any(x in location_lower for x in ['france', 'paris', 'lyon', 'marseille']):
+                country_code = 'FR'
+            else:
+                country_code = 'DE'
+        elif 36 <= lat <= 47 and 6 <= lng <= 18:  # Southern Europe
+            if any(x in location_lower for x in ['italy', 'italia', 'rome', 'milan', 'naples']):
+                country_code = 'IT'
+            elif any(x in location_lower for x in ['spain', 'españa', 'madrid', 'barcelona', 'seville']):
+                country_code = 'ES'
+            else:
+                country_code = 'IT'
+        elif 50 <= lat <= 60 and 3 <= lng <= 7:  # UK/Netherlands
+            if any(x in location_lower for x in ['united kingdom', 'uk', 'london', 'manchester', 'birmingham']):
+                country_code = 'UK'
+            elif any(x in location_lower for x in ['netherlands', 'holland', 'amsterdam', 'rotterdam']):
+                country_code = 'NL'
+            else:
+                country_code = 'UK'
         else:
-            country_code = 'DE'  # Default to Germany
+            # Fallback to location name detection
+            if any(x in location_lower for x in ['germany', 'deutschland']):
+                country_code = 'DE'
+            elif any(x in location_lower for x in ['egypt', 'cairo', 'suez']):
+                country_code = 'EG'
+            elif any(x in location_lower for x in ['india', 'delhi', 'mumbai']):
+                country_code = 'IN'
+            else:
+                country_code = 'XX'  # Unknown country
     
     # Show detected country
     st.write(f"**🏴 Detected Country:** {country_code}")
@@ -652,6 +687,9 @@ def render_electricity_rate_integration():
             'PL': {'import': 0.252, 'export': 0.045, 'note': 'Polish residential rate'},
             'CZ': {'import': 0.268, 'export': 0.055, 'note': 'Czech Republic residential rate'},
             'IN': {'import': 0.068, 'export': 0.025, 'note': 'Indian average residential rate'},
+            'EG': {'import': 0.045, 'export': 0.020, 'note': 'Egyptian residential rate (subsidized)'},
+            'SA': {'import': 0.048, 'export': 0.015, 'note': 'Saudi Arabian residential rate'},
+            'XX': {'import': 0.200, 'export': 0.050, 'note': 'Global average estimate'},
         }
         
         guidance = rate_guidance.get(country_code, rate_guidance['DE'])
