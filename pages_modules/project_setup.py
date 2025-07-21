@@ -152,16 +152,22 @@ def render_location_selection():
         lng_diff = abs(new_coords['lng'] - current_coords['lng'])
         
         if lat_diff > 0.001 or lng_diff > 0.001:  # Significant movement detected
-            # Simple update without complex loop prevention
-            st.session_state.map_coordinates = new_coords
-            st.session_state.location_name = get_location_name(new_coords['lat'], new_coords['lng'])
-            
-            # Clear weather station selection when location changes
-            if 'selected_weather_station' in st.session_state:
-                del st.session_state.selected_weather_station
-            
-            st.success(f"📍 Location updated to: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
-            st.rerun()
+            # Check if we haven't already processed this exact coordinate
+            coord_key = f"{new_coords['lat']:.4f},{new_coords['lng']:.4f}"
+            if st.session_state.get('last_updated_coord') != coord_key:
+                # Update coordinates
+                st.session_state.map_coordinates = new_coords
+                st.session_state.location_name = get_location_name(new_coords['lat'], new_coords['lng'])
+                st.session_state.last_updated_coord = coord_key
+                
+                # Clear weather station selection when location changes
+                if 'selected_weather_station' in st.session_state:
+                    del st.session_state.selected_weather_station
+                
+                st.success(f"📍 Location updated to: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
+                # No st.rerun() to prevent refresh loop
+            else:
+                st.info("📍 Location already updated")
         else:
             if lat_diff > 0.0001 or lng_diff > 0.0001:  # Any click detected
                 st.info(f"📍 Click too close to current location (moved {max(lat_diff, lng_diff):.4f}°)")
