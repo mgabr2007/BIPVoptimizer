@@ -551,36 +551,58 @@ def render_electricity_rate_integration():
     """Render electricity rate integration based on location"""
     st.subheader("5️⃣ Data Integration & Configuration")
     
-    # Get location information
+    # Get fresh location information from session state
     coords = st.session_state.map_coordinates
     location_name = st.session_state.location_name
     
-    # Get country code from reverse geocoding
+    # Show current location for electricity rate search
+    st.info(f"🌍 **Rate Integration for:** {location_name}")
+    st.write(f"**Coordinates:** {coords['lat']:.4f}°, {coords['lng']:.4f}°")
+    
+    # Get country code from reverse geocoding with enhanced detection
     try:
         from services.weather_api_manager import get_geocoding_data
         geocoding_data = get_geocoding_data(coords['lat'], coords['lng'])
         country_code = geocoding_data.get('country_code', 'DE')
     except:
-        # Extract from location name or default to Germany
-        if 'Germany' in location_name or 'Deutschland' in location_name:
+        # Enhanced country detection from location name
+        location_lower = location_name.lower()
+        if any(x in location_lower for x in ['germany', 'deutschland', 'berlin', 'munich', 'hamburg']):
             country_code = 'DE'
-        elif 'France' in location_name:
+        elif any(x in location_lower for x in ['france', 'paris', 'lyon', 'marseille']):
             country_code = 'FR'
-        elif 'Italy' in location_name:
+        elif any(x in location_lower for x in ['italy', 'italia', 'rome', 'milan', 'naples']):
             country_code = 'IT'
-        elif 'Spain' in location_name:
+        elif any(x in location_lower for x in ['spain', 'españa', 'madrid', 'barcelona', 'seville']):
             country_code = 'ES'
-        elif 'Netherlands' in location_name:
+        elif any(x in location_lower for x in ['netherlands', 'holland', 'amsterdam', 'rotterdam']):
             country_code = 'NL'
-        elif 'United Kingdom' in location_name or 'UK' in location_name:
+        elif any(x in location_lower for x in ['united kingdom', 'uk', 'london', 'manchester', 'birmingham']):
             country_code = 'UK'
+        elif any(x in location_lower for x in ['poland', 'polska', 'warsaw', 'krakow', 'poznan']):
+            country_code = 'PL'
+        elif any(x in location_lower for x in ['czech', 'praha', 'prague', 'brno']):
+            country_code = 'CZ'
+        elif any(x in location_lower for x in ['india', 'delhi', 'mumbai', 'bangalore', 'hyderabad']):
+            country_code = 'IN'
         else:
             country_code = 'DE'  # Default to Germany
     
+    # Show detected country
+    st.write(f"**🏴 Detected Country:** {country_code}")
+    
+    # Check if location has changed and auto-refresh rates
+    coord_key = f"{coords['lat']:.4f},{coords['lng']:.4f}"
+    location_changed = st.session_state.get('last_rate_search_coord') != coord_key
+    
     st.write("**🔌 Live Electricity Rate Integration**")
     
+    # Auto-fetch or manual refresh
+    if location_changed:
+        st.info("🔄 Location changed - Click to fetch rates for new location")
+    
     # Fetch live electricity rates
-    if st.button("🔄 Fetch Live Electricity Rates", key="fetch_rates"):
+    if st.button("🔄 Fetch Live Electricity Rates", key="fetch_rates") or location_changed:
         with st.spinner("Fetching live electricity rates..."):
             try:
                 from services.api_integrations import get_live_electricity_rates
@@ -592,9 +614,15 @@ def render_electricity_rate_integration():
                         'export_rate': rates_result['export_rate'],
                         'source': rates_result['source'],
                         'timestamp': rates_result['timestamp'],
-                        'country_code': country_code
+                        'country_code': country_code,
+                        'location': location_name
                     }
-                    st.success(f"✅ Retrieved rates from: {rates_result['source']}")
+                    st.session_state.last_rate_search_coord = coord_key
+                    
+                    if location_changed:
+                        st.success(f"🔄 Location updated - Retrieved rates from: {rates_result['source']}")
+                    else:
+                        st.success(f"✅ Retrieved rates from: {rates_result['source']}")
                     
                     col1, col2 = st.columns(2)
                     with col1:
@@ -613,7 +641,7 @@ def render_electricity_rate_integration():
     if 'electricity_rates' not in st.session_state:
         st.write("**⚙️ Manual Rate Configuration**")
         
-        # Regional guidance
+        # Enhanced regional guidance with more countries
         rate_guidance = {
             'DE': {'import': 0.315, 'export': 0.082, 'note': 'German average residential rate'},
             'FR': {'import': 0.276, 'export': 0.060, 'note': 'French residential rate (EDF base)'},
@@ -621,6 +649,9 @@ def render_electricity_rate_integration():
             'ES': {'import': 0.264, 'export': 0.055, 'note': 'Spanish residential rate'},
             'NL': {'import': 0.298, 'export': 0.075, 'note': 'Netherlands residential rate'},
             'UK': {'import': 0.285, 'export': 0.050, 'note': 'UK average residential rate'},
+            'PL': {'import': 0.252, 'export': 0.045, 'note': 'Polish residential rate'},
+            'CZ': {'import': 0.268, 'export': 0.055, 'note': 'Czech Republic residential rate'},
+            'IN': {'import': 0.068, 'export': 0.025, 'note': 'Indian average residential rate'},
         }
         
         guidance = rate_guidance.get(country_code, rate_guidance['DE'])
@@ -648,8 +679,10 @@ def render_electricity_rate_integration():
                 'export_rate': export_rate,
                 'source': f'Manual Input - {guidance["note"]}',
                 'timestamp': datetime.now().isoformat(),
-                'country_code': country_code
+                'country_code': country_code,
+                'location': location_name
             }
+            st.session_state.last_rate_search_coord = coord_key
             st.success("✅ Manual electricity rates saved")
     
     # Display saved rates
