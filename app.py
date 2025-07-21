@@ -632,9 +632,41 @@ try:
                 if 'location' in project_details:
                     st.session_state.location_name = project_details['location']
                 
-                # Load weather station data if available
+                # Check if weather station needs refresh based on coordinates
+                station_needs_refresh = False
                 if 'selected_weather_station' in project_details:
-                    st.session_state.selected_weather_station = project_details['selected_weather_station']
+                    old_station = project_details['selected_weather_station']
+                    # Check if weather station is far from current project coordinates
+                    if isinstance(old_station, dict) and 'latitude' in old_station and 'longitude' in old_station:
+                        project_lat = project_details.get('latitude', 0)
+                        project_lon = project_details.get('longitude', 0)
+                        station_lat = old_station.get('latitude', 0)
+                        station_lon = old_station.get('longitude', 0)
+                        
+                        # Calculate distance between project and weather station
+                        from services.weather_stations import calculate_distance
+                        distance = calculate_distance(project_lat, project_lon, station_lat, station_lon)
+                        
+                        # If station is more than 1000km away, force refresh
+                        if distance > 1000:
+                            station_needs_refresh = True
+                            st.session_state.force_station_refresh = True
+                        else:
+                            st.session_state.selected_weather_station = old_station
+                    else:
+                        st.session_state.selected_weather_station = old_station
+                else:
+                    station_needs_refresh = True
+                    st.session_state.force_station_refresh = True
+                
+                # Force weather station search if needed
+                if station_needs_refresh:
+                    # Clear old station selection to force refresh
+                    if 'selected_weather_station' in st.session_state:
+                        del st.session_state.selected_weather_station
+                    # Mark coordinates as changed to trigger auto-search
+                    if 'last_station_search_coord' in st.session_state:
+                        del st.session_state.last_station_search_coord
                 
                 # Load electricity rates if available
                 if 'electricity_rates' in project_details:

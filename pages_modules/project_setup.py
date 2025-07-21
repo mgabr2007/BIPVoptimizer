@@ -352,7 +352,8 @@ def render_weather_station_selection():
     
     # Check if coordinates have changed and auto-refresh stations
     coord_key = f"{current_coords['lat']:.4f},{current_coords['lng']:.4f}"
-    force_search = st.session_state.get('last_station_search_coord') != coord_key
+    force_search = (st.session_state.get('last_station_search_coord') != coord_key or 
+                   st.session_state.get('force_station_refresh', False))
     
     # Manual refresh button or auto-search on coordinate change
     manual_search = st.button("🔄 Refresh Weather Stations", key="refresh_stations")
@@ -496,10 +497,15 @@ def render_weather_station_selection():
                         st.session_state.last_station_search_coord = coord_key
                         
                         # Auto-select nearest station for automatic searches or small radius
-                        if (force_search and not manual_search) or (search_radius <= 100 and len(stations_list) > 0):
+                        force_refresh = st.session_state.get('force_station_refresh', False)
+                        if (force_search and not manual_search) or (search_radius <= 100 and len(stations_list) > 0) or force_refresh:
                             nearest_station = stations_list[0]  # First station is nearest
                             st.session_state.selected_weather_station = nearest_station
-                            if force_search:
+                            if force_refresh:
+                                st.success(f"🌍 Updated weather station for new location: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
+                                # Clear force refresh flag
+                                st.session_state.force_station_refresh = False
+                            elif force_search:
                                 st.success(f"🔄 Location updated - Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
                             else:
                                 st.success(f"✅ Auto-selected nearest station: {nearest_station['name']} ({nearest_station['distance_km']:.1f} km)")
