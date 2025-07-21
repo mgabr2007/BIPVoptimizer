@@ -141,32 +141,35 @@ def render_location_selection():
         returned_objects=["last_clicked"]  # Only return click events, not other interactions
     )
     
-    # Process map clicks with much higher threshold to prevent excessive refreshing
+    # Process map clicks with debugging
     if map_data and map_data.get('last_clicked'):
         new_coords = map_data['last_clicked']
         
-        # Check if coordinates changed significantly (larger threshold to prevent panning refreshes)
+        # Debug output to understand what's happening
+        st.write(f"**Debug:** Current: {current_coords['lat']:.6f}, {current_coords['lng']:.6f}")
+        st.write(f"**Debug:** Clicked: {new_coords['lat']:.6f}, {new_coords['lng']:.6f}")
+        
+        # Check if coordinates changed significantly
         lat_diff = abs(new_coords['lat'] - current_coords['lat'])
         lng_diff = abs(new_coords['lng'] - current_coords['lng'])
         
-        # Balanced threshold - responsive but not too sensitive
-        if lat_diff > 0.002 or lng_diff > 0.002:  # ~200m threshold for significant moves
-            # Avoid excessive reruns with simple state check
-            last_update_key = f"{new_coords['lat']:.4f},{new_coords['lng']:.4f}"
-            if st.session_state.get('last_map_update') != last_update_key:
-                st.session_state.last_map_update = last_update_key
-                st.session_state.map_coordinates = new_coords
-                st.session_state.location_name = get_location_name(new_coords['lat'], new_coords['lng'])
-                
-                # Clear weather station selection when location changes
-                if 'selected_weather_station' in st.session_state:
-                    del st.session_state.selected_weather_station
-                
-                st.rerun()
+        st.write(f"**Debug:** Differences: lat={lat_diff:.6f}, lng={lng_diff:.6f}")
+        st.write(f"**Debug:** Threshold: 0.002, Will update: {lat_diff > 0.002 or lng_diff > 0.002}")
+        
+        # More sensitive threshold to catch location changes
+        if lat_diff > 0.001 or lng_diff > 0.001:  # ~100m threshold
+            # Always update for genuine clicks
+            st.session_state.map_coordinates = new_coords
+            st.session_state.location_name = get_location_name(new_coords['lat'], new_coords['lng'])
+            
+            # Clear weather station selection when location changes
+            if 'selected_weather_station' in st.session_state:
+                del st.session_state.selected_weather_station
+            
+            st.write("**Debug:** Updating coordinates and rerunning...")
+            st.rerun()
         else:
-            # Show feedback for small clicks that don't trigger updates
-            if lat_diff > 0.0001 or lng_diff > 0.0001:  # Any click detected
-                st.info(f"📍 Click detected but too close to current location (moved {max(lat_diff, lng_diff):.4f}°). Click further away to change location.")
+            st.info(f"📍 Click too close to current location (moved {max(lat_diff, lng_diff):.6f}°)")
     
     # Display current coordinates
     st.info(f"📍 **Selected Location:** {st.session_state.location_name}")
