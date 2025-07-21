@@ -131,27 +131,39 @@ def render_location_selection():
         icon=folium.Icon(color='red', icon='home')
     ).add_to(m)
     
-    # Display map
+    # Display map with fixed key to prevent unnecessary refreshes
     st.info("📍 Click on the map to select your project location")
-    map_data = st_folium(m, key="location_map", height=400, width=700)
+    map_data = st_folium(
+        m, 
+        key="location_map_stable", 
+        height=400, 
+        width=700,
+        returned_objects=["last_clicked"],  # Only return click events, not other interactions
+        debounce=1000  # 1 second debounce to prevent rapid updates
+    )
     
-    # Process map clicks
+    # Process map clicks with much higher threshold to prevent excessive refreshing
     if map_data and map_data.get('last_clicked'):
         new_coords = map_data['last_clicked']
         
-        # Check if coordinates changed significantly
+        # Check if coordinates changed significantly (larger threshold to prevent panning refreshes)
         lat_diff = abs(new_coords['lat'] - current_coords['lat'])
         lng_diff = abs(new_coords['lng'] - current_coords['lng'])
         
-        if lat_diff > 0.001 or lng_diff > 0.001:
-            st.session_state.map_coordinates = new_coords
-            st.session_state.location_name = get_location_name(new_coords['lat'], new_coords['lng'])
-            
-            # Clear weather station selection when location changes
-            if 'selected_weather_station' in st.session_state:
-                del st.session_state.selected_weather_station
-            
-            st.rerun()
+        # Much higher threshold - only update on deliberate clicks, not panning
+        if lat_diff > 0.005 or lng_diff > 0.005:  # ~500m threshold for significant moves
+            # Avoid excessive reruns with simple state check
+            last_update_key = f"{new_coords['lat']:.3f},{new_coords['lng']:.3f}"
+            if st.session_state.get('last_map_update') != last_update_key:
+                st.session_state.last_map_update = last_update_key
+                st.session_state.map_coordinates = new_coords
+                st.session_state.location_name = get_location_name(new_coords['lat'], new_coords['lng'])
+                
+                # Clear weather station selection when location changes
+                if 'selected_weather_station' in st.session_state:
+                    del st.session_state.selected_weather_station
+                
+                st.rerun()
     
     # Display current coordinates
     st.info(f"📍 **Selected Location:** {st.session_state.location_name}")
