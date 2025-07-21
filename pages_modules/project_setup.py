@@ -114,6 +114,7 @@ def render_location_selection():
     """Render location selection with interactive map"""
     st.subheader("2️⃣ Location Selection")
     
+    # Get current coordinates (will be updated dynamically)
     current_coords = st.session_state.map_coordinates
     
     # Create folium map
@@ -176,19 +177,21 @@ def render_location_selection():
             if lat_diff > 0.0001 or lng_diff > 0.0001:  # Any click detected
                 st.info(f"📍 Click too close to current location (moved {max(lat_diff, lng_diff):.4f}°)")
     
-    # Display current coordinates
+    # Display current coordinates (refresh from session state)
+    updated_coords = st.session_state.map_coordinates
     st.info(f"📍 **Selected Location:** {st.session_state.location_name}")
     col1, col2 = st.columns(2)
     with col1:
-        st.write(f"**Latitude:** {current_coords['lat']:.4f}°")
+        st.write(f"**Latitude:** {updated_coords['lat']:.4f}°")
     with col2:
-        st.write(f"**Longitude:** {current_coords['lng']:.4f}°")
+        st.write(f"**Longitude:** {updated_coords['lng']:.4f}°")
 
 
 def render_weather_api_selection():
     """Render weather API selection section"""
     st.subheader("3️⃣ Weather API Selection")
     
+    # Always get fresh coordinates from session state
     current_coords = st.session_state.map_coordinates
     
     # Import weather API manager
@@ -272,6 +275,7 @@ def render_weather_station_selection():
     """Render WMO weather station selection"""
     st.subheader("4️⃣ Weather Station Selection")
     
+    # Always get fresh coordinates from session state
     current_coords = st.session_state.map_coordinates
     
     # Show selected API
