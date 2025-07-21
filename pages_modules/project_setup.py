@@ -149,10 +149,10 @@ def render_location_selection():
         lat_diff = abs(new_coords['lat'] - current_coords['lat'])
         lng_diff = abs(new_coords['lng'] - current_coords['lng'])
         
-        # Much higher threshold - only update on deliberate clicks, not panning
-        if lat_diff > 0.005 or lng_diff > 0.005:  # ~500m threshold for significant moves
+        # Balanced threshold - responsive but not too sensitive
+        if lat_diff > 0.002 or lng_diff > 0.002:  # ~200m threshold for significant moves
             # Avoid excessive reruns with simple state check
-            last_update_key = f"{new_coords['lat']:.3f},{new_coords['lng']:.3f}"
+            last_update_key = f"{new_coords['lat']:.4f},{new_coords['lng']:.4f}"
             if st.session_state.get('last_map_update') != last_update_key:
                 st.session_state.last_map_update = last_update_key
                 st.session_state.map_coordinates = new_coords
@@ -163,6 +163,10 @@ def render_location_selection():
                     del st.session_state.selected_weather_station
                 
                 st.rerun()
+        else:
+            # Show feedback for small clicks that don't trigger updates
+            if lat_diff > 0.0001 or lng_diff > 0.0001:  # Any click detected
+                st.info(f"📍 Click detected but too close to current location (moved {max(lat_diff, lng_diff):.4f}°). Click further away to change location.")
     
     # Display current coordinates
     st.info(f"📍 **Selected Location:** {st.session_state.location_name}")
