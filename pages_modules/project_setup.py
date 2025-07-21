@@ -172,12 +172,18 @@ def render_location_selection():
                     try:
                         from database_manager import BIPVDatabaseManager
                         db_manager = BIPVDatabaseManager()
-                        # Update project location in database
-                        db_manager.execute_query(
-                            "UPDATE projects SET location = %s WHERE id = %s",
-                            (new_location_name, project_id)
-                        )
-                        st.info(f"✅ Database updated with location: {new_location_name}")
+                        conn = db_manager.get_connection()
+                        if conn:
+                            with conn.cursor() as cursor:
+                                cursor.execute(
+                                    "UPDATE projects SET location = %s WHERE id = %s",
+                                    (new_location_name, project_id)
+                                )
+                            conn.commit()
+                            conn.close()
+                            st.info(f"✅ Database updated with location: {new_location_name}")
+                        else:
+                            st.warning("Could not connect to database for location update")
                     except Exception as e:
                         st.warning(f"Could not update database location: {e}")
                 
