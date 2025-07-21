@@ -47,6 +47,7 @@ def load_existing_project_data():
         if project_info:
             return {
                 'project_id': project_id,
+                'project_name': project_info.get('project_name') or 'BIPV Optimization Project',
                 'coordinates': {
                     'lat': float(project_info.get('latitude') or 52.5121),
                     'lng': float(project_info.get('longitude') or 13.3270)
@@ -74,6 +75,7 @@ def initialize_session_state():
     if existing_data:
         st.session_state.map_coordinates = existing_data['coordinates']
         st.session_state.location_name = existing_data['location_name']
+        st.session_state.project_name = existing_data['project_name']
         if existing_data['weather_station']:
             st.session_state.selected_weather_station = existing_data['weather_station']
         st.success(f"✅ Loaded existing project data (ID: {existing_data['project_id']})")
@@ -83,6 +85,8 @@ def initialize_session_state():
             st.session_state.map_coordinates = {'lat': 52.5121, 'lng': 13.3270}
         if 'location_name' not in st.session_state:
             st.session_state.location_name = "Berlin, Germany"
+        if 'project_name' not in st.session_state:
+            st.session_state.project_name = "BIPV Optimization Project"
 
 
 def render_project_info_section():
@@ -93,7 +97,7 @@ def render_project_info_section():
     with col1:
         project_name = st.text_input(
             "Project Name",
-            value="BIPV Optimization Project",
+            value=st.session_state.get('project_name', 'BIPV Optimization Project'),
             help="Enter a descriptive name for your BIPV analysis project",
             key="project_name_input"
         )
