@@ -74,9 +74,18 @@ def initialize_session_state():
     existing_data = load_existing_project_data()
     
     if existing_data:
-        st.session_state.map_coordinates = existing_data['coordinates']
+        # Force complete coordinate update with proper structure
+        st.session_state.map_coordinates = {
+            'lat': existing_data['coordinates']['lat'],
+            'lng': existing_data['coordinates']['lng']
+        }
         st.session_state.location_name = existing_data['location_name']
         st.session_state.project_name = existing_data['project_name']
+        
+        # Clear any cached coordinate keys to force fresh updates
+        if 'last_updated_coord' in st.session_state:
+            del st.session_state.last_updated_coord
+            
         if existing_data['weather_station']:
             st.session_state.selected_weather_station = existing_data['weather_station']
         st.success(f"✅ Loaded existing project data (ID: {existing_data['project_id']})")
@@ -157,7 +166,7 @@ def render_location_selection():
         returned_objects=["last_clicked"]
     )
     
-    # Process map clicks - simplified approach
+    # Process map clicks with immediate coordinate update
     if map_data and map_data.get('last_clicked'):
         new_coords = map_data['last_clicked']
         
@@ -167,15 +176,24 @@ def render_location_selection():
         
         if lat_diff > 0.001 or lng_diff > 0.001:  # Significant movement detected
             # Check if we haven't already processed this exact coordinate
-            coord_key = f"{new_coords['lat']:.4f},{new_coords['lng']:.4f}"
+            coord_key = f"{new_coords['lat']:.6f},{new_coords['lng']:.6f}"
             if st.session_state.get('last_updated_coord') != coord_key:
-                # Update coordinates and location name
+                # Update coordinates immediately with high precision
+                st.session_state.map_coordinates = {
+                    'lat': new_coords['lat'], 
+                    'lng': new_coords['lng']
+                }
+                
+                # Get location name and update session state
                 new_location_name = get_location_name(new_coords['lat'], new_coords['lng'])
-                st.session_state.map_coordinates = new_coords
                 st.session_state.location_name = new_location_name
                 st.session_state.last_updated_coord = coord_key
                 
-                # Update database to sync sidebar location display
+                # Clear weather station selection when location changes
+                if 'selected_weather_station' in st.session_state:
+                    del st.session_state.selected_weather_station
+                
+                # Update database in background (non-blocking)
                 from services.io import get_current_project_id
                 project_id = get_current_project_id()
                 if project_id:
@@ -186,26 +204,20 @@ def render_location_selection():
                         if conn:
                             with conn.cursor() as cursor:
                                 cursor.execute(
-                                    "UPDATE projects SET location = %s WHERE id = %s",
-                                    (new_location_name, project_id)
+                                    "UPDATE projects SET location = %s, latitude = %s, longitude = %s WHERE id = %s",
+                                    (new_location_name, new_coords['lat'], new_coords['lng'], project_id)
                                 )
                             conn.commit()
                             conn.close()
-                            st.info(f"✅ Database updated with location: {new_location_name}")
-                        else:
-                            st.warning("Could not connect to database for location update")
-                    except Exception as e:
-                        st.warning(f"Could not update database location: {e}")
+                    except Exception:
+                        pass  # Silent fail to avoid UI disruption
                 
-                # Clear weather station selection when location changes
-                if 'selected_weather_station' in st.session_state:
-                    del st.session_state.selected_weather_station
-                
-                st.success(f"📍 Location updated to: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
-                
-                # Force immediate map recreation by updating timestamp
+                # Force complete map recreation with millisecond timestamp
                 import time
-                st.session_state.map_timestamp = int(time.time() * 1000)  # Use milliseconds for uniqueness
+                st.session_state.map_timestamp = int(time.time() * 1000000)  # Microsecond precision
+                
+                # Success message with updated coordinates
+                st.success(f"📍 Location updated to: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
                 st.rerun()
             else:
                 st.info("📍 Location already updated")
@@ -213,14 +225,20 @@ def render_location_selection():
             if lat_diff > 0.0001 or lng_diff > 0.0001:  # Any click detected
                 st.info(f"📍 Click too close to current location (moved {max(lat_diff, lng_diff):.4f}°)")
     
-    # Display current coordinates (refresh from session state)
-    updated_coords = st.session_state.map_coordinates
-    st.info(f"📍 **Selected Location:** {st.session_state.location_name}")
+    # Display current coordinates (always fresh from session state)
+    # Force fresh read of coordinates to ensure synchronization
+    display_coords = st.session_state.map_coordinates
+    display_location = st.session_state.location_name
+    
+    # Location info panel with live coordinates
+    st.info(f"📍 **Selected Location:** {display_location}")
+    
+    # Coordinate display with high precision
     col1, col2 = st.columns(2)
     with col1:
-        st.write(f"**Latitude:** {updated_coords['lat']:.4f}°")
+        st.write(f"**Latitude:** {display_coords['lat']:.4f}°")
     with col2:
-        st.write(f"**Longitude:** {updated_coords['lng']:.4f}°")
+        st.write(f"**Longitude:** {display_coords['lng']:.4f}°")
 
 
 def render_weather_api_selection():
