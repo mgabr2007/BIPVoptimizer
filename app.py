@@ -608,25 +608,85 @@ try:
         
         # Handle project selection change
         if selected_project_id and selected_project_id != current_project_id:
-            # Update session state to switch project
-            if 'project_data' not in st.session_state:
-                st.session_state.project_data = {}
-            st.session_state.project_data['project_id'] = selected_project_id
-            
-            # Get project details
+            # Load complete project data from database
             project_details = db_manager.get_project_by_id(selected_project_id)
             if project_details:
-                st.session_state.project_data['project_name'] = project_details.get('project_name')
-                st.sidebar.success(f"✅ Switched to Project ID: {selected_project_id}")
-                # Remove st.rerun() to prevent refresh loop - the page will update naturally
+                # Update session state with complete project data
+                st.session_state.project_data = project_details
+                st.session_state.project_id = selected_project_id
+                
+                # Load project coordinates and location if available
+                if 'coordinates' in project_details:
+                    coords = project_details['coordinates']
+                    st.session_state.map_coordinates = {
+                        'lat': coords.get('lat', project_details.get('latitude', 52.5200)),
+                        'lng': coords.get('lon', project_details.get('longitude', 13.4050))
+                    }
+                elif 'latitude' in project_details and 'longitude' in project_details:
+                    st.session_state.map_coordinates = {
+                        'lat': project_details['latitude'],
+                        'lng': project_details['longitude']
+                    }
+                
+                # Load location name
+                if 'location' in project_details:
+                    st.session_state.location_name = project_details['location']
+                
+                # Load weather station data if available
+                if 'selected_weather_station' in project_details:
+                    st.session_state.selected_weather_station = project_details['selected_weather_station']
+                
+                # Load electricity rates if available
+                if 'electricity_rates' in project_details:
+                    st.session_state.electricity_rates = project_details['electricity_rates']
+                
+                # Load weather API choice if available
+                if 'weather_api_choice' in project_details:
+                    st.session_state.selected_weather_api = project_details['weather_api_choice']
+                
+                st.sidebar.success(f"✅ Loaded: {project_details.get('project_name', 'Project')} ({project_details.get('location', 'Unknown')})")
+                
+                # Force interface refresh to show loaded data
+                st.rerun()
         
-        # Show current project info
+        # Show current project info with enhanced details
         if current_project_id:
             project_data = db_manager.get_project_by_id(current_project_id)
             if project_data:
                 project_name = project_data.get('project_name', 'Unnamed Project')
                 location = project_data.get('location', 'Unknown Location')
-                st.sidebar.info(f"🆔 **Active:** {project_name}\n📍 {location}")
+                
+                # Show coordinates if available
+                coords_info = ""
+                if 'coordinates' in project_data:
+                    coords = project_data['coordinates']
+                    coords_info = f"\n🗺️ {coords.get('lat', 0):.3f}°, {coords.get('lon', 0):.3f}°"
+                elif 'latitude' in project_data and 'longitude' in project_data:
+                    coords_info = f"\n🗺️ {project_data['latitude']:.3f}°, {project_data['longitude']:.3f}°"
+                
+                # Show weather station if available
+                station_info = ""
+                if 'weather_station_name' in project_data:
+                    station_info = f"\n🌤️ {project_data['weather_station_name']}"
+                
+                st.sidebar.info(f"🆔 **Active:** {project_name}\n📍 {location}{coords_info}{station_info}")
+                
+                # Show quick actions
+                col1, col2 = st.sidebar.columns(2)
+                with col1:
+                    if st.button("🔄 Refresh", key="refresh_project", help="Reload project data"):
+                        # Reload project data
+                        fresh_data = db_manager.get_project_by_id(current_project_id)
+                        if fresh_data:
+                            st.session_state.project_data = fresh_data
+                            st.rerun()
+                with col2:
+                    if st.button("🗑️ Clear", key="clear_project", help="Clear current project"):
+                        # Clear session state
+                        for key in list(st.session_state.keys()):
+                            if key not in ['page']:  # Keep page navigation
+                                del st.session_state[key]
+                        st.rerun()
     else:
         st.sidebar.info("📂 No projects available - start with Step 1")
         
