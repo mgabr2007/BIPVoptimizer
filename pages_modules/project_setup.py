@@ -7,6 +7,7 @@ import folium
 from streamlit_folium import st_folium
 import requests
 import os
+from datetime import datetime
 from services.io import get_current_project_id
 from utils.database_helper import db_helper
 from services.weather_stations import find_nearest_stations
@@ -121,10 +122,16 @@ def render_location_selection():
     # Display map with location-based key to update when coordinates change
     st.info("📍 Click on the map to select your project location")
     
-    # Process any map clicks first before creating new map
-    # This ensures coordinate updates happen before map creation
-    # Always get fresh coordinates after any updates
+    # Always get fresh coordinates from session state
     current_coords = st.session_state.map_coordinates
+    
+    # Create unique map key using coordinates with high precision to force recreation
+    import time
+    if 'map_timestamp' not in st.session_state:
+        st.session_state.map_timestamp = int(time.time())
+    
+    # Use high precision coordinates in key to ensure map recreation on any change
+    location_key = f"map_{st.session_state.map_timestamp}_{current_coords['lat']:.6f}_{current_coords['lng']:.6f}"
     
     # Create folium map with current coordinates
     m = folium.Map(
@@ -141,17 +148,13 @@ def render_location_selection():
         icon=folium.Icon(color='red', icon='home')
     ).add_to(m)
     
-    # Use timestamp-based key to ensure map recreation after coordinate changes
-    import time
-    if 'map_timestamp' not in st.session_state:
-        st.session_state.map_timestamp = int(time.time())
-    location_key = f"map_{st.session_state.map_timestamp}_{current_coords['lat']:.1f}_{current_coords['lng']:.1f}"
+    # Render map component
     map_data = st_folium(
         m, 
         key=location_key, 
         height=400, 
         width=700,
-        returned_objects=["last_clicked"]  # Only return click events, not other interactions
+        returned_objects=["last_clicked"]
     )
     
     # Process map clicks - simplified approach
@@ -200,8 +203,9 @@ def render_location_selection():
                 
                 st.success(f"📍 Location updated to: {new_coords['lat']:.4f}°, {new_coords['lng']:.4f}°")
                 
-                # Update map timestamp to force map recreation and trigger rerun
-                st.session_state.map_timestamp = int(time.time())
+                # Force immediate map recreation by updating timestamp
+                import time
+                st.session_state.map_timestamp = int(time.time() * 1000)  # Use milliseconds for uniqueness
                 st.rerun()
             else:
                 st.info("📍 Location already updated")
