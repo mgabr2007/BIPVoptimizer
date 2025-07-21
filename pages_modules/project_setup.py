@@ -635,15 +635,19 @@ def render_electricity_rate_integration():
     # Check if location has changed and auto-refresh rates
     coord_key = f"{coords['lat']:.4f},{coords['lng']:.4f}"
     location_changed = st.session_state.get('last_rate_search_coord') != coord_key
+    force_rates_refresh = st.session_state.get('force_rates_refresh', False)
     
     st.write("**🔌 Live Electricity Rate Integration**")
     
     # Auto-fetch or manual refresh
-    if location_changed:
-        st.info("🔄 Location changed - Click to fetch rates for new location")
+    if location_changed or force_rates_refresh:
+        if force_rates_refresh:
+            st.info("🌍 Country changed - Click to fetch rates for new location")
+        else:
+            st.info("🔄 Location changed - Click to fetch rates for new location")
     
     # Fetch live electricity rates
-    if st.button("🔄 Fetch Live Electricity Rates", key="fetch_rates") or location_changed:
+    if st.button("🔄 Fetch Live Electricity Rates", key="fetch_rates") or location_changed or force_rates_refresh:
         with st.spinner("Fetching live electricity rates..."):
             try:
                 from services.api_integrations import get_live_electricity_rates
@@ -660,7 +664,11 @@ def render_electricity_rate_integration():
                     }
                     st.session_state.last_rate_search_coord = coord_key
                     
-                    if location_changed:
+                    # Clear force refresh flag
+                    if force_rates_refresh:
+                        st.session_state.force_rates_refresh = False
+                        st.success(f"🌍 Updated rates for new country - Retrieved from: {rates_result['source']}")
+                    elif location_changed:
                         st.success(f"🔄 Location updated - Retrieved rates from: {rates_result['source']}")
                     else:
                         st.success(f"✅ Retrieved rates from: {rates_result['source']}")

@@ -668,9 +668,65 @@ try:
                     if 'last_station_search_coord' in st.session_state:
                         del st.session_state.last_station_search_coord
                 
-                # Load electricity rates if available
+                # Check if electricity rates need refresh based on country change
+                rates_need_refresh = False
                 if 'electricity_rates' in project_details:
-                    st.session_state.electricity_rates = project_details['electricity_rates']
+                    old_rates = project_details['electricity_rates']
+                    
+                    # Detect current country based on coordinates
+                    project_lat = project_details.get('latitude', 0)
+                    project_lon = project_details.get('longitude', 0)
+                    
+                    # Use coordinate-based country detection
+                    current_country = 'XX'  # Default unknown
+                    if 24 <= project_lat <= 42 and 25 <= project_lon <= 35:  # Egypt/Middle East
+                        if 24 <= project_lat <= 32:
+                            current_country = 'EG'  # Egypt
+                        else:
+                            current_country = 'SA'  # Saudi Arabia
+                    elif 6 <= project_lat <= 37 and 68 <= project_lon <= 97:  # India
+                        current_country = 'IN'
+                    elif 49 <= project_lat <= 55 and 14 <= project_lon <= 24:  # Poland/Czech
+                        if project_lon <= 19:
+                            current_country = 'PL'  # Poland
+                        else:
+                            current_country = 'CZ'  # Czech Republic
+                    elif 47 <= project_lat <= 55 and 5 <= project_lon <= 15:  # Central Europe
+                        if project_lon <= 10:
+                            current_country = 'DE'  # Germany
+                        else:
+                            current_country = 'FR'  # France
+                    elif 36 <= project_lat <= 47 and 6 <= project_lon <= 18:  # Southern Europe
+                        if project_lon <= 12:
+                            current_country = 'IT'  # Italy
+                        else:
+                            current_country = 'ES'  # Spain
+                    elif 50 <= project_lat <= 60 and 3 <= project_lon <= 7:  # UK/Netherlands
+                        if project_lat >= 55:
+                            current_country = 'UK'  # United Kingdom
+                        else:
+                            current_country = 'NL'  # Netherlands
+                    
+                    # Check if saved rates country matches current location
+                    saved_country = old_rates.get('country_code', 'XX') if isinstance(old_rates, dict) else 'XX'
+                    
+                    if current_country != saved_country and current_country != 'XX':
+                        rates_need_refresh = True
+                        st.session_state.force_rates_refresh = True
+                    else:
+                        st.session_state.electricity_rates = old_rates
+                else:
+                    rates_need_refresh = True
+                    st.session_state.force_rates_refresh = True
+                
+                # Force electricity rates refresh if needed
+                if rates_need_refresh:
+                    # Clear old rates to force refresh
+                    if 'electricity_rates' in st.session_state:
+                        del st.session_state.electricity_rates
+                    # Mark coordinates as changed to trigger auto-search
+                    if 'last_rate_search_coord' in st.session_state:
+                        del st.session_state.last_rate_search_coord
                 
                 # Load weather API choice if available
                 if 'weather_api_choice' in project_details:
