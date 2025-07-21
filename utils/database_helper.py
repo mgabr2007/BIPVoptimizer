@@ -181,6 +181,7 @@ class DatabaseHelper:
             return None
             
         except Exception as e:
+            # Silent error handling for optional data retrieval
             return None
     
     def update_session_from_database(self, project_name=None):

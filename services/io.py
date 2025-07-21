@@ -50,29 +50,29 @@ def get_current_project_id():
         except Exception as e:
             st.error(f"Error getting project ID: {str(e)}")
     
-    # Development fallback: use most complete project for testing comprehensive data flow
-    # This ensures Steps 10-11 can demonstrate the authentic database-driven architecture
+    # Simple fallback: use any available project with data
     try:
         conn = db_manager.get_connection()
         if conn:
             with conn.cursor() as cursor:
+                # First try to find project with building elements (most common)
                 cursor.execute("""
-                    SELECT p.id FROM projects p
-                    JOIN building_elements be ON p.id = be.project_id
-                    JOIN ai_models am ON p.id = am.project_id
-                    JOIN element_radiation er ON p.id = er.project_id
-                    JOIN pv_specifications ps ON p.id = ps.project_id
-                    GROUP BY p.id
-                    ORDER BY COUNT(be.id) DESC
-                    LIMIT 1
+                    SELECT DISTINCT project_id FROM building_elements 
+                    ORDER BY project_id DESC LIMIT 1
                 """)
                 result = cursor.fetchone()
                 if result:
-                    complete_project_id = result[0]
-                    st.session_state.current_project_id = complete_project_id
-                    return complete_project_id
+                    fallback_project_id = result[0]
+                    st.session_state.current_project_id = fallback_project_id
+                    return fallback_project_id
+                
+                # If no building elements, find any project
+                cursor.execute("SELECT id FROM projects ORDER BY id DESC LIMIT 1")
+                result = cursor.fetchone()
+                if result:
+                    return result[0]
             conn.close()
-    except Exception:
+    except Exception as e:
         pass
     
     return None

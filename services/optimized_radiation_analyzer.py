@@ -311,8 +311,9 @@ class OptimizedRadiationAnalyzer:
                 coords = project_data['coordinates']
                 latitude = coords.get('lat', latitude)
                 longitude = coords.get('lng', longitude)
-        except Exception:
-            pass  # Use defaults if database access fails
+        except Exception as e:
+            # Use defaults if database access fails - silent processing
+            pass
         
         for element in elements:
             element_id = element['element_id']
@@ -348,7 +349,7 @@ class OptimizedRadiationAnalyzer:
                 # TMY data loaded successfully (silent)
                 pass
         except Exception as e:
-            # Fall back to simplified calculations
+            # Fall back to simplified calculations - silent processing
             pass
         
         total_irradiance = 0.0
