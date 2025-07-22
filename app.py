@@ -619,11 +619,16 @@ try:
         st.sidebar.markdown("---")
         st.sidebar.markdown("**🔢 Load Project by ID**")
         
+        # Synchronize text input with dropdown selection
+        text_input_value = ""
+        if selected_project_id is not None:
+            text_input_value = str(selected_project_id)
+        
         col1, col2 = st.sidebar.columns([2, 1])
         with col1:
             project_id_input = st.text_input(
                 "Project ID:",
-                value="",
+                value=text_input_value,
                 placeholder="Enter project ID...",
                 key="project_id_input",
                 label_visibility="collapsed"
@@ -667,6 +672,26 @@ try:
                 st.sidebar.error("❌ Please enter a valid numeric Project ID")
             except Exception as e:
                 st.sidebar.error(f"❌ Error loading project: {str(e)}")
+        
+        # Handle text input changes to update dropdown
+        if project_id_input.strip() and project_id_input.strip().isdigit():
+            try:
+                typed_project_id = int(project_id_input.strip())
+                # Check if this ID differs from dropdown selection
+                if typed_project_id != selected_project_id:
+                    # Find matching project in dropdown options
+                    matching_key = None
+                    for key, value in project_options.items():
+                        if value == typed_project_id:
+                            matching_key = key
+                            break
+                    
+                    # If we found a match, update the session state to sync dropdown
+                    if matching_key and st.session_state.get("project_selector") != matching_key:
+                        st.session_state.project_selector = matching_key
+                        st.rerun()
+            except ValueError:
+                pass  # Invalid input, ignore
         
         st.sidebar.markdown("---")
         
