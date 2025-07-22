@@ -147,6 +147,20 @@ def render_welcome():
             project_id = save_project_data(initial_project_data)
             
             if project_id:
+                # Clear any existing project session state to ensure clean start
+                if 'project_data' in st.session_state:
+                    del st.session_state.project_data
+                if 'project_id' in st.session_state:
+                    del st.session_state.project_id
+                if 'project_name' in st.session_state:
+                    del st.session_state.project_name
+                
+                # Set the new project as current
+                st.session_state.project_id = project_id
+                st.session_state.project_name = project_name
+                st.session_state.project_data = initial_project_data
+                st.session_state.project_data['project_id'] = project_id
+                
                 # Save project data to database state manager
                 db_state_manager.save_step_data('project_setup', initial_project_data)
                 
