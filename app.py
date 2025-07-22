@@ -615,6 +615,61 @@ try:
         
         selected_project_id = project_options[selected_project_display]
         
+        # Load Project by ID section
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("**🔢 Load Project by ID**")
+        
+        col1, col2 = st.sidebar.columns([2, 1])
+        with col1:
+            project_id_input = st.text_input(
+                "Project ID:",
+                value="",
+                placeholder="Enter project ID...",
+                key="project_id_input",
+                label_visibility="collapsed"
+            )
+        with col2:
+            load_by_id_btn = st.button("Load", key="load_by_id", use_container_width=True)
+        
+        # Handle load by ID
+        if load_by_id_btn and project_id_input.strip():
+            try:
+                input_project_id = int(project_id_input.strip())
+                # Check if project exists
+                project_details = db_manager.get_project_by_id(input_project_id)
+                if project_details:
+                    # Update session state with complete project data
+                    st.session_state.project_data = project_details
+                    st.session_state.project_id = input_project_id
+                    
+                    # Load project coordinates and location if available
+                    if 'coordinates' in project_details:
+                        coords = project_details['coordinates']
+                        st.session_state.map_coordinates = {
+                            'lat': coords.get('lat', project_details.get('latitude', 52.5200)),
+                            'lng': coords.get('lon', project_details.get('longitude', 13.4050))
+                        }
+                    elif 'latitude' in project_details and 'longitude' in project_details:
+                        st.session_state.map_coordinates = {
+                            'lat': project_details['latitude'],
+                            'lng': project_details['longitude']
+                        }
+                    
+                    # Load location name
+                    if 'location' in project_details:
+                        st.session_state.location_name = project_details['location']
+                    
+                    st.sidebar.success(f"✅ Loaded Project {input_project_id}")
+                    st.rerun()
+                else:
+                    st.sidebar.error(f"❌ Project ID {input_project_id} not found")
+            except ValueError:
+                st.sidebar.error("❌ Please enter a valid numeric Project ID")
+            except Exception as e:
+                st.sidebar.error(f"❌ Error loading project: {str(e)}")
+        
+        st.sidebar.markdown("---")
+        
         # Handle project selection change
         if selected_project_id and selected_project_id != current_project_id:
             # Load complete project data from database
