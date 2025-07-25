@@ -11,6 +11,7 @@ from datetime import datetime
 from database_manager import db_manager, BIPVDatabaseManager
 from services.advanced_radiation_analyzer import AdvancedRadiationAnalyzer
 from services.optimized_radiation_analyzer import OptimizedRadiationAnalyzer
+from services.ultra_fast_radiation_analyzer import UltraFastRadiationAnalyzer
 from utils.session_state_standardizer import BIPVSessionStateManager
 import time
 
@@ -344,8 +345,25 @@ def render_radiation_grid():
         
         if can_run_analysis:
             if st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis"):
-                if use_optimized:
-                    # Use optimized analyzer
+                if use_optimized and precision == "Yearly Average":
+                    # Use ultra-fast analyzer for Simple mode (10-15 seconds target)
+                    analyzer = UltraFastRadiationAnalyzer()
+                    st.info("⚡ **Using Ultra-Fast Infrastructure** - Optimized for 10-15 second processing")
+                    
+                    # Create progress indicators
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    analysis_results = analyzer.analyze_project_radiation(
+                        project_id=project_id,
+                        precision="Simple",
+                        apply_corrections=apply_corrections,
+                        include_shading=include_shading,
+                        progress_bar=progress_bar,
+                        status_text=status_text
+                    )
+                elif use_optimized:
+                    # Use standard optimized analyzer for other modes
                     analyzer = OptimizedRadiationAnalyzer()
                     st.info("🚀 **Using High-Performance Analyzer**")
                     
@@ -364,13 +382,24 @@ def render_radiation_grid():
                         
                         st.session_state.project_data['radiation_data'] = analysis_results['element_radiation']
                         st.session_state['radiation_completed'] = True
-                        BIPVSessionStateManager.update_step_completion('radiation', True)
+                        st.session_state['step5_completed'] = True
                         
-                        st.success(f"✅ **Optimized Analysis Complete!**\n"
-                                 f"- Elements: {analysis_results['total_elements']}\n"
-                                 f"- Method: {precision} (optimized)\n"
-                                 f"- Time: {analysis_results['calculation_time']:.1f} seconds\n"
-                                 f"- Speed: {analysis_results['performance_metrics']['calculations_per_second']:.0f} calc/sec")
+                        # Show results based on analyzer type
+                        if precision == "Yearly Average" and use_optimized:
+                            optimization_method = analysis_results.get('optimization_method', 'ultra_fast')
+                            st.success(f"⚡ **Ultra-Fast Analysis Complete!**\n"
+                                     f"- Elements: {analysis_results['total_elements']:,}\n"
+                                     f"- Time: {analysis_results['calculation_time']:.1f} seconds\n"
+                                     f"- Method: {optimization_method.replace('_', ' ').title()}\n"
+                                     f"- Infrastructure: Pre-loaded data, optimized database calls")
+                        else:
+                            performance_metrics = analysis_results.get('performance_metrics', {})
+                            calc_per_sec = performance_metrics.get('calculations_per_second', 0)
+                            st.success(f"✅ **Analysis Complete!**\n"
+                                     f"- Elements: {analysis_results['total_elements']:,}\n"
+                                     f"- Method: {precision}\n"
+                                     f"- Time: {analysis_results['calculation_time']:.1f} seconds\n"
+                                     f"- Speed: {calc_per_sec:.0f} calculations/second")
                         st.rerun()
                     else:
                         st.error(f"Optimized analysis failed: {analysis_results.get('error', 'Unknown error')}")
