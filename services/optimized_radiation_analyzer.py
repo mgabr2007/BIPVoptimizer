@@ -386,9 +386,10 @@ class OptimizedRadiationAnalyzer:
                 else:
                     authentic_dni = max(0, ghi - dhi) if dhi > 0 else ghi * 0.8
                 
-                # Calculate irradiance on surface using authentic data
+                # Calculate irradiance on surface using authentic data (auto mode)
                 surface_irradiance = calculate_irradiance_on_surface(
-                    authentic_dni, solar_elevation, solar_azimuth, azimuth, 90
+                    authentic_dni, solar_elevation, solar_azimuth, azimuth, 90,
+                    ghi, dhi, calculation_mode="auto"
                 )
                 
                 # Apply orientation corrections
@@ -416,9 +417,10 @@ class OptimizedRadiationAnalyzer:
                 # Calculate direct normal irradiance (simplified)
                 dni = self._estimate_dni(solar_elevation, timestamp)
                 
-                # Calculate irradiance on surface
+                # Calculate irradiance on surface (simple mode - fallback)
                 surface_irradiance = calculate_irradiance_on_surface(
-                    dni, solar_elevation, solar_azimuth, azimuth, 90
+                    dni, solar_elevation, solar_azimuth, azimuth, 90,
+                    calculation_mode="simple"
                 )
                 
                 # Apply orientation corrections

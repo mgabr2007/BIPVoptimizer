@@ -387,10 +387,10 @@ class AdvancedRadiationAnalyzer:
                 height_effects = self.calculate_height_dependent_ghi_effects(height_from_ground, ghi)
                 adjusted_ghi = height_effects['adjusted_ghi']
                 
-                # Calculate surface irradiance
+                # Calculate surface irradiance (advanced mode for research-grade accuracy)
                 surface_irradiance = calculate_irradiance_on_surface(
                     dni, solar_pos['elevation'], solar_pos['azimuth'], 
-                    azimuth, tilt, adjusted_ghi, dhi
+                    azimuth, tilt, adjusted_ghi, dhi, calculation_mode="advanced"
                 )
                 
                 # Apply ground reflectance
