@@ -685,10 +685,14 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
         import traceback
         st.error(f"Debug info: project_id={project_id}, calculation_mode={calculation_mode}")
         st.error(f"Detailed error: {traceback.format_exc()}")
-        if 'progress_bar' in locals():
-            progress_bar.progress(0)
-        if 'status_text' in locals():
-            status_text.text("Analysis failed")
+        # Reset progress indicators if they exist
+        try:
+            if 'progress_bar' in locals() and progress_bar:
+                progress_bar.progress(0)
+            if 'status_text' in locals() and status_text:
+                status_text.text("Analysis failed")
+        except:
+            pass  # Ignore errors resetting UI elements
 
 def reset_analysis(project_id):
     """Reset radiation analysis for the project."""
@@ -1122,8 +1126,11 @@ def save_walls_data_to_database(project_id, walls_df):
         st.error(f"Error saving wall data: {str(e)}")
         return False
     finally:
-        if 'conn' in locals() and conn:
-            conn.close()
+        try:
+            if 'conn' in locals() and conn:
+                conn.close()
+        except:
+            pass  # Ignore connection close errors
 
 def get_orientation_from_azimuth(azimuth):
     """Convert azimuth angle to orientation direction"""

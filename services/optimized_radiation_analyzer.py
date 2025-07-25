@@ -24,35 +24,39 @@ class OptimizedRadiationAnalyzer:
         self.calculation_cache = {}
         self.processing_lock = threading.Lock()
         
-        # Precision level configurations
+        # Precision level configurations - optimized for performance
         self.precision_configs = {
             "Hourly": {
-                "time_steps": self._generate_hourly_timestamps(),
+                "time_steps": [],  # Will be generated dynamically
                 "description": "4,015 calculations per element (11 hours × 365 days)",
                 "sample_hours": list(range(8, 19)),  # 8 AM to 6 PM
                 "days_per_month": 365,
-                "accuracy": "Maximum"
+                "accuracy": "Maximum",
+                "sample_size": 4015
             },
             "Daily Peak": {
-                "time_steps": self._generate_daily_peak_timestamps(),
+                "time_steps": [],  # Will be generated dynamically
                 "description": "365 calculations per element (noon × 365 days)", 
                 "sample_hours": [12],  # Noon only
                 "days_per_month": 365,
-                "accuracy": "High"
+                "accuracy": "High",
+                "sample_size": 365
             },
             "Monthly Average": {
-                "time_steps": self._generate_monthly_timestamps(),
+                "time_steps": [],  # Will be generated dynamically
                 "description": "12 calculations per element (monthly representatives)",
                 "sample_hours": [12],  # Noon only
                 "days_per_month": 12,  # Representative day per month
-                "accuracy": "Standard"
+                "accuracy": "Standard",
+                "sample_size": 12
             },
             "Yearly Average": {
-                "time_steps": self._generate_seasonal_timestamps(),
+                "time_steps": [],  # Will be generated dynamically
                 "description": "4 calculations per element (seasonal representatives)",
                 "sample_hours": [12],  # Noon only
                 "days_per_month": 4,  # Seasonal representatives
-                "accuracy": "Fast"
+                "accuracy": "Fast",
+                "sample_size": 4
             }
         }
     
@@ -104,6 +108,17 @@ class OptimizedRadiationAnalyzer:
             datetime(base_year, 12, 21, 12)   # Winter solstice
         ]
     
+    def _generate_ultra_fast_timestamps(self) -> List[datetime]:
+        """Generate ultra-fast timestamps for Simple mode (4 calculations only)."""
+        base_year = 2024
+        
+        return [
+            datetime(base_year, 6, 21, 12),   # Summer solstice (peak performance)
+            datetime(base_year, 12, 21, 12),  # Winter solstice (minimum performance)
+            datetime(base_year, 3, 20, 12),   # Spring equinox (moderate)
+            datetime(base_year, 9, 22, 12)    # Autumn equinox (moderate)
+        ]
+    
     def analyze_radiation_optimized(self, project_id: int, precision: str = "Daily Peak", 
                                   apply_corrections: bool = True, 
                                   include_shading: bool = True,
@@ -141,9 +156,41 @@ class OptimizedRadiationAnalyzer:
             if not suitable_elements:
                 return {"error": f"No suitable elements found from {len(building_elements)} total elements"}
         
-        # Get precision configuration
+        # Get precision configuration and generate time steps based on calculation mode
         config = self.precision_configs.get(precision, self.precision_configs["Daily Peak"])
-        time_steps = config["time_steps"]
+        
+        # Drastically reduce calculations for Simple mode (user expects 10-20 seconds)
+        if calculation_mode == "simple":
+            # Override precision for ultra-fast processing
+            time_steps = self._generate_ultra_fast_timestamps()  # Only 4 calculations total
+            st.success("🚀 **Simple Mode Active**: Ultra-fast 4-point calculation for maximum speed")
+            st.info("⚡ **Performance Target**: 4 calculations per element = 10-20 second analysis")
+        elif calculation_mode == "auto":
+            # Smart selection based on element count
+            if len(suitable_elements) > 500:
+                time_steps = self._generate_seasonal_timestamps()  # 4 calculations
+                st.info("🤖 **Auto Mode**: Large dataset detected, using seasonal sampling (4 calculations per element)")
+            elif len(suitable_elements) > 100:
+                time_steps = self._generate_monthly_timestamps()  # 12 calculations
+                st.info("🤖 **Auto Mode**: Medium dataset, using monthly sampling (12 calculations per element)")
+            else:
+                time_steps = self._generate_daily_peak_timestamps()  # 365 calculations
+                st.info("🤖 **Auto Mode**: Small dataset, using daily peak sampling (365 calculations per element)")
+        else:  # Advanced mode
+            # Use original precision settings
+            if precision == "Hourly":
+                time_steps = self._generate_hourly_timestamps()
+            elif precision == "Daily Peak":
+                time_steps = self._generate_daily_peak_timestamps()
+            elif precision == "Monthly Average":
+                time_steps = self._generate_monthly_timestamps()
+            else:  # Yearly Average
+                time_steps = self._generate_seasonal_timestamps()
+            st.info(f"🎯 **Advanced Mode**: Using {precision} precision ({len(time_steps)} calculations per element)")
+        
+        # Show processing overview before starting
+        total_calculations = len(suitable_elements) * len(time_steps)
+        st.info(f"📊 **Processing Overview**: {len(suitable_elements):,} elements × {len(time_steps)} time points = {total_calculations:,} total calculations")
         
         # Initialize clean progress tracking
         progress_bar = st.progress(0)
@@ -155,7 +202,11 @@ class OptimizedRadiationAnalyzer:
         total_elements = len(suitable_elements)
         
         # Process elements in batches for better performance
-        batch_size = max(1, min(50, total_elements // 10))
+        # For Simple mode, use larger batches to reduce overhead
+        if calculation_mode == "simple":
+            batch_size = min(total_elements, 100)  # Large batches for ultra-fast mode
+        else:
+            batch_size = max(1, min(50, total_elements // 10))
         
         for i in range(0, total_elements, batch_size):
             batch = suitable_elements[i:i + batch_size]
