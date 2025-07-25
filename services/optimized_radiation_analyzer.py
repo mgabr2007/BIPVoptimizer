@@ -106,7 +106,8 @@ class OptimizedRadiationAnalyzer:
     
     def analyze_radiation_optimized(self, project_id: int, precision: str = "Daily Peak", 
                                   apply_corrections: bool = True, 
-                                  include_shading: bool = True) -> Dict:
+                                  include_shading: bool = True,
+                                  calculation_mode: str = "auto") -> Dict:
         """
         Optimized radiation analysis with precision-based performance.
         
@@ -115,6 +116,7 @@ class OptimizedRadiationAnalyzer:
             precision: Analysis precision level
             apply_corrections: Apply orientation corrections
             include_shading: Include geometric shading calculations
+            calculation_mode: Solar calculation mode ("simple", "advanced", "auto")
             
         Returns:
             Dictionary with radiation analysis results
@@ -158,7 +160,7 @@ class OptimizedRadiationAnalyzer:
         for i in range(0, total_elements, batch_size):
             batch = suitable_elements[i:i + batch_size]
             batch_results = self._process_element_batch(
-                batch, time_steps, apply_corrections, include_shading
+                batch, time_steps, apply_corrections, include_shading, calculation_mode
             )
             results.update(batch_results)
             
@@ -294,7 +296,7 @@ class OptimizedRadiationAnalyzer:
             return "Unknown"
     
     def _process_element_batch(self, elements: List[Dict], time_steps: List[datetime],
-                              apply_corrections: bool, include_shading: bool) -> Dict:
+                              apply_corrections: bool, include_shading: bool, calculation_mode: str = "auto") -> Dict:
         """Process a batch of elements with vectorized calculations."""
         batch_results = {}
         

@@ -54,7 +54,7 @@ class WeatherEnvironmentController:
         return temperature_map.get(climate_zone, 15.0)
 
 
-def generate_tmy_from_wmo_station(weather_station: Dict, coordinates: Dict, controller: WeatherEnvironmentController) -> List[Dict]:
+def generate_tmy_from_wmo_station(weather_station: Dict, coordinates: Dict, controller: WeatherEnvironmentController, include_diffuse: bool = True) -> List[Dict]:
     """
     Generate ISO 15927-4 compliant TMY data from WMO weather station with database integration
     
@@ -181,7 +181,7 @@ def generate_tmy_from_wmo_station(weather_station: Dict, coordinates: Dict, cont
             cloud_cover = max(0.0, min(100.0, 50.0 * (1.0 - clearness_index) + 
                                       20.0 * math.sin(2.0 * math.pi * day / 365.0)))
             
-            # Create comprehensive TMY record
+            # Create comprehensive TMY record with configurable irradiance data
             tmy_record = {
                 # Temporal information
                 'datetime': f"2023-{(day-1)//31+1:02d}-{(day-1)%31+1:02d} {hour:02d}:00:00",
@@ -196,11 +196,20 @@ def generate_tmy_from_wmo_station(weather_station: Dict, coordinates: Dict, cont
                 'air_mass': round(air_mass, 3),
                 'clearness_index': round(clearness_index, 3),
                 
-                # Irradiance data (W/m²)
+                # Irradiance data (W/m²) - conditional based on include_diffuse
                 'ghi': round(ghi, 1),
                 'dni': round(dni, 1),
-                'dhi': round(dhi, 1),
-                
+            }
+            
+            # Add DHI only if requested for advanced calculations
+            if include_diffuse:
+                tmy_record['dhi'] = round(dhi, 1)
+                tmy_record['diffuse_mode'] = 'advanced'
+            else:
+                tmy_record['diffuse_mode'] = 'simple'
+            
+            # Add remaining data
+            tmy_record.update({
                 # Meteorological data
                 'temperature': round(temperature, 1),
                 'humidity': round(humidity, 1),
@@ -216,7 +225,7 @@ def generate_tmy_from_wmo_station(weather_station: Dict, coordinates: Dict, cont
                 'station_distance_km': round(weather_station.get('distance_km', 0), 1),
                 'climate_zone': climate_zone,
                 'generation_method': 'ISO_15927-4_Compliant'
-            }
+            })
             
             tmy_data.append(tmy_record)
             
@@ -495,6 +504,27 @@ def render_weather_environment():
     # TMY Generation Section
     st.subheader("🌤️ TMY Data Generation")
     
+    # TMY Data Configuration Controls
+    with st.expander("⚙️ TMY Data Configuration", expanded=False):
+        st.markdown("**Configure what meteorological data to fetch from weather APIs**")
+        
+        include_diffuse = st.checkbox(
+            "🌅 Include diffuse irradiance components for advanced calculations",
+            value=True,
+            help="Fetches DHI (Diffuse Horizontal Irradiance) data for enhanced solar modeling. Required for research-grade accuracy in Step 5."
+        )
+        
+        if include_diffuse:
+            st.success("✅ **Advanced TMY Mode** - Will fetch GHI, DNI, and DHI components")
+            st.markdown("- Enables research-grade solar calculations in Step 5")
+            st.markdown("- Supports advanced diffuse irradiance modeling")
+            st.markdown("- Required for 'Advanced' calculation precision mode")
+        else:
+            st.info("ℹ️ **Simple TMY Mode** - Will fetch GHI and DNI only")
+            st.markdown("- Faster data fetching and processing")
+            st.markdown("- Sufficient for 'Simple' calculation precision mode")
+            st.markdown("- DHI estimated from GHI-DNI difference")
+    
     existing_weather_data = controller.data_manager.get_step_data("3")
     has_existing_tmy = existing_weather_data and existing_weather_data.get('tmy_data')
     
@@ -512,8 +542,8 @@ def render_weather_environment():
             st.write(f"🌍 Climate zone: {controller.get_climate_zone(coordinates['lat'])}")
             st.write("☀️ Calculating solar positions...")
             
-            # Generate TMY data
-            tmy_data = generate_tmy_from_wmo_station(weather_station, coordinates, controller)
+            # Generate TMY data with diffuse configuration
+            tmy_data = generate_tmy_from_wmo_station(weather_station, coordinates, controller, include_diffuse)
             
             if tmy_data:
                 st.write("📊 Processing 8,760 hourly records...")
