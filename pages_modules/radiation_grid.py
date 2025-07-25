@@ -549,6 +549,10 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
     """Run advanced database-driven radiation analysis with sophisticated calculations."""
     
     try:
+        # Initialize session state to prevent saving errors
+        if 'project_data' not in st.session_state:
+            st.session_state.project_data = {}
+            
         # Clear previous radiation calculations silently
         clear_radiation_data(project_id)
         
@@ -637,12 +641,13 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
             progress_bar.progress(progress)
             status_text.text(f"{message} ({current}/{total})")
         
-        # Run optimized radiation analysis
+        # Run optimized radiation analysis with calculation mode
         analysis_results = analyzer.analyze_radiation_optimized(
             project_id=project_id,
             precision=precision,
             apply_corrections=apply_corrections,
-            include_shading=include_shading
+            include_shading=include_shading,
+            calculation_mode=calculation_mode
         )
         
         # Check if analysis was successful
@@ -675,9 +680,15 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
             st.error(f"❌ Analysis failed: {error_msg}")
         
     except Exception as e:
-        st.error(f"❌ Database analysis error: {str(e)}")
+        st.error(f"❌ Advanced precision analysis error: {str(e)}")
+        st.warning("💡 **Troubleshooting**: Try refreshing the page or switching to Simple precision mode")
         import traceback
+        st.error(f"Debug info: project_id={project_id}, calculation_mode={calculation_mode}")
         st.error(f"Detailed error: {traceback.format_exc()}")
+        if 'progress_bar' in locals():
+            progress_bar.progress(0)
+        if 'status_text' in locals():
+            status_text.text("Analysis failed")
 
 def reset_analysis(project_id):
     """Reset radiation analysis for the project."""

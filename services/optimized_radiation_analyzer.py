@@ -325,7 +325,7 @@ class OptimizedRadiationAnalyzer:
             # Calculate annual radiation using optimized method
             annual_radiation = self._calculate_annual_radiation_fast(
                 latitude, longitude, azimuth, time_steps, 
-                apply_corrections, include_shading, orientation
+                apply_corrections, include_shading, orientation, calculation_mode
             )
             
             batch_results[element_id] = annual_radiation
@@ -334,7 +334,7 @@ class OptimizedRadiationAnalyzer:
     
     def _calculate_annual_radiation_fast(self, lat: float, lon: float, azimuth: float,
                                        time_steps: List[datetime], apply_corrections: bool,
-                                       include_shading: bool, orientation: str) -> float:
+                                       include_shading: bool, orientation: str, calculation_mode: str = "auto") -> float:
         """Fast calculation of annual radiation using authentic TMY data."""
         
         # Try to get authentic TMY data from Step 3 database
@@ -388,10 +388,10 @@ class OptimizedRadiationAnalyzer:
                 else:
                     authentic_dni = max(0, ghi - dhi) if dhi > 0 else ghi * 0.8
                 
-                # Calculate irradiance on surface using authentic data (auto mode)
+                # Calculate irradiance on surface using authentic data with specified mode
                 surface_irradiance = calculate_irradiance_on_surface(
                     authentic_dni, solar_elevation, solar_azimuth, azimuth, 90,
-                    ghi, dhi, calculation_mode="auto"
+                    ghi, dhi, calculation_mode=calculation_mode
                 )
                 
                 # Apply orientation corrections
@@ -419,10 +419,10 @@ class OptimizedRadiationAnalyzer:
                 # Calculate direct normal irradiance (simplified)
                 dni = self._estimate_dni(solar_elevation, timestamp)
                 
-                # Calculate irradiance on surface (simple mode - fallback)
+                # Calculate irradiance on surface (fallback mode)
                 surface_irradiance = calculate_irradiance_on_surface(
                     dni, solar_elevation, solar_azimuth, azimuth, 90,
-                    calculation_mode="simple"
+                    calculation_mode="simple"  # Always use simple for fallback
                 )
                 
                 # Apply orientation corrections
@@ -531,12 +531,20 @@ class OptimizedRadiationAnalyzer:
                                precision: str, calculation_time: float):
         """Save radiation analysis results to database."""
         try:
+            # Initialize session state if needed
+            if 'project_data' not in st.session_state:
+                st.session_state.project_data = {}
+                
             # Save to session state first
             st.session_state.project_data['radiation_data'] = results
             st.session_state['radiation_completed'] = True
             
-            # Update session state standardizer
-            BIPVSessionStateManager.update_step_completion('radiation', True)
+            # Update session state standardizer with error handling
+            try:
+                BIPVSessionStateManager.update_step_completion('radiation', True)
+            except Exception as state_error:
+                # Continue even if session state manager fails
+                st.warning(f"Session state update failed: {state_error}")
             
             # Save summary to database
             conn = self.db_manager.get_connection()
@@ -560,7 +568,10 @@ class OptimizedRadiationAnalyzer:
                 conn.close()
                 
         except Exception as e:
-            st.error(f"Error saving results: {e}")
+            st.error(f"❌ Error saving Advanced precision results: {e}")
+            st.warning("💡 **Troubleshooting**: Try refreshing the page or switching to Simple precision mode")
+            # Log additional debug info
+            st.error(f"Debug info: project_id={project_id}, results_count={len(results) if results else 0}")
     
     def get_performance_summary(self) -> Dict:
         """Get performance summary of recent calculations."""
