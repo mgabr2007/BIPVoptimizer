@@ -895,4 +895,5 @@ def render_project_setup():
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             if st.button("Continue to Step 2 →", type="primary", key="nav_step2"):
-                st.switch_page("pages_modules/historical_data.py")
+                st.session_state.current_step = 'historical_data'
+                st.rerun()
