@@ -8,6 +8,9 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import time
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database_manager import BIPVDatabaseManager
 
 
@@ -77,7 +80,7 @@ class UltraFastRadiationAnalyzer:
             with conn.cursor() as cursor:
                 # Load project coordinates (1 query instead of 759)
                 cursor.execute("""
-                    SELECT latitude, longitude, location_name 
+                    SELECT latitude, longitude, location 
                     FROM projects 
                     WHERE id = %s
                 """, (project_id,))
