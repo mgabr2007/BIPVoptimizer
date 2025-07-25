@@ -51,10 +51,55 @@ def calculate_solar_position(latitude: float, longitude: float, timestamp: datet
     return max(0, elevation), azimuth % 360
 
 
-def calculate_irradiance_on_surface(dni: float, solar_elevation: float, solar_azimuth: float, 
-                                  surface_azimuth: float, surface_tilt: float = 90) -> float:
+def calculate_solar_position_simple(latitude: float, longitude: float, day_of_year: int, hour: float) -> dict:
     """
-    Calculate irradiance on a tilted surface.
+    Calculate solar position using simplified inputs (day/hour instead of datetime).
+    
+    Args:
+        latitude: Latitude in degrees
+        longitude: Longitude in degrees
+        day_of_year: Day of year (1-365)
+        hour: Hour of day (0-24)
+        
+    Returns:
+        Dictionary with elevation, azimuth, and zenith angles
+    """
+    # Solar declination angle (degrees)
+    declination = 23.45 * math.sin(math.radians(360 * (284 + day_of_year) / 365))
+    
+    # Hour angle (degrees from solar noon)
+    hour_angle = 15 * (hour - 12)
+    
+    # Solar elevation angle
+    elevation = math.asin(
+        math.sin(math.radians(declination)) * math.sin(math.radians(latitude)) +
+        math.cos(math.radians(declination)) * math.cos(math.radians(latitude)) * 
+        math.cos(math.radians(hour_angle))
+    )
+    
+    # Solar azimuth angle
+    azimuth = math.atan2(
+        math.sin(math.radians(hour_angle)),
+        math.cos(math.radians(hour_angle)) * math.sin(math.radians(latitude)) -
+        math.tan(math.radians(declination)) * math.cos(math.radians(latitude))
+    )
+    
+    elevation_deg = math.degrees(elevation)
+    azimuth_deg = math.degrees(azimuth) + 180  # Convert to 0-360 range
+    
+    return {
+        'elevation': elevation_deg,
+        'azimuth': azimuth_deg,
+        'zenith': 90 - elevation_deg
+    }
+
+
+def calculate_irradiance_on_surface(dni: float, solar_elevation: float, solar_azimuth: float, 
+                                  surface_azimuth: float, surface_tilt: float = 90,
+                                  ghi: Optional[float] = None, dhi: Optional[float] = None) -> float:
+    """
+    Calculate irradiance on a tilted surface with comprehensive model.
+    Supports both simple DNI-only and full GHI+DNI+DHI calculations.
     
     Args:
         dni: Direct Normal Irradiance in W/m²
@@ -62,12 +107,14 @@ def calculate_irradiance_on_surface(dni: float, solar_elevation: float, solar_az
         solar_azimuth: Solar azimuth angle in degrees
         surface_azimuth: Surface azimuth angle in degrees
         surface_tilt: Surface tilt angle in degrees (90 = vertical)
+        ghi: Global Horizontal Irradiance in W/m² (optional for advanced calculation)
+        dhi: Diffuse Horizontal Irradiance in W/m² (optional for advanced calculation)
         
     Returns:
         Irradiance on surface in W/m²
     """
     
-    if solar_elevation <= 0 or dni <= 0:
+    if solar_elevation <= 0:
         return 0
     
     # Convert to radians
@@ -76,20 +123,43 @@ def calculate_irradiance_on_surface(dni: float, solar_elevation: float, solar_az
     surf_azim_rad = math.radians(surface_azimuth)
     surf_tilt_rad = math.radians(surface_tilt)
     
-    # Calculate angle of incidence
+    # Calculate zenith angle for advanced calculations
+    zenith_rad = math.radians(90 - solar_elevation)
+    
+    # Calculate angle of incidence - corrected for vertical surfaces
     cos_incidence = (
-        math.sin(sun_elev_rad) * math.cos(surf_tilt_rad) +
-        math.cos(sun_elev_rad) * math.sin(surf_tilt_rad) * 
-        math.cos(sun_azim_rad - surf_azim_rad)
+        math.sin(zenith_rad) * math.sin(surf_tilt_rad) * 
+        math.cos(sun_azim_rad - surf_azim_rad) +
+        math.cos(zenith_rad) * math.cos(surf_tilt_rad)
     )
     
     # Ensure positive incidence
     cos_incidence = max(0, cos_incidence)
     
-    # Calculate surface irradiance
-    surface_irradiance = dni * cos_incidence
+    # Simple calculation if only DNI is provided
+    if ghi is None or dhi is None:
+        if dni <= 0:
+            return 0
+        return dni * cos_incidence
     
-    return surface_irradiance
+    # Advanced calculation with GHI, DNI, DHI (POA - Plane of Array)
+    if dni <= 0:
+        dni = max(0, ghi - dhi) if dhi > 0 else ghi * 0.8
+    
+    # Direct component on surface
+    direct_on_surface = dni * cos_incidence
+    
+    # Diffuse component (isotropic sky model)
+    diffuse_on_surface = dhi * (1 + math.cos(surf_tilt_rad)) / 2
+    
+    # Ground reflected component (albedo = 0.2 for typical ground)
+    ground_albedo = 0.2
+    reflected_on_surface = ghi * ground_albedo * (1 - math.cos(surf_tilt_rad)) / 2
+    
+    # Total POA irradiance
+    poa_global = direct_on_surface + diffuse_on_surface + reflected_on_surface
+    
+    return max(0, poa_global)
 
 
 class SimpleMath:

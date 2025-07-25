@@ -9,6 +9,7 @@ import math
 from datetime import datetime
 from database_manager import db_manager
 from psycopg2.extras import RealDictCursor
+from core.solar_math import calculate_solar_position_simple, calculate_irradiance_on_surface
 
 class AdvancedRadiationAnalyzer:
     """Advanced radiation analysis with sophisticated calculations - database-driven"""
@@ -76,59 +77,9 @@ class AdvancedRadiationAnalyzer:
         finally:
             conn.close()
     
-    def calculate_solar_position_simple(self, latitude, longitude, day_of_year, hour):
-        """Calculate solar position using simplified formulas."""
-        # Solar declination angle (degrees)
-        declination = 23.45 * math.sin(math.radians(360 * (284 + day_of_year) / 365))
-        
-        # Hour angle (degrees from solar noon)
-        hour_angle = 15 * (hour - 12)
-        
-        # Solar elevation angle
-        elevation = math.asin(
-            math.sin(math.radians(declination)) * math.sin(math.radians(latitude)) +
-            math.cos(math.radians(declination)) * math.cos(math.radians(latitude)) * 
-            math.cos(math.radians(hour_angle))
-        )
-        
-        # Solar azimuth angle
-        azimuth = math.atan2(
-            math.sin(math.radians(hour_angle)),
-            math.cos(math.radians(hour_angle)) * math.sin(math.radians(latitude)) -
-            math.tan(math.radians(declination)) * math.cos(math.radians(latitude))
-        )
-        
-        return {
-            'elevation': math.degrees(elevation),
-            'azimuth': math.degrees(azimuth) + 180,  # Convert to 0-360 range
-            'zenith': 90 - math.degrees(elevation)
-        }
+
     
-    def calculate_irradiance_on_surface(self, ghi, dni, dhi, solar_position, surface_tilt, surface_azimuth):
-        """Calculate irradiance on tilted surface using sophisticated model."""
-        zenith = math.radians(solar_position['zenith'])
-        sun_azimuth = math.radians(solar_position['azimuth'])
-        surface_tilt_rad = math.radians(surface_tilt)
-        surface_azimuth_rad = math.radians(surface_azimuth)
-        
-        # Calculate angle of incidence
-        cos_incidence = (
-            math.sin(zenith) * math.sin(surface_tilt_rad) * 
-            math.cos(sun_azimuth - surface_azimuth_rad) +
-            math.cos(zenith) * math.cos(surface_tilt_rad)
-        )
-        
-        # Ensure cos_incidence is not negative
-        cos_incidence = max(0, cos_incidence)
-        
-        # POA calculation with ground reflectance
-        direct_on_surface = dni * cos_incidence
-        diffuse_on_surface = dhi * (1 + math.cos(surface_tilt_rad)) / 2
-        reflected_on_surface = ghi * 0.2 * (1 - math.cos(surface_tilt_rad)) / 2  # 0.2 = ground albedo
-        
-        poa_global = direct_on_surface + diffuse_on_surface + reflected_on_surface
-        
-        return max(0, poa_global)
+
     
     def calculate_ground_reflectance_factor(self, height_from_ground, tilt_angle=90, albedo=0.2):
         """Calculate ground reflectance contribution based on window height from ground."""
@@ -396,7 +347,7 @@ class AdvancedRadiationAnalyzer:
                     continue
                 
                 # Calculate solar position
-                solar_pos = self.calculate_solar_position_simple(latitude, longitude, day, hour)
+                solar_pos = calculate_solar_position_simple(latitude, longitude, day, hour)
                 
                 # Get irradiance components with multiple field name support
                 ghi = 0
@@ -437,8 +388,9 @@ class AdvancedRadiationAnalyzer:
                 adjusted_ghi = height_effects['adjusted_ghi']
                 
                 # Calculate surface irradiance
-                surface_irradiance = self.calculate_irradiance_on_surface(
-                    adjusted_ghi, dni, dhi, solar_pos, tilt, azimuth
+                surface_irradiance = calculate_irradiance_on_surface(
+                    dni, solar_pos['elevation'], solar_pos['azimuth'], 
+                    azimuth, tilt, adjusted_ghi, dhi
                 )
                 
                 # Apply ground reflectance
