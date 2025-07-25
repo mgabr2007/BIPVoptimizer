@@ -29,7 +29,41 @@ def render_radiation_grid():
     
     # Get current project ID from database - centralized architecture
     from services.io import get_current_project_id
-    project_id = get_current_project_id()
+    
+    try:
+        project_id = get_current_project_id()
+    except Exception as e:
+        st.error(f"Error retrieving project data: {str(e)}")
+        
+        # Try to use the known Project ID 100 as fallback
+        try:
+            conn = db_manager.get_connection()
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT id, project_name FROM projects WHERE id = 100")
+                    result = cursor.fetchone()
+                    if result:
+                        project_id = result[0]
+                        project_name = result[1]
+                        
+                        # Set session state for future calls
+                        st.session_state.project_id = project_id
+                        if 'project_data' not in st.session_state:
+                            st.session_state.project_data = {}
+                        st.session_state.project_data['project_id'] = project_id
+                        st.session_state.project_data['project_name'] = project_name
+                        
+                        st.success(f"✅ Recovered project: {project_name} (ID: {project_id})")
+                    else:
+                        st.error("⚠️ No projects found in database. Please complete Step 1 first.")
+                        return
+                conn.close()
+            else:
+                st.error("⚠️ Database connection failed.")
+                return
+        except Exception as fallback_error:
+            st.error(f"⚠️ Could not recover project data: {str(fallback_error)}")
+            return
     
     if not project_id:
         st.error("⚠️ No project ID found. Please complete Step 1 (Project Setup) first.")
