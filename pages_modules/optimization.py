@@ -329,22 +329,40 @@ def render_optimization():
     
     st.header("🎯 Step 8: Multi-Objective BIPV Optimization")
     
-    # Data Usage Information
-    with st.expander("📊 How This Data Will Be Used", expanded=False):
+    # Optimization Methodology Explanation
+    with st.expander("🔬 How BIPV Optimization Works", expanded=True):
         st.markdown("""
-        ### Data Flow Through BIPV Analysis Workflow:
+        ### Genetic Algorithm BIPV Selection Process:
         
-        **Step 8 → Step 9 (Financial Analysis):**
-        - **Optimized system selection** → Investment cost calculations and lifecycle financial modeling
-        - **Pareto-optimal solutions** → Risk assessment and sensitivity analysis for multiple scenarios
-        - **Cost-benefit trade-offs** → NPV and IRR calculations for optimal vs alternative configurations
+        **🧬 Individual Solutions (Chromosomes):**
+        - Each solution is a binary selection mask for all 759 suitable window elements
+        - Example: [1,0,1,0,1,...] means select windows 1,3,5... skip windows 2,4...
+        - **Does NOT use all windows** - selects optimal subset based on performance criteria
         
-        **Step 8 → Step 10 (Reporting):**
-        - **Genetic algorithm results** → Technical documentation of optimization methodology and convergence
-        - **Multi-objective performance** → Visual analysis of cost, yield, and ROI trade-offs
-        - **Optimal system schedule** → Implementation recommendations and prioritization strategy
-        - **Comparative analysis** → Performance benchmarking against non-optimized baseline configurations
+        **💰 Budget Allocation Strategy:**
+        - **No fixed budget constraint** - optimization finds cost-effective combinations
+        - Evaluates trade-offs between total investment cost vs energy yield vs ROI
+        - Genetic algorithm naturally balances cost minimization with performance maximization
+        - Solutions range from small selective installations to larger comprehensive systems
+        
+        **🎯 Multi-Objective Fitness Evaluation:**
+        1. **Cost Fitness**: Lower total investment cost = higher fitness (1/(1+normalized_cost))
+        2. **Yield Fitness**: Higher total energy generation = higher fitness (yield/max_possible)
+        3. **ROI Fitness**: Higher return on investment = higher fitness (ROI/50% cap)
+        
+        **⚖️ Weighted Selection Process:**
+        - User sets objective weights (Cost: X%, Yield: Y%, ROI: Z%)
+        - Each solution gets single fitness score = (cost_fitness × X) + (yield_fitness × Y) + (roi_fitness × Z)
+        - **Selects optimal window combinations**, not all windows
+        - Prioritizes South/East/West-facing elements (North excluded for poor solar performance)
+        
+        **🔄 Evolution Process (30 generations default):**
+        - Population of 50 random solutions evolves through crossover and mutation
+        - Elite solutions preserved, offspring created through genetic operators
+        - Converges toward Pareto-optimal window selection combinations
         """)
+        
+        st.info("🎯 **Key Point**: Optimization selects the BEST SUBSET of windows, not all windows. It finds cost-effective combinations that maximize performance per investment euro.")
     
     # AI Model Performance Impact Notice from database only
     try:
