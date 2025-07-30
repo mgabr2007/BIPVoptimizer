@@ -1231,9 +1231,8 @@ def render_optimization():
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("Continue to Step 9: Financial Analysis →", type="primary", key="nav_step9"):
-                st.session_state.current_step = 'financial_analysis'
-                st.session_state.scroll_to_top = True
+            if st.button("💰 Continue to Step 9: Financial Analysis →", type="primary", key="nav_step9"):
+                st.query_params['step'] = 'financial_analysis'
                 st.rerun()
     
     else:

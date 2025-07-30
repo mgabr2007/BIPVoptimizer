@@ -1436,9 +1436,8 @@ def render_historical_data():
         # Navigation - Single Continue Button
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("Continue to Step 3: Weather Integration →", type="primary", key="nav_step3"):
-                st.session_state.current_step = 'weather_environment'
-                st.session_state.scroll_to_top = True
+            if st.button("🌤️ Continue to Step 3: Weather Integration →", type="primary", key="nav_step3"):
+                st.query_params['step'] = 'weather_environment'
                 st.rerun()
     
     else:

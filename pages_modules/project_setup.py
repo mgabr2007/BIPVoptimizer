@@ -889,7 +889,6 @@ def render_project_setup():
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("Continue to Step 2: Historical Data →", type="primary", key="nav_step2"):
-            st.session_state.current_step = 'historical_data'
-            st.session_state.scroll_to_top = True
+        if st.button("📊 Continue to Step 2: Historical Data →", type="primary", key="nav_step2"):
+            st.query_params['step'] = 'historical_data'
             st.rerun()

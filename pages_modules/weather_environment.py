@@ -668,9 +668,8 @@ def render_weather_environment():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if step_data and step_data.get('tmy_data'):
-            if st.button("Continue to Step 4: Facade Extraction →", type="primary", key="nav_step4"):
-                st.session_state.current_step = "facade_extraction"
-                st.session_state.scroll_to_top = True
+            if st.button("🏢 Continue to Step 4: Facade Extraction →", type="primary", key="nav_step4"):
+                st.query_params['step'] = 'facade_extraction'
                 st.rerun()
         else:
             st.button("Complete TMY Generation First", disabled=True)

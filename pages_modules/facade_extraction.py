@@ -543,9 +543,8 @@ def render_facade_extraction():
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("Continue to Step 5: Radiation Analysis →", type="primary", key="nav_step5"):
-                st.session_state.current_step = 'radiation_grid'
-                st.session_state.scroll_to_top = True
+            if st.button("☀️ Continue to Step 5: Radiation Analysis →", type="primary", key="nav_step5"):
+                st.query_params['step'] = 'radiation_grid'
                 st.rerun()
     elif windows_uploaded:
         st.warning("⚠️ **Partial Upload**: Windows uploaded, but walls data needed for complete self-shading analysis")

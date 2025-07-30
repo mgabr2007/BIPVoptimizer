@@ -834,9 +834,8 @@ def render_financial_analysis():
                 st.markdown("---")
                 col1, col2, col3 = st.columns([1, 2, 1])
                 with col2:
-                    if st.button("Continue to Step 10: Comprehensive Dashboard →", type="primary", key="nav_step10"):
-                        st.session_state.current_step = 'comprehensive_dashboard'
-                        st.session_state.scroll_to_top = True
+                    if st.button("📄 Continue to Step 10: Comprehensive Dashboard →", type="primary", key="nav_step10"):
+                        st.query_params['step'] = 'reporting'
                         st.rerun()
         
         else:

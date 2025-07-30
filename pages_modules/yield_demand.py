@@ -311,9 +311,8 @@ def render_yield_demand():
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("Continue to Step 8: Optimization →", type="primary", key="nav_step8"):
-                st.session_state.current_step = 'optimization'
-                st.session_state.scroll_to_top = True
+            if st.button("🎯 Continue to Step 8: Optimization →", type="primary", key="nav_step8"):
+                st.query_params['step'] = 'optimization'
                 st.rerun()
         
     except Exception as e:

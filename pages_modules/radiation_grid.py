@@ -1089,9 +1089,8 @@ def display_existing_results(project_id):
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("Continue to Step 6: BIPV Panel Specifications →", type="primary", key="nav_step6"):
-                st.session_state.current_step = 'pv_specification'
-                st.session_state.scroll_to_top = True
+            if st.button("⚡ Continue to Step 6: BIPV Panel Specifications →", type="primary", key="nav_step6"):
+                st.query_params['step'] = 'pv_specification'
                 st.rerun()
         
     except Exception as e:

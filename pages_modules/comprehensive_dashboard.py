@@ -727,9 +727,8 @@ def render_comprehensive_dashboard():
         if st.button("🔄 Refresh Dashboard Data", type="secondary", key="refresh_dashboard"):
             st.rerun()
         
-        if st.button("Continue to Step 11: AI Consultation →", type="primary", key="nav_step11"):
-            st.session_state.current_step = 'detailed_report_generator'
-            st.session_state.scroll_to_top = True
+        if st.button("🤖 Continue to Step 11: AI Consultation →", type="primary", key="nav_step11"):
+            st.query_params['step'] = 'ai_consultation'
             st.rerun()
         
         st.markdown("**Analysis Complete!** 🎉")
