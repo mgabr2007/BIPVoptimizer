@@ -38,9 +38,12 @@ class PerplexityBIPVAgent:
         - "Given that your analysis shows X kW total capacity across Y building elements..."
         - "With your calculated NPV of €Z and IRR of W%..."
         - "Your orientation analysis reveals that A% of suitable elements face South..."
+        - "Comparing the top 3 optimization solutions, Solution #1 offers X kW at €Y cost vs Solution #2 with Z kW at €W cost..."
 
         BIPV Analysis Data:
         {data_summary}
+
+        **CRITICAL: Analyze and compare the top 3 optimization solutions in detail. Discuss their trade-offs, recommend the best implementation strategy, and explain why each solution ranks where it does. Reference specific capacity, cost, ROI, and efficiency metrics for each of the 3 solutions.**
 
         Ensure every recommendation includes specific references to the calculated values, window counts, orientations, financial metrics, and performance indicators from this actual analysis. Do not provide generic advice - base everything on the specific results shown above.
         """
@@ -766,35 +769,7 @@ def render_perplexity_consultation():
                 )
                 st.session_state.perplexity_recommendations = recommendations
     
-    # Display optimization solutions comparison if available
-    if optimization_data and 'solutions' in optimization_data:
-        solutions_df = optimization_data['solutions']
-        if not solutions_df.empty and len(solutions_df) >= 3:
-            st.subheader("🏆 Top 3 Optimization Solutions Comparison")
-            
-            # Display top 3 solutions in columns
-            col1, col2, col3 = st.columns(3)
-            
-            for i, (col, (_, solution)) in enumerate(zip([col1, col2, col3], solutions_df.head(3).iterrows())):
-                with col:
-                    rank_emoji = ["🥇", "🥈", "🥉"][i]
-                    st.markdown(f"### {rank_emoji} Solution #{i+1}")
-                    st.metric("Capacity", f"{solution.get('capacity', 0):.1f} kW")
-                    st.metric("Investment", f"€{solution.get('total_cost', 0):,.0f}")
-                    st.metric("ROI", f"{solution.get('roi', 0):.1f}%")
-                    st.metric("Net Import", f"{solution.get('net_import', 0):,.0f} kWh")
-                    
-                    # Pareto optimal indicator
-                    if solution.get('pareto_optimal', False):
-                        st.success("✅ Pareto Optimal")
-                    else:
-                        st.info("➖ Alternative Solution")
-                    
-                    # Cost efficiency
-                    cost_per_kw = safe_divide(solution.get('total_cost', 0), solution.get('capacity', 1), 0)
-                    st.caption(f"Cost efficiency: €{cost_per_kw:,.0f}/kW")
-            
-            st.markdown("---")
+
     
     # Display results
     if hasattr(st.session_state, 'perplexity_analysis'):
