@@ -13,6 +13,7 @@ from datetime import datetime
 from database_manager import db_manager
 from services.io import get_current_project_id
 from utils.database_helper import db_helper
+from services.database_state_manager import DatabaseStateManager
 
 def create_optimized_windows_csv(project_id):
     """Create CSV export of optimized window elements with detailed BIPV specifications"""
@@ -750,6 +751,9 @@ def create_project_timeline_section(data):
 def render_comprehensive_dashboard():
     """Render the comprehensive BIPV analysis dashboard"""
     
+    # Mark reporting step as completed when dashboard loads successfully
+    db_state = DatabaseStateManager()
+    
     # Header with project branding
     st.image("attached_assets/step08_1751436847831.png", width=400)
     st.header("📊 Step 10: Comprehensive BIPV Analysis Dashboard")
@@ -864,3 +868,10 @@ def render_comprehensive_dashboard():
         
         st.markdown("**Analysis Complete!** 🎉")
         st.markdown("All workflow steps have been completed and results are displayed above.")
+    
+    # Mark reporting step as completed
+    db_state.save_step_completion('reporting', {
+        'completion_timestamp': datetime.now().isoformat(),
+        'dashboard_sections_loaded': ['overview', 'project_info', 'energy_analysis', 'optimization', 'financial'],
+        'export_options_available': ['json_dashboard', 'csv_windows']
+    })

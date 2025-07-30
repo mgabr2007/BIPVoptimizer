@@ -31,8 +31,8 @@ def check_database_step_completion(project_id, step_key):
                 'yield_demand': 'energy_analysis',
                 'optimization': 'optimization_results',
                 'financial_analysis': 'financial_analysis',
-                'reporting': 'comprehensive_reports',
-                'ai_consultation': 'ai_consultation_results'
+                'reporting': 'step_completions',  # Use step_completions table
+                'ai_consultation': 'step_completions'  # Use step_completions table
             }
             
             table_name = step_table_mapping.get(step_key)
@@ -40,9 +40,12 @@ def check_database_step_completion(project_id, step_key):
                 return False
             
             # Check if there's data in the corresponding table
-            # Special case for projects table which uses 'id' instead of 'project_id'
             if table_name == 'projects':
+                # Special case for projects table which uses 'id' instead of 'project_id'
                 cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE id = %s", (project_id,))
+            elif table_name == 'step_completions':
+                # Special case for step_completions table - check specific step name
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE project_id = %s AND step_name = %s", (project_id, step_key))
             else:
                 cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE project_id = %s", (project_id,))
             result = cursor.fetchone()
