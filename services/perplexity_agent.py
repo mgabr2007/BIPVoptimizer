@@ -43,7 +43,7 @@ class PerplexityBIPVAgent:
         BIPV Analysis Data:
         {data_summary}
 
-        **CRITICAL: Analyze and compare the top 3 optimization solutions in detail. Discuss their trade-offs, recommend the best implementation strategy, and explain why each solution ranks where it does. Reference specific capacity, cost, ROI, and efficiency metrics for each of the 3 solutions.**
+        **CRITICAL: Analyze and compare the top 3 optimization solutions in detail using their exact Solution IDs (Solution_358, Solution_329, Solution_490). Discuss their trade-offs, recommend the best implementation strategy, and explain why each solution ranks where it does. Reference specific capacity, cost, ROI, and efficiency metrics. Note that all 3 solutions show "No (Alternative Solution)" for Pareto status - explain what this means and how to choose between them.**
 
         Ensure every recommendation includes specific references to the calculated values, window counts, orientations, financial metrics, and performance indicators from this actual analysis. Do not provide generic advice - base everything on the specific results shown above.
         """
@@ -288,19 +288,32 @@ class PerplexityBIPVAgent:
                 'best_solution_rank': recommended_solution.get('rank_position', 1)
             }
             
-            # Prepare top 3 solutions comparison
+            # Prepare top 3 solutions comparison with exact data
             top_3_solutions = optimization_solutions[:3]  # Get highest 3 solutions
             solutions_comparison = ""
             for i, solution in enumerate(top_3_solutions, 1):
+                # Calculate exact cost per kW
+                capacity = float(solution.get('capacity', 0))
+                total_cost = float(solution.get('total_cost', 0))
+                cost_per_kw = safe_divide(total_cost, capacity, 0)
+                
+                # Get exact solution ID and Pareto status
+                solution_id = solution.get('solution_id', f'Unknown-{i}')
+                pareto_status = solution.get('pareto_optimal', False)
+                pareto_text = "Yes (Pareto Optimal)" if pareto_status else "No (Alternative Solution)"
+                
                 solutions_comparison += f"""
         
-        SOLUTION #{i} (Rank #{solution.get('rank_position', i)}):
-        - System Capacity: {solution.get('capacity', 0):.1f} kW
-        - Total Investment Cost: €{solution.get('total_cost', 0):,.0f}
+        SOLUTION #{solution_id} (Genetic Algorithm Rank #{solution.get('rank_position', i)}):
+        - System Capacity: {capacity:.1f} kW
+        - Total Investment Cost: €{total_cost:,.0f}
         - Return on Investment: {solution.get('roi', 0):.1f}%
         - Net Energy Import: {solution.get('net_import', 0):,.0f} kWh/year
-        - Pareto Optimal: {"Yes" if solution.get('pareto_optimal', False) else "No"}
-        - Cost per kW: €{safe_divide(solution.get('total_cost', 0), solution.get('capacity', 1), 0):,.0f}/kW"""
+        - Pareto Optimal Status: {pareto_text}
+        - Cost Efficiency: €{cost_per_kw:,.0f}/kW installed capacity
+        - Investment per Element: €{safe_divide(total_cost, 759, 0):,.0f} per suitable BIPV element
+        
+        PARETO OPTIMAL EXPLANATION: A solution is Pareto Optimal when no other solution can improve one objective (cost, yield, or ROI) without worsening another objective. Non-Pareto solutions may excel in one area but have clear trade-offs."""
         else:
             solutions_comparison = ""
         
