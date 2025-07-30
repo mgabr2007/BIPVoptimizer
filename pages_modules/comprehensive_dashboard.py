@@ -254,13 +254,15 @@ def get_dashboard_data(project_id):
                 SELECT COUNT(*) as total_elements,
                        SUM(glass_area) as total_glass_area,
                        COUNT(DISTINCT orientation) as unique_orientations,
-                       COUNT(DISTINCT building_level) as building_levels
+                       COUNT(DISTINCT building_level) as building_levels,
+                       COUNT(CASE WHEN pv_suitable = true THEN 1 END) as pv_suitable_count
                 FROM building_elements WHERE project_id = %s
             """, (project_id,))
             building_stats = cursor.fetchone()
             
             cursor.execute("""
-                SELECT orientation, COUNT(*) as count, AVG(glass_area) as avg_area
+                SELECT orientation, COUNT(*) as count, AVG(glass_area) as avg_area,
+                       COUNT(CASE WHEN pv_suitable = true THEN 1 END) as suitable_count
                 FROM building_elements WHERE project_id = %s AND orientation IS NOT NULL AND orientation != ''
                 GROUP BY orientation
                 ORDER BY count DESC
@@ -273,8 +275,14 @@ def get_dashboard_data(project_id):
                     'total_glass_area': float(building_stats[1]) if building_stats[1] else 0,
                     'unique_orientations': building_stats[2],
                     'building_levels': building_stats[3],
+                    'pv_suitable_count': building_stats[4] if building_stats[4] else 0,
                     'orientation_distribution': [
-                        {'orientation': row[0], 'count': row[1], 'avg_area': float(row[2]) if row[2] else 0}
+                        {
+                            'orientation': row[0],
+                            'count': row[1],
+                            'avg_area': float(row[2]) if row[2] else 0,
+                            'suitable_count': row[3] if row[3] else 0
+                        }
                         for row in orientation_data
                     ]
                 }
@@ -463,27 +471,40 @@ def create_overview_cards(data):
             st.metric("Building Elements", "No data", "")
     
     with col2:
-        if 'radiation' in data:
-            suitable_count = sum(1 for item in data['building']['orientation_distribution'] if item['orientation'] in ['South', 'East', 'West'])
+        if 'building' in data:
+            pv_suitable_count = data['building']['pv_suitable_count']
             total_elements = data['building']['total_elements']
-            suitability_rate = (suitable_count / total_elements * 100) if total_elements > 0 else 0
+            suitability_rate = (pv_suitable_count / total_elements * 100) if total_elements > 0 else 0
             st.metric(
                 "BIPV Suitability",
                 f"{suitability_rate:.1f}%",
-                f"{suitable_count:,}/{total_elements:,} elements"
+                f"{pv_suitable_count:,}/{total_elements:,} elements"
             )
         else:
             st.metric("BIPV Suitability", "No data", "")
     
     with col3:
         if 'pv_systems' in data:
-            total_capacity = data['pv_systems']['total_capacity_kw']
-            avg_power = data['pv_systems']['avg_power_density']
-            st.metric(
-                "Total PV Capacity",
-                f"{total_capacity:.1f} kW",
-                f"Avg: {avg_power:.1f} W/m²"
-            )
+            if 'total_capacity_kw' in data['pv_systems']:
+                total_capacity = data['pv_systems']['total_capacity_kw']
+                avg_power = data['pv_systems']['avg_power_density']
+                st.metric(
+                    "Total PV Capacity",
+                    f"{total_capacity:.1f} kW",
+                    f"Avg: {avg_power:.1f} W/m²"
+                )
+            else:
+                # Use energy analysis data as backup
+                if 'energy_analysis' in data:
+                    generation = data['energy_analysis']['annual_generation']
+                    estimated_capacity = generation / 1000  # Rough estimate: 1000 kWh/kW/year
+                    st.metric(
+                        "Estimated PV Capacity",
+                        f"{estimated_capacity:.1f} kW",
+                        f"From {generation:,.0f} kWh/year"
+                    )
+                else:
+                    st.metric("Total PV Capacity", "No data", "")
         else:
             st.metric("Total PV Capacity", "No data", "")
     
