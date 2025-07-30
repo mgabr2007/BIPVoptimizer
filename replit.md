@@ -2,9 +2,9 @@
 
 ## Overview
 
-BIPV Optimizer is a comprehensive Building Integrated Photovoltaics optimization platform built with Streamlit for academic research at Technische Universität Berlin. The application provides a complete 11-step workflow for analyzing and optimizing BIPV system installations where semi-transparent PV cells replace existing window glass using exact building element data.
+BIPV Optimizer is a comprehensive Building Integrated Photovoltaics optimization platform built with Streamlit for academic research at Technische Universität Berlin. The application provides a complete 10-step workflow with bonus AI consultation (10+1) for analyzing and optimizing BIPV system installations where semi-transparent PV cells replace existing window glass using exact building element data.
 
-The platform follows a complete 11-step workflow from welcome through AI consultation, including interactive map-based location selection, AI model training with R² tracking, ISO-compliant TMY generation, BIM data processing, height-dependent radiation analysis, BIPV glass specification, multi-objective optimization, comprehensive financial analysis, and research-based AI consultation using Perplexity.
+The platform follows a complete 10-step workflow with a bonus AI consultation step (10+1), including interactive map-based location selection, AI model training with R² tracking, ISO-compliant TMY generation, BIM data processing, height-dependent radiation analysis, BIPV glass specification, multi-objective optimization, comprehensive financial analysis, and bonus research-based AI consultation using Perplexity.
 
 ## System Architecture
 
@@ -176,12 +176,12 @@ uv.lock                      # Dependency lock file for reproducible builds
 - **Environmental Impact**: CO₂ savings using official grid carbon factors from national TSOs and IEA data
 - **Features**: 25-year cash flow projections, maintenance cost integration (1.5% annual), sensitivity analysis
 
-### 11. Comprehensive Reporting (Step 10)
-- **Purpose**: Generate comprehensive reports with authentic workflow data and individual step documentation
-- **Architecture**: Consolidated reporting system replacing step-by-step data export with master analysis
-- **Formats**: Individual step HTML reports with interactive Plotly charts and golden-themed styling
-- **Content**: Complete workflow analysis, technical methodology, financial projections, environmental impact
-- **Integration**: Report upload system for AI consultation with data aggregation and progress tracking
+### 11. Comprehensive Reporting (Step 10) + Bonus AI Consultation (Step 11)
+- **Purpose**: Generate comprehensive reports with authentic workflow data and provide bonus AI research consultation
+- **Step 10 - Reporting**: Consolidated reporting system with master analysis, HTML reports with interactive Plotly charts
+- **Step 11 - Bonus AI**: Advanced research consultation using Perplexity AI with actual project data for expert BIPV recommendations
+- **Content**: Complete workflow analysis, technical methodology, financial projections, and literature-based insights
+- **Integration**: Seamless transition from reporting to AI consultation for enhanced research value
 
 ## Data Flow
 

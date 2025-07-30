@@ -96,8 +96,9 @@ BIPV Optimizer is a cutting-edge platform developed as part of PhD research at *
 
 ## 🏗️ Architecture
 
-### 11-Step Complete Workflow
+### 10-Step Workflow + Bonus AI Consultation
 
+**Main Analysis Workflow (Steps 1-10):**
 1. **🌞 Welcome & Introduction** - Platform overview, standards implementation, methodology
 2. **📍 Project Setup** - Interactive map location selection, weather station integration, real-time electricity rates
 3. **📊 Historical Data Analysis** - AI model training (R² tracking), educational building patterns, demand forecasting
@@ -108,8 +109,9 @@ BIPV Optimizer is a cutting-edge platform developed as part of PhD research at *
 8. **🔋 Yield vs Demand** - Monthly energy balance, seasonal patterns, cost savings analysis
 9. **🎯 Optimization** - NSGA-II genetic algorithms, weighted multi-objective (cost/yield/ROI)
 10. **💰 Financial Analysis** - NPV/IRR/payback, real electricity rates, grid CO₂ factors
-11. **📄 Reporting** - Step-by-step reports, comprehensive master analysis
-12. **🤖 AI Consultation** - Perplexity-powered research consultation with project data
+
+**Bonus Step:**
+11. **🤖 AI Research Consultation** - Advanced Perplexity-powered research consultation using your actual project data for expert BIPV recommendations and literature-based insights
 
 ### Technology Stack
 
@@ -134,7 +136,7 @@ bipv-optimizer/
 │   ├── solar_math.py              # Solar position, irradiance calculations
 │   └── carbon_factors.py          # Grid CO₂ intensity database (20+ countries)
 │
-├── pages_modules/                  # 11-step workflow implementation
+├── pages_modules/                  # 10+1 step workflow implementation
 │   ├── welcome.py                 # Platform introduction and methodology
 │   ├── project_setup.py           # Map-based location, weather stations
 │   ├── historical_data.py         # AI model training, R² tracking
@@ -190,7 +192,7 @@ bipv-optimizer/
 
 ### Key Architecture Features
 - **Clean Modular Design**: Essential files only - 41 unused development files removed
-- **11-Step Workflow**: Complete BIPV analysis from location setup to AI consultation
+- **10+1 Step Workflow**: Complete BIPV analysis (Steps 1-10) plus bonus AI research consultation (Step 11)
 - **Database-Driven**: PostgreSQL persistence with centralized project ID system
 - **Performance Optimized**: 8-second radiation analysis (82% faster than baseline)
 - **Authentic Data**: Real weather stations, electricity rates, building elements
