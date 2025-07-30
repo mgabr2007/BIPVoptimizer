@@ -647,3 +647,7 @@ def save_windows_data_to_database(project_id, windows_df, progress_callback=None
     finally:
         conn.close()
 
+
+def render_facade_extraction():
+    """Main render function for Step 4: Facade & Window Extraction"""
+    render_step4_facade_extraction()
