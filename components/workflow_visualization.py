@@ -73,8 +73,11 @@ def render_workflow_progress(workflow_steps, current_step):
         else:
             status = "pending"
         
+        # Adjust step numbering: Welcome is step 0, actual workflow steps start from 1
+        step_number = i if step_key == 'welcome' else i
+        
         completion_status.append({
-            'step': i + 1,
+            'step': step_number,
             'key': step_key,
             'name': step_name,
             'description': description,
@@ -109,15 +112,17 @@ def render_workflow_progress(workflow_steps, current_step):
                 icon = "⏳"
                 color = "#6c757d"  # Gray
             
-            # Step display
+            # Step display with proper numbering
+            step_display = "Welcome" if step_info['key'] == 'welcome' else f"Step {step_info['step']}"
+            
             st.markdown(f"""
             <div style="text-align: center; padding: 10px;">
                 <div style="font-size: 24px; color: {color};">{icon}</div>
                 <div style="font-size: 12px; font-weight: bold; margin-top: 5px;">
-                    Step {step_info['step']}
+                    {step_display}
                 </div>
                 <div style="font-size: 10px; color: #666;">
-                    {step_info['name'].replace('🏠 ', '').replace('1️⃣ ', '').replace('2️⃣ ', '').replace('3️⃣ ', '').replace('4️⃣ ', '').replace('5️⃣ ', '').replace('6️⃣ ', '').replace('7️⃣ ', '').replace('8️⃣ ', '').replace('9️⃣ ', '').replace('🔟 ', '')}
+                    {step_info['name'].replace('🌞 ', '').replace('📍 ', '').replace('📊 ', '').replace('🌤️ ', '').replace('🏢 ', '').replace('☀️ ', '').replace('⚡ ', '').replace('🔋 ', '').replace('🎯 ', '').replace('💰 ', '').replace('📄 ', '').replace('🤖 ', '')}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -159,15 +164,22 @@ def render_workflow_progress(workflow_steps, current_step):
 def render_compact_progress(workflow_steps, current_step):
     """Render compact progress indicator for sidebar or header"""
     
-    current_index = next((i for i, (key, _, _) in enumerate(workflow_steps) if key == current_step), 0)
-    progress_percentage = (current_index / len(workflow_steps)) * 100
+    project_id = get_current_project_id()
+    
+    # Calculate completed steps using database
+    completed_steps = 0
+    for step_key, step_name, description in workflow_steps:
+        if check_database_step_completion(project_id, step_key):
+            completed_steps += 1
+    
+    progress_percentage = (completed_steps / len(workflow_steps)) * 100
     
     # Compact progress bar
     st.markdown(f"""
     <div style="margin: 10px 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <span style="font-size: 12px; font-weight: bold;">Workflow Progress</span>
-            <span style="font-size: 12px; color: #666;">{current_index + 1}/{len(workflow_steps)}</span>
+            <span style="font-size: 12px; color: #666;">{completed_steps}/{len(workflow_steps)}</span>
         </div>
         <div style="width: 100%; background-color: #e0e0e0; border-radius: 10px; height: 8px;">
             <div style="width: {progress_percentage}%; background-color: #007bff; border-radius: 10px; height: 8px;"></div>
@@ -177,27 +189,31 @@ def render_compact_progress(workflow_steps, current_step):
 
 
 def render_step_completion_tracker():
-    """Render completion tracker based on session state"""
+    """Render completion tracker based on database"""
     
-    completion_flags = {
-        'setup_completed': 'Project Setup',
-        'historical_completed': 'Historical Data',
-        'weather_completed': 'Weather Integration',
-        'building_elements_completed': 'BIM Extraction',
-        'radiation_completed': 'Radiation Analysis',
-        'pv_specs_completed': 'PV Specification',
-        'yield_demand_completed': 'Yield vs Demand',
-        'optimization_completed': 'Optimization',
-        'financial_completed': 'Financial Analysis'
+    project_id = get_current_project_id()
+    
+    step_mapping = {
+        'project_setup': 'Project Setup',
+        'historical_data': 'Historical Data',
+        'weather_environment': 'Weather Integration',
+        'facade_extraction': 'BIM Extraction',
+        'radiation_grid': 'Radiation Analysis',
+        'pv_specification': 'PV Specification',
+        'yield_demand': 'Yield vs Demand',
+        'optimization': 'Optimization',
+        'financial_analysis': 'Financial Analysis',
+        'reporting': 'Reporting',
+        'ai_consultation': 'AI Consultation'
     }
     
     st.markdown("### ✅ Completed Steps")
     
     completed_count = 0
-    total_count = len(completion_flags)
+    total_count = len(step_mapping)
     
-    for flag, step_name in completion_flags.items():
-        is_completed = st.session_state.get(flag, False)
+    for step_key, step_name in step_mapping.items():
+        is_completed = check_database_step_completion(project_id, step_key)
         if is_completed:
             completed_count += 1
             st.markdown(f"✅ {step_name}")
@@ -285,37 +301,31 @@ def render_milestone_tracker():
         },
         {
             'name': 'Completion Phase',
-            'steps': ['reporting'],
-            'description': 'Report generation and project finalization'
+            'steps': ['reporting', 'ai_consultation'],
+            'description': 'Report generation, AI consultation, and project finalization'
         }
     ]
     
-    current_step = st.session_state.get('current_step', 'welcome')
+    # Get current step from query params instead of session state
+    from urllib.parse import parse_qs
+    import streamlit as st
+    current_step = st.query_params.get('step', 'welcome')
+    project_id = get_current_project_id()
     
     st.markdown("### 🎯 Project Milestones")
     
     for milestone in milestones:
-        # Check milestone completion
+        # Check milestone completion using database
         total_steps = len(milestone['steps'])
         is_current_milestone = current_step in milestone['steps']
         
-        if is_current_milestone:
-            current_step_index = milestone['steps'].index(current_step)
-            completed_steps = current_step_index
-            is_completed_milestone = False
-        else:
-            # Check if all steps in this milestone come before current step
-            try:
-                workflow_order = ['welcome', 'project_setup', 'historical_data', 'weather_environment', 
-                                'facade_extraction', 'radiation_grid', 'pv_specification', 'yield_demand', 
-                                'optimization', 'financial_analysis', 'reporting']
-                current_order = workflow_order.index(current_step)
-                milestone_max_order = max(workflow_order.index(step) for step in milestone['steps'])
-                is_completed_milestone = milestone_max_order < current_order
-                completed_steps = total_steps if is_completed_milestone else 0
-            except (ValueError, IndexError):
-                is_completed_milestone = False
-                completed_steps = 0
+        # Count completed steps in this milestone using database
+        completed_steps_in_milestone = 0
+        for step in milestone['steps']:
+            if step == 'welcome' or check_database_step_completion(project_id, step):
+                completed_steps_in_milestone += 1
+        
+        is_completed_milestone = completed_steps_in_milestone == total_steps and not is_current_milestone
         
         # Milestone status
         if is_completed_milestone:
@@ -334,10 +344,9 @@ def render_milestone_tracker():
             
             # Progress within milestone
             if is_current_milestone:
-                current_step_in_milestone = milestone['steps'].index(current_step)
-                milestone_progress = (current_step_in_milestone / total_steps) * 100
+                milestone_progress = (completed_steps_in_milestone / total_steps) * 100
                 st.progress(milestone_progress / 100)
-                st.caption(f"Progress: {milestone_progress:.0f}% ({current_step_in_milestone + 1}/{total_steps} steps)")
+                st.caption(f"Progress: {milestone_progress:.0f}% ({completed_steps_in_milestone}/{total_steps} steps)")
             
             # List steps in milestone
             for step in milestone['steps']:
@@ -345,9 +354,7 @@ def render_milestone_tracker():
                 
                 if step == current_step:
                     st.markdown(f"🔄 **{step_display_name}** (Current)")
-                elif is_current_milestone and milestone['steps'].index(step) < milestone['steps'].index(current_step):
-                    st.markdown(f"✅ {step_display_name}")
-                elif is_completed_milestone:
+                elif step == 'welcome' or check_database_step_completion(project_id, step):
                     st.markdown(f"✅ {step_display_name}")
                 else:
                     st.markdown(f"⏳ {step_display_name}")
