@@ -538,6 +538,15 @@ def render_facade_extraction():
             
             **Project Context**: Your data is saved to Project ID {project_id}
             """)
+        
+        # Navigation - Single Continue Button
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("Continue to Step 5: Radiation Analysis →", type="primary", key="nav_step5"):
+                st.session_state.current_step = 'radiation_grid'
+                st.session_state.scroll_to_top = True
+                st.rerun()
     elif windows_uploaded:
         st.warning("⚠️ **Partial Upload**: Windows uploaded, but walls data needed for complete self-shading analysis")
     elif walls_uploaded:
@@ -545,7 +554,7 @@ def render_facade_extraction():
         st.markdown("""
         **Next Steps:**
         1. **Step 5 (Radiation Analysis)**: Will use both datasets for precise geometric self-shading calculations
-        2. **Window-Wall Relationships**: System will match windows to their host walls for accurate shadow analysis
+        2. **Window-Wall Relationships**: System will match windows to their host walls for accurate shadow analysis  
         3. **Building Geometry**: Complete 3D building model ready for solar radiation calculations
         """)
         

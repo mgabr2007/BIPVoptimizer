@@ -1226,6 +1226,15 @@ def render_optimization():
         
         from utils.individual_step_reports import create_step_download_button
         create_step_download_button(8, "Optimization", "Download Optimization Analysis Report")
+        
+        # Navigation - Single Continue Button
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("Continue to Step 9: Financial Analysis →", type="primary", key="nav_step9"):
+                st.session_state.current_step = 'financial_analysis'
+                st.session_state.scroll_to_top = True
+                st.rerun()
     
     else:
         st.warning("No optimization results available. Please run the optimization.")

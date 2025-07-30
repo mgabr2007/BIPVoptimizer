@@ -829,6 +829,15 @@ def render_financial_analysis():
                 
                 from utils.individual_step_reports import create_step_download_button
                 create_step_download_button(9, "Financial Analysis", "Download Financial Analysis Report")
+                
+                # Navigation - Single Continue Button
+                st.markdown("---")
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    if st.button("Continue to Step 10: Comprehensive Dashboard →", type="primary", key="nav_step10"):
+                        st.session_state.current_step = 'comprehensive_dashboard'
+                        st.session_state.scroll_to_top = True
+                        st.rerun()
         
         else:
             st.warning("No financial analysis results available. Please run the analysis.")

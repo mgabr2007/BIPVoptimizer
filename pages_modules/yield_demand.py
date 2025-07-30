@@ -307,6 +307,15 @@ def render_yield_demand():
         except:
             st.info("Report download functionality temporarily unavailable.")
         
+        # Navigation - Single Continue Button
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("Continue to Step 8: Optimization →", type="primary", key="nav_step8"):
+                st.session_state.current_step = 'optimization'
+                st.session_state.scroll_to_top = True
+                st.rerun()
+        
     except Exception as e:
         st.error(f"Error accessing project data: {str(e)}")
         st.info("Please try refreshing the page or selecting a different project.")

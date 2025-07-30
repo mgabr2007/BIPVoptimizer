@@ -462,3 +462,12 @@ def render_pv_specification():
             mime="text/csv",
             help="Download BIPV specifications with standardized field names for workflow consistency"
         )
+        
+    # Navigation - Single Continue Button
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Continue to Step 7: Yield vs Demand →", type="primary", key="nav_step7"):
+            st.session_state.current_step = 'yield_demand'
+            st.session_state.scroll_to_top = True
+            st.rerun()

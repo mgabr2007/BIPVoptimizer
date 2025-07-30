@@ -885,15 +885,11 @@ def render_project_setup():
         else:
             save_project_configuration(project_name)
     
-    # Navigation
-    try:
-        from components.navigation import render_bottom_navigation
-        render_bottom_navigation(current_step=1, total_steps=11)
-    except ImportError:
-        # Fallback navigation
-        st.markdown("---")
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("Continue to Step 2 →", type="primary", key="nav_step2"):
-                st.session_state.current_step = 'historical_data'
-                st.rerun()
+    # Navigation - Single Continue Button
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Continue to Step 2: Historical Data →", type="primary", key="nav_step2"):
+            st.session_state.current_step = 'historical_data'
+            st.session_state.scroll_to_top = True
+            st.rerun()
