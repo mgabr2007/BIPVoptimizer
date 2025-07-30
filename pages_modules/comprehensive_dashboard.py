@@ -261,8 +261,9 @@ def get_dashboard_data(project_id):
             
             cursor.execute("""
                 SELECT orientation, COUNT(*) as count, AVG(glass_area) as avg_area
-                FROM building_elements WHERE project_id = %s
+                FROM building_elements WHERE project_id = %s AND orientation IS NOT NULL AND orientation != ''
                 GROUP BY orientation
+                ORDER BY count DESC
             """, (project_id,))
             orientation_data = cursor.fetchall()
             
@@ -293,8 +294,9 @@ def get_dashboard_data(project_id):
                 SELECT be.orientation, AVG(er.annual_radiation) as avg_radiation, COUNT(*) as count
                 FROM element_radiation er
                 JOIN building_elements be ON er.element_id = be.element_id
-                WHERE er.project_id = %s
+                WHERE er.project_id = %s AND be.orientation IS NOT NULL AND be.orientation != ''
                 GROUP BY be.orientation
+                ORDER BY avg_radiation DESC
             """, (project_id,))
             radiation_by_orientation = cursor.fetchall()
             
