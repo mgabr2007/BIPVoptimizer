@@ -766,6 +766,9 @@ def save_project_configuration(project_name):
         coords = st.session_state.map_coordinates
         location_name = st.session_state.location_name
         
+        # Get existing project_id if available (to prevent duplication)
+        current_project_id = get_current_project_id()
+        
         # Prepare project data
         project_data = {
             'project_name': project_name,
@@ -778,6 +781,10 @@ def save_project_configuration(project_name):
             'longitude': coords['lng'],
             'currency': 'EUR'
         }
+        
+        # Include project_id if we have one (for updates, not new projects)
+        if current_project_id:
+            project_data['project_id'] = current_project_id
         
         # Add weather API selection
         if 'selected_weather_api' in st.session_state:

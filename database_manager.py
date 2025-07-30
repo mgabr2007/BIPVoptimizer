@@ -37,12 +37,28 @@ class BIPVDatabaseManager:
         
         try:
             with conn.cursor() as cursor:
-                # Check if project exists by name
-                cursor.execute(
-                    "SELECT id FROM projects WHERE project_name = %s",
-                    (project_data.get('project_name'),)
-                )
-                existing = cursor.fetchone()
+                # Check if project exists - prioritize project_id if available, then fall back to project_name
+                existing = None
+                project_id_to_update = None
+                
+                if 'project_id' in project_data and project_data['project_id']:
+                    # If we have a project_id, check by ID first (for updates/renames)
+                    cursor.execute(
+                        "SELECT id FROM projects WHERE id = %s",
+                        (project_data['project_id'],)
+                    )
+                    existing = cursor.fetchone()
+                    if existing:
+                        project_id_to_update = existing[0]
+                else:
+                    # For new projects without ID, check by name to avoid duplicates
+                    cursor.execute(
+                        "SELECT id FROM projects WHERE project_name = %s",
+                        (project_data.get('project_name'),)
+                    )
+                    existing = cursor.fetchone()
+                    if existing:
+                        project_id_to_update = existing[0]
                 
                 if existing:
                     # Update existing project
@@ -57,15 +73,16 @@ class BIPVDatabaseManager:
                     
                     cursor.execute("""
                         UPDATE projects SET 
-                            location = %s, latitude = %s, longitude = %s, 
+                            project_name = %s, location = %s, latitude = %s, longitude = %s, 
                             timezone = %s, currency = %s, weather_api_choice = %s, 
                             location_method = %s, search_radius = %s, electricity_rates = %s,
                             weather_station_name = %s, weather_station_id = %s, weather_station_distance = %s,
                             weather_station_latitude = %s, weather_station_longitude = %s, weather_station_elevation = %s,
                             updated_at = CURRENT_TIMESTAMP
-                        WHERE project_name = %s
+                        WHERE id = %s
                         RETURNING id
                     """, (
+                        project_data.get('project_name'),
                         project_data.get('location'),
                         project_data.get('coordinates', {}).get('lat'),
                         project_data.get('coordinates', {}).get('lon'),
@@ -81,7 +98,7 @@ class BIPVDatabaseManager:
                         weather_station.get('latitude'),
                         weather_station.get('longitude'),
                         weather_station.get('height'),
-                        project_data.get('project_name')
+                        project_id_to_update
                     ))
                 else:
                     # Insert new project
