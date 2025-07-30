@@ -196,10 +196,10 @@ def get_dashboard_data(project_id):
                 
                 dashboard_data['project'] = {
                     'name': project_info[0],
-                    'location': project_info[1],
+                    'location': project_info[1] if project_info[1] and project_info[1] != 'TBD' else f"Coordinates: {project_info[2]:.4f}, {project_info[3]:.4f}",
                     'latitude': project_info[2],
                     'longitude': project_info[3],
-                    'timezone': project_info[4],
+                    'timezone': project_info[4] if project_info[4] else 'UTC',
                     'currency': project_info[5],
                     'electricity_rate': electricity_rate,
                     'created_at': project_info[7]
