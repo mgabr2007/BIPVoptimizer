@@ -947,8 +947,6 @@ def render_comprehensive_dashboard():
                     st.success("✅ All data sources validated")
                 else:
                     st.warning(f"⚠️ {total_checks - completeness_score} data sources missing")
-        - No mock data - only authenticated calculation results
-        """)
     
     # Load authentic dashboard data
     st.info("🔄 Loading authentic data from all workflow steps...")
