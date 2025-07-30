@@ -910,49 +910,50 @@ def render_comprehensive_dashboard():
         - ✅ **Database Integrity**: All calculations traceable to source data
         """)
         
-        # Show current project data validation
-        if dashboard_data:
-            st.markdown("### 🔍 Current Project Data Validation:")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("**Database Record Counts:**")
-                if 'building' in dashboard_data:
-                    st.write(f"• Building Elements: {dashboard_data['building']['total_elements']:,}")
-                if 'radiation' in dashboard_data:
-                    st.write(f"• Radiation Records: {dashboard_data['radiation']['analyzed_elements']:,}")
-                if 'pv_systems' in dashboard_data:
-                    st.write(f"• PV Systems: {dashboard_data['pv_systems']['total_systems']:,}")
-                if 'energy_analysis' in dashboard_data:
-                    st.write(f"• Energy Analysis: Complete")
-                if 'financial' in dashboard_data:
-                    st.write(f"• Financial Analysis: Complete")
-                    
-            with col2:
-                st.markdown("**Data Completeness:**")
-                completeness_score = 0
-                total_checks = 5
-                
-                if 'building' in dashboard_data: completeness_score += 1
-                if 'radiation' in dashboard_data: completeness_score += 1  
-                if 'pv_systems' in dashboard_data: completeness_score += 1
-                if 'energy_analysis' in dashboard_data: completeness_score += 1
-                if 'financial' in dashboard_data: completeness_score += 1
-                
-                completion_percentage = (completeness_score / total_checks) * 100
-                st.write(f"• Overall Completeness: {completion_percentage:.0f}%")
-                st.write(f"• Data Sources Active: {completeness_score}/{total_checks}")
-                
-                if completion_percentage == 100:
-                    st.success("✅ All data sources validated")
-                else:
-                    st.warning(f"⚠️ {total_checks - completeness_score} data sources missing")
     
     # Load authentic dashboard data
     st.info("🔄 Loading authentic data from all workflow steps...")
     
     project_id = get_current_project_id()
     dashboard_data = get_dashboard_data(project_id)
+    
+    # Show current project data validation (after data is loaded)
+    if dashboard_data:
+        st.markdown("### 🔍 Current Project Data Validation:")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**Database Record Counts:**")
+            if 'building' in dashboard_data:
+                st.write(f"• Building Elements: {dashboard_data['building']['total_elements']:,}")
+            if 'radiation' in dashboard_data:
+                st.write(f"• Radiation Records: {dashboard_data['radiation']['analyzed_elements']:,}")
+            if 'pv_systems' in dashboard_data:
+                st.write(f"• PV Systems: {dashboard_data['pv_systems']['total_systems']:,}")
+            if 'energy_analysis' in dashboard_data:
+                st.write(f"• Energy Analysis: Complete")
+            if 'financial' in dashboard_data:
+                st.write(f"• Financial Analysis: Complete")
+                
+        with col2:
+            st.markdown("**Data Completeness:**")
+            completeness_score = 0
+            total_checks = 5
+            
+            if 'building' in dashboard_data: completeness_score += 1
+            if 'radiation' in dashboard_data: completeness_score += 1  
+            if 'pv_systems' in dashboard_data: completeness_score += 1
+            if 'energy_analysis' in dashboard_data: completeness_score += 1
+            if 'financial' in dashboard_data: completeness_score += 1
+            
+            completion_percentage = (completeness_score / total_checks) * 100
+            st.write(f"• Overall Completeness: {completion_percentage:.0f}%")
+            st.write(f"• Data Sources Active: {completeness_score}/{total_checks}")
+            
+            if completion_percentage == 100:
+                st.success("✅ All data sources validated")
+            else:
+                st.warning(f"⚠️ {total_checks - completeness_score} data sources missing")
     
     if not dashboard_data:
         st.error("❌ No project data found. Please complete the workflow steps first.")
