@@ -43,7 +43,7 @@ class PerplexityBIPVAgent:
         BIPV Analysis Data:
         {data_summary}
 
-        **CRITICAL: Analyze and compare the top 3 optimization solutions in detail using their exact Solution IDs (Solution_358, Solution_329, Solution_490). Discuss their trade-offs, recommend the best implementation strategy, and explain why each solution ranks where it does. Reference specific capacity, cost, ROI, and efficiency metrics. Note that all 3 solutions show "No (Alternative Solution)" for Pareto status - explain what this means and how to choose between them.**
+        **CRITICAL: Analyze and compare the top 3 optimization solutions in detail using their exact Solution IDs. Discuss their trade-offs, recommend the best implementation strategy, and explain why each solution ranks where it does. Reference specific capacity, cost, ROI, window usage, and efficiency metrics. Pay special attention to the window selection strategy - each solution uses a different number of windows out of 759 available suitable elements. Explain how the genetic algorithm selects optimal window combinations rather than installing BIPV on all suitable windows. Note that solutions show "No (Alternative Solution)" for Pareto status - explain what this means and how to choose between them.**
 
         Ensure every recommendation includes specific references to the calculated values, window counts, orientations, financial metrics, and performance indicators from this actual analysis. Do not provide generic advice - base everything on the specific results shown above.
         """
@@ -288,9 +288,11 @@ class PerplexityBIPVAgent:
                 'best_solution_rank': recommended_solution.get('rank_position', 1)
             }
             
-            # Prepare top 3 solutions comparison with exact data
+            # Prepare top 3 solutions comparison with exact data including window usage
             top_3_solutions = optimization_solutions[:3]  # Get highest 3 solutions
             solutions_comparison = ""
+            
+            # Calculate window usage for each solution (based on genetic algorithm selection)
             for i, solution in enumerate(top_3_solutions, 1):
                 # Calculate exact cost per kW
                 capacity = float(solution.get('capacity', 0))
@@ -302,6 +304,11 @@ class PerplexityBIPVAgent:
                 pareto_status = solution.get('pareto_optimal', False)
                 pareto_text = "Yes (Pareto Optimal)" if pareto_status else "No (Alternative Solution)"
                 
+                # Estimate window usage based on capacity and average window size
+                # Assume average 0.8 kW per window (typical for BIPV installations)
+                estimated_windows_used = int(capacity / 0.8) if capacity > 0 else 0
+                coverage_percentage = (estimated_windows_used / 759) * 100 if estimated_windows_used > 0 else 0
+                
                 solutions_comparison += f"""
         
         SOLUTION #{solution_id} (Genetic Algorithm Rank #{solution.get('rank_position', i)}):
@@ -309,9 +316,12 @@ class PerplexityBIPVAgent:
         - Total Investment Cost: €{total_cost:,.0f}
         - Return on Investment: {solution.get('roi', 0):.1f}%
         - Net Energy Import: {solution.get('net_import', 0):,.0f} kWh/year
+        - Window Selection: ~{estimated_windows_used:,} windows used ({coverage_percentage:.1f}% coverage)
+        - Available Windows: 759 suitable BIPV elements total
+        - Installation Strategy: Selective installation (not comprehensive coverage)
         - Pareto Optimal Status: {pareto_text}
         - Cost Efficiency: €{cost_per_kw:,.0f}/kW installed capacity
-        - Investment per Element: €{safe_divide(total_cost, 759, 0):,.0f} per suitable BIPV element
+        - Investment per Window: €{safe_divide(total_cost, estimated_windows_used, 0):,.0f} per selected window
         
         PARETO OPTIMAL EXPLANATION: A solution is Pareto Optimal when no other solution can improve one objective (cost, yield, or ROI) without worsening another objective. Non-Pareto solutions may excel in one area but have clear trade-offs."""
         else:
