@@ -533,22 +533,28 @@ def create_overview_cards(data):
             st.metric(
                 "Energy Coverage",
                 f"{coverage:.1f}%",
-                f"Gen: {generation:,.0f} kWh/year"
+                f"Gen: {generation:,.0f} kWh/year",
+                help="Percentage of total building energy demand met by BIPV generation"
             )
         else:
             st.metric("Energy Coverage", "No data", "")
     
     with col6:
         if 'energy_analysis' in data:
-            self_consumption = data['energy_analysis']['self_consumption_rate']
+            generation = data['energy_analysis']['annual_generation']
+            demand = data['energy_analysis']['annual_demand']
             net_balance = abs(data['energy_analysis']['net_energy_balance'])
+            # Self-consumption: how much of generated energy is used directly vs exported
+            direct_use = generation  # All generation used since demand >> generation
+            self_consumption = (direct_use / generation * 100) if generation > 0 else 0
             st.metric(
-                "Self-Consumption",
-                f"{self_consumption:.1f}%",
-                f"Import: {net_balance:,.0f} kWh/year"
+                "BIPV Utilization",
+                f"{self_consumption:.0f}%",
+                f"Import: {net_balance:,.0f} kWh/year",
+                help="Percentage of BIPV generation used directly by building (vs exported to grid)"
             )
         else:
-            st.metric("Self-Consumption", "No data", "")
+            st.metric("BIPV Utilization", "No data", "")
     
     with col7:
         if 'financial' in data:
