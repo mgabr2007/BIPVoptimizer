@@ -259,6 +259,31 @@ class PerplexityBIPVAgent:
         weather_data = project_data.get('weather_analysis', {})
         annual_ghi = weather_data.get('annual_ghi', 1200)
         
+        # Enhanced optimization analysis from Step 8
+        optimization_solutions = []
+        recommended_solution = {}
+        pareto_analysis = {}
+        
+        # Get optimization data from comprehensive project data
+        if project_data.get('selected_solutions'):
+            optimization_solutions = project_data['selected_solutions'][:5]  # Top 5 solutions
+        if project_data.get('recommended_solution'):
+            recommended_solution = project_data['recommended_solution']
+            
+        # Extract optimization metrics for analysis
+        if optimization_solutions:
+            costs = [float(sol.get('total_cost', 0)) for sol in optimization_solutions]
+            capacities = [float(sol.get('capacity', 0)) for sol in optimization_solutions]
+            rois = [float(sol.get('roi', 0)) for sol in optimization_solutions]
+            
+            pareto_analysis = {
+                'solution_count': len(optimization_solutions),
+                'cost_range': f"€{min(costs):,.0f} - €{max(costs):,.0f}" if costs else "N/A",
+                'capacity_range': f"{min(capacities):.1f} - {max(capacities):.1f} kW" if capacities else "N/A",
+                'roi_range': f"{min(rois):.1f}% - {max(rois):.1f}%" if rois else "N/A",
+                'best_solution_rank': recommended_solution.get('rank_position', 1)
+            }
+        
         # Enhanced PV specifications extraction - prioritize database over project_data
         pv_specs = []
         total_capacity = 0
@@ -404,11 +429,22 @@ class PerplexityBIPVAgent:
         - Total System Investment: €{total_investment:,.0f} (Berlin project: €442,349)
         - Investment Cost per kW: €{investment_per_kw:,.0f}/kW
         
+        STEP 8 OPTIMIZATION ANALYSIS RESULTS:
+        - Pareto-Optimal Solutions Generated: {pareto_analysis.get('solution_count', 0)} solutions
+        - System Cost Range: {pareto_analysis.get('cost_range', 'N/A')}
+        - Capacity Range: {pareto_analysis.get('capacity_range', 'N/A')}
+        - ROI Performance Range: {pareto_analysis.get('roi_range', 'N/A')}
+        - Recommended Solution Rank: #{pareto_analysis.get('best_solution_rank', 'N/A')} (top-ranked by genetic algorithm)
+        {f"- Best Solution: {recommended_solution.get('capacity', 0):.1f} kW capacity, €{recommended_solution.get('total_cost', 0):,.0f} cost, {recommended_solution.get('roi', 0):.1f}% ROI" if recommended_solution else ""}
+        - Multi-Objective Optimization: {"Successfully completed with Pareto frontier analysis" if optimization_solutions else "Not completed - requires Step 8 data"}
+        
         PERFORMANCE ASSESSMENT:
         - Economic Viability: Financially Challenging (Negative NPV) but reasonable IRR 25.2% and 4-year payback
         - Demand Prediction Quality: High Confidence (R² = 0.92, excellent predictive power)
         - BIPV Technical Potential: High Potential (759/950 elements = 79.9% suitability rate)
         - System Scale: Large-scale Installation (607.9 kW capacity across 950 building elements)
+        - Optimization Quality: {"Advanced multi-objective analysis completed with " + str(pareto_analysis.get('solution_count', 0)) + " Pareto-optimal solutions" if optimization_solutions else "Optimization pending - complete Step 8 for advanced system design"}
+        - Implementation Readiness: {"High - optimized solution selected from genetic algorithm analysis" if recommended_solution else "Medium - requires optimization analysis completion"}
         """
         
         return summary
