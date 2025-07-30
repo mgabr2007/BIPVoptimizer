@@ -795,6 +795,13 @@ def render_optimization():
                 results = cursor.fetchall()
                 if results:
                     solutions = pd.DataFrame(results, columns=['solution_id', 'capacity', 'roi', 'net_import', 'total_cost', 'annual_energy_kwh'])
+                    
+                    # Convert all numeric columns from Decimal to float to prevent arithmetic errors
+                    numeric_columns = ['capacity', 'roi', 'net_import', 'total_cost', 'annual_energy_kwh']
+                    for col in numeric_columns:
+                        if col in solutions.columns:
+                            solutions[col] = pd.to_numeric(solutions[col], errors='coerce').astype(float)
+                    
                     optimization_data = {'solutions': solutions}
             conn.close()
     except Exception as e:
@@ -881,8 +888,12 @@ def render_optimization():
                     st.write(f"- Annual Energy: {solution['annual_energy_kwh']:,.0f} kWh")
                 
                 with sol_col3:
-                    cost_per_window = solution['total_cost'] / windows_used if windows_used > 0 else 0
-                    energy_per_window = solution['annual_energy_kwh'] / windows_used if windows_used > 0 else 0
+                    # Explicit float conversion for arithmetic operations
+                    total_cost_float = float(solution['total_cost']) if solution['total_cost'] is not None else 0.0
+                    annual_energy_float = float(solution['annual_energy_kwh']) if solution['annual_energy_kwh'] is not None else 0.0
+                    
+                    cost_per_window = total_cost_float / windows_used if windows_used > 0 else 0
+                    energy_per_window = annual_energy_float / windows_used if windows_used > 0 else 0
                     st.write(f"- Cost per Window: €{cost_per_window:,.0f}")
                     st.write(f"- Energy per Window: {energy_per_window:,.0f} kWh/year")
                     st.write(f"- ROI: {solution['roi']:.2f}%")
@@ -905,12 +916,12 @@ def render_optimization():
         import plotly.express as px
         from plotly.subplots import make_subplots
         
-        # Convert Series to numeric arrays for Plotly compatibility
+        # Convert Series to numeric arrays for Plotly compatibility with explicit float conversion
         solutions_dict = {
-            'total_cost': solutions['total_cost'].values.astype(float),
-            'roi': solutions['roi'].values.astype(float), 
-            'capacity': solutions['capacity'].values.astype(float),
-            'net_import': solutions['net_import'].values.astype(float),
+            'total_cost': pd.to_numeric(solutions['total_cost'], errors='coerce').astype(float).values,
+            'roi': pd.to_numeric(solutions['roi'], errors='coerce').astype(float).values, 
+            'capacity': pd.to_numeric(solutions['capacity'], errors='coerce').astype(float).values,
+            'net_import': pd.to_numeric(solutions['net_import'], errors='coerce').astype(float).values,
             'solution_id': solutions['solution_id'].values
         }
         
@@ -978,8 +989,8 @@ def render_optimization():
             text=solutions_dict['solution_id'],
             textposition='top center',
             marker=dict(
-                size=solutions_dict['capacity'] * 3,  # Scale size with capacity
-                color=solutions_dict['net_import'],
+                size=[float(cap) * 3 for cap in solutions_dict['capacity']],  # Explicit float conversion
+                color=[float(imp) for imp in solutions_dict['net_import']],    # Explicit float conversion
                 colorscale='Viridis',
                 showscale=True,
                 colorbar=dict(title="Net Import Reduction (kWh)")
