@@ -1066,9 +1066,7 @@ def main():
         st.error(f"Error rendering step '{current_step}': {str(e)}")
         st.info("Please try navigating to a different step.")
     
-    # Add bottom navigation to every page
-    st.markdown("---")
-    render_bottom_navigation(workflow_steps, current_step)
+    # Navigation handled by individual step modules - no global navigation needed
 
 
 def render_bottom_navigation(workflow_steps, current_step):

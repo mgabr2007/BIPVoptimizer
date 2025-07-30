@@ -604,24 +604,7 @@ def render_facade_extraction():
     else:
         st.info("📋 **Ready to Upload**: Please upload both window and wall CSV files to proceed")
     
-    # Navigation
-    st.markdown("---")
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col1:
-        if st.button("← Weather Environment", key="step4_prev_btn", use_container_width=True):
-            st.session_state.current_step = 'weather_environment'
-            st.rerun()
-    
-    with col2:
-        # Remove duplicate step number display - handled by global navigation
-        pass
-    
-    with col3:
-        if st.button("Radiation Grid →", key="step4_next_btn", use_container_width=True):
-            st.session_state.current_step = 'radiation_grid'
-            st.rerun()
+
 
 
 def save_windows_data_to_database(project_id, windows_df, progress_callback=None):

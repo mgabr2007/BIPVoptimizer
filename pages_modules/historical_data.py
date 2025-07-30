@@ -1433,10 +1433,13 @@ def render_historical_data():
         
         st.markdown("---")
         
-        if st.button("Continue to Step 3: Weather Integration", key="continue_weather"):
-            st.session_state.current_step = 'weather_environment'
-            st.session_state.scroll_to_top = True
-            st.rerun()
+        # Navigation - Single Continue Button
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("Continue to Step 3: Weather Integration →", type="primary", key="nav_step3"):
+                st.session_state.current_step = 'weather_environment'
+                st.session_state.scroll_to_top = True
+                st.rerun()
     
     else:
         st.info("Please upload a CSV file with historical energy consumption data to continue.")
