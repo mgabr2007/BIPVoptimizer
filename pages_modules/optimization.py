@@ -896,17 +896,6 @@ def render_optimization():
                     energy_per_window = annual_energy_float / windows_used if windows_used > 0 else 0
                     st.write(f"- Cost per Window: €{cost_per_window:,.0f}")
                     st.write(f"- Energy per Window: {energy_per_window:,.0f} kWh/year")
-                    st.write(f"- ROI: {solution['roi']:.2f}%")
-                    st.write(f"- Net Import: {solution['net_import']:,.0f} kWh")
-                    
-                with sol_col3:
-                    st.write(f"- Raw capacity value: {solution['capacity']}")
-                    st.write(f"- Raw net_import value: {solution['net_import']}")
-                    st.write(f"- Zero values detected: {solution['capacity'] == 0 or solution['net_import'] == 0}")
-            
-            # Show database table structure
-            st.write("**Database Values Analysis:**")
-            st.dataframe(debug_solutions[['solution_id', 'capacity', 'roi', 'net_import', 'total_cost']], use_container_width=True)
         
         # Comprehensive Optimization Results Visualization
         st.subheader("📊 Interactive Optimization Results")
