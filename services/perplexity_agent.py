@@ -86,8 +86,9 @@ class PerplexityBIPVAgent:
         2. Economic Model Enhancements (address the negative NPV while leveraging strong IRR)
         3. Technical Performance Improvements (reference actual building element data)
         4. Data Quality Improvements (reference AI model and calculation accuracy)
+        5. Solution Selection Analysis (compare the top 3 optimization solutions and recommend best implementation strategy)
 
-        Base all recommendations on the specific analysis results above. Reference actual numbers, orientations, capacities, and performance metrics from this Berlin project data.
+        Base all recommendations on the specific analysis results above. Reference actual numbers, orientations, capacities, and performance metrics from this Berlin project data. Pay special attention to the top 3 solutions comparison and provide guidance on which solution offers the best balance of cost, capacity, and ROI for implementation.
         """
         
         return self._query_perplexity(prompt)
@@ -283,6 +284,22 @@ class PerplexityBIPVAgent:
                 'roi_range': f"{min(rois):.1f}% - {max(rois):.1f}%" if rois else "N/A",
                 'best_solution_rank': recommended_solution.get('rank_position', 1)
             }
+            
+            # Prepare top 3 solutions comparison
+            top_3_solutions = optimization_solutions[:3]  # Get highest 3 solutions
+            solutions_comparison = ""
+            for i, solution in enumerate(top_3_solutions, 1):
+                solutions_comparison += f"""
+        
+        SOLUTION #{i} (Rank #{solution.get('rank_position', i)}):
+        - System Capacity: {solution.get('capacity', 0):.1f} kW
+        - Total Investment Cost: €{solution.get('total_cost', 0):,.0f}
+        - Return on Investment: {solution.get('roi', 0):.1f}%
+        - Net Energy Import: {solution.get('net_import', 0):,.0f} kWh/year
+        - Pareto Optimal: {"Yes" if solution.get('pareto_optimal', False) else "No"}
+        - Cost per kW: €{safe_divide(solution.get('total_cost', 0), solution.get('capacity', 1), 0):,.0f}/kW"""
+        else:
+            solutions_comparison = ""
         
         # Enhanced PV specifications extraction - prioritize database over project_data
         pv_specs = []
@@ -437,6 +454,8 @@ class PerplexityBIPVAgent:
         - Recommended Solution Rank: #{pareto_analysis.get('best_solution_rank', 'N/A')} (top-ranked by genetic algorithm)
         {f"- Best Solution: {recommended_solution.get('capacity', 0):.1f} kW capacity, €{recommended_solution.get('total_cost', 0):,.0f} cost, {recommended_solution.get('roi', 0):.1f}% ROI" if recommended_solution else ""}
         - Multi-Objective Optimization: {"Successfully completed with Pareto frontier analysis" if optimization_solutions else "Not completed - requires Step 8 data"}
+        
+        TOP 3 SOLUTIONS COMPARISON:{solutions_comparison if solutions_comparison else " No optimization solutions available - complete Step 8 first"}
         
         PERFORMANCE ASSESSMENT:
         - Economic Viability: Financially Challenging (Negative NPV) but reasonable IRR 25.2% and 4-year payback
@@ -746,6 +765,36 @@ def render_perplexity_consultation():
                     financial_data
                 )
                 st.session_state.perplexity_recommendations = recommendations
+    
+    # Display optimization solutions comparison if available
+    if optimization_data and 'solutions' in optimization_data:
+        solutions_df = optimization_data['solutions']
+        if not solutions_df.empty and len(solutions_df) >= 3:
+            st.subheader("🏆 Top 3 Optimization Solutions Comparison")
+            
+            # Display top 3 solutions in columns
+            col1, col2, col3 = st.columns(3)
+            
+            for i, (col, (_, solution)) in enumerate(zip([col1, col2, col3], solutions_df.head(3).iterrows())):
+                with col:
+                    rank_emoji = ["🥇", "🥈", "🥉"][i]
+                    st.markdown(f"### {rank_emoji} Solution #{i+1}")
+                    st.metric("Capacity", f"{solution.get('capacity', 0):.1f} kW")
+                    st.metric("Investment", f"€{solution.get('total_cost', 0):,.0f}")
+                    st.metric("ROI", f"{solution.get('roi', 0):.1f}%")
+                    st.metric("Net Import", f"{solution.get('net_import', 0):,.0f} kWh")
+                    
+                    # Pareto optimal indicator
+                    if solution.get('pareto_optimal', False):
+                        st.success("✅ Pareto Optimal")
+                    else:
+                        st.info("➖ Alternative Solution")
+                    
+                    # Cost efficiency
+                    cost_per_kw = safe_divide(solution.get('total_cost', 0), solution.get('capacity', 1), 0)
+                    st.caption(f"Cost efficiency: €{cost_per_kw:,.0f}/kW")
+            
+            st.markdown("---")
     
     # Display results
     if hasattr(st.session_state, 'perplexity_analysis'):
