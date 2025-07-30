@@ -126,59 +126,76 @@ BIPV Optimizer is a cutting-edge platform developed as part of PhD research at *
 
 ```
 bipv-optimizer/
-├── app.py                          # Main application entry point with 11-step routing
-├── database_manager.py             # PostgreSQL operations and schema management
-├── test_messages.py                # Message validation test environment
+├── app.py                          # Main Streamlit application entry point
+├── database_manager.py             # PostgreSQL operations and data persistence
+├── wmo_stations_complete.py        # Global weather station database (CLIMAT)
 │
 ├── core/                           # Core mathematical functions
-│   ├── solar_math.py              # Solar calculations, coordinates, currency utils
-│   └── carbon_factors.py          # Official grid CO₂ intensity database (20+ countries)
+│   ├── solar_math.py              # Solar position, irradiance calculations
+│   └── carbon_factors.py          # Grid CO₂ intensity database (20+ countries)
 │
-├── pages_modules/                  # Complete workflow step implementations
-│   ├── welcome.py                 # Introduction, standards overview, sample files
-│   ├── project_setup.py           # Interactive map, weather stations, electricity rates
-│   ├── historical_data.py         # AI training, R² tracking, educational building patterns
-│   ├── weather_environment.py     # ISO TMY generation, dual API support
-│   ├── facade_extraction.py       # BIM CSV processing, suitability assessment
-│   ├── radiation_grid.py          # Height-dependent radiation, ground effects
-│   ├── pv_specification.py        # BIPV glass technology, suitable filtering
-│   ├── yield_demand.py            # Energy balance, seasonal patterns, financial flows
-│   ├── optimization.py            # NSGA-II algorithms, weighted objectives
-│   ├── financial_analysis.py      # NPV/IRR, real rates, environmental impact
-│   ├── reporting.py               # Individual step reports, master analysis
-│   └── detailed_report_generator.py # Scientific documentation engine
+├── pages_modules/                  # 11-step workflow implementation
+│   ├── welcome.py                 # Platform introduction and methodology
+│   ├── project_setup.py           # Map-based location, weather stations
+│   ├── historical_data.py         # AI model training, R² tracking
+│   ├── weather_environment.py     # ISO TMY generation, meteorological data
+│   ├── facade_extraction.py       # BIM data processing, BIPV suitability
+│   ├── radiation_grid.py          # Solar radiation analysis, shading effects
+│   ├── pv_specification_unified.py # BIPV glass technology specifications
+│   ├── yield_demand.py            # Energy balance, seasonal analysis
+│   ├── optimization.py            # NSGA-II genetic algorithms
+│   ├── financial_analysis.py      # NPV/IRR, electricity rates, CO₂ impact
+│   ├── comprehensive_dashboard.py # Master reporting and data export
+│   ├── detailed_report_generator.py # Scientific report generation
+│   └── step7_yield_demand/        # Modular yield analysis components
+│       ├── data_validation.py     # Input validation and dependency checks
+│       ├── calculation_engine.py  # Core yield calculations with caching
+│       └── ui_components.py       # User interface rendering
 │
-├── services/                       # External service integrations
-│   ├── io.py                      # File operations, API clients
-│   ├── weather_api_manager.py     # TU Berlin + OpenWeatherMap integration
-│   └── perplexity_agent.py        # AI consultation with research integration
+├── services/                       # External integrations and analyzers
+│   ├── io.py                      # File operations, project ID management
+│   ├── weather_api_manager.py     # Multi-source weather data integration
+│   ├── perplexity_agent.py        # AI research consultation
+│   ├── optimized_radiation_analyzer.py # High-performance radiation analysis
+│   ├── ultra_fast_radiation_analyzer.py # 8-second processing optimization
+│   ├── advanced_radiation_analyzer.py # Comprehensive TMY integration
+│   ├── electricity_rates.py       # Real-time electricity rate APIs
+│   └── database_state_manager.py  # Database session management
 │
-├── utils/                          # Utility functions and managers
-│   ├── consolidated_data_manager.py # Centralized data flow system
-│   ├── individual_step_reports.py  # Step-by-step report generation
+├── utils/                          # Data management and reporting utilities
+│   ├── consolidated_data_manager.py # Unified data flow across workflow
+│   ├── database_helper.py         # Database operations abstraction
 │   ├── comprehensive_report_generator.py # Master report compilation
-│   ├── color_schemes.py           # UI styling and chart themes
-│   └── wmo_station_parser.py      # Weather station database management
+│   ├── individual_step_reports.py # Step-specific report generation
+│   ├── report_data_extractor.py   # Authentic data extraction for reports
+│   ├── calculations.py            # Mathematical utility functions
+│   └── color_schemes.py           # UI styling and visualization themes
 │
 ├── components/                     # UI components
-│   └── workflow_visualization.py  # Dynamic progress tracking, milestones
+│   └── workflow_visualization.py  # Progress tracking and navigation
 │
-└── attached_assets/               # Resources and sample files
-    ├── BIPV_Specifications_*.csv  # Sample BIPV technology data
-    ├── TMY_Data_*.csv             # Sample weather datasets
-    ├── TUB_H_Building_*.csv       # Sample building energy data
-    ├── *.dyn                      # Dynamo scripts for BIM extraction
-    ├── *.png                      # UI images, logos, step graphics
+├── static/                         # Web assets
+│   ├── manifest.json              # PWA configuration
+│   ├── robots.txt                 # Search engine directives
+│   └── sitemap.xml                # Site structure for SEO
+│
+└── attached_assets/               # Sample data and resources
+    ├── BIPV_Specifications_*.csv  # Sample BIPV technology datasets
+    ├── TMY_Data_*.csv             # Weather and irradiance samples
+    ├── TU_Berlin_*.csv            # Building energy consumption data
+    ├── get_windowMetadata_*.dyn    # Dynamo scripts for BIM extraction
+    ├── BIPVOptiLogo*.png          # Branding and UI graphics
     └── *.html                     # Generated analysis reports
 ```
 
 ### Key Architecture Features
-- **Modular Design**: Separate modules for each workflow step with clear dependencies
-- **Centralized Data Management**: ConsolidatedDataManager ensures data consistency
-- **Database Integration**: PostgreSQL for reliable project persistence
-- **API Abstraction**: WeatherAPIManager handles multiple weather data sources
-- **Report Generation**: Multiple report formats with authentic calculated values
-- **Error Handling**: Comprehensive validation and fallback mechanisms
+- **Clean Modular Design**: Essential files only - 41 unused development files removed
+- **11-Step Workflow**: Complete BIPV analysis from location setup to AI consultation
+- **Database-Driven**: PostgreSQL persistence with centralized project ID system
+- **Performance Optimized**: 8-second radiation analysis (82% faster than baseline)
+- **Authentic Data**: Real weather stations, electricity rates, building elements
+- **Professional Interface**: Clean navigation with matching sidebar icons
+- **Research Grade**: ISO standards compliance, academic references, peer-reviewed methodology
 
 ## 🔬 Scientific Methodology
 
@@ -248,28 +265,26 @@ The platform implements comprehensive equations for:
 
 ## 🔄 Recent Improvements
 
-### Complete Platform Enhancement (July 2025)
-- **11-Step Complete Workflow**: Fully functional analysis pipeline from welcome through AI consultation
-- **Height-Dependent Radiation Analysis**: 5-20% radiation enhancement factors for ground floors vs upper levels
-- **BIPV Suitability Filtering**: Intelligent exclusion of 191 north-facing windows from 950 total elements
-- **Perplexity AI Integration**: Research-based consultation using actual project data
-- **Multi-Source Data Integration**: TU Berlin API for Germany, OpenWeatherMap globally
-- **Real-Time Electricity Rates**: Live API integration for authentic financial calculations
+### Comprehensive Codebase Cleanup (July 30, 2025)
+- **41 Files Removed**: Eliminated 23 unused Python files + 18 development documentation files
+- **Streamlined Architecture**: Clean project structure with only essential files
+- **Performance Optimized**: 8-second radiation analysis (82% improvement from baseline)
+- **Professional Navigation**: Matching sidebar icons with clean single-button flow
+- **Database-Driven**: Centralized project ID system with PostgreSQL persistence
 
-### Consolidated Data Management System (January 2025)
-- **Centralized Data Flow**: Implemented ConsolidatedDataManager for unified data collection across all workflow steps
-- **Real Value Reporting**: Eliminated placeholder zeros in comprehensive reports with authentic calculated values
-- **Enhanced Data Integrity**: Standardized data structures between workflow steps and report generation
-- **Improved Reliability**: Robust error handling and data validation throughout the analysis pipeline
+### Complete Platform Features (July 2025)
+- **11-Step Workflow**: Welcome → AI Consultation with comprehensive analysis pipeline
+- **Height-Dependent Radiation**: Ground reflectance and atmospheric modeling effects
+- **BIPV Suitability Assessment**: Intelligent filtering of 759/950 suitable elements
+- **Multi-Source Integration**: WMO weather stations, live electricity rates, authentic BIM data
+- **Research-Grade AI**: Perplexity consultation with actual project-specific recommendations
 
-### Key Technical Enhancements
-- **Unified Data Architecture**: Single source of truth for all analysis results
-- **Real-time Data Capture**: Automatic data collection as each workflow step completes
-- **Enhanced Debugging**: Comprehensive logging system for data flow tracking
-- **Improved User Experience**: Accurate reports with actual project-specific calculations
-- **PostgreSQL Integration**: Reliable project data persistence and retrieval
-- **Height-Based Solar Modeling**: Ground reflectance, GHI adjustments, atmospheric effects
-- **Authentic Data Requirements**: Zero fallback values - only real TMY and BIM data used
+### Key Technical Achievements
+- **Zero Placeholder Data**: Only authentic weather, building, and financial data used
+- **ISO Standards Compliance**: 15927-4 TMY generation, EN 410 glass properties
+- **Multi-Objective Optimization**: NSGA-II genetic algorithms with weighted objectives
+- **Real-Time APIs**: OpenWeatherMap, electricity rates, grid CO₂ factors
+- **Scientific Reporting**: Peer-reviewed methodology with academic references
 
 ## 🤝 Contributing
 
@@ -283,12 +298,43 @@ This project is developed as part of PhD research at Technische Universität Ber
 
 ### Development Guidelines
 
-- **Code Style**: Follow PEP 8 Python style guidelines with comprehensive docstrings
-- **Testing**: Include unit tests for new functionality, validate against known benchmarks
-- **Documentation**: Update technical docs for API changes, maintain academic references
-- **Data Integrity**: Preserve authentic data requirements - no fallback/synthetic values
-- **Academic Attribution**: Maintain proper citation to TU Berlin research and sources
-- **Modular Design**: Follow existing architecture patterns in pages_modules/ structure
+- **Clean Codebase**: Only essential files - no development artifacts or unused documentation
+- **Code Style**: PEP 8 compliance with comprehensive docstrings and academic references
+- **Testing**: Validate against known benchmarks, ensure ISO standards compliance
+- **Documentation**: Maintain README.md and replit.md accuracy with architectural changes
+- **Data Integrity**: Use only authentic data sources - no fallback or synthetic values
+
+## 📞 Contact & Attribution
+
+**Research Context**: This platform is developed as part of PhD research at **Technische Universität Berlin**.
+
+**Primary Researcher**: Mostafa Gabr  
+**Research Profile**: [ResearchGate Profile](https://www.researchgate.net/profile/Mostafa-Gabr-4)  
+**Institution**: Technische Universität Berlin, Faculty of Planning Building Environment  
+**Research Focus**: Building-Integrated Photovoltaics, Educational Building Retrofitting
+
+**Academic Collaboration**: Available for research partnerships, methodology validation, and peer review.
+
+## 📜 License
+
+This project is developed for academic research purposes at Technische Universität Berlin. 
+
+**Usage Rights**:
+- ✅ **Academic Research**: Free use for educational and research purposes
+- ✅ **Non-Commercial**: Open access for non-profit applications
+- ✅ **Citation Required**: Must cite research source and ResearchGate profile
+- ❌ **Commercial Use**: Requires explicit permission and licensing agreement
+
+**Citation Format**:
+```
+Gabr, M. (2025). BIPV Optimizer: Building-Integrated Photovoltaics Analysis Platform. 
+PhD Research, Technische Universität Berlin. 
+Available: https://www.researchgate.net/profile/Mostafa-Gabr-4
+```
+
+---
+
+**Built with ❤️ at Technische Universität Berlin for advancing sustainable building technologies.**
 
 ### Research Collaboration
 

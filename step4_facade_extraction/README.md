@@ -1,34 +1,16 @@
-# Step 4 Facade Extraction - Production Grade Module
+# Step 4 Facade Extraction Module
 
 ## Overview
 
-This module provides a production-grade implementation of building facade and window data extraction for BIPV (Building Integrated Photovoltaics) analysis. It transforms raw BIM data into structured, validated, and analysis-ready datasets.
+This module handles building facade and window data extraction for BIPV (Building Integrated Photovoltaics) analysis. It processes CSV files extracted from BIM models and transforms them into analysis-ready datasets with BIPV suitability assessment.
 
-## Features
+## Key Features
 
-### 🏗️ Architecture
-- **Modular Design**: Separated UI, processing, database, and validation concerns
-- **Type Safety**: Full Pydantic models with validation
-- **Async Support**: Asynchronous database operations for better performance
-- **Configuration**: YAML-based configuration management
-
-### 🚀 Performance
-- **Chunked Processing**: Memory-efficient processing of large CSV files
-- **Bulk Operations**: Optimized database UPSERT operations
-- **Parallel Processing**: Multi-threaded file processing capabilities
-- **Progress Tracking**: Real-time progress indicators with ETA
-
-### 🔍 Data Quality
-- **Schema Validation**: Pandera-based DataFrame validation
-- **Unit Detection**: Automatic detection and conversion suggestions
-- **Duplicate Detection**: ElementId uniqueness validation
-- **Locale Support**: Handles comma decimal separators
-
-### 🛡️ Security & Reliability
-- **File Validation**: Size, extension, and MIME type checks
-- **Malware Scanning**: Optional security scanning
-- **Error Handling**: Comprehensive error collection and reporting
-- **Logging**: Structured logging with context
+- **BIM Data Processing**: CSV upload from Revit/CAD models via Dynamo scripts
+- **BIPV Suitability Assessment**: Automated filtering based on orientation and solar potential
+- **Database Integration**: PostgreSQL storage with building_elements and building_walls tables
+- **Progress Tracking**: Real-time progress indicators during upload and processing
+- **Data Validation**: Comprehensive error handling and validation of building element data
 
 ## Installation
 
