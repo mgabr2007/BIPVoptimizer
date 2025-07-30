@@ -733,13 +733,6 @@ def render_perplexity_consultation():
     with col1:
         if st.button("🔍 Analyze Complete Results", type="primary"):
             with st.spinner("Consulting AI research expert..."):
-                # Debug: Show what data we're passing
-                with st.expander("🔍 Debug: Data being analyzed", expanded=False):
-                    st.write("PV specs type:", type(pv_specs), "length:", len(pv_specs) if pv_specs else 0)
-                    st.write("Yield analysis available:", bool(yield_data))
-                    st.write("Building elements:", len(building_elements) if building_elements else 0)
-                    st.write("R² score available:", bool(historical_data and historical_data.get('r_squared_score')))
-                
                 # Pass the comprehensive data to AI agent
                 analysis = agent.analyze_bipv_results(comprehensive_project_data, building_elements, financial_data)
                 st.session_state.perplexity_analysis = analysis
