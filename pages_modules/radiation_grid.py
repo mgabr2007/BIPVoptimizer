@@ -1085,12 +1085,14 @@ def display_existing_results(project_id):
             st.write("• Radiation data saved to database")
             st.write("• Session state updated")
         
-        # Enhanced navigation button
-        if st.button("🚀 Continue to Step 6: BIPV Panel Specifications", type="primary"):
-            st.session_state.current_step = 'pv_specification'
-            st.session_state.scroll_to_top = True
-            st.success("Proceeding to BIPV specification with radiation data...")
-            st.rerun()
+        # Navigation - Single Continue Button  
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("Continue to Step 6: BIPV Panel Specifications →", type="primary", key="nav_step6"):
+                st.session_state.current_step = 'pv_specification'
+                st.session_state.scroll_to_top = True
+                st.rerun()
         
     except Exception as e:
         st.error(f"❌ Error displaying results: {str(e)}")

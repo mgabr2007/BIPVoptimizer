@@ -663,19 +663,14 @@ def render_weather_environment():
                         'environmental_factors': environmental_factors
                     })
     
-    # Navigation
+    # Navigation - Single Continue Button
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col1:
-        if st.button("⬅️ Back to Step 2"):
-            st.session_state.current_step = "historical_data"
-            st.rerun()
-    
-    with col3:
+    with col2:
         if step_data and step_data.get('tmy_data'):
-            if st.button("Step 4: Facade Extraction ➡️"):
+            if st.button("Continue to Step 4: Facade Extraction →", type="primary", key="nav_step4"):
                 st.session_state.current_step = "facade_extraction"
+                st.session_state.scroll_to_top = True
                 st.rerun()
         else:
             st.button("Complete TMY Generation First", disabled=True)
