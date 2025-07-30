@@ -1239,30 +1239,43 @@ def render_optimization():
                                 st.metric("Simple Payback", f"{payback_years:.1f} years")
                                 st.metric("ROI (25-year)", f"{selected_solution['roi']:.1f}%")
                             
-                            # 4. 25-Year Cash Flow Projection
-                            years = list(range(1, 26))
+                            # 4. 25-Year Cash Flow Projection - Fixed Break-even Calculation
+                            years_with_initial = list(range(0, 26))  # Include year 0 for initial investment
+                            years_operational = list(range(1, 26))   # Years 1-25 for operations
+                            
+                            # Initial investment and annual cash flows  
+                            initial_investment = -float(selected_solution['total_cost'])  # Negative cash flow
                             annual_cash_flow = [annual_savings] * 25
-                            cumulative_cash_flow = []
-                            cumulative = -float(selected_solution['total_cost'])  # Initial investment
+                            
+                            # Calculate cumulative cash flow including initial investment
+                            cumulative_cash_flow = [initial_investment]  # Start with negative investment
+                            cumulative = initial_investment
                             
                             for year_savings in annual_cash_flow:
                                 cumulative += year_savings
                                 cumulative_cash_flow.append(cumulative)
                             
+                            # Find break-even year
+                            break_even_year = None
+                            for i, cum_cf in enumerate(cumulative_cash_flow):
+                                if cum_cf >= 0:
+                                    break_even_year = i
+                                    break
+                            
                             fig_cashflow = go.Figure()
                             
-                            # Annual cash flow
+                            # Annual cash flow bars (years 1-25 only)
                             fig_cashflow.add_trace(go.Bar(
-                                x=years,
+                                x=years_operational,
                                 y=annual_cash_flow,
                                 name='Annual Savings',
                                 marker_color='lightgreen',
                                 yaxis='y'
                             ))
                             
-                            # Cumulative cash flow
+                            # Cumulative cash flow line (years 0-25)
                             fig_cashflow.add_trace(go.Scatter(
-                                x=years,
+                                x=years_with_initial,
                                 y=cumulative_cash_flow,
                                 mode='lines+markers',
                                 name='Cumulative Cash Flow',
@@ -1270,9 +1283,21 @@ def render_optimization():
                                 yaxis='y2'
                             ))
                             
-                            # Add break-even line
-                            fig_cashflow.add_hline(y=0, line_dash="dash", line_color="red", 
-                                                 annotation_text="Break-even")
+                            # Add break-even line and annotation
+                            fig_cashflow.add_hline(y=0, line_dash="dash", line_color="red")
+                            
+                            # Add break-even annotation if found
+                            if break_even_year is not None:
+                                fig_cashflow.add_annotation(
+                                    x=break_even_year,
+                                    y=0,
+                                    text=f"Break-even<br>Year {break_even_year}",
+                                    showarrow=True,
+                                    arrowhead=2,
+                                    arrowcolor="red",
+                                    bgcolor="white",
+                                    bordercolor="red"
+                                )
                             
                             fig_cashflow.update_layout(
                                 title=f"25-Year Financial Projection - Solution {selected_solution_id}",
