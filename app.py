@@ -10,7 +10,7 @@ import os
 st.set_page_config(
     page_title="BIPV Optimizer - Building Integrated Photovoltaics Analysis Platform",
     page_icon="🏢",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="expanded",
     menu_items={
         'Get Help': 'https://www.researchgate.net/profile/Mostafa-Gabr-4',
@@ -42,6 +42,32 @@ st.markdown("""
 <meta name="twitter:url" content="https://bipv-optimizer.replit.app/">
 
 <style>
+    /* Responsive container and layout fixes */
+    .main .block-container {
+        max-width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        margin: 0 auto;
+    }
+    
+    /* Prevent horizontal overflow */
+    .main, .stApp {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+    
+    /* Responsive tables and charts */
+    .stDataFrame, .plotly-graph-div {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    
+    /* Fix wide elements */
+    div[data-testid="column"] {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    
     .main-header {
         font-size: 2.5rem;
         color: #2E8B57;
@@ -102,6 +128,33 @@ st.markdown("""
     /* Clean up file download interface */
     [data-testid="stFileDownloadButton"] + div {
         display: none !important;
+    }
+    
+    /* Additional responsive fixes */
+    .stTabs {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    
+    .stExpander {
+        max-width: 100%;
+    }
+    
+    /* Fix metric cards on mobile */
+    div[data-testid="metric-container"] {
+        max-width: 100%;
+        min-width: 0;
+    }
+    
+    /* Responsive column fixes */
+    .stColumn {
+        max-width: 100%;
+        min-width: 0;
+    }
+    
+    /* Ensure forms don't expand */
+    .stForm {
+        max-width: 100%;
     }
 </style>
 
