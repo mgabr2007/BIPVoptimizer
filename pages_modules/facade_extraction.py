@@ -180,13 +180,7 @@ def render_facade_extraction():
     from services.io import get_current_project_id
     project_id = get_current_project_id()
     
-    # Debug information
-    if st.checkbox("Show Debug Info", key="debug_step4"):
-        st.write("**Debug Information:**")
-        st.write(f"- Project name: {st.session_state.get('project_name')}")
-        st.write(f"- Database project_id: {project_id}")
-        st.write(f"- Setup complete: {st.session_state.get('project_data', {}).get('setup_complete')}")
-    
+
     if not project_id:
         st.error("❌ No project ID found. Please complete Step 1: Project Setup first.")
         st.info("💡 **Tip:** Make sure to click 'Save Project Configuration' in Step 1 to generate a project ID.")
