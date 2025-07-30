@@ -361,7 +361,7 @@ def get_dashboard_data(project_id):
             energy_result = cursor.fetchone()
             
             if energy_result:
-                dashboard_data['energy'] = {
+                dashboard_data['energy_analysis'] = {
                     'annual_generation': float(energy_result[0]) if energy_result[0] else 0,
                     'annual_demand': float(energy_result[1]) if energy_result[1] else 0,
                     'net_energy_balance': float(energy_result[2]) if energy_result[2] else 0,
