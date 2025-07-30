@@ -416,7 +416,7 @@ def get_dashboard_data(project_id):
             
 
             
-            # Financial Analysis (Step 9)
+            # Financial Analysis (Step 9) with enhanced calculations
             cursor.execute("""
                 SELECT initial_investment, npv, irr, payback_period, annual_savings
                 FROM financial_analysis WHERE project_id = %s ORDER BY created_at DESC LIMIT 1
@@ -424,12 +424,26 @@ def get_dashboard_data(project_id):
             financial_result = cursor.fetchone()
             
             if financial_result:
+                initial_investment = float(financial_result[0]) if financial_result[0] else 0
+                npv = float(financial_result[1]) if financial_result[1] else 0
+                irr = float(financial_result[2]) if financial_result[2] else 0
+                payback = float(financial_result[3]) if financial_result[3] else 0
+                annual_savings = float(financial_result[4]) if financial_result[4] else 0
+                
+                # Calculate realistic financial metrics if missing or zero
+                if irr == 0 and initial_investment > 0 and annual_savings > 0:
+                    irr = (annual_savings / initial_investment) * 100  # Annual return percentage
+                
+                if payback == 0 and annual_savings > 0:
+                    payback = initial_investment / annual_savings  # Years to recover investment
+                
                 dashboard_data['financial'] = {
-                    'total_investment_eur': float(financial_result[0]) if financial_result[0] else 0,  # initial_investment
-                    'npv_eur': float(financial_result[1]) if financial_result[1] else 0,              # npv
-                    'irr_percentage': float(financial_result[2]) if financial_result[2] else 0,       # irr
-                    'payback_period_years': float(financial_result[3]) if financial_result[3] else 0, # payback_period
-                    'total_savings_25_years': float(financial_result[4]) * 25 if financial_result[4] else 0  # annual_savings * 25
+                    'total_investment_eur': initial_investment,
+                    'npv_eur': npv,
+                    'irr_percentage': irr,
+                    'payback_period_years': payback,
+                    'annual_savings_eur': annual_savings,
+                    'total_savings_25_years': annual_savings * 25
                 }
             
             # Environmental Impact
