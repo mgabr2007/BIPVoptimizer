@@ -40,7 +40,11 @@ def check_database_step_completion(project_id, step_key):
                 return False
             
             # Check if there's data in the corresponding table
-            cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE project_id = %s", (project_id,))
+            # Special case for projects table which uses 'id' instead of 'project_id'
+            if table_name == 'projects':
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE id = %s", (project_id,))
+            else:
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE project_id = %s", (project_id,))
             result = cursor.fetchone()
             return result[0] > 0 if result else False
             
@@ -87,11 +91,12 @@ def render_workflow_progress(workflow_steps, current_step):
     # Create visual progress bar
     st.markdown("### 🔄 Workflow Progress")
     
-    # Calculate progress based on completed steps, not just current position
-    completed_steps = sum(1 for step in completion_status if step['status'] == 'completed')
-    progress_percentage = (completed_steps / len(workflow_steps)) * 100
+    # Calculate progress based on completed steps, excluding welcome page
+    completed_workflow_steps = sum(1 for step in completion_status if step['status'] == 'completed' and step['key'] != 'welcome')
+    total_workflow_steps = len(workflow_steps) - 1  # Exclude welcome page
+    progress_percentage = (completed_workflow_steps / total_workflow_steps) * 100
     st.progress(progress_percentage / 100)
-    st.caption(f"Progress: {progress_percentage:.0f}% ({completed_steps}/{len(workflow_steps)} steps)")
+    st.caption(f"Progress: {progress_percentage:.0f}% ({completed_workflow_steps}/{total_workflow_steps} steps)")
     
     # Visual step indicators
     st.markdown("---")
@@ -166,20 +171,23 @@ def render_compact_progress(workflow_steps, current_step):
     
     project_id = get_current_project_id()
     
-    # Calculate completed steps using database
+    # Calculate completed steps using database, excluding welcome
     completed_steps = 0
+    total_steps = 0
     for step_key, step_name, description in workflow_steps:
-        if check_database_step_completion(project_id, step_key):
-            completed_steps += 1
+        if step_key != 'welcome':  # Exclude welcome from count
+            total_steps += 1
+            if check_database_step_completion(project_id, step_key):
+                completed_steps += 1
     
-    progress_percentage = (completed_steps / len(workflow_steps)) * 100
+    progress_percentage = (completed_steps / total_steps) * 100 if total_steps > 0 else 0
     
     # Compact progress bar
     st.markdown(f"""
     <div style="margin: 10px 0;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
             <span style="font-size: 12px; font-weight: bold;">Workflow Progress</span>
-            <span style="font-size: 12px; color: #666;">{completed_steps}/{len(workflow_steps)}</span>
+            <span style="font-size: 12px; color: #666;">{completed_steps}/{total_steps}</span>
         </div>
         <div style="width: 100%; background-color: #e0e0e0; border-radius: 10px; height: 8px;">
             <div style="width: {progress_percentage}%; background-color: #007bff; border-radius: 10px; height: 8px;"></div>
