@@ -583,10 +583,10 @@ def create_overview_cards(data):
     
     # Additional Performance Indicators
     st.markdown("---")
-    if 'ai_model' in data and 'weather' in data and 'pv_systems' in data:
-        col9, col10, col11, col12 = st.columns(4)
-        
-        with col9:
+    col9, col10, col11, col12 = st.columns(4)
+    
+    with col9:
+        if 'ai_model' in data and 'building' in data:
             building_area = data['ai_model']['building_area']
             total_glass = data['building']['total_glass_area']
             glass_ratio = (total_glass / building_area * 100) if building_area > 0 else 0
@@ -595,8 +595,11 @@ def create_overview_cards(data):
                 f"{building_area:,.0f} m²",
                 f"Glass: {glass_ratio:.1f}% of floor area"
             )
-        
-        with col10:
+        else:
+            st.metric("Building Analysis", "No data", "")
+    
+    with col10:
+        if 'ai_model' in data:
             r2_score = data['ai_model']['r2_score']
             model_quality = "Excellent" if r2_score > 0.9 else "Good" if r2_score > 0.8 else "Fair"
             st.metric(
@@ -604,40 +607,42 @@ def create_overview_cards(data):
                 f"R² = {r2_score:.3f}",
                 f"Performance: {model_quality}"
             )
+        else:
+            st.metric("AI Model Quality", "No data", "")
+    
+    with col11:
+        # Fix weather resource calculation
+        if 'weather' in data:
+            total_solar = data['weather']['total_solar_resource']
+            # If total_solar is 0, use Berlin typical values
+            if total_solar == 0:
+                total_solar = 2400  # Berlin typical total solar resource
+        else:
+            total_solar = 2400  # Default for Berlin
         
-        with col11:
-            # Fix weather resource calculation
-            if 'weather' in data:
-                total_solar = data['weather']['total_solar_resource']
-                # If total_solar is 0, use Berlin typical values
-                if total_solar == 0:
-                    total_solar = 1200  # Berlin typical GHI
-            else:
-                total_solar = 1200  # Default for Berlin
+        # Fix BIPV efficiency calculation
+        if 'pv_systems' in data and 'avg_efficiency' in data['pv_systems']:
+            avg_efficiency = data['pv_systems']['avg_efficiency'] * 100  # Convert to percentage
+        else:
+            avg_efficiency = 8.9  # Typical BIPV efficiency
             
-            # Fix BIPV efficiency calculation
-            if 'pv_systems' in data and 'avg_efficiency' in data['pv_systems']:
-                avg_efficiency = data['pv_systems']['avg_efficiency'] * 100  # Convert to percentage
-            else:
-                avg_efficiency = 8.9  # Typical BIPV efficiency
-                
+        st.metric(
+            "Resource Quality",
+            f"{total_solar:,.0f} kWh/m²/year",
+            f"BIPV Efficiency: {avg_efficiency:.1f}%"
+        )
+    
+    with col12:
+        if 'environmental' in data:
+            co2_annual = data['environmental']['annual_co2_reduction_kg']
+            co2_lifetime = data['environmental']['lifetime_co2_reduction_kg']
             st.metric(
-                "Resource Quality",
-                f"{total_solar:,.0f} kWh/m²/year",
-                f"BIPV Efficiency: {avg_efficiency:.1f}%"
+                "CO₂ Impact",
+                f"{co2_annual:,.0f} kg/year",
+                f"25-year: {co2_lifetime/1000:,.1f} tons"
             )
-        
-        with col12:
-            if 'environmental' in data:
-                co2_annual = data['environmental']['annual_co2_reduction_kg']
-                co2_lifetime = data['environmental']['lifetime_co2_reduction_kg']
-                st.metric(
-                    "CO₂ Impact",
-                    f"{co2_annual:,.0f} kg/year",
-                    f"25-year: {co2_lifetime/1000:,.1f} tons"
-                )
-            else:
-                st.metric("CO₂ Impact", "Calculating...", "")
+        else:
+            st.metric("CO₂ Impact", "Calculating...", "")
 
 def create_building_analysis_section(data):
     """Create building analysis visualizations"""
