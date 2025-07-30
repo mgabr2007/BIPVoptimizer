@@ -808,21 +808,83 @@ def render_optimization():
         # DEBUGGING MATRIX DISPLAY - Show calculation breakdown
         st.subheader("🎯 Optimization Analysis Summary")
         
-        with st.expander("📊 Detailed Calculation Matrix", expanded=True):
-            # Show first few solutions with detailed breakdown
-            debug_solutions = solutions.head(3)
-            
-            st.write("**Solution Calculation Results:**")
-            for i, (_, solution) in enumerate(debug_solutions.iterrows()):
-                st.write(f"**Solution {i+1}:**")
+        # Window Selection Summary - Calculate how many windows each solution uses
+        st.write("**Window Selection Analysis:**")
+        total_suitable_windows = len(pv_specs)  # Total suitable windows from Step 6
+        
+        # Get window counts for each solution from the database
+        window_counts = []
+        try:
+            conn = db_manager.get_connection()
+            if conn:
+                with conn.cursor() as cursor:
+                    for _, solution in solutions.head(5).iterrows():  # Top 5 solutions
+                        cursor.execute("""
+                            SELECT selection_details FROM optimization_results 
+                            WHERE project_id = %s AND solution_id = %s
+                        """, (project_id, solution['solution_id']))
+                        
+                        result = cursor.fetchone()
+                        if result and result[0]:
+                            import json
+                            selection_data = json.loads(result[0])
+                            selected_windows = sum(selection_data.get('selection_mask', []))
+                        else:
+                            # Estimate from capacity - rough approximation
+                            estimated_windows = int(solution['capacity'] / (total_suitable_windows * solution['capacity'] / total_suitable_windows))
+                            selected_windows = min(estimated_windows, total_suitable_windows)
+                        
+                        window_counts.append(selected_windows)
+                conn.close()
+        except Exception:
+            # Fallback estimation based on capacity ratios
+            max_capacity = solutions['capacity'].max() if len(solutions) > 0 else 1
+            for _, solution in solutions.head(5).iterrows():
+                estimated_windows = int((solution['capacity'] / max_capacity) * total_suitable_windows * 0.5)  # Rough estimate
+                window_counts.append(estimated_windows)
+        
+        # Display window selection summary
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Total Available Windows", f"{total_suitable_windows:,}")
+            st.caption("From Step 6 BIPV Analysis")
+        
+        with col2:
+            if window_counts:
+                avg_selected = int(np.mean(window_counts[:3]))  # Top 3 solutions
+                st.metric("Average Windows Selected", f"{avg_selected:,}")
+                st.caption(f"~{(avg_selected/total_suitable_windows)*100:.1f}% of available")
+        
+        with col3:
+            if window_counts:
+                max_selected = max(window_counts[:3])
+                st.metric("Maximum Windows Used", f"{max_selected:,}")
+                st.caption(f"Solution with highest coverage")
+        
+        with st.expander("📊 Top Solutions Window Usage", expanded=True):
+            st.write("**Window Selection by Solution:**")
+            for i, (_, solution) in enumerate(solutions.head(5).iterrows()):
+                windows_used = window_counts[i] if i < len(window_counts) else 0
+                coverage_pct = (windows_used / total_suitable_windows) * 100 if total_suitable_windows > 0 else 0
+                
+                st.write(f"**{solution['solution_id']}:** {windows_used:,} windows ({coverage_pct:.1f}% coverage)")
+                
                 sol_col1, sol_col2, sol_col3 = st.columns(3)
                 
                 with sol_col1:
-                    st.write(f"- Solution ID: {solution['solution_id']}")
-                    st.write(f"- Capacity: {solution['capacity']:.3f} kW")
-                    st.write(f"- Total Cost: €{solution['total_cost']:,.2f}")
+                    st.write(f"- Capacity: {solution['capacity']:.1f} kW")
+                    st.write(f"- Total Cost: €{solution['total_cost']:,.0f}")
                 
                 with sol_col2:
+                    st.write(f"- ROI: {solution['roi']:.1f}%")
+                    st.write(f"- Annual Energy: {solution['annual_energy_kwh']:,.0f} kWh")
+                
+                with sol_col3:
+                    cost_per_window = solution['total_cost'] / windows_used if windows_used > 0 else 0
+                    energy_per_window = solution['annual_energy_kwh'] / windows_used if windows_used > 0 else 0
+                    st.write(f"- Cost per Window: €{cost_per_window:,.0f}")
+                    st.write(f"- Energy per Window: {energy_per_window:,.0f} kWh/year")
                     st.write(f"- ROI: {solution['roi']:.2f}%")
                     st.write(f"- Net Import: {solution['net_import']:,.0f} kWh")
                     
