@@ -356,14 +356,6 @@ def render_data_export(analysis_data, config):
             # Generate filename with timestamp
             timestamp = dt.now().strftime("%Y%m%d_%H%M%S")
             filename = f"BIPV_Monthly_Energy_Balance_{timestamp}.csv"
-            
-            st.download_button(
-                label="📊 Download Monthly Energy Balance",
-                data=csv_string,
-                file_name=filename,
-                mime="text/csv",
-                help="Download detailed monthly energy flows, savings, and performance metrics"
-            )
     
     with col2:
         # Analysis configuration CSV
@@ -390,14 +382,6 @@ def render_data_export(analysis_data, config):
             config_csv_string = config_csv_buffer.getvalue()
             
             config_filename = f"BIPV_Analysis_Summary_{timestamp}.csv"
-            
-            st.download_button(
-                label="⚙️ Download Analysis Summary",
-                data=config_csv_string,
-                file_name=config_filename,
-                mime="text/csv",
-                help="Download analysis configuration and key performance indicators"
-            )
     
     st.info("💡 **CSV Contents:** Monthly energy balance, individual system yields, and complete analysis configuration for integration with financial modeling or further analysis tools.")
 

@@ -454,15 +454,7 @@ def render_pv_specification():
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"BIPV_Specifications_{timestamp}.csv"
-        
-        st.download_button(
-            label="📊 Download Standardized BIPV Specifications",
-            data=csv_string,
-            file_name=filename,
-            mime="text/csv",
-            help="Download BIPV specifications with standardized field names for workflow consistency"
-        )
-        
+
     # Navigation - Single Continue Button
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])

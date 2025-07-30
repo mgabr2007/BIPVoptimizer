@@ -1070,18 +1070,6 @@ def render_historical_data():
             try:
                 forecast_csv = create_forecast_csv(forecast_data)
                 summary_report = create_forecast_summary_report(forecast_data, consumption_data)
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.download_button(
-                        label="📊 Download 25-Year Monthly Forecast",
-                        data=forecast_csv,
-                        file_name=f"BIPV_Demand_Forecast_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv",
-                        help="Downloads detailed monthly consumption forecasts for 25 years"
-                    )
-                
 
             except Exception as e:
                 st.error(f"Error creating download files: {str(e)}")

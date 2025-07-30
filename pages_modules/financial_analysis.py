@@ -811,13 +811,6 @@ def render_financial_analysis():
                         csv_buffer.append(df.to_csv(index=False))
                     
                     combined_csv = '\n'.join(csv_buffer)
-                    
-                    st.download_button(
-                        label="Download Financial Analysis",
-                        data=combined_csv,
-                        file_name=f"financial_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
-                    )
             
             with col2:
                 st.info("Financial analysis complete - ready for final reporting")

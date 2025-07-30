@@ -14,6 +14,153 @@ from database_manager import db_manager
 from services.io import get_current_project_id
 from utils.database_helper import db_helper
 
+def create_optimized_windows_csv(project_id):
+    """Create CSV export of optimized window elements with detailed BIPV specifications"""
+    if not project_id:
+        return None
+    
+    try:
+        conn = db_manager.get_connection()
+        if not conn:
+            return None
+        
+        with conn.cursor() as cursor:
+            # Get the recommended optimization solution
+            cursor.execute("""
+                SELECT solution_id, capacity, roi, total_cost, annual_energy_kwh
+                FROM optimization_results 
+                WHERE project_id = %s 
+                ORDER BY rank_position ASC 
+                LIMIT 1
+            """, (project_id,))
+            
+            recommended_solution = cursor.fetchone()
+            if not recommended_solution:
+                return None
+            
+            # Get PV specifications data with element details
+            cursor.execute("""
+                SELECT specification_data 
+                FROM pv_specifications 
+                WHERE project_id = %s 
+                ORDER BY created_at DESC 
+                LIMIT 1
+            """, (project_id,))
+            
+            pv_spec_result = cursor.fetchone()
+            if not pv_spec_result or not pv_spec_result[0]:
+                return None
+            
+            try:
+                import json
+                pv_data = json.loads(pv_spec_result[0])
+                bipv_specs = pv_data.get('bipv_specifications', [])
+                
+                if not bipv_specs:
+                    return None
+                
+                # Create comprehensive CSV data
+                csv_data = []
+                headers = [
+                    'Element_ID', 'Wall_Element_ID', 'Building_Level', 'Orientation', 
+                    'Glass_Area_m2', 'Window_Width_m', 'Window_Height_m', 'Azimuth_degrees',
+                    'Annual_Radiation_kWh_m2', 'PV_Suitable', 'BIPV_Technology',
+                    'BIPV_Efficiency_%', 'BIPV_Transparency_%', 'BIPV_Power_Density_W_m2',
+                    'System_Capacity_kW', 'Annual_Generation_kWh', 'Cost_per_m2_EUR',
+                    'Total_System_Cost_EUR', 'Payback_Period_Years', 'Solution_Status'
+                ]
+                
+                csv_data.append(headers)
+                
+                # Get building elements and radiation data for context
+                cursor.execute("""
+                    SELECT be.element_id, be.wall_element_id, be.building_level, be.orientation,
+                           be.glass_area, be.window_width, be.window_height, be.azimuth, be.pv_suitable,
+                           COALESCE(er.annual_radiation, 0) as annual_radiation
+                    FROM building_elements be
+                    LEFT JOIN element_radiation er ON be.element_id = er.element_id AND be.project_id = er.project_id
+                    WHERE be.project_id = %s
+                    ORDER BY be.element_id
+                """, (project_id,))
+                
+                building_elements = cursor.fetchall()
+                
+                # Process each element
+                for element in building_elements:
+                    element_id = element[0]
+                    
+                    # Find matching BIPV specification
+                    element_spec = None
+                    for spec in bipv_specs:
+                        if str(spec.get('element_id', '')) == str(element_id):
+                            element_spec = spec
+                            break
+                    
+                    # Determine if this element is part of the optimized solution
+                    is_optimized = element_spec is not None and element[8]  # pv_suitable
+                    solution_status = "INCLUDED" if is_optimized else "EXCLUDED"
+                    
+                    # Extract BIPV specifications
+                    if element_spec:
+                        bipv_tech = element_spec.get('technology_name', 'N/A')
+                        efficiency = element_spec.get('efficiency_percent', 0)
+                        transparency = element_spec.get('transparency_percent', 0)
+                        power_density = element_spec.get('power_density_w_m2', 0)
+                        capacity = float(element_spec.get('capacity_kw', 0))
+                        annual_gen = float(element_spec.get('annual_energy_kwh', 0))
+                        cost_per_m2 = float(element_spec.get('cost_per_m2', 0))
+                        total_cost = float(element_spec.get('total_cost_eur', 0))
+                        payback = round(total_cost / max(annual_gen * 0.30, 1), 1) if annual_gen > 0 else 0
+                    else:
+                        bipv_tech = efficiency = transparency = power_density = 0
+                        capacity = annual_gen = cost_per_m2 = total_cost = payback = 0
+                    
+                    # Add row to CSV
+                    row = [
+                        element[0],  # Element_ID
+                        element[1] or 'N/A',  # Wall_Element_ID
+                        element[2] or 'N/A',  # Building_Level
+                        element[3] or 'N/A',  # Orientation
+                        round(float(element[4] or 0), 2),  # Glass_Area_m2
+                        round(float(element[5] or 0), 2),  # Window_Width_m
+                        round(float(element[6] or 0), 2),  # Window_Height_m
+                        round(float(element[7] or 0), 1),  # Azimuth_degrees
+                        round(float(element[9] or 0), 0),  # Annual_Radiation_kWh_m2
+                        'YES' if element[8] else 'NO',  # PV_Suitable
+                        bipv_tech,  # BIPV_Technology
+                        round(efficiency, 1),  # BIPV_Efficiency_%
+                        round(transparency, 1),  # BIPV_Transparency_%
+                        round(power_density, 0),  # BIPV_Power_Density_W_m2
+                        round(capacity, 2),  # System_Capacity_kW
+                        round(annual_gen, 0),  # Annual_Generation_kWh
+                        round(cost_per_m2, 0),  # Cost_per_m2_EUR
+                        round(total_cost, 0),  # Total_System_Cost_EUR
+                        payback,  # Payback_Period_Years
+                        solution_status  # Solution_Status
+                    ]
+                    
+                    csv_data.append(row)
+                
+                # Convert to CSV string
+                import io
+                csv_buffer = io.StringIO()
+                import csv
+                writer = csv.writer(csv_buffer)
+                writer.writerows(csv_data)
+                
+                return csv_buffer.getvalue()
+                
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                st.error(f"Error processing optimization data: {str(e)}")
+                return None
+                
+    except Exception as e:
+        st.error(f"Error creating optimized windows CSV: {str(e)}")
+        return None
+    finally:
+        if conn:
+            conn.close()
+
 def get_dashboard_data(project_id):
     """Load all authentic data from database for dashboard display"""
     if not project_id:
@@ -632,7 +779,8 @@ def render_comprehensive_dashboard():
     # Load authentic dashboard data
     st.info("🔄 Loading authentic data from all workflow steps...")
     
-    dashboard_data = get_dashboard_data(get_current_project_id())
+    project_id = get_current_project_id()
+    dashboard_data = get_dashboard_data(project_id)
     
     if not dashboard_data:
         st.error("❌ No project data found. Please complete the workflow steps first.")
@@ -688,36 +836,19 @@ def render_comprehensive_dashboard():
             )
     
     with col2:
-        if st.button("📈 Export Summary Report (CSV)"):
-            # Create summary DataFrame
-            summary_data = []
-            
-            if 'project' in dashboard_data:
-                summary_data.append(['Project Name', dashboard_data['project']['name']])
-                summary_data.append(['Location', dashboard_data['project']['location']])
-            
-            if 'building' in dashboard_data:
-                summary_data.append(['Total Elements', dashboard_data['building']['total_elements']])
-                summary_data.append(['Total Glass Area (m²)', dashboard_data['building']['total_glass_area']])
-            
-            if 'pv_systems' in dashboard_data:
-                summary_data.append(['Total Capacity (kW)', dashboard_data['pv_systems']['total_capacity_kw']])
-                summary_data.append(['Annual Generation (kWh)', dashboard_data['pv_systems']['total_annual_generation']])
-            
-            if 'financial' in dashboard_data:
-                summary_data.append(['Investment (EUR)', dashboard_data['financial']['total_investment_eur']])
-                summary_data.append(['NPV (EUR)', dashboard_data['financial']['npv_eur']])
-                summary_data.append(['IRR (%)', dashboard_data['financial']['irr_percentage']])
-            
-            summary_df = pd.DataFrame(summary_data, columns=['Metric', 'Value'])
-            csv = summary_df.to_csv(index=False)
-            
-            st.download_button(
-                label="Download CSV Summary",
-                data=csv,
-                file_name=f"BIPV_Summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
-            )
+        if st.button("🏢 Export Optimized Window Elements (CSV)", type="primary"):
+            # Create detailed window elements CSV with optimization results
+            window_elements_csv = create_optimized_windows_csv(project_id)
+            if window_elements_csv:
+                st.download_button(
+                    label="📊 Download Optimized Windows CSV",
+                    data=window_elements_csv,
+                    file_name=f"BIPV_Optimized_Windows_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    help="Download detailed list of all optimized window elements with BIPV specifications, radiation data, and performance metrics"
+                )
+            else:
+                st.error("No optimization results available for export")
     
     # Navigation
     st.markdown("---")
