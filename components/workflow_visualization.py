@@ -4,6 +4,51 @@ Provides visual step progression and completion tracking
 """
 
 import streamlit as st
+from database_manager import BIPVDatabaseManager
+from services.io import get_current_project_id
+
+
+def check_database_step_completion(project_id, step_key):
+    """Check if a step is completed by querying the database"""
+    if not project_id:
+        return False
+    
+    db_manager = BIPVDatabaseManager()
+    conn = db_manager.get_connection()
+    if not conn:
+        return False
+    
+    try:
+        with conn.cursor() as cursor:
+            # Map step keys to database tables
+            step_table_mapping = {
+                'project_setup': 'projects',
+                'historical_data': 'ai_models',  # Historical data creates AI models
+                'weather_environment': 'weather_data',
+                'facade_extraction': 'building_elements',
+                'radiation_grid': 'element_radiation',
+                'pv_specification': 'pv_specifications',
+                'yield_demand': 'energy_analysis',
+                'optimization': 'optimization_results',
+                'financial_analysis': 'financial_analysis',
+                'reporting': 'comprehensive_reports',
+                'ai_consultation': 'ai_consultation_results'
+            }
+            
+            table_name = step_table_mapping.get(step_key)
+            if not table_name:
+                return False
+            
+            # Check if there's data in the corresponding table
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name} WHERE project_id = %s", (project_id,))
+            result = cursor.fetchone()
+            return result[0] > 0 if result else False
+            
+    except Exception as e:
+        # Handle tables that might not exist yet
+        return False
+    finally:
+        conn.close()
 
 
 def render_workflow_progress(workflow_steps, current_step):
@@ -12,13 +57,19 @@ def render_workflow_progress(workflow_steps, current_step):
     # Find current step index
     current_index = next((i for i, (key, _, _) in enumerate(workflow_steps) if key == current_step), 0)
     
-    # Calculate completion status for each step
+    # Get current project ID for database checking
+    project_id = get_current_project_id()
+    
+    # Calculate completion status for each step using database
     completion_status = []
     for i, (step_key, step_name, description) in enumerate(workflow_steps):
-        if i < current_index:
-            status = "completed"
-        elif i == current_index:
+        # Check database completion status
+        is_completed_in_db = check_database_step_completion(project_id, step_key)
+        
+        if step_key == current_step:
             status = "current"
+        elif is_completed_in_db:
+            status = "completed"
         else:
             status = "pending"
         
@@ -33,10 +84,11 @@ def render_workflow_progress(workflow_steps, current_step):
     # Create visual progress bar
     st.markdown("### 🔄 Workflow Progress")
     
-    # Progress percentage
-    progress_percentage = (current_index / len(workflow_steps)) * 100
+    # Calculate progress based on completed steps, not just current position
+    completed_steps = sum(1 for step in completion_status if step['status'] == 'completed')
+    progress_percentage = (completed_steps / len(workflow_steps)) * 100
     st.progress(progress_percentage / 100)
-    st.caption(f"Progress: {progress_percentage:.0f}% ({current_index + 1}/{len(workflow_steps)} steps)")
+    st.caption(f"Progress: {progress_percentage:.0f}% ({completed_steps}/{len(workflow_steps)} steps)")
     
     # Visual step indicators
     st.markdown("---")
@@ -163,6 +215,7 @@ def render_workflow_navigation_enhanced(workflow_steps, current_step):
     """Enhanced navigation with visual feedback"""
     
     current_index = next((i for i, (key, _, _) in enumerate(workflow_steps) if key == current_step), 0)
+    project_id = get_current_project_id()
     
     st.markdown("### 🗺️ Workflow Navigation")
     
@@ -173,8 +226,8 @@ def render_workflow_navigation_enhanced(workflow_steps, current_step):
         col_idx = i % 3
         
         with cols[col_idx]:
-            is_current = (i == current_index)
-            is_completed = (i < current_index)
+            is_current = (step_key == current_step)
+            is_completed = check_database_step_completion(project_id, step_key)
             
             # Button styling based on status
             if is_current:
