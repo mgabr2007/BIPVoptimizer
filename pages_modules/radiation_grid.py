@@ -201,7 +201,7 @@ def render_radiation_grid():
         - Glass areas, orientations, and building levels
         - Used for primary radiation calculations
         
-        **Wall Geometry**: Retrieved from Step 4 BIM upload  
+        **Wall Geometry**: Upload CSV file with wall data for self-shading analysis  
         - Wall dimensions and orientations
         - Used for geometric self-shading calculations
         
@@ -209,6 +209,81 @@ def render_radiation_grid():
         - Hourly solar irradiance values
         - Direct Normal Irradiance (DNI) and Global Horizontal Irradiance (GHI)
         """)
+    
+    # Wall Data Upload Section
+    st.markdown("#### 📤 Wall Data Upload")
+    st.markdown("Upload wall geometry data for accurate self-shading calculations:")
+    
+    wall_file = st.file_uploader(
+        "Choose wall data CSV file",
+        type=['csv'],
+        key="wall_data_upload",
+        help="Upload CSV file containing wall geometry data for self-shading analysis"
+    )
+    
+    if wall_file is not None:
+        try:
+            import pandas as pd
+            
+            # Read the CSV file
+            wall_df = pd.read_csv(wall_file)
+            
+            st.success(f"✅ Wall file uploaded: {len(wall_df)} walls found")
+            
+            # Show preview of wall data
+            with st.expander("🔍 Wall Data Preview", expanded=False):
+                st.dataframe(wall_df.head(10))
+                st.info(f"**Columns**: {', '.join(wall_df.columns.tolist())}")
+            
+            # Process and save wall data
+            if st.button("💾 Save Wall Data", key="save_wall_data"):
+                try:
+                    conn = db_manager.get_connection()
+                    if conn:
+                        with conn.cursor() as cursor:
+                            # Clear existing wall data for this project
+                            cursor.execute("DELETE FROM building_walls WHERE project_id = %s", (project_id,))
+                            
+                            # Insert new wall data
+                            wall_count = 0
+                            for _, wall in wall_df.iterrows():
+                                try:
+                                    cursor.execute("""
+                                        INSERT INTO building_walls (
+                                            project_id, wall_id, wall_type, orientation, 
+                                            azimuth, height, width, area, building_level,
+                                            x_coord, y_coord, z_coord
+                                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                    """, (
+                                        project_id,
+                                        wall.get('wall_id', f'W{wall_count}'),
+                                        wall.get('wall_type', 'Exterior'),
+                                        wall.get('orientation', 'Unknown'),
+                                        wall.get('azimuth', 0),
+                                        wall.get('height', 0),
+                                        wall.get('width', 0),
+                                        wall.get('area', 0),
+                                        wall.get('building_level', 0),
+                                        wall.get('x_coord', 0),
+                                        wall.get('y_coord', 0),
+                                        wall.get('z_coord', 0)
+                                    ))
+                                    wall_count += 1
+                                except Exception as e:
+                                    st.warning(f"Skipped wall due to data issue: {e}")
+                            
+                            conn.commit()
+                            st.success(f"✅ Successfully saved {wall_count} walls to database")
+                            st.rerun()
+                        conn.close()
+                    else:
+                        st.error("Database connection failed")
+                        
+                except Exception as e:
+                    st.error(f"Error saving wall data: {str(e)}")
+                    
+        except Exception as e:
+            st.error(f"Error reading wall file: {str(e)}")
     
     # Check for existing analysis
     existing_data = db_manager.get_radiation_analysis_data(project_id)
@@ -344,68 +419,98 @@ def render_radiation_grid():
         can_run_analysis = walls_available and total_building_elements > 0
         
         if can_run_analysis:
-            if st.button("▶️ Run Advanced Analysis", type="primary", key="run_advanced_analysis"):
-                if use_optimized and precision == "Yearly Average":
-                    # Use ultra-fast analyzer for Simple mode (10-15 seconds target)
-                    analyzer = UltraFastRadiationAnalyzer()
-                    st.info("⚡ **Using Ultra-Fast Infrastructure** - Optimized for 10-15 second processing")
-                    
-                    # Create progress indicators
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-                    
-                    analysis_results = analyzer.analyze_project_radiation(
-                        project_id=project_id,
-                        precision="Simple",
-                        apply_corrections=apply_corrections,
-                        include_shading=include_shading,
-                        progress_bar=progress_bar,
-                        status_text=status_text
-                    )
-                elif use_optimized:
-                    # Use standard optimized analyzer for other modes
-                    analyzer = OptimizedRadiationAnalyzer()
-                    st.info("🚀 **Using High-Performance Analyzer**")
-                    
-                    analysis_results = analyzer.analyze_radiation_optimized(
-                        project_id=project_id,
-                        precision=precision,
-                        apply_corrections=apply_corrections,
-                        include_shading=include_shading,
-                        calculation_mode=calc_mode
-                    )
-                    
-                    if analysis_results and not analysis_results.get('error'):
-                        # Save to session state for persistence
-                        if 'project_data' not in st.session_state:
-                            st.session_state.project_data = {}
-                        
-                        st.session_state.project_data['radiation_data'] = analysis_results['element_radiation']
-                        st.session_state['radiation_completed'] = True
-                        st.session_state['step5_completed'] = True
-                        
-                        # Show results based on analyzer type
-                        if precision == "Yearly Average" and use_optimized:
-                            optimization_method = analysis_results.get('optimization_method', 'ultra_fast')
-                            st.success(f"⚡ **Ultra-Fast Analysis Complete!**\n"
-                                     f"- Elements: {analysis_results['total_elements']:,}\n"
-                                     f"- Time: {analysis_results['calculation_time']:.1f} seconds\n"
-                                     f"- Method: {optimization_method.replace('_', ' ').title()}\n"
-                                     f"- Infrastructure: Pre-loaded data, optimized database calls")
-                        else:
-                            performance_metrics = analysis_results.get('performance_metrics', {})
-                            calc_per_sec = performance_metrics.get('calculations_per_second', 0)
-                            st.success(f"✅ **Analysis Complete!**\n"
-                                     f"- Elements: {analysis_results['total_elements']:,}\n"
-                                     f"- Method: {precision}\n"
-                                     f"- Time: {analysis_results['calculation_time']:.1f} seconds\n"
-                                     f"- Speed: {calc_per_sec:.0f} calculations/second")
-                        st.rerun()
-                    else:
-                        st.error(f"Optimized analysis failed: {analysis_results.get('error', 'Unknown error')}")
+            if st.button("▶️ Run Radiation Analysis", type="primary", key="run_radiation_analysis"):
+                # Import the execution flow
+                from services.step5_execution_flow import Step5ExecutionFlow
+                
+                # Create progress indicators
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # Initialize execution flow
+                executor = Step5ExecutionFlow()
+                executor.set_progress_callbacks(progress_bar, status_text)
+                
+                # Configure analysis based on user settings
+                analysis_config = {
+                    'precision': precision,
+                    'apply_corrections': apply_corrections,
+                    'include_shading': include_shading,
+                    'calculation_mode': calc_mode,
+                    'analysis_type': 'ultra_fast' if (use_optimized and precision == "Yearly Average") else 'optimized' if use_optimized else 'advanced'
+                }
+                
+                # Show analysis type info
+                if analysis_config['analysis_type'] == 'ultra_fast':
+                    st.info("⚡ **Ultra-Fast Analysis** - Optimized for 10-15 second processing")
+                elif analysis_config['analysis_type'] == 'optimized':
+                    st.info("🚀 **High-Performance Analysis** - Optimized for 3-5 minute processing")
                 else:
-                    # Use legacy analyzer
-                    run_advanced_analysis(project_id, precision, include_shading, apply_corrections, calc_mode)
+                    st.info("🔬 **Research-Grade Analysis** - Maximum accuracy, longer processing time")
+                
+                # Execute the complete analysis flow
+                with st.spinner("Running comprehensive radiation analysis..."):
+                    execution_result = executor.run_complete_analysis(project_id, analysis_config)
+                
+                # Process execution results
+                if execution_result['success']:
+                    # Show success message with performance metrics
+                    metrics = execution_result.get('performance_metrics', {})
+                    elements_count = metrics.get('elements_processed', 0)
+                    total_time = metrics.get('total_execution_time', 0)
+                    calc_per_sec = metrics.get('calculations_per_second', 0)
+                    
+                    analysis_type_name = {
+                        'ultra_fast': 'Ultra-Fast',
+                        'optimized': 'High-Performance', 
+                        'advanced': 'Research-Grade'
+                    }.get(execution_result['analysis_type'], 'Standard')
+                    
+                    st.success(f"✅ **{analysis_type_name} Analysis Complete!**\n"
+                             f"- Elements: {elements_count:,}\n"
+                             f"- Total Time: {total_time:.1f} seconds\n"
+                             f"- Method: {precision}\n" + 
+                             (f"- Speed: {calc_per_sec:.0f} calculations/second" if calc_per_sec > 0 else ""))
+                    
+                    # Show validation summary
+                    validation_summary = execution_result.get('validation_summary', {})
+                    suitable_elements = validation_summary.get('suitable_elements', 0)
+                    total_elements = validation_summary.get('total_elements', 0)
+                    
+                    if suitable_elements and total_elements:
+                        suitability_rate = (suitable_elements / total_elements) * 100
+                        st.info(f"📊 **Analysis Summary**: {suitable_elements:,} suitable elements ({suitability_rate:.1f}% suitability rate)")
+                    
+                    progress_bar.progress(1.0)
+                    status_text.text("Analysis completed successfully!")
+                    
+                    # Trigger page refresh to show results
+                    st.rerun()
+                    
+                else:
+                    # Show error message
+                    error_msg = execution_result.get('error', 'Unknown error occurred')
+                    st.error(f"❌ **Analysis Failed**: {error_msg}")
+                    
+                    # Show validation errors if available
+                    if 'validation_errors' in execution_result:
+                        st.error("**Validation Errors:**")
+                        for error in execution_result['validation_errors']:
+                            st.error(f"- {error}")
+                    
+                    # Show warnings if available
+                    if 'validation_warnings' in execution_result:
+                        st.warning("**Warnings:**")
+                        for warning in execution_result['validation_warnings']:
+                            st.warning(f"- {warning}")
+                    
+                    # Show traceback for debugging if available
+                    if 'traceback' in execution_result:
+                        with st.expander("🔍 Debug Information", expanded=False):
+                            st.code(execution_result['traceback'])
+                    
+                    progress_bar.progress(0)
+                    status_text.text("Analysis failed")
         else:
             # Determine what's missing
             if not walls_available and total_building_elements == 0:
@@ -716,10 +821,9 @@ def run_advanced_analysis(project_id, precision, include_shading, apply_correcti
         st.error(f"Detailed error: {traceback.format_exc()}")
         # Reset progress indicators if they exist
         try:
-            if 'progress_bar' in locals() and progress_bar:
-                progress_bar.progress(0)
-            if 'status_text' in locals() and status_text:
-                status_text.text("Analysis failed")
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            status_text.text("Analysis failed")
         except:
             pass  # Ignore errors resetting UI elements
 
