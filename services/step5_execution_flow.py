@@ -86,10 +86,20 @@ class Step5ExecutionFlow:
                     return validation_result
                     
                 tmy_data = tmy_result[0]
+                
+                # Parse TMY data if it's a JSON string
+                import json
+                if isinstance(tmy_data, str):
+                    try:
+                        tmy_data = json.loads(tmy_data)
+                    except json.JSONDecodeError:
+                        validation_result['errors'].append("Invalid TMY data JSON format")
+                        return validation_result
+                
                 if isinstance(tmy_data, list) and len(tmy_data) > 0:
                     validation_result['data_summary']['tmy_records'] = len(tmy_data)
                 else:
-                    validation_result['errors'].append("Invalid TMY data format")
+                    validation_result['errors'].append("Invalid TMY data format - expected array of weather records")
                     return validation_result
                 
                 # Check project coordinates
