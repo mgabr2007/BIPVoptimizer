@@ -1164,17 +1164,52 @@ def render_optimization():
                             fig_elements.update_layout(height=400)
                             st.plotly_chart(fig_elements, use_container_width=True)
                             
-                            # 2. Performance by Orientation Analysis
-                            orientation_analysis = pv_df.groupby('orientation').agg({
-                            'annual_energy_kwh': ['sum', 'mean', 'count'],
-                            'glass_area': 'sum',
-                            'estimated_cost_eur': 'sum'
+                            # 2. Performance by Orientation Analysis - Fix orientation mapping
+                            
+                            # Create proper orientation mapping from azimuth if needed
+                            def map_orientation(orientation_value):
+                                """Map orientation values to proper names"""
+                                if pd.isna(orientation_value):
+                                    return "Unknown"
+                                
+                                # Handle string orientations
+                                if isinstance(orientation_value, str):
+                                    if orientation_value in ['North', 'South', 'East', 'West', 'SE', 'SW', 'NE', 'NW']:
+                                        return orientation_value
+                                    if orientation_value.lower() in ['south', 'east', 'west', 'north']:
+                                        return orientation_value.capitalize()
+                                
+                                # Handle numeric orientations (convert to string first)
+                                try:
+                                    numeric_val = float(str(orientation_value))
+                                    if 315 <= numeric_val or numeric_val < 45:
+                                        return "North"
+                                    elif 45 <= numeric_val < 135:
+                                        return "East"
+                                    elif 135 <= numeric_val < 225:
+                                        return "South"
+                                    elif 225 <= numeric_val < 315:
+                                        return "West"
+                                    else:
+                                        return f"Azimuth {numeric_val:.0f}°"
+                                except:
+                                    return "Unknown"
+                            
+                            # Apply orientation mapping
+                            pv_df['orientation_mapped'] = pv_df['orientation'].apply(map_orientation)
+                            
+                            # Group by mapped orientation
+                            orientation_analysis = pv_df.groupby('orientation_mapped').agg({
+                                'annual_energy_kwh': ['sum', 'mean', 'count'],
+                                'glass_area': 'sum',
+                                'estimated_cost_eur': 'sum'
                             }).round(2)
                             
                             # Flatten column names
                             orientation_analysis.columns = ['Total Energy (kWh)', 'Avg Energy (kWh)', 'Element Count', 
                                                           'Total Area (m²)', 'Total Cost (€)']
                             orientation_analysis = orientation_analysis.reset_index()
+                            orientation_analysis = orientation_analysis.rename(columns={'orientation_mapped': 'orientation'})
                             
                             col_left, col_right = st.columns(2)
                             
@@ -1190,21 +1225,39 @@ def render_optimization():
                                 st.plotly_chart(fig_pie, use_container_width=True)
                             
                             with col_right:
-                                # Cost vs Energy efficiency scatter
+                                # Cost vs Energy efficiency scatter - improved visualization
                                 fig_efficiency = px.scatter(
-                                pv_df,
-                                x='estimated_cost_eur',
-                                y='annual_energy_kwh',
-                                size='glass_area',
-                                color='orientation',
-                                title="Cost vs Energy Efficiency",
-                                labels={
-                                    'estimated_cost_eur': 'Element Cost (€)',
-                                    'annual_energy_kwh': 'Annual Energy (kWh)',
-                                    'glass_area': 'Glass Area (m²)'
-                                }
+                                    pv_df,
+                                    x='estimated_cost_eur',
+                                    y='annual_energy_kwh',
+                                    size='glass_area',
+                                    color='orientation_mapped',
+                                    title="Cost vs Energy Efficiency",
+                                    labels={
+                                        'estimated_cost_eur': 'Element Cost (€)',
+                                        'annual_energy_kwh': 'Annual Energy (kWh)',
+                                        'glass_area': 'Glass Area (m²)',
+                                        'orientation_mapped': 'Orientation'
+                                    },
+                                    hover_data=['element_id', 'glass_area']
                                 )
-                                fig_efficiency.update_layout(height=400)
+                                
+                                # Improve layout with better colors and formatting
+                                fig_efficiency.update_layout(
+                                    height=400,
+                                    showlegend=True,
+                                    legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.02)
+                                )
+                                
+                                # Update traces for better visibility
+                                fig_efficiency.update_traces(
+                                    marker=dict(
+                                        sizemin=4,
+                                        opacity=0.7,
+                                        line=dict(width=1, color='white')
+                                    )
+                                )
+                                
                                 st.plotly_chart(fig_efficiency, use_container_width=True)
                             
                             # 3. Financial Performance Breakdown
