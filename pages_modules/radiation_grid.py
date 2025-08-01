@@ -191,99 +191,26 @@ def render_radiation_grid():
     mode_text = "Optimized Vectorized" if use_optimized else "Standard Sequential"
     st.info(f"🔄 **{mode_text} Processing** • {details['accuracy']} accuracy • {details['icon']} {details['description']}")
     
-    # Wall data section with enhanced info
+    # Data readiness information
     st.markdown("---")
-    st.markdown("### 🏗️ Building Geometry Data")
+    st.markdown("### 📋 Data Requirements Status")
     
-    with st.expander("📋 Data Sources & Requirements", expanded=False):
+    with st.expander("📊 Data Sources & Analysis Flow", expanded=False):
         st.markdown("""
-        **Window Elements**: Automatically loaded from Step 4 facade extraction
-        - Glass areas, orientations, and building levels
-        - Used for primary radiation calculations
+        **Step 4 Data**: Window and wall elements from BIM extraction
+        - Window glass areas, orientations, and building levels
+        - Wall geometry for self-shading calculations
         
-        **Wall Geometry**: Upload CSV file with wall data for self-shading analysis  
-        - Wall dimensions and orientations
-        - Used for geometric self-shading calculations
+        **Step 3 Data**: TMY weather data for radiation calculations
+        - Hourly solar irradiance values (DNI, GHI)
+        - Temperature and atmospheric conditions
         
-        **Weather Data**: TMY data from Step 3
-        - Hourly solar irradiance values
-        - Direct Normal Irradiance (DNI) and Global Horizontal Irradiance (GHI)
+        **Analysis Output**: Hourly radiation values for each building element
+        - Direct and diffuse radiation components
+        - Self-shading corrections applied
         """)
     
-    # Wall Data Upload Section
-    st.markdown("#### 📤 Wall Data Upload")
-    st.markdown("Upload wall geometry data for accurate self-shading calculations:")
-    
-    wall_file = st.file_uploader(
-        "Choose wall data CSV file",
-        type=['csv'],
-        key="wall_data_upload",
-        help="Upload CSV file containing wall geometry data for self-shading analysis"
-    )
-    
-    if wall_file is not None:
-        try:
-            import pandas as pd
-            
-            # Read the CSV file
-            wall_df = pd.read_csv(wall_file)
-            
-            st.success(f"✅ Wall file uploaded: {len(wall_df)} walls found")
-            
-            # Show preview of wall data
-            with st.expander("🔍 Wall Data Preview", expanded=False):
-                st.dataframe(wall_df.head(10))
-                st.info(f"**Columns**: {', '.join(wall_df.columns.tolist())}")
-            
-            # Process and save wall data
-            if st.button("💾 Save Wall Data", key="save_wall_data"):
-                try:
-                    conn = db_manager.get_connection()
-                    if conn:
-                        with conn.cursor() as cursor:
-                            # Clear existing wall data for this project
-                            cursor.execute("DELETE FROM building_walls WHERE project_id = %s", (project_id,))
-                            
-                            # Insert new wall data
-                            wall_count = 0
-                            for _, wall in wall_df.iterrows():
-                                try:
-                                    cursor.execute("""
-                                        INSERT INTO building_walls (
-                                            project_id, wall_id, wall_type, orientation, 
-                                            azimuth, height, width, area, building_level,
-                                            x_coord, y_coord, z_coord
-                                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                    """, (
-                                        project_id,
-                                        wall.get('wall_id', f'W{wall_count}'),
-                                        wall.get('wall_type', 'Exterior'),
-                                        wall.get('orientation', 'Unknown'),
-                                        wall.get('azimuth', 0),
-                                        wall.get('height', 0),
-                                        wall.get('width', 0),
-                                        wall.get('area', 0),
-                                        wall.get('building_level', 0),
-                                        wall.get('x_coord', 0),
-                                        wall.get('y_coord', 0),
-                                        wall.get('z_coord', 0)
-                                    ))
-                                    wall_count += 1
-                                except Exception as e:
-                                    st.warning(f"Skipped wall due to data issue: {e}")
-                            
-                            conn.commit()
-                            st.success(f"✅ Successfully saved {wall_count} walls to database")
-                            st.rerun()
-                        conn.close()
-                    else:
-                        st.error("Database connection failed")
-                        
-                except Exception as e:
-                    st.error(f"Error saving wall data: {str(e)}")
-                    
-        except Exception as e:
-            st.error(f"Error reading wall file: {str(e)}")
+    st.info("💡 **Note**: Both window and wall data are uploaded in Step 4 (Facade Extraction). This step performs the radiation analysis on that data.")
     
     # Check for existing analysis
     existing_data = db_manager.get_radiation_analysis_data(project_id)
@@ -317,7 +244,7 @@ def render_radiation_grid():
     if conn:
         try:
             with conn.cursor() as cursor:
-                # Check wall data from Step 5 upload
+                # Check wall data from Step 4 upload
                 try:
                     cursor.execute("""
                         SELECT COUNT(*) FROM building_walls WHERE project_id = %s
@@ -400,7 +327,7 @@ def render_radiation_grid():
         if walls_available:
             st.success(f"✅ Wall Data: {wall_count} walls available")  
         else:
-            st.error("❌ Wall Data: Missing - Upload walls CSV above")
+            st.error("❌ Wall Data: Missing - Upload walls CSV in Step 4")
             
     # Clear instructions based on what's missing
     if total_building_elements == 0:
@@ -408,10 +335,10 @@ def render_radiation_grid():
         st.markdown("**Next Steps:**")
         st.markdown("1. Go back to **Step 4: Facade & Window Extraction**")
         st.markdown("2. Upload your window/glass areas CSV file")  
-        st.markdown("3. Return to Step 5 and upload wall data")
+        st.markdown("3. Upload wall data CSV file in Step 4")
         st.markdown("4. Run radiation analysis")
     elif not walls_available:
-        st.warning("Upload wall data above to enable radiation analysis with self-shading calculations.")
+        st.warning("Upload wall data in Step 4 (Facade Extraction) to enable radiation analysis with self-shading calculations.")
     
     col1, col2 = st.columns(2)
     with col1:
