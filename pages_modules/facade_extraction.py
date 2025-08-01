@@ -600,54 +600,6 @@ def render_facade_extraction():
 
 
 
-def save_windows_data_to_database(project_id, windows_df, progress_callback=None):
-    """Save windows data to building_elements table"""
-    conn = db_manager.get_connection()
-    if not conn:
-        return False
-        
-    try:
-        with conn.cursor() as cursor:
-            # Delete existing window data for this project
-            cursor.execute("DELETE FROM building_elements WHERE project_id = %s", (project_id,))
-            
-            total_windows = len(windows_df)
-            
-            # Insert new window data
-            for idx, (_, row) in enumerate(windows_df.iterrows()):
-                cursor.execute("""
-                    INSERT INTO building_elements 
-                    (project_id, element_id, element_type, family, building_level, wall_element_id, azimuth, glass_area, orientation, pv_suitable)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    project_id,
-                    str(row.get('ElementId', '')),
-                    str(row.get('Category', 'Windows')),  # Map Category to element_type
-                    str(row.get('Family', '')),
-                    str(row.get('Level', '')),  # Map Level to building_level
-                    str(row.get('HostWallId', '')),  # Map HostWallId to wall_element_id
-                    float(row.get('Azimuth (°)', 0)) if pd.notna(row.get('Azimuth (°)')) else None,
-                    float(row.get('Glass Area (m²)', 1.5)) if pd.notna(row.get('Glass Area (m²)')) else 1.5,
-                    get_orientation_from_azimuth(row.get('Azimuth (°)')),
-                    False  # Will be updated after radiation analysis
-                ))
-                
-                # Update progress if callback provided
-                if progress_callback and (idx % 10 == 0 or idx == total_windows - 1):
-                    progress = int((idx + 1) / total_windows * 100)
-                    progress_callback(progress, f"Saving window element {idx + 1}/{total_windows}")
-            
-            conn.commit()
-            return True
-            
-    except Exception as e:
-        conn.rollback()
-        st.error(f"Error saving window data: {e}")
-        return False
-    finally:
-        conn.close()
-
-
-def render_facade_extraction():
+def render_step4_facade_extraction():
     """Main render function for Step 4: Facade & Window Extraction"""
-    render_step4_facade_extraction()
+    render_facade_extraction()
