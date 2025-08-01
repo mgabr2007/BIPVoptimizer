@@ -1166,37 +1166,43 @@ def render_optimization():
                             
                             # 2. Performance by Orientation Analysis - Fix orientation mapping
                             
-                            # Create proper orientation mapping from azimuth if needed
-                            def map_orientation(orientation_value):
-                                """Map orientation values to proper names"""
-                                if pd.isna(orientation_value):
-                                    return "Unknown"
+                            # Create proper orientation mapping from azimuth values
+                            def map_orientation_from_azimuth(row):
+                                """Map azimuth values to proper orientation names"""
+                                # First try existing orientation field
+                                orientation_value = row.get('orientation')
+                                if pd.notna(orientation_value) and orientation_value:
+                                    if isinstance(orientation_value, str):
+                                        if orientation_value in ['North', 'South', 'East', 'West', 'SE', 'SW', 'NE', 'NW']:
+                                            return orientation_value
+                                        if orientation_value.lower() in ['south', 'east', 'west', 'north']:
+                                            return orientation_value.capitalize()
                                 
-                                # Handle string orientations
-                                if isinstance(orientation_value, str):
-                                    if orientation_value in ['North', 'South', 'East', 'West', 'SE', 'SW', 'NE', 'NW']:
-                                        return orientation_value
-                                    if orientation_value.lower() in ['south', 'east', 'west', 'north']:
-                                        return orientation_value.capitalize()
+                                # Use azimuth value if orientation is empty/null
+                                azimuth_value = row.get('azimuth')
+                                if pd.notna(azimuth_value):
+                                    try:
+                                        azimuth = float(azimuth_value)
+                                        # Normalize azimuth to 0-360 range
+                                        azimuth = azimuth % 360
+                                        
+                                        if 315 <= azimuth or azimuth < 45:
+                                            return "North"
+                                        elif 45 <= azimuth < 135:
+                                            return "East"
+                                        elif 135 <= azimuth < 225:
+                                            return "South"
+                                        elif 225 <= azimuth < 315:
+                                            return "West"
+                                        else:
+                                            return f"Azimuth {azimuth:.0f}°"
+                                    except:
+                                        pass
                                 
-                                # Handle numeric orientations (convert to string first)
-                                try:
-                                    numeric_val = float(str(orientation_value))
-                                    if 315 <= numeric_val or numeric_val < 45:
-                                        return "North"
-                                    elif 45 <= numeric_val < 135:
-                                        return "East"
-                                    elif 135 <= numeric_val < 225:
-                                        return "South"
-                                    elif 225 <= numeric_val < 315:
-                                        return "West"
-                                    else:
-                                        return f"Azimuth {numeric_val:.0f}°"
-                                except:
-                                    return "Unknown"
+                                return "Unknown"
                             
-                            # Apply orientation mapping
-                            pv_df['orientation_mapped'] = pv_df['orientation'].apply(map_orientation)
+                            # Apply orientation mapping using both orientation and azimuth
+                            pv_df['orientation_mapped'] = pv_df.apply(map_orientation_from_azimuth, axis=1)
                             
                             # Group by mapped orientation
                             orientation_analysis = pv_df.groupby('orientation_mapped').agg({
