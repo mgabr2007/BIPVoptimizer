@@ -317,15 +317,23 @@ class Step5ExecutionFlow:
         try:
             self.update_progress("Saving results to database...", 0.95)
             
+            # Get the actual radiation data from results
+            radiation_data = results.get('results', results)  # Try 'results' key first, fallback to results itself
+            
+            # Ensure radiation_data is a dictionary
+            if not isinstance(radiation_data, dict):
+                st.error(f"Error saving radiation analysis: Expected dictionary, got {type(radiation_data)}")
+                return False
+            
             success = self.db_manager.save_radiation_analysis(
                 project_id=project_id,
-                radiation_data=results.get('results', {})
+                radiation_data=radiation_data
             )
             
             return success
             
         except Exception as e:
-            st.error(f"Error saving results: {str(e)}")
+            st.error(f"Error saving radiation analysis: {str(e)}")
             return False
     
     def update_session_state(self, project_id: int, results: Dict[str, Any]):
