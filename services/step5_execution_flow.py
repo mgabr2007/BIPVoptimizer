@@ -75,7 +75,7 @@ class Step5ExecutionFlow:
                 
                 # Check TMY data
                 cursor.execute("""
-                    SELECT tmy_data FROM weather_analysis 
+                    SELECT tmy_data FROM weather_data 
                     WHERE project_id = %s AND tmy_data IS NOT NULL
                     ORDER BY created_at DESC LIMIT 1
                 """, (project_id,))
