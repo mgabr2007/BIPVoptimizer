@@ -1096,6 +1096,99 @@ def render_optimization():
         with col4:
             st.metric("Net Import", f"{selected_solution['net_import']:,.0f} kWh")
         
+        # Add CSV download for selected solution
+        st.subheader("📥 Download Selected Solution Data")
+        
+        # Prepare comprehensive solution data for CSV export
+        try:
+            conn = db_manager.get_connection()
+            if conn:
+                with conn.cursor() as cursor:
+                    # Get detailed solution data including selection details
+                    cursor.execute("""
+                        SELECT solution_id, capacity, roi, net_import, total_cost, 
+                               annual_energy_kwh, selection_details, created_at
+                        FROM optimization_results 
+                        WHERE project_id = %s AND solution_id = %s
+                    """, (project_id, selected_solution_id))
+                    
+                    solution_details = cursor.fetchone()
+                    
+                    # Get PV specifications for selected elements
+                    cursor.execute("""
+                        SELECT specification_data 
+                        FROM pv_specifications 
+                        WHERE project_id = %s
+                        LIMIT 1
+                    """, (project_id,))
+                    
+                    pv_spec_result = cursor.fetchone()
+                    
+                    # Create comprehensive CSV data
+                    csv_data = []
+                    
+                    # Add solution summary
+                    csv_data.append({
+                        'Data_Type': 'Solution_Summary',
+                        'Solution_ID': selected_solution_id,
+                        'Capacity_kW': float(selected_solution['capacity']),
+                        'Total_Investment_EUR': float(selected_solution['total_cost']),
+                        'ROI_Percent': float(selected_solution['roi']),
+                        'Annual_Energy_kWh': float(selected_solution['annual_energy_kwh']),
+                        'Net_Import_Reduction_kWh': float(selected_solution['net_import']),
+                        'Selection_Date': solution_details[7] if solution_details else datetime.now().isoformat()
+                    })
+                    
+                    # Add selected elements details if available
+                    if solution_details and solution_details[6]:  # selection_details JSON
+                        import json
+                        selection_data = json.loads(solution_details[6])
+                        selection_mask = selection_data.get('selection_mask', [])
+                        
+                        if pv_spec_result and pv_spec_result[0]:
+                            pv_specs = json.loads(pv_spec_result[0])
+                            bipv_specifications = pv_specs.get('bipv_specifications', [])
+                            
+                            # Add details for each selected element
+                            for i, is_selected in enumerate(selection_mask):
+                                if is_selected and i < len(bipv_specifications):
+                                    element = bipv_specifications[i]
+                                    csv_data.append({
+                                        'Data_Type': 'Selected_Element',
+                                        'Element_ID': element.get('element_id', f'Element_{i}'),
+                                        'Glass_Type': element.get('bipv_glass_type', 'Standard'),
+                                        'Glass_Area_m2': element.get('glass_area_m2', 0),
+                                        'Annual_Energy_kWh': element.get('annual_energy_kwh', 0),
+                                        'Element_Cost_EUR': element.get('total_cost_eur', 0),
+                                        'Orientation': element.get('orientation', 'Unknown'),
+                                        'Building_Level': element.get('building_level', 'Unknown'),
+                                        'Efficiency_Percent': element.get('efficiency_percent', 0)
+                                    })
+                    
+                    # Convert to DataFrame for CSV export
+                    if csv_data:
+                        df_export = pd.DataFrame(csv_data)
+                        
+                        # Generate CSV
+                        csv_buffer = df_export.to_csv(index=False)
+                        filename = f"BIPV_Solution_{selected_solution_id}_Detailed_Data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                        
+                        st.download_button(
+                            label=f"📥 Download Solution {selected_solution_id} Complete Data (CSV)",
+                            data=csv_buffer,
+                            file_name=filename,
+                            mime="text/csv",
+                            help=f"Download comprehensive data for solution {selected_solution_id} including summary and all selected building elements"
+                        )
+                        
+                        st.info(f"CSV contains {len(csv_data)} rows: 1 solution summary + {len(csv_data)-1} selected elements")
+                    else:
+                        st.warning("No detailed data available for CSV export")
+                        
+                conn.close()
+        except Exception as e:
+            st.error(f"Error preparing CSV data: {str(e)}")
+        
         # Retrieve detailed PV specifications for this solution from JSON data
         try:
             conn = db_manager.get_connection()
