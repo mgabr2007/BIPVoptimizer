@@ -162,6 +162,182 @@ def create_optimized_windows_csv(project_id):
         if conn:
             conn.close()
 
+def create_comprehensive_results_csv(project_id, dashboard_data):
+    """Create comprehensive CSV export with all project analysis results"""
+    if not project_id or not dashboard_data:
+        return None
+    
+    try:
+        csv_data = []
+        
+        # Section 1: Project Summary
+        csv_data.append(['Data_Type', 'Category', 'Metric', 'Value', 'Unit', 'Description'])
+        
+        # Project Information (Step 1)
+        if 'project' in dashboard_data:
+            project = dashboard_data['project']
+            csv_data.extend([
+                ['Project_Summary', 'Basic_Info', 'Project_Name', project.get('name', ''), '', 'Project identification'],
+                ['Project_Summary', 'Basic_Info', 'Location', project.get('location', ''), '', 'Project location'],
+                ['Project_Summary', 'Basic_Info', 'Latitude', project.get('latitude', 0), 'degrees', 'Geographic latitude'],
+                ['Project_Summary', 'Basic_Info', 'Longitude', project.get('longitude', 0), 'degrees', 'Geographic longitude'],
+                ['Project_Summary', 'Basic_Info', 'Timezone', project.get('timezone', ''), '', 'Local timezone'],
+                ['Project_Summary', 'Basic_Info', 'Currency', project.get('currency', ''), '', 'Financial currency'],
+                ['Project_Summary', 'Economic', 'Electricity_Rate', project.get('electricity_rate', 0), 'EUR/kWh', 'Grid electricity import rate'],
+                ['Project_Summary', 'Basic_Info', 'Created_Date', str(project.get('created_at', '')), '', 'Project creation timestamp']
+            ])
+        
+        # AI Model Performance (Step 2)
+        if 'ai_model' in dashboard_data:
+            ai = dashboard_data['ai_model']
+            csv_data.extend([
+                ['AI_Model_Performance', 'Model_Quality', 'R_Squared_Score', ai.get('r2_score', 0), '', 'Model prediction accuracy (0-1)'],
+                ['AI_Model_Performance', 'Training', 'Training_Data_Points', ai.get('training_data_points', 0), 'records', 'Historical data used for training'],
+                ['AI_Model_Performance', 'Prediction', 'Forecast_Years', ai.get('forecast_years', 0), 'years', 'Prediction time horizon'],
+                ['AI_Model_Performance', 'Building', 'Building_Area', ai.get('building_area', 0), 'm²', 'Total conditioned floor area'],
+                ['AI_Model_Performance', 'Energy', 'Growth_Rate', ai.get('growth_rate', 0), '%/year', 'Annual energy demand growth'],
+                ['AI_Model_Performance', 'Energy', 'Peak_Demand', ai.get('peak_demand', 0), 'kW', 'Maximum power demand'],
+                ['AI_Model_Performance', 'Energy', 'Annual_Consumption', ai.get('annual_consumption', 0), 'kWh/year', 'Predicted annual energy consumption']
+            ])
+        
+        # Weather Data (Step 3)
+        if 'weather' in dashboard_data:
+            weather = dashboard_data['weather']
+            csv_data.extend([
+                ['Weather_Environment', 'Climate', 'Current_Temperature', weather.get('temperature', 0), '°C', 'Current ambient temperature'],
+                ['Weather_Environment', 'Climate', 'Current_Humidity', weather.get('humidity', 0), '%', 'Current relative humidity'],
+                ['Weather_Environment', 'Solar_Resource', 'Annual_GHI', weather.get('annual_ghi', 0), 'kWh/m²/year', 'Global horizontal irradiance'],
+                ['Weather_Environment', 'Solar_Resource', 'Annual_DNI', weather.get('annual_dni', 0), 'kWh/m²/year', 'Direct normal irradiance'],
+                ['Weather_Environment', 'Solar_Resource', 'Annual_DHI', weather.get('annual_dhi', 0), 'kWh/m²/year', 'Diffuse horizontal irradiance'],
+                ['Weather_Environment', 'Solar_Resource', 'Total_Solar_Resource', weather.get('total_solar_resource', 0), 'kWh/m²/year', 'Combined solar irradiance'],
+                ['Weather_Environment', 'Data_Quality', 'TMY_Data_Points', weather.get('data_points', 0), 'hours', 'Typical meteorological year data points']
+            ])
+        
+        # Building Elements Analysis (Step 4)
+        if 'building' in dashboard_data:
+            building = dashboard_data['building']
+            csv_data.extend([
+                ['Building_Analysis', 'Elements', 'Total_Elements', building.get('total_elements', 0), 'units', 'Total building elements analyzed'],
+                ['Building_Analysis', 'Glass', 'Total_Glass_Area', building.get('total_glass_area', 0), 'm²', 'Total glazed facade area'],
+                ['Building_Analysis', 'Diversity', 'Unique_Orientations', building.get('unique_orientations', 0), 'directions', 'Number of facade orientations'],
+                ['Building_Analysis', 'Structure', 'Building_Levels', building.get('building_levels', 0), 'floors', 'Number of building levels'],
+                ['Building_Analysis', 'BIPV_Potential', 'PV_Suitable_Count', building.get('pv_suitable_count', 0), 'elements', 'Elements suitable for BIPV'],
+                ['Building_Analysis', 'BIPV_Potential', 'Suitability_Rate', building.get('pv_suitable_count', 0)/building.get('total_elements', 1)*100 if building.get('total_elements', 0) > 0 else 0, '%', 'Percentage of elements suitable for BIPV']
+            ])
+            
+            # Add orientation breakdown if available
+            if 'orientation_breakdown' in building:
+                for orientation, data in building['orientation_breakdown'].items():
+                    csv_data.extend([
+                        ['Building_Analysis', f'Orientation_{orientation}', 'Element_Count', data.get('count', 0), 'elements', f'Number of {orientation}-facing elements'],
+                        ['Building_Analysis', f'Orientation_{orientation}', 'Average_Area', data.get('avg_area', 0), 'm²', f'Average glass area per {orientation}-facing element'],
+                        ['Building_Analysis', f'Orientation_{orientation}', 'Suitable_Elements', data.get('suitable_count', 0), 'elements', f'BIPV-suitable {orientation}-facing elements']
+                    ])
+        
+        # Solar Radiation Analysis (Step 5)
+        if 'radiation' in dashboard_data:
+            radiation = dashboard_data['radiation']
+            csv_data.extend([
+                ['Radiation_Analysis', 'Performance', 'Average_Radiation', radiation.get('avg_radiation', 0), 'kWh/m²/year', 'Average annual solar radiation'],
+                ['Radiation_Analysis', 'Performance', 'Minimum_Radiation', radiation.get('min_radiation', 0), 'kWh/m²/year', 'Minimum annual solar radiation'],
+                ['Radiation_Analysis', 'Performance', 'Maximum_Radiation', radiation.get('max_radiation', 0), 'kWh/m²/year', 'Maximum annual solar radiation'],
+                ['Radiation_Analysis', 'Coverage', 'Analyzed_Elements', radiation.get('analyzed_elements', 0), 'elements', 'Elements with completed radiation analysis'],
+                ['Radiation_Analysis', 'Data_Quality', 'Analysis_Coverage', radiation.get('analyzed_elements', 0)/building.get('total_elements', 1)*100 if 'building' in dashboard_data and building.get('total_elements', 0) > 0 else 0, '%', 'Percentage of elements analyzed']
+            ])
+        
+        # PV Systems Specifications (Step 6)
+        if 'pv_systems' in dashboard_data:
+            pv = dashboard_data['pv_systems']
+            csv_data.extend([
+                ['PV_Systems', 'Capacity', 'Total_Capacity', pv.get('total_capacity_kw', 0), 'kW', 'Total installed PV capacity'],
+                ['PV_Systems', 'Performance', 'Average_Power_Density', pv.get('avg_power_density', 0), 'W/m²', 'Average power density of BIPV systems'],
+                ['PV_Systems', 'Performance', 'Average_Efficiency', pv.get('avg_efficiency', 0), '%', 'Average BIPV module efficiency'],
+                ['PV_Systems', 'Count', 'Total_Systems', pv.get('total_systems', 0), 'units', 'Number of individual BIPV systems'],
+                ['PV_Systems', 'Economics', 'Average_Cost_per_m2', pv.get('avg_cost_m2', 0), 'EUR/m²', 'Average BIPV system cost per square meter']
+            ])
+        
+        # Energy Analysis (Step 7)
+        if 'energy_analysis' in dashboard_data:
+            energy = dashboard_data['energy_analysis']
+            csv_data.extend([
+                ['Energy_Analysis', 'Generation', 'Annual_PV_Generation', energy.get('annual_generation', 0), 'kWh/year', 'Annual BIPV energy generation'],
+                ['Energy_Analysis', 'Demand', 'Annual_Building_Demand', energy.get('annual_demand', 0), 'kWh/year', 'Annual building energy demand'],
+                ['Energy_Analysis', 'Balance', 'Net_Energy_Balance', energy.get('net_energy_balance', 0), 'kWh/year', 'Net energy balance (negative = import)'],
+                ['Energy_Analysis', 'Performance', 'Energy_Coverage', energy.get('annual_generation', 0)/energy.get('annual_demand', 1)*100 if energy.get('annual_demand', 0) > 0 else 0, '%', 'Percentage of demand met by BIPV'],
+                ['Energy_Analysis', 'Grid_Interaction', 'Grid_Import', abs(energy.get('net_energy_balance', 0)), 'kWh/year', 'Annual energy import from grid'],
+                ['Energy_Analysis', 'Efficiency', 'Self_Consumption', 100 if energy.get('annual_generation', 0) <= energy.get('annual_demand', 0) else 0, '%', 'Percentage of PV generation used on-site']
+            ])
+        
+        # Financial Analysis (Step 9)
+        if 'financial' in dashboard_data:
+            financial = dashboard_data['financial']
+            csv_data.extend([
+                ['Financial_Analysis', 'Investment', 'Total_Investment', financial.get('total_investment_eur', 0), 'EUR', 'Total BIPV system investment cost'],
+                ['Financial_Analysis', 'Returns', 'Net_Present_Value', financial.get('npv_eur', 0), 'EUR', '25-year NPV at 5% discount rate'],
+                ['Financial_Analysis', 'Returns', 'Internal_Rate_Return', financial.get('irr_percentage', 0), '%', 'Internal rate of return'],
+                ['Financial_Analysis', 'Payback', 'Payback_Period', financial.get('payback_period_years', 0), 'years', 'Simple payback period'],
+                ['Financial_Analysis', 'Savings', 'Annual_Energy_Savings', financial.get('annual_savings_eur', 0), 'EUR/year', 'Annual electricity cost savings'],
+                ['Financial_Analysis', 'Performance', 'ROI_25_Year', financial.get('roi_25_year', 0), '%', '25-year return on investment'],
+                ['Financial_Analysis', 'Viability', 'Economic_Viability', 'Viable' if financial.get('npv_eur', 0) > 0 else 'Not Viable', '', 'Economic feasibility assessment']
+            ])
+        
+        # Optimization Results (Step 8)
+        conn = db_manager.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                # Get optimization results summary
+                cursor.execute("""
+                    SELECT COUNT(*) as solution_count,
+                           MAX(roi) as best_roi,
+                           MIN(total_cost) as min_investment,
+                           MAX(capacity) as max_capacity,
+                           AVG(roi) as avg_roi
+                    FROM optimization_results 
+                    WHERE project_id = %s
+                """, (project_id,))
+                
+                opt_summary = cursor.fetchone()
+                if opt_summary:
+                    csv_data.extend([
+                        ['Optimization_Results', 'Solutions', 'Total_Solutions_Found', opt_summary[0], 'solutions', 'Number of optimization solutions generated'],
+                        ['Optimization_Results', 'Performance', 'Best_ROI', opt_summary[1] or 0, '%', 'Highest ROI among all solutions'],
+                        ['Optimization_Results', 'Economics', 'Minimum_Investment', opt_summary[2] or 0, 'EUR', 'Lowest investment cost solution'],
+                        ['Optimization_Results', 'Capacity', 'Maximum_Capacity', opt_summary[3] or 0, 'kW', 'Highest capacity solution'],
+                        ['Optimization_Results', 'Performance', 'Average_ROI', opt_summary[4] or 0, '%', 'Average ROI across all solutions']
+                    ])
+                
+                # Get recommended solution (best rank)
+                cursor.execute("""
+                    SELECT solution_id, capacity, roi, total_cost, annual_energy_kwh, rank_position
+                    FROM optimization_results 
+                    WHERE project_id = %s 
+                    ORDER BY rank_position ASC 
+                    LIMIT 1
+                """, (project_id,))
+                
+                recommended = cursor.fetchone()
+                if recommended:
+                    csv_data.extend([
+                        ['Recommended_Solution', 'Identity', 'Solution_ID', recommended[0], '', 'Recommended solution identifier'],
+                        ['Recommended_Solution', 'Capacity', 'System_Capacity', recommended[1], 'kW', 'Recommended solution PV capacity'],
+                        ['Recommended_Solution', 'Returns', 'Expected_ROI', recommended[2], '%', 'Recommended solution ROI'],
+                        ['Recommended_Solution', 'Investment', 'Total_Cost', recommended[3], 'EUR', 'Recommended solution total cost'],
+                        ['Recommended_Solution', 'Energy', 'Annual_Generation', recommended[4], 'kWh/year', 'Recommended solution annual generation'],
+                        ['Recommended_Solution', 'Ranking', 'Rank_Position', recommended[5], '', 'Solution ranking position']
+                    ])
+            
+            conn.close()
+        
+        # Convert to DataFrame and then to CSV
+        df = pd.DataFrame(csv_data[1:], columns=csv_data[0])  # Skip header row for DataFrame creation
+        csv_string = df.to_csv(index=False)
+        
+        return csv_string
+        
+    except Exception as e:
+        st.error(f"Error creating comprehensive CSV: {str(e)}")
+        return None
+
 def get_dashboard_data(project_id):
     """Load all authentic data from database for dashboard display"""
     if not project_id:
@@ -1055,9 +1231,9 @@ def render_comprehensive_dashboard():
     
     # Data export section
     st.markdown("---")
-    st.markdown("### 📥 Data Export")
+    st.markdown("### 📥 Comprehensive Data Export")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         if st.button("📊 Export Dashboard Data (JSON)", type="primary"):
@@ -1070,7 +1246,7 @@ def render_comprehensive_dashboard():
             )
     
     with col2:
-        if st.button("🏢 Export Optimized Window Elements (CSV)", type="primary"):
+        if st.button("🏢 Export Optimized Windows (CSV)", type="primary"):
             # Create detailed window elements CSV with optimization results
             window_elements_csv = create_optimized_windows_csv(project_id)
             if window_elements_csv:
@@ -1083,6 +1259,21 @@ def render_comprehensive_dashboard():
                 )
             else:
                 st.error("No optimization results available for export")
+                
+    with col3:
+        if st.button("📋 Export Complete Results (CSV)", type="primary"):
+            # Create comprehensive CSV with all project data
+            comprehensive_csv = create_comprehensive_results_csv(project_id, dashboard_data)
+            if comprehensive_csv:
+                st.download_button(
+                    label="📋 Download Complete Analysis CSV",
+                    data=comprehensive_csv,
+                    file_name=f"BIPV_Complete_Analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    help="Download comprehensive CSV with all project results including project summary, building analysis, energy performance, financial analysis, and optimization results"
+                )
+            else:
+                st.error("No comprehensive data available for export")
     
     # Navigation
     st.markdown("---")
