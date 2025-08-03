@@ -91,9 +91,15 @@ def create_optimized_windows_csv(project_id):
                     st.warning("No building elements found in current project. Please ensure data has been uploaded in Step 4.")
                     return "Element_ID,Wall_Element_ID,Building_Level,Orientation,Glass_Area_m2,Window_Width_m,Window_Height_m,Azimuth_degrees,Annual_Radiation_kWh_m2,PV_Suitable,BIPV_Technology,BIPV_Efficiency_%,BIPV_Transparency_%,BIPV_Power_Density_W_m2,System_Capacity_kW,Annual_Generation_kWh,Cost_per_m2_EUR,Total_System_Cost_EUR,Payback_Period_Years,Solution_Status\nNo building elements found in current project"
                 
-                # Process each element
+                # Process each element (avoid duplicates by tracking processed elements)
+                processed_elements = set()
                 for element in building_elements:
                     element_id = element[0]
+                    
+                    # Skip if element already processed (avoid duplicates)
+                    if element_id in processed_elements:
+                        continue
+                    processed_elements.add(element_id)
                     
                     # Find matching BIPV specification
                     element_spec = None
@@ -108,15 +114,24 @@ def create_optimized_windows_csv(project_id):
                     
                     # Extract BIPV specifications
                     if element_spec:
-                        # Get BIPV glass type and technology details
-                        bipv_tech = element_spec.get('bipv_glass_type', element_spec.get('technology_name', 'Standard BIPV'))
-                        efficiency = float(element_spec.get('efficiency_percent', element_spec.get('efficiency', 8.9)))
-                        transparency = float(element_spec.get('transparency_percent', element_spec.get('transparency', 85)))
-                        power_density = float(element_spec.get('power_density_w_m2', element_spec.get('power_density', 85)))
+                        # Get BIPV glass type and technology details from actual database fields
+                        bipv_tech = element_spec.get('panel_technology', 'Custom SUNOVATION eFORM')
+                        
+                        # Convert efficiency and transparency from decimal to percentage
+                        efficiency_raw = float(element_spec.get('efficiency', 0.25))
+                        efficiency = efficiency_raw * 100 if efficiency_raw < 1 else efficiency_raw
+                        
+                        transparency_raw = float(element_spec.get('transparency', 0.2))
+                        transparency = transparency_raw * 100 if transparency_raw < 1 else transparency_raw
+                        
+                        power_density = float(element_spec.get('power_density_w_m2', 250))
                         capacity = float(element_spec.get('capacity_kw', 0))
                         annual_gen = float(element_spec.get('annual_energy_kwh', 0))
-                        cost_per_m2 = float(element_spec.get('cost_per_m2', element_spec.get('cost_per_m2_eur', 25)))
                         total_cost = float(element_spec.get('total_cost_eur', 0))
+                        
+                        # Calculate cost per m2 from total cost and glass area
+                        glass_area = float(element_spec.get('glass_area_m2', element[4]))
+                        cost_per_m2 = total_cost / glass_area if glass_area > 0 else 0
                         
                         # Calculate payback using electricity rate from project
                         electricity_rate = 0.30  # Default EUR/kWh
