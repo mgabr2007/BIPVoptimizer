@@ -26,54 +26,27 @@ def create_optimized_windows_csv(project_id):
             return None
         
         with conn.cursor() as cursor:
-            # First check if current project has data, if not use most recent project with data
-            cursor.execute("""
-                SELECT COUNT(*) FROM building_elements WHERE project_id = %s
-            """, (project_id,))
-            
-            element_count = cursor.fetchone()[0]
-            
-            # If no elements in current project, find project with most elements
-            if element_count == 0:
-                cursor.execute("""
-                    SELECT project_id 
-                    FROM building_elements 
-                    GROUP BY project_id 
-                    ORDER BY COUNT(*) DESC 
-                    LIMIT 1
-                """)
-                
-                data_project_result = cursor.fetchone()
-                if data_project_result:
-                    data_project_id = data_project_result[0]
-                    st.info(f"Using project ID {data_project_id} with available data for CSV export")
-                else:
-                    st.error("No projects with building element data found")
-                    return None
-            else:
-                data_project_id = project_id
-            
-            # Get the recommended optimization solution
+            # Get the recommended optimization solution for current project only
             cursor.execute("""
                 SELECT solution_id, capacity, roi, total_cost, annual_energy_kwh
                 FROM optimization_results 
                 WHERE project_id = %s 
                 ORDER BY rank_position ASC 
                 LIMIT 1
-            """, (data_project_id,))
+            """, (project_id,))
             
             recommended_solution = cursor.fetchone()
             if not recommended_solution:
-                st.warning("No optimization results found, including all suitable elements")
+                st.warning("No optimization results found for current project")
             
-            # Get PV specifications data with element details
+            # Get PV specifications data with element details for current project only
             cursor.execute("""
                 SELECT specification_data 
                 FROM pv_specifications 
                 WHERE project_id = %s 
                 ORDER BY created_at DESC 
                 LIMIT 1
-            """, (data_project_id,))
+            """, (project_id,))
             
             pv_spec_result = cursor.fetchone()
             if not pv_spec_result or not pv_spec_result[0]:
@@ -100,7 +73,7 @@ def create_optimized_windows_csv(project_id):
                 
                 csv_data.append(headers)
                 
-                # Get building elements and radiation data for context
+                # Get building elements and radiation data for current project only
                 cursor.execute("""
                     SELECT be.element_id, be.wall_element_id, be.building_level, be.orientation,
                            be.glass_area, be.window_width, be.window_height, be.azimuth, be.pv_suitable,
@@ -109,9 +82,14 @@ def create_optimized_windows_csv(project_id):
                     LEFT JOIN element_radiation er ON be.element_id = er.element_id AND be.project_id = er.project_id
                     WHERE be.project_id = %s
                     ORDER BY be.element_id
-                """, (data_project_id,))
+                """, (project_id,))
                 
                 building_elements = cursor.fetchall()
+                
+                # Check if current project has any building elements
+                if not building_elements:
+                    st.warning("No building elements found in current project. Please ensure data has been uploaded in Step 4.")
+                    return "Element_ID,Wall_Element_ID,Building_Level,Orientation,Glass_Area_m2,Window_Width_m,Window_Height_m,Azimuth_degrees,Annual_Radiation_kWh_m2,PV_Suitable,BIPV_Technology,BIPV_Efficiency_%,BIPV_Transparency_%,BIPV_Power_Density_W_m2,System_Capacity_kW,Annual_Generation_kWh,Cost_per_m2_EUR,Total_System_Cost_EUR,Payback_Period_Years,Solution_Status\nNo building elements found in current project"
                 
                 # Process each element
                 for element in building_elements:
