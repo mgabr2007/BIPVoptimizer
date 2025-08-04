@@ -26,6 +26,25 @@ def create_optimized_windows_csv(project_id):
             return None
         
         with conn.cursor() as cursor:
+            # Get project details including electricity rates
+            cursor.execute("""
+                SELECT project_name, electricity_rates 
+                FROM projects 
+                WHERE id = %s
+            """, (project_id,))
+            
+            project_details = cursor.fetchone()
+            
+            # Extract electricity rate for payback calculations
+            electricity_rate = 0.30  # Default EUR/kWh
+            if project_details and project_details[1]:
+                try:
+                    import json
+                    rates_data = json.loads(project_details[1]) if isinstance(project_details[1], str) else project_details[1]
+                    electricity_rate = float(rates_data.get('import_rate', 0.30))
+                except:
+                    electricity_rate = 0.30  # Fallback to default
+            
             # Get the recommended optimization solution for current project only
             cursor.execute("""
                 SELECT solution_id, capacity, roi, total_cost, annual_energy_kwh
@@ -72,6 +91,12 @@ def create_optimized_windows_csv(project_id):
                 ]
                 
                 csv_data.append(headers)
+                
+                # Add project info and electricity rate for reference
+                if project_details:
+                    csv_data.append([f"# Project: {project_details[0]}"])
+                    csv_data.append([f"# Electricity Rate Used: {electricity_rate:.3f} EUR/kWh"])
+                    csv_data.append([])  # Empty row for spacing
                 
                 # Get building elements and radiation data for current project only
                 cursor.execute("""
@@ -133,8 +158,7 @@ def create_optimized_windows_csv(project_id):
                         glass_area = float(element_spec.get('glass_area_m2', element[4]))
                         cost_per_m2 = total_cost / glass_area if glass_area > 0 else 0
                         
-                        # Calculate payback using electricity rate from project
-                        electricity_rate = 0.30  # Default EUR/kWh
+                        # Calculate payback using electricity rate from project settings
                         if annual_gen > 0:
                             annual_savings = annual_gen * electricity_rate
                             payback = round(total_cost / annual_savings, 1) if annual_savings > 0 else 0
