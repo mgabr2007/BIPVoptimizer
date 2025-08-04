@@ -205,6 +205,11 @@ def render_financial_analysis():
     
     # Get electricity rates for display (define at top level) - ensure it's a dict
     electricity_rates_raw = project_data.get('electricity_rates', {})
+    
+    # Debug: Show what we're getting from the database
+    st.write(f"**Debug - Project ID:** {project_id}")
+    st.write(f"**Debug - Raw electricity_rates:** {electricity_rates_raw}")
+    
     if isinstance(electricity_rates_raw, str):
         try:
             import json
@@ -214,16 +219,29 @@ def render_financial_analysis():
     else:
         electricity_rates = electricity_rates_raw or {'import_rate': 0.25, 'source': 'fallback'}
     
+    # If no rates found in current project, check session state as backup
+    if not electricity_rates or electricity_rates.get('import_rate') in [0.25, None]:
+        if 'electricity_rates' in st.session_state:
+            session_rates = st.session_state['electricity_rates']
+            st.warning(f"⚠️ Using rates from session state: {session_rates.get('import_rate', 'N/A')} €/kWh")
+            electricity_rates = session_rates
+    
     # Show automatically loaded data
     st.subheader("📊 Auto-Loaded Project Data")
     
     auto_col1, auto_col2 = st.columns(2)
     
     with auto_col1:
+        rate_value = electricity_rates.get('import_rate', 0.25)
+        rate_source = electricity_rates.get('source', 'manual')
+        location = project_data.get('location_name', project_data.get('location', 'Not set'))
         
-        st.info(f"**💰 Electricity Rate:** {electricity_rates.get('import_rate', 0.25):.3f} €/kWh\n"
-                f"**📍 Location:** {project_data.get('location_name', 'Not set')}\n"
-                f"**⚡ Rate Source:** {electricity_rates.get('source', 'manual')}")
+        st.info(f"**💰 Electricity Rate:** {rate_value:.3f} €/kWh\n"
+                f"**📍 Location:** {location}\n"
+                f"**⚡ Rate Source:** {rate_source}")
+        
+        # Additional debug info
+        st.write(f"**Debug - Final electricity_rates dict:** {electricity_rates}")
     
     with auto_col2:
         # Use the selected_solution from optimization results (already a pandas Series)
