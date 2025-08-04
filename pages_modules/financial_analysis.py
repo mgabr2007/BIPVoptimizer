@@ -206,10 +206,6 @@ def render_financial_analysis():
     # Get electricity rates for display (define at top level) - ensure it's a dict
     electricity_rates_raw = project_data.get('electricity_rates', {})
     
-    # Debug: Show what we're getting from the database
-    st.write(f"**Debug - Project ID:** {project_id}")
-    st.write(f"**Debug - Raw electricity_rates:** {electricity_rates_raw}")
-    
     if isinstance(electricity_rates_raw, str):
         try:
             import json
@@ -265,9 +261,6 @@ def render_financial_analysis():
         st.info(f"**💰 Electricity Rate:** {rate_value:.3f} €/kWh\n"
                 f"**📍 Location:** {location}\n"
                 f"**⚡ Rate Source:** {rate_source}")
-        
-        # Additional debug info
-        st.write(f"**Debug - Final electricity_rates dict:** {electricity_rates}")
     
     with auto_col2:
         # Use the selected_solution from optimization results (already a pandas Series)
