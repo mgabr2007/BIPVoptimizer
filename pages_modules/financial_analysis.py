@@ -226,6 +226,32 @@ def render_financial_analysis():
             st.warning(f"⚠️ Using rates from session state: {session_rates.get('import_rate', 'N/A')} €/kWh")
             electricity_rates = session_rates
     
+    # Add manual override option if rates don't match expected values
+    st.subheader("⚙️ Electricity Rate Override")
+    
+    current_rate = electricity_rates.get('import_rate', 0.25)
+    
+    # Allow manual override
+    override_rate = st.number_input(
+        "Override Electricity Rate (€/kWh)",
+        min_value=0.01,
+        max_value=1.00,
+        value=current_rate,
+        step=0.001,
+        format="%.3f",
+        help="If the auto-loaded rate is incorrect, you can override it here. This will be used for all financial calculations.",
+        key="override_electricity_rate"
+    )
+    
+    # Update electricity_rates if overridden
+    if override_rate != current_rate:
+        electricity_rates = {
+            'import_rate': override_rate,
+            'source': f'Manual Override (was {current_rate:.3f})',
+            'timestamp': 'now'
+        }
+        st.success(f"✅ Using override rate: {override_rate:.3f} €/kWh")
+    
     # Show automatically loaded data
     st.subheader("📊 Auto-Loaded Project Data")
     
@@ -283,9 +309,10 @@ def render_financial_analysis():
         default_price = electricity_rates.get('import_rate', 0.25)
         
         electricity_price = st.number_input(
-            "Current Electricity Price (€/kWh)",
-            0.05, 0.50, default_price, 0.01,
-            help=f"💡 Auto-loaded from Step 1: {default_price:.3f} €/kWh. You can adjust if needed.",
+            "Financial Analysis Electricity Price (€/kWh)",
+            0.01, 1.00, default_price, 0.001,
+            format="%.3f",
+            help=f"💡 Rate from database: {default_price:.3f} €/kWh. Adjust if needed for financial calculations.",
             key="electricity_price_fin"
         )
         
