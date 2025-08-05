@@ -825,7 +825,6 @@ def render_optimization():
         
         st.info("**Multi-Objective Optimization Results from Database**")
         
-        # DEBUGGING MATRIX DISPLAY - Show calculation breakdown
         st.subheader("🎯 Optimization Analysis Summary")
         
         # Window Selection Summary - Calculate how many windows each solution uses
@@ -1049,7 +1048,7 @@ def render_optimization():
         fig4.update_layout(height=500, title_text="Detailed Top Solutions Analysis")
         st.plotly_chart(fig4, use_container_width=True)
         
-        # Key metrics from best solutions using authentic database fields
+        # Summary metrics after charts
         best_solution = solutions.iloc[0]
         
         col1, col2, col3, col4 = st.columns(4)
@@ -1061,7 +1060,7 @@ def render_optimization():
             st.metric("Best Investment", f"€{best_solution['total_cost']:,.0f}")
         
         with col3:
-            st.metric("Capacity", f"{best_solution['capacity']:.1f} kW")
+            st.metric("Best Capacity", f"{best_solution['capacity']:.1f} kW")
         
         with col4:
             st.metric("Solutions Found", len(solutions))
@@ -1096,18 +1095,18 @@ def render_optimization():
         st.success(f"✅ Selected Solution {selected_solution_id} - Ready for Step 9 Financial Analysis")
         
         # Display detailed analysis for selected solution
-        st.subheader(f"📊 Detailed Analysis: Solution {selected_solution_id}")
+        st.subheader(f"📊 Selected Solution Analysis: {selected_solution_id}")
         
-        # Solution summary metrics
+        # Selected solution detailed metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("ROI", f"{selected_solution['roi']:.1f}%")
+            st.metric("Selected ROI", f"{selected_solution['roi']:.1f}%")
         with col2:
-            st.metric("Investment", f"€{selected_solution['total_cost']:,.0f}")
+            st.metric("Selected Investment", f"€{selected_solution['total_cost']:,.0f}")
         with col3:
-            st.metric("Capacity", f"{selected_solution['capacity']:.1f} kW")
+            st.metric("Selected Capacity", f"{selected_solution['capacity']:.1f} kW")
         with col4:
-            st.metric("Net Import", f"{selected_solution['net_import']:,.0f} kWh")
+            st.metric("Annual Energy", f"{selected_solution['annual_energy_kwh']:,.0f} kWh")
         
         # Add CSV download for selected solution
         st.subheader("📥 Download Selected Solution Data")
