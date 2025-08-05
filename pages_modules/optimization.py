@@ -538,15 +538,6 @@ def render_optimization():
             weight_yield = 0
             weight_roi = 0
         
-        # Display auto-calculated weights
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.metric("Maximize Yield Weight", f"{weight_yield}%", 
-                     help="Auto-calculated to maintain 100% total")
-        with col_b:
-            st.metric("Maximize ROI Weight", f"{weight_roi}%", 
-                     help="Auto-calculated to maintain 100% total")
-        
         # Secondary adjustment option
         if st.checkbox("Fine-tune Yield vs ROI balance", key="fine_tune_weights"):
             if weight_yield + weight_roi > 0:
@@ -558,6 +549,15 @@ def render_optimization():
                 remaining_for_yield_roi = 100 - weight_cost
                 weight_yield = int((yield_portion / 100) * remaining_for_yield_roi)
                 weight_roi = remaining_for_yield_roi - weight_yield
+        
+        # Display final calculated weights (after fine-tuning)
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.metric("Maximize Yield Weight", f"{weight_yield}%", 
+                     help="Auto-calculated to maintain 100% total")
+        with col_b:
+            st.metric("Maximize ROI Weight", f"{weight_roi}%", 
+                     help="Auto-calculated to maintain 100% total")
         
         # Always show balanced total
         st.success(f"✅ Auto-balanced objectives: Cost {weight_cost}%, Yield {weight_yield}%, ROI {weight_roi}% = 100%")
