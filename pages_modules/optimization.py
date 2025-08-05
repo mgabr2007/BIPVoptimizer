@@ -297,17 +297,30 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
                 
             # Calculate annual savings (grid import reduction)
             energy_offset = min(total_annual_yield, total_annual_demand) if total_annual_demand > 0 else total_annual_yield
-            annual_savings = energy_offset * electricity_price
+            gross_annual_savings = energy_offset * electricity_price
             
-            # Calculate ROI
-            roi = (annual_savings / total_cost * 100) if total_cost > 0 and annual_savings > 0 else 0
+            # Include realistic maintenance and operational costs
+            include_maintenance = financial_params.get('include_maintenance', True)
+            if include_maintenance:
+                # Apply realistic BIPV maintenance cost (2-3% of investment annually)
+                annual_maintenance = total_cost * 0.025  # 2.5% annual maintenance
+                net_annual_savings = gross_annual_savings - annual_maintenance
+            else:
+                net_annual_savings = gross_annual_savings
+            
+            # Calculate ROI with net savings (after maintenance)
+            roi = (net_annual_savings / total_cost * 100) if total_cost > 0 and net_annual_savings > 0 else 0
+            
+            # Store both gross and net savings for transparency
+            annual_savings = net_annual_savings
             
             solution = {
                 'solution_id': f"Solution_{i+1}",
                 'total_power_kw': float(total_power_kw),  # Ensure float conversion
                 'total_investment': float(total_cost),    # Ensure float conversion
                 'annual_energy_kwh': float(total_annual_yield),  # Ensure float conversion
-                'annual_savings': float(annual_savings),  # Ensure float conversion
+                'annual_savings': float(annual_savings),  # Net annual savings after maintenance
+                'gross_annual_savings': float(gross_annual_savings),  # Gross savings before maintenance
                 'roi': float(roi),                        # Ensure float conversion
                 'net_import_kwh': float(net_import),     # Ensure float conversion
                 'selected_elements': selected_elements,
