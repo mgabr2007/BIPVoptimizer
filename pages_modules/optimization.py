@@ -967,7 +967,7 @@ def render_optimization():
                 st.metric("Maximum Windows Used", f"{max_selected:,}")
                 st.caption(f"Solution with highest coverage")
         
-        with st.expander("📊 Top Solutions Window Usage", expanded=True):
+        with st.expander("📊 Top Solutions Window Usage", expanded=False):
             st.write("**Window Selection by Solution:**")
             for i, (_, solution) in enumerate(solutions.head(5).iterrows()):
                 windows_used = window_counts[i] if i < len(window_counts) else 0
