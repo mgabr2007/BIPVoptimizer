@@ -1290,76 +1290,78 @@ def render_optimization():
                         bipv_specifications = pv_specs.get('bipv_specifications', [])
                         st.info(f"🔍 BIPV specs found: {len(bipv_specifications)} elements")
                         
-                        # Get authentic radiation data from analysis
+                        # Get authentic element-specific radiation data
                         cursor.execute("""
-                            SELECT avg_irradiance, peak_irradiance, shading_factor 
-                            FROM radiation_analysis 
+                            SELECT element_id, annual_radiation, irradiance, orientation_multiplier 
+                            FROM element_radiation 
                             WHERE project_id = %s
-                            ORDER BY created_at DESC LIMIT 1
                         """, (project_id,))
                         
-                        radiation_result = cursor.fetchone()
-                        st.info(f"🔍 Radiation data check: {radiation_result}")
+                        radiation_data = cursor.fetchall()
+                        radiation_lookup = {}
                         
-                        # Only proceed with authentic radiation analysis data
-                        if radiation_result and radiation_result[0] and radiation_result[2]:
-                            avg_irradiance = float(radiation_result[0])
-                            shading_factor = float(radiation_result[2])
-                            st.success(f"✅ Using authentic radiation data: {avg_irradiance} kWh/m²/year, shading {shading_factor}")
+                        if radiation_data:
+                            # Create lookup dictionary for element-specific radiation data
+                            for elem_id, annual_rad, irradiance, orient_mult in radiation_data:
+                                radiation_lookup[str(elem_id)] = {
+                                    'annual_radiation': float(annual_rad) if annual_rad else 0,
+                                    'irradiance': float(irradiance) if irradiance else 0,
+                                    'orientation_multiplier': float(orient_mult) if orient_mult else 1.0
+                                }
+                            st.success(f"✅ Found authentic radiation data for {len(radiation_data)} elements")
                         else:
                             st.error("❌ No authentic radiation analysis data found. CSV export requires completed Step 5 (Radiation Analysis).")
                             st.info("💡 Please complete Step 5 Radiation Analysis to generate authentic element-by-element performance data for CSV export.")
                             return
                             
-                            # Process each selected element using the selection_mask
-                            for i, element in enumerate(bipv_specifications):
-                                if i < len(selection_mask) and selection_mask[i] == 1:  # Element is selected
-                                    element_id = str(element.get('element_id', ''))
-                                    building_data = element_lookup.get(element_id)
+                        # Process each selected element using the selection_mask
+                        for i, element in enumerate(bipv_specifications):
+                            if i < len(selection_mask) and selection_mask[i] == 1:  # Element is selected
+                                element_id = str(element.get('element_id', ''))
+                                building_data = element_lookup.get(element_id)
+                                radiation_info = radiation_lookup.get(element_id)
+                                
+                                if radiation_info:  # Only process elements with authentic radiation data
+                                    # Use authentic radiation data from Step 5 analysis
+                                    annual_radiation = radiation_info['annual_radiation']
                                     
                                     # Calculate orientation from authentic building data
                                     orientation = 'Unknown'
-                                    orientation_factor = 1.0
                                     if building_data and len(building_data) > 2 and building_data[2]:
                                         azimuth = float(building_data[2])
                                         azimuth = azimuth % 360
                                         if 315 <= azimuth or azimuth < 45:
                                             orientation = "North"
-                                            orientation_factor = 0.6
                                         elif 45 <= azimuth < 135:
                                             orientation = "East"
-                                            orientation_factor = 0.8
                                         elif 135 <= azimuth < 225:
                                             orientation = "South"
-                                            orientation_factor = 1.0
                                         elif 225 <= azimuth < 315:
                                             orientation = "West"
-                                            orientation_factor = 0.8
                                     
                                     # Calculate using authentic analysis data
                                     glass_area = element.get('glass_area_m2', 0)
-                                    annual_radiation = avg_irradiance * orientation_factor * shading_factor
                                     efficiency = element.get('efficiency_percent', 0) / 100 if element.get('efficiency_percent', 0) > 1 else element.get('efficiency_percent', 0)
                                     annual_energy = float(glass_area) * float(annual_radiation) * float(efficiency)
                                     
                                     csv_data.append({
                                         'Data_Type': 'BIPV_Element',
                                         'Element_ID': element_id,
-                                            'Glass_Type': element.get('bipv_glass_type', ''),
-                                            'Glass_Area_m2': float(glass_area),
-                                            'Annual_Radiation_kWh_m2': float(annual_radiation),
-                                            'Annual_Energy_kWh': float(annual_energy),
-                                            'Element_Cost_EUR': float(element.get('total_cost_eur', 0)),
-                                            'Orientation': orientation,
-                                            'Azimuth_Degrees': float(building_data[2]) if building_data and len(building_data) > 2 else None,
-                                            'Building_Level': building_data[4] if building_data and len(building_data) > 4 else '',
-                                            'Family_Type': building_data[5] if building_data and len(building_data) > 5 else '',
-                                            'Window_Width_m': float(building_data[7]) if building_data and len(building_data) > 7 else None,
-                                            'Window_Height_m': float(building_data[8]) if building_data and len(building_data) > 8 else None,
-                                            'Efficiency_Percent': float(element.get('efficiency_percent', 0)),
-                                            'PV_Capacity_kW': float(element.get('capacity_kw', 0)),
-                                            'Note': f'Selected element in Solution {selected_solution_id}'
-                                        })
+                                        'Glass_Type': element.get('bipv_glass_type', ''),
+                                        'Glass_Area_m2': float(glass_area),
+                                        'Annual_Radiation_kWh_m2': float(annual_radiation),
+                                        'Annual_Energy_kWh': float(annual_energy),
+                                        'Element_Cost_EUR': float(element.get('total_cost_eur', 0)),
+                                        'Orientation': orientation,
+                                        'Azimuth_Degrees': float(building_data[2]) if building_data and len(building_data) > 2 else None,
+                                        'Building_Level': building_data[4] if building_data and len(building_data) > 4 else '',
+                                        'Family_Type': building_data[5] if building_data and len(building_data) > 5 else '',
+                                        'Window_Width_m': float(building_data[7]) if building_data and len(building_data) > 7 else None,
+                                        'Window_Height_m': float(building_data[8]) if building_data and len(building_data) > 8 else None,
+                                        'Efficiency_Percent': float(element.get('efficiency_percent', 0)),
+                                        'PV_Capacity_kW': float(element.get('capacity_kw', 0)),
+                                        'Note': f'Authentic radiation data from Step 5 analysis'
+                                    })
                     
                     # If no selection details or radiation data available, show error message
                     else:
