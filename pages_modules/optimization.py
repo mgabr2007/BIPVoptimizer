@@ -1199,20 +1199,17 @@ def render_optimization():
                             pv_specs = json.loads(pv_spec_result[0])
                             bipv_specifications = pv_specs.get('bipv_specifications', [])
                             
-                            # Get radiation data
+                            # Get radiation data from radiation_analysis summary
                             cursor.execute("""
-                                SELECT analysis_data FROM radiation_analysis 
+                                SELECT avg_irradiance, peak_irradiance, shading_factor 
+                                FROM radiation_analysis 
                                 WHERE project_id = %s
                                 ORDER BY created_at DESC LIMIT 1
                             """, (project_id,))
                             
                             radiation_result = cursor.fetchone()
-                            radiation_data = {}
-                            
-                            if radiation_result and radiation_result[0]:
-                                radiation_analysis = json.loads(radiation_result[0])
-                                radiation_elements = radiation_analysis.get('radiation_elements', [])
-                                radiation_data = {str(elem.get('element_id')): elem for elem in radiation_elements}
+                            avg_irradiance = float(radiation_result[0]) if radiation_result and radiation_result[0] else 1200  # Default kWh/m2/year
+                            shading_factor = float(radiation_result[2]) if radiation_result and radiation_result[2] else 0.85  # Default 85%
                             
                             # Create element lookup dictionary
                             element_lookup = {str(elem[0]): elem for elem in building_elements}
@@ -1222,25 +1219,29 @@ def render_optimization():
                                 if i < len(selection_mask) and selection_mask[i] == 1:  # Element is selected
                                     element_id = str(element.get('element_id', ''))
                                     building_data = element_lookup.get(element_id)
-                                    radiation_info = radiation_data.get(element_id, {})
                                     
                                     # Map orientation from azimuth if needed
                                     orientation = 'Unknown'
+                                    orientation_factor = 1.0  # Default multiplier
                                     if building_data and len(building_data) > 2 and building_data[2]:
                                         azimuth = float(building_data[2])
                                         azimuth = azimuth % 360
                                         if 315 <= azimuth or azimuth < 45:
                                             orientation = "North"
+                                            orientation_factor = 0.6  # North gets less sun
                                         elif 45 <= azimuth < 135:
                                             orientation = "East"
+                                            orientation_factor = 0.8
                                         elif 135 <= azimuth < 225:
                                             orientation = "South"
+                                            orientation_factor = 1.0  # Best orientation
                                         elif 225 <= azimuth < 315:
                                             orientation = "West"
+                                            orientation_factor = 0.8
                                     
-                                    # Calculate proper values
+                                    # Calculate proper values using radiation analysis
                                     glass_area = element.get('glass_area_m2', building_data[3] if building_data and len(building_data) > 3 else 0)
-                                    annual_radiation = radiation_info.get('annual_radiation', 0)
+                                    annual_radiation = avg_irradiance * orientation_factor * shading_factor
                                     efficiency = element.get('efficiency_percent', 0) / 100 if element.get('efficiency_percent', 0) > 1 else element.get('efficiency_percent', 0)
                                     annual_energy = float(glass_area) * float(annual_radiation) * float(efficiency) if all([glass_area, annual_radiation, efficiency]) else element.get('annual_energy_kwh', 0)
                                     
@@ -1271,18 +1272,15 @@ def render_optimization():
                         
                         # Get radiation data for complete analysis
                         cursor.execute("""
-                            SELECT analysis_data FROM radiation_analysis 
+                            SELECT avg_irradiance, peak_irradiance, shading_factor 
+                            FROM radiation_analysis 
                             WHERE project_id = %s
                             ORDER BY created_at DESC LIMIT 1
                         """, (project_id,))
                         
                         radiation_result = cursor.fetchone()
-                        radiation_data = {}
-                        
-                        if radiation_result and radiation_result[0]:
-                            radiation_analysis = json.loads(radiation_result[0])
-                            radiation_elements = radiation_analysis.get('radiation_elements', [])
-                            radiation_data = {str(elem.get('element_id')): elem for elem in radiation_elements}
+                        avg_irradiance = float(radiation_result[0]) if radiation_result and radiation_result[0] else 1200
+                        shading_factor = float(radiation_result[2]) if radiation_result and radiation_result[2] else 0.85
                         
                         # Calculate which elements would contribute significantly to the solution capacity
                         target_capacity = float(selected_solution['capacity'])
@@ -1298,11 +1296,24 @@ def render_optimization():
                                 
                             element_id = str(element.get('element_id', ''))
                             building_data = element_lookup.get(element_id, [])
-                            radiation_info = radiation_data.get(element_id, {})
                             
-                            # Calculate comprehensive data
+                            # Calculate orientation factor
+                            orientation_factor = 1.0  # Default
+                            if building_data and len(building_data) > 2 and building_data[2]:
+                                azimuth = float(building_data[2])
+                                azimuth = azimuth % 360
+                                if 315 <= azimuth or azimuth < 45:
+                                    orientation_factor = 0.6  # North
+                                elif 45 <= azimuth < 135:
+                                    orientation_factor = 0.8  # East
+                                elif 135 <= azimuth < 225:
+                                    orientation_factor = 1.0  # South
+                                elif 225 <= azimuth < 315:
+                                    orientation_factor = 0.8  # West
+                            
+                            # Calculate comprehensive data using radiation analysis
                             glass_area = element.get('glass_area_m2', building_data[3] if building_data and len(building_data) > 3 else 0)
-                            annual_radiation = radiation_info.get('annual_radiation', 0)
+                            annual_radiation = avg_irradiance * orientation_factor * shading_factor
                             efficiency = element.get('efficiency_percent', 0) / 100 if element.get('efficiency_percent', 0) > 1 else element.get('efficiency_percent', 0)
                             annual_energy = float(glass_area) * float(annual_radiation) * float(efficiency) if all([glass_area, annual_radiation, efficiency]) else element.get('annual_energy_kwh', 0)
                             
