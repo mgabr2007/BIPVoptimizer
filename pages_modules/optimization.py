@@ -1452,17 +1452,9 @@ def render_optimization():
                                     # Get authentic PV capacity from specs
                                     pv_capacity = float(element.get('capacity_kw', 0))
                                     
-                                    # Get window dimensions from BIM building data (columns 7,8)
-                                    window_width = float(building_data[7]) if len(building_data) > 7 and building_data[7] is not None and building_data[7] > 0 else 0
-                                    window_height = float(building_data[8]) if len(building_data) > 8 and building_data[8] is not None and building_data[8] > 0 else 0
-                                    
-                                    # If dimensions are 0, try to calculate from glass area (assuming square windows)
-                                    if window_width == 0 and window_height == 0 and glass_area > 0:
-                                        # Use glass_area from building data (column 3) if available
-                                        bim_glass_area = float(building_data[3]) if len(building_data) > 3 and building_data[3] else glass_area
-                                        estimated_width = (bim_glass_area ** 0.5)  # Estimate width assuming square
-                                        window_width = estimated_width
-                                        window_height = estimated_width
+                                    # Get exact window dimensions from BIM building data only
+                                    window_width = float(building_data[7]) if len(building_data) > 7 and building_data[7] is not None else 0
+                                    window_height = float(building_data[8]) if len(building_data) > 8 and building_data[8] is not None else 0
                                     
                                     # Get authentic glass technology
                                     glass_type = element.get('panel_technology', 'Custom Heliatek HeliaSol')
