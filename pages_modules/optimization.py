@@ -1254,6 +1254,23 @@ def render_optimization():
                     selection_result = cursor.fetchone()
                     selected_elements = []
                     
+                    # Debug: Show what we found
+                    if selection_result:
+                        st.info(f"🔍 Found selection data for {selected_solution_id}: {type(selection_result[0])}")
+                    else:
+                        st.error(f"❌ No selection_details found for solution {selected_solution_id}")
+                        # Show available solutions with selection data
+                        cursor.execute("""
+                            SELECT solution_id, roi FROM optimization_results 
+                            WHERE project_id = %s AND selection_details IS NOT NULL AND selection_details != 'null'
+                            ORDER BY roi DESC LIMIT 5
+                        """, (project_id,))
+                        available = cursor.fetchall()
+                        st.info("Available solutions with CSV data:")
+                        for sol_id, roi in available:
+                            st.write(f"• {sol_id} (ROI: {roi:.1f}%)")
+                        return
+                    
                     # Create element lookup dictionary (needed for both paths)
                     element_lookup = {str(elem[0]): elem for elem in building_elements}
                     
