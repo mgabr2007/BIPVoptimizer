@@ -1420,25 +1420,33 @@ def render_optimization():
                                     orientation = building_data[1] if len(building_data) > 1 else 'Unknown'
                                     azimuth = float(building_data[2]) if len(building_data) > 2 else 0
                                     
-                                    # Get BIPV glass specifications with proper calculations
+                                    # Get authentic BIPV glass specifications from Step 6
                                     glass_area = float(element.get('glass_area_m2', 0))
-                                    efficiency = float(element.get('efficiency_percent', 15.0))  # Default BIPV efficiency 15%
-                                    efficiency_decimal = efficiency / 100.0 if efficiency > 1 else efficiency
+                                    efficiency = float(element.get('efficiency', 0.17))  # Authentic efficiency from PV specs
+                                    efficiency_percent = efficiency * 100 if efficiency < 1 else efficiency
+                                    
+                                    # Get authentic performance ratio (coverage_factor) from PV specs
+                                    performance_ratio = float(element.get('coverage_factor', 0.85))
+                                    
+                                    # Get authentic power density from PV specs
+                                    power_density = float(element.get('power_density_w_m2', 170))  # W/m² from authentic specs
                                     
                                     # Calculate actual annual energy: Area × Radiation × Efficiency
-                                    annual_energy = glass_area * annual_radiation * efficiency_decimal
+                                    annual_energy = glass_area * annual_radiation * efficiency
+                                    
+                                    # Get authentic PV capacity from specs
+                                    pv_capacity = float(element.get('capacity_kw', 0))
                                     
                                     # Get window dimensions
                                     window_width = float(building_data[7]) if len(building_data) > 7 and building_data[7] else 0
                                     window_height = float(building_data[8]) if len(building_data) > 8 and building_data[8] else 0
                                     
-                                    # Calculate PV capacity: Area × Power Density (assume 160 W/m² for BIPV)
-                                    power_density = 160  # W/m² typical for BIPV
-                                    pv_capacity = (glass_area * power_density) / 1000  # Convert to kW
+                                    # Get authentic glass technology
+                                    glass_type = element.get('panel_technology', 'Custom Heliatek HeliaSol')
                                     
                                     csv_data.append({
                                         'Element_ID': element_id,
-                                        'Glass_Type': element.get('bipv_glass_type', 'Semi-transparent PV'),
+                                        'Glass_Type': glass_type,
                                         'Glass_Area_m2': round(glass_area, 2),
                                         'Annual_Radiation_kWh_m2': round(annual_radiation, 2),
                                         'Annual_Energy_kWh': round(annual_energy, 2),
@@ -1449,12 +1457,17 @@ def render_optimization():
                                         'Family_Type': building_data[5] if len(building_data) > 5 else '',
                                         'Window_Width_m': round(window_width, 2),
                                         'Window_Height_m': round(window_height, 2),
-                                        'Efficiency_Percent': round(efficiency, 1),
-                                        'PV_Capacity_kW': round(pv_capacity, 2),
-                                        'Performance_Ratio': 0.85,  # Standard BIPV performance ratio
+                                        'Efficiency_Percent': round(efficiency_percent, 1),
+                                        'PV_Capacity_kW': round(pv_capacity, 3),
+                                        'Performance_Ratio': round(performance_ratio, 2),
+                                        'Power_Density_W_m2': round(power_density, 0),
+                                        'Transparency': round(float(element.get('transparency', 0.15)), 2),
+                                        'BIPV_Area_m2': round(float(element.get('bipv_area_m2', 0)), 2),
+                                        'Specific_Yield_kWh_kW': round(float(element.get('specific_yield_kwh_kw', 0)), 0),
+                                        'Cost_per_kW_EUR': round(float(element.get('cost_per_kw_eur', 0)), 2),
                                         'Installation_Cost_per_m2': round(float(element.get('total_cost_eur', 0)) / glass_area, 2) if glass_area > 0 else 0,
                                         'Energy_Yield_per_m2': round(annual_energy / glass_area, 2) if glass_area > 0 else 0,
-                                        'Note': f'Calculated from authentic Step 5 radiation analysis'
+                                        'Note': f'Authentic data from Step 5 radiation + Step 6 PV specifications'
                                     })
                     
                     # If no selection details or radiation data available, show error message
