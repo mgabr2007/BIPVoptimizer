@@ -1179,57 +1179,145 @@ def render_optimization():
                         'Selection_Date': solution_details[6] if solution_details else datetime.now().isoformat()
                     })
                     
-                    # Add all available building elements with BIPV specifications
-                    if pv_spec_result and pv_spec_result[0]:
+                    # Get the actual selection mask for this solution
+                    cursor.execute("""
+                        SELECT selection_details FROM optimization_results 
+                        WHERE project_id = %s AND solution_id = %s
+                    """, (project_id, selected_solution_id))
+                    
+                    selection_result = cursor.fetchone()
+                    selected_elements = []
+                    
+                    if selection_result and selection_result[0]:
+                        import json
+                        selection_data = json.loads(selection_result[0])
+                        selection_mask = selection_data.get('selection_mask', [])
+                        
+                        # Get BIPV specifications and radiation data
+                        if pv_spec_result and pv_spec_result[0]:
+                            pv_specs = json.loads(pv_spec_result[0])
+                            bipv_specifications = pv_specs.get('bipv_specifications', [])
+                            
+                            # Get radiation data
+                            cursor.execute("""
+                                SELECT analysis_data FROM radiation_analysis 
+                                WHERE project_id = %s
+                                ORDER BY created_at DESC LIMIT 1
+                            """, (project_id,))
+                            
+                            radiation_result = cursor.fetchone()
+                            radiation_data = {}
+                            
+                            if radiation_result and radiation_result[0]:
+                                radiation_analysis = json.loads(radiation_result[0])
+                                radiation_elements = radiation_analysis.get('radiation_elements', [])
+                                radiation_data = {str(elem.get('element_id')): elem for elem in radiation_elements}
+                            
+                            # Create element lookup dictionary
+                            element_lookup = {str(elem[0]): elem for elem in building_elements}
+                            
+                            # Only add elements that are selected in this solution
+                            for i, element in enumerate(bipv_specifications):
+                                if i < len(selection_mask) and selection_mask[i] == 1:  # Element is selected
+                                    element_id = str(element.get('element_id', ''))
+                                    building_data = element_lookup.get(element_id)
+                                    radiation_info = radiation_data.get(element_id, {})
+                                    
+                                    # Map orientation from azimuth if needed
+                                    orientation = 'Unknown'
+                                    if building_data and len(building_data) > 2 and building_data[2]:
+                                        azimuth = float(building_data[2])
+                                        azimuth = azimuth % 360
+                                        if 315 <= azimuth or azimuth < 45:
+                                            orientation = "North"
+                                        elif 45 <= azimuth < 135:
+                                            orientation = "East"
+                                        elif 135 <= azimuth < 225:
+                                            orientation = "South"
+                                        elif 225 <= azimuth < 315:
+                                            orientation = "West"
+                                    
+                                    # Calculate proper values
+                                    glass_area = element.get('glass_area_m2', building_data[3] if building_data and len(building_data) > 3 else 0)
+                                    annual_radiation = radiation_info.get('annual_radiation', 0)
+                                    efficiency = element.get('efficiency_percent', 0) / 100 if element.get('efficiency_percent', 0) > 1 else element.get('efficiency_percent', 0)
+                                    annual_energy = float(glass_area) * float(annual_radiation) * float(efficiency) if all([glass_area, annual_radiation, efficiency]) else element.get('annual_energy_kwh', 0)
+                                    
+                                    csv_data.append({
+                                        'Data_Type': 'BIPV_Element',
+                                        'Element_ID': element_id,
+                                        'Glass_Type': element.get('bipv_glass_type', 'Standard'),
+                                        'Glass_Area_m2': float(glass_area),
+                                        'Annual_Radiation_kWh_m2': float(annual_radiation),
+                                        'Annual_Energy_kWh': float(annual_energy),
+                                        'Element_Cost_EUR': float(element.get('total_cost_eur', 0)),
+                                        'Orientation': orientation,
+                                        'Azimuth_Degrees': float(building_data[2]) if building_data and len(building_data) > 2 else 0,
+                                        'Building_Level': building_data[4] if building_data and len(building_data) > 4 else 'Unknown',
+                                        'Family_Type': building_data[5] if building_data and len(building_data) > 5 else 'Unknown',
+                                        'Window_Width_m': float(building_data[7]) if building_data and len(building_data) > 7 else 0,
+                                        'Window_Height_m': float(building_data[8]) if building_data and len(building_data) > 8 else 0,
+                                        'Efficiency_Percent': float(element.get('efficiency_percent', 0)),
+                                        'PV_Capacity_kW': float(element.get('capacity_kw', 0)),
+                                        'Note': f'Selected element in Solution {selected_solution_id}'
+                                    })
+                    
+                    # If no selection details found, fall back to showing all specifications
+                    elif pv_spec_result and pv_spec_result[0]:
                         import json
                         pv_specs = json.loads(pv_spec_result[0])
                         bipv_specifications = pv_specs.get('bipv_specifications', [])
                         
-                        # Create element lookup dictionary
-                        element_lookup = {str(elem[0]): elem for elem in building_elements}
-                        
-                        # Add details for all BIPV-suitable elements
-                        for element in bipv_specifications:
+                        for element in bipv_specifications[:50]:  # Limit to first 50 for fallback
                             element_id = str(element.get('element_id', ''))
-                            building_data = element_lookup.get(element_id)
-                            
-                            # Map orientation from azimuth if needed
-                            orientation = 'Unknown'
-                            if building_data and building_data[2]:  # azimuth available
-                                azimuth = float(building_data[2])
-                                azimuth = azimuth % 360
-                                if 315 <= azimuth or azimuth < 45:
-                                    orientation = "North"
-                                elif 45 <= azimuth < 135:
-                                    orientation = "East"
-                                elif 135 <= azimuth < 225:
-                                    orientation = "South"
-                                elif 225 <= azimuth < 315:
-                                    orientation = "West"
+                            building_data = element_lookup.get(element_id, [])
                             
                             csv_data.append({
                                 'Data_Type': 'BIPV_Element',
                                 'Element_ID': element_id,
                                 'Glass_Type': element.get('bipv_glass_type', 'Standard'),
-                                'Glass_Area_m2': element.get('glass_area_m2', building_data[3] if building_data else 0),
-                                'Annual_Energy_kWh': element.get('annual_energy_kwh', 0),
-                                'Element_Cost_EUR': element.get('total_cost_eur', 0),
-                                'Orientation': orientation,
-                                'Azimuth_Degrees': building_data[2] if building_data else 0,
-                                'Building_Level': building_data[4] if building_data else 'Unknown',
-                                'Family_Type': building_data[5] if building_data else 'Unknown',
-                                'Window_Width_m': building_data[7] if building_data else 0,
-                                'Window_Height_m': building_data[8] if building_data else 0,
-                                'Efficiency_Percent': element.get('efficiency_percent', 0),
-                                'Note': f'Part of solution optimization analysis'
+                                'Glass_Area_m2': float(element.get('glass_area_m2', 0)),
+                                'Annual_Energy_kWh': float(element.get('annual_energy_kwh', 0)),
+                                'Element_Cost_EUR': float(element.get('total_cost_eur', 0)),
+                                'Azimuth_Degrees': float(building_data[2]) if building_data and len(building_data) > 2 else 0,
+                                'Building_Level': building_data[4] if building_data and len(building_data) > 4 else 'Unknown',
+                                'Window_Width_m': float(building_data[7]) if building_data and len(building_data) > 7 else 0,
+                                'Window_Height_m': float(building_data[8]) if building_data and len(building_data) > 8 else 0,
+                                'Efficiency_Percent': float(element.get('efficiency_percent', 0)),
+                                'PV_Capacity_kW': float(element.get('capacity_kw', 0)),
+                                'Note': f'Fallback data - selection details not found'
                             })
+                    
+                    # Add financial calculations and summary statistics
+                    if len(csv_data) > 1:  # More than just the summary row
+                        element_data = [row for row in csv_data if row['Data_Type'] == 'BIPV_Element']
+                        
+                        # Calculate totals and add financial analysis
+                        total_elements = len(element_data)
+                        total_area = sum(float(row.get('Glass_Area_m2', 0)) for row in element_data)
+                        total_capacity = sum(float(row.get('PV_Capacity_kW', 0)) for row in element_data)
+                        total_annual_energy = sum(float(row.get('Annual_Energy_kWh', 0)) for row in element_data)
+                        total_cost = sum(float(row.get('Element_Cost_EUR', 0)) for row in element_data)
+                        
+                        # Add summary calculations
+                        csv_data.append({
+                            'Data_Type': 'Financial_Summary',
+                            'Total_Elements_Selected': total_elements,
+                            'Total_Glass_Area_m2': round(total_area, 2),
+                            'Total_PV_Capacity_kW': round(total_capacity, 2),
+                            'Total_Annual_Energy_kWh': round(total_annual_energy, 2),
+                            'Total_Investment_Cost_EUR': round(total_cost, 2),
+                            'Avg_Cost_Per_kW': round(total_cost / total_capacity, 2) if total_capacity > 0 else 0,
+                            'Avg_Energy_Per_m2': round(total_annual_energy / total_area, 2) if total_area > 0 else 0,
+                            'Note': f'Calculated totals for Solution {selected_solution_id}'
+                        })
                     
                     # Convert to DataFrame for CSV export
                     if csv_data:
                         df_export = pd.DataFrame(csv_data)
                         
-                        # Generate CSV
-                        csv_buffer = df_export.to_csv(index=False)
+                        # Generate CSV with improved formatting
+                        csv_buffer = df_export.to_csv(index=False, float_format='%.2f')
                         filename = f"BIPV_Solution_{selected_solution_id}_Detailed_Data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
                         
                         st.download_button(
@@ -1237,10 +1325,11 @@ def render_optimization():
                             data=csv_buffer,
                             file_name=filename,
                             mime="text/csv",
-                            help=f"Download comprehensive data for solution {selected_solution_id} including summary and all selected building elements"
+                            help=f"Download comprehensive data for solution {selected_solution_id} including summary, selected elements, and financial calculations"
                         )
                         
-                        st.info(f"CSV contains {len(csv_data)} rows: 1 solution summary + {len(csv_data)-1} selected elements")
+                        element_count = len([row for row in csv_data if row['Data_Type'] == 'BIPV_Element'])
+                        st.info(f"📊 CSV contains {len(csv_data)} rows: 1 solution summary + {element_count} selected elements + 1 financial summary")
                     else:
                         st.warning("No detailed data available for CSV export")
                         
