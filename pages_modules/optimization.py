@@ -1188,6 +1188,9 @@ def render_optimization():
                     selection_result = cursor.fetchone()
                     selected_elements = []
                     
+                    # Create element lookup dictionary (needed for both paths)
+                    element_lookup = {str(elem[0]): elem for elem in building_elements}
+                    
                     # For now, create a comprehensive CSV since selection details may not be available for existing solutions
                     if selection_result and selection_result[0] and selection_result[0] != 'null':
                         import json
@@ -1211,8 +1214,7 @@ def render_optimization():
                             avg_irradiance = float(radiation_result[0]) if radiation_result and radiation_result[0] else 1200  # Default kWh/m2/year
                             shading_factor = float(radiation_result[2]) if radiation_result and radiation_result[2] else 0.85  # Default 85%
                             
-                            # Create element lookup dictionary
-                            element_lookup = {str(elem[0]): elem for elem in building_elements}
+                            # Element lookup already created above
                             
                             # Only add elements that are selected in this solution
                             for i, element in enumerate(bipv_specifications):
