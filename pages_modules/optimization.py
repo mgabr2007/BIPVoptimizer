@@ -793,6 +793,53 @@ def render_optimization():
         
         st.info("**Multi-Objective Optimization Results from Database**")
         
+        # Investment Range Filter
+        st.subheader("💰 Filter Solutions by Investment Range")
+        
+        # Get investment range from solutions
+        min_investment = float(solutions['total_cost'].min())
+        max_investment = float(solutions['total_cost'].max())
+        
+        col_filter1, col_filter2 = st.columns(2)
+        
+        with col_filter1:
+            investment_min = st.number_input(
+                "Minimum Investment (€)",
+                min_value=0,
+                max_value=int(max_investment),
+                value=0,
+                step=1000,
+                help="Filter solutions by minimum investment amount",
+                key="investment_filter_min"
+            )
+        
+        with col_filter2:
+            investment_max = st.number_input(
+                "Maximum Investment (€)",
+                min_value=int(investment_min),
+                max_value=int(max_investment * 1.1),
+                value=int(max_investment),
+                step=1000,
+                help="Filter solutions by maximum investment amount", 
+                key="investment_filter_max"
+            )
+        
+        # Apply investment filter
+        filtered_solutions = solutions[
+            (solutions['total_cost'] >= investment_min) & 
+            (solutions['total_cost'] <= investment_max)
+        ].copy()
+        
+        # Display filter results
+        st.write(f"**Filter Results:** Showing {len(filtered_solutions)} of {len(solutions)} solutions within €{investment_min:,} - €{investment_max:,} range")
+        
+        if len(filtered_solutions) == 0:
+            st.warning("⚠️ No solutions found within the selected investment range. Try adjusting the filter values.")
+            return
+        
+        # Update solutions variable to use filtered results
+        solutions = filtered_solutions
+        
         st.subheader("🎯 Optimization Analysis Summary")
         
         # Window Selection Summary - Calculate how many windows each solution uses
