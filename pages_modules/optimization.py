@@ -1288,6 +1288,7 @@ def render_optimization():
                     if pv_spec_result and pv_spec_result[0]:
                         pv_specs = json.loads(pv_spec_result[0])
                         bipv_specifications = pv_specs.get('bipv_specifications', [])
+                        st.info(f"🔍 BIPV specs found: {len(bipv_specifications)} elements")
                         
                         # Get authentic radiation data from analysis
                         cursor.execute("""
@@ -1298,9 +1299,19 @@ def render_optimization():
                         """, (project_id,))
                         
                         radiation_result = cursor.fetchone()
+                        st.info(f"🔍 Radiation data check: {radiation_result}")
+                        
+                        # Use default radiation values if no radiation analysis found
                         if radiation_result and radiation_result[0] and radiation_result[2]:
                             avg_irradiance = float(radiation_result[0])
                             shading_factor = float(radiation_result[2])
+                            st.success(f"✅ Using authentic radiation data: {avg_irradiance} kWh/m²/year, shading {shading_factor}")
+                        else:
+                            # Use Berlin standard values for BIPV calculations
+                            avg_irradiance = 1100.0  # Berlin annual solar irradiation kWh/m²/year
+                            shading_factor = 0.85     # Standard building integration factor
+                            st.warning("⚠️ No radiation analysis found, using Berlin standard values for CSV generation")
+                            st.info(f"📊 Using: {avg_irradiance} kWh/m²/year irradiance, {shading_factor} shading factor")
                             
                             # Process each selected element using the selection_mask
                             for i, element in enumerate(bipv_specifications):
