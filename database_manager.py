@@ -432,10 +432,24 @@ class BIPVDatabaseManager:
                     # Include annual energy in optimization results
                     annual_energy = solution.get('annual_energy_kwh', solution.get('annual_energy', capacity * 1200 if capacity else 0))
                     
-                    # Prepare selection details JSON
+                    # Prepare selection details JSON - ensure proper data types
+                    selection_mask = solution.get('selection_mask', [])
+                    selected_elements = solution.get('selected_elements', [])
+                    
+                    # Convert numpy arrays or other objects to lists for JSON serialization
+                    if hasattr(selection_mask, 'tolist'):
+                        selection_mask = selection_mask.tolist()
+                    elif not isinstance(selection_mask, list):
+                        selection_mask = list(selection_mask) if selection_mask else []
+                    
+                    if hasattr(selected_elements, 'tolist'):
+                        selected_elements = selected_elements.tolist()
+                    elif not isinstance(selected_elements, list):
+                        selected_elements = list(selected_elements) if selected_elements else []
+                    
                     selection_details = {
-                        'selection_mask': solution.get('selection_mask', []),
-                        'selected_element_ids': solution.get('selected_elements', []),
+                        'selection_mask': selection_mask,
+                        'selected_element_ids': selected_elements,
                         'optimization_parameters': solution.get('optimization_params', {})
                     }
                     
