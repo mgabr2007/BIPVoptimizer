@@ -31,37 +31,53 @@ def render_radiation_grid():
     # Get current project ID from database - centralized architecture
     from services.io import get_current_project_id
     
+    # Get project_id with improved error handling
+    project_id = None
+    
     try:
         project_id = get_current_project_id()
     except Exception as e:
-        st.error(f"Error retrieving project data: {str(e)}")
-        
-        # Try to use the known Project ID 100 as fallback
+        st.warning(f"Could not retrieve project ID: {str(e)}")
+    
+    # If no project_id found, try fallback methods
+    if not project_id:
         try:
-            conn = db_manager.get_connection()
-            if conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("SELECT id, project_name FROM projects WHERE id = 100")
-                    result = cursor.fetchone()
-                    if result:
-                        project_id = result[0]
-                        project_name = result[1]
-                        
-                        # Set session state for future calls
-                        st.session_state.project_id = project_id
-                        if 'project_data' not in st.session_state:
-                            st.session_state.project_data = {}
-                        st.session_state.project_data['project_id'] = project_id
-                        st.session_state.project_data['project_name'] = project_name
-                        
-                        st.success(f"✅ Recovered project: {project_name} (ID: {project_id})")
-                    else:
-                        st.error("⚠️ No projects found in database. Please complete Step 1 first.")
-                        return
-                conn.close()
-            else:
-                st.error("⚠️ Database connection failed.")
-                return
+            # Try from session state first
+            if hasattr(st.session_state, 'project_id') and st.session_state.project_id:
+                project_id = st.session_state.project_id
+                st.info(f"Using project ID from session: {project_id}")
+            elif hasattr(st.session_state, 'project_data') and isinstance(st.session_state.project_data, dict):
+                if 'project_id' in st.session_state.project_data:
+                    project_id = st.session_state.project_data['project_id']
+                    st.info(f"Using project ID from session data: {project_id}")
+            
+            # If still no project_id, check database for existing projects
+            if not project_id:
+                conn = db_manager.get_connection()
+                if conn:
+                    with conn.cursor() as cursor:
+                        # Get the most recent project
+                        cursor.execute("SELECT id, project_name FROM projects ORDER BY created_at DESC LIMIT 1")
+                        result = cursor.fetchone()
+                        if result:
+                            project_id = result[0]
+                            project_name = result[1]
+                            
+                            # Set session state for future calls
+                            st.session_state.project_id = project_id
+                            if not hasattr(st.session_state, 'project_data'):
+                                st.session_state.project_data = {}
+                            st.session_state.project_data['project_id'] = project_id
+                            st.session_state.project_data['project_name'] = project_name
+                            
+                            st.success(f"✅ Using most recent project: {project_name} (ID: {project_id})")
+                        else:
+                            st.error("⚠️ No projects found in database. Please complete Step 1 first.")
+                            return
+                    conn.close()
+                else:
+                    st.error("⚠️ Database connection failed.")
+                    return
         except Exception as fallback_error:
             st.error(f"⚠️ Could not recover project data: {str(fallback_error)}")
             return
