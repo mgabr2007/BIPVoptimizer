@@ -496,30 +496,7 @@ def render_optimization():
     st.info("💡 Using 100% authentic database data - no session state or fallback dependencies")
     st.info("🎯 Optimization includes only South/East/West-facing elements for realistic solar performance")
     
-    # Clear optimization results button
-    st.subheader("🔄 Optimization Control")
-    col1, col2 = st.columns([1, 2])
-    
-    with col1:
-        if st.button("🗑️ Clear Results & Rerun", 
-                     type="primary", 
-                     help="Clear existing optimization results and run new optimization with complete CSV export tracking",
-                     key="clear_optimization_btn"):
-            try:
-                conn = db_manager.get_connection()
-                if conn:
-                    with conn.cursor() as cursor:
-                        cursor.execute("DELETE FROM optimization_results WHERE project_id = %s", (project_id,))
-                        conn.commit()
-                    conn.close()
-                    st.success("✅ Previous optimization results cleared. Configure parameters below and run new optimization.")
-                    st.info("🎯 New solutions will have complete CSV export capability with element selection tracking")
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Error clearing results: {str(e)}")
-    
-    with col2:
-        st.info("**Clear & Rerun Benefits:**\n- All new solutions will have CSV export capability\n- Complete element selection tracking\n- Authentic performance data for each selected window/facade")
+
     
     # Optimization configuration
     st.subheader("🔧 Optimization Configuration")
@@ -714,8 +691,35 @@ def render_optimization():
         'weights': {'cost': weight_cost, 'yield': weight_yield, 'roi': weight_roi}
     }
     
-    # Run optimization
-    if st.button("🚀 Run Multi-Objective Optimization", key="run_optimization"):
+    # Run optimization buttons side by side
+    st.subheader("🚀 Run Optimization")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        run_optimization = st.button("🚀 Run Multi-Objective Optimization", key="run_optimization")
+    
+    with col2:
+        clear_and_rerun = st.button("🗑️ Clear Results & Rerun", 
+                                   type="secondary", 
+                                   help="Clear existing results and run fresh optimization with complete CSV export tracking",
+                                   key="clear_rerun_btn")
+    
+    # Handle clear and rerun action
+    if clear_and_rerun:
+        try:
+            conn = db_manager.get_connection()
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("DELETE FROM optimization_results WHERE project_id = %s", (project_id,))
+                    conn.commit()
+                conn.close()
+                st.success("✅ Previous results cleared. Running fresh optimization with CSV export capability...")
+                run_optimization = True  # Trigger optimization after clearing
+        except Exception as e:
+            st.error(f"Error clearing results: {str(e)}")
+            run_optimization = False
+    
+    if run_optimization:
         with st.spinner("Running genetic algorithm optimization..."):
             try:
                 # Setup optimization parameters
