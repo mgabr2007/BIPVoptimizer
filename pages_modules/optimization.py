@@ -1334,6 +1334,21 @@ def render_optimization():
                         st.success(f"📊 CSV contains authentic data: 1 solution summary + {element_count} selected elements + financial analysis")
                     elif len(csv_data) == 1:
                         st.warning("Only solution summary available - no element selection data found for this solution")
+                        st.info("💡 **Tip**: This solution was created before selection tracking was implemented. Run a new optimization to generate solutions with complete element selection tracking for detailed CSV export.")
+                        
+                        # Show available solutions with selection data
+                        cursor.execute("""
+                            SELECT solution_id, roi, total_cost, annual_energy_kwh 
+                            FROM optimization_results 
+                            WHERE project_id = %s AND selection_details IS NOT NULL AND selection_details != 'null'
+                            ORDER BY roi DESC LIMIT 10
+                        """, (project_id,))
+                        
+                        available_solutions = cursor.fetchall()
+                        if available_solutions:
+                            st.info("📥 **Solutions with CSV Export Available:**")
+                            for sol in available_solutions:
+                                st.write(f"• Solution {sol[0]}: ROI {sol[1]:.1f}%, Cost €{sol[2]:,.0f}, Energy {sol[3]:,.0f} kWh/year")
                     else:
                         st.error("No authentic data available for CSV export")
                         
