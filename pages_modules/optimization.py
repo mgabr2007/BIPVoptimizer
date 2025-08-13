@@ -609,13 +609,6 @@ def render_optimization():
     col3, col4 = st.columns(2)
     
     with col3:
-        max_investment = st.number_input(
-            "Maximum Investment (€)",
-            10000, 1000000, 100000, 5000,
-            help="💰 Maximum available budget for BIPV installation. Acts as hard constraint during optimization - solutions exceeding this budget are rejected. Consider total project costs including panels, inverters, installation, permits, and electrical work. Typical BIPV: 800-1200 €/kW installed.",
-            key="max_investment_opt"
-        )
-        
         min_coverage = st.slider(
             "Minimum Energy Coverage (%)",
             10, 100, 30, 5,
@@ -674,7 +667,7 @@ def render_optimization():
         st.write(f"• Mutation Rate: {mutation_rate}%")
         st.write("")
         st.write("**Financial Constraints:**")
-        st.write(f"• Maximum Investment: €{max_investment:,}")
+
         st.write(f"• Minimum Coverage: {min_coverage}%")
         st.write(f"• Electricity Price: €{electricity_price:.3f}/kWh")
         st.write("")
@@ -686,7 +679,7 @@ def render_optimization():
 
     # Store optimization parameters for evaluation function
     optimization_params = {
-        'max_investment': max_investment,
+
         'min_coverage': min_coverage,
         'electricity_price': electricity_price,
         'prioritize_roi': prioritize_roi,
@@ -709,7 +702,6 @@ def render_optimization():
                 
                 financial_params = {
                     'electricity_price': electricity_price,
-                    'max_investment': max_investment,
                     'min_coverage': min_coverage / 100,
                     'weight_cost': weight_cost,
                     'weight_yield': weight_yield,
@@ -720,26 +712,9 @@ def render_optimization():
                     'system_size_preference': system_size_preference
                 }
                 
-                # Filter systems by budget constraint
-                if 'total_installation_cost' in pv_specs.columns:
-                    cost_column = 'total_installation_cost'
-                elif 'total_cost_eur' in pv_specs.columns:
-                    cost_column = 'total_cost_eur'
-                elif 'total_cost' in pv_specs.columns:
-                    cost_column = 'total_cost'
-                else:
-                    st.error("Cost information not found in PV specifications data.")
-                    return
-                
-                affordable_specs = pv_specs[pv_specs[cost_column] <= max_investment]
-                
-                if len(affordable_specs) == 0:
-                    st.error("No systems within budget constraint. Please increase maximum investment.")
-                    return
-                
-                # Run genetic algorithm
+                # Run genetic algorithm on all PV specs (no budget filtering)
                 pareto_solutions, fitness_history = simple_genetic_algorithm(
-                    affordable_specs, energy_balance, financial_params, ga_params
+                    pv_specs, energy_balance, financial_params, ga_params
                 )
                 
                 if not pareto_solutions:
@@ -748,15 +723,8 @@ def render_optimization():
                 
                 # Analyze optimization results
                 solutions_df = analyze_optimization_results(
-                    pareto_solutions, affordable_specs, energy_balance, financial_params
+                    pareto_solutions, pv_specs, energy_balance, financial_params
                 )
-                
-                # Filter solutions by constraints
-                solutions_df = solutions_df[solutions_df['total_investment'] <= max_investment]
-                
-                if len(solutions_df) == 0:
-                    st.error("No solutions meet the specified constraints.")
-                    return
                 
                 # Sort by ROI
                 solutions_df = solutions_df.sort_values('roi', ascending=False).reset_index(drop=True)
@@ -769,7 +737,7 @@ def render_optimization():
                         'ga_params': ga_params,
                         'financial_params': financial_params,
                         'constraints': {
-                            'max_investment': max_investment,
+    
                             'min_coverage': min_coverage
                         }
                     }
