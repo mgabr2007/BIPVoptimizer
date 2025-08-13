@@ -1323,7 +1323,7 @@ def render_optimization():
                     
                     pv_spec_result = cursor.fetchone()
                     
-                    # Get building elements data
+                    # Get building elements data with correct column order
                     cursor.execute("""
                         SELECT element_id, orientation, azimuth, glass_area, building_level, 
                                family, element_type, window_width, window_height
@@ -1416,9 +1416,24 @@ def render_optimization():
                                     # Get authentic radiation data from Step 5 analysis
                                     annual_radiation = radiation_info['annual_radiation']
                                     
-                                    # Calculate orientation from building data
-                                    orientation = building_data[1] if len(building_data) > 1 else 'Unknown'
-                                    azimuth = float(building_data[2]) if len(building_data) > 2 else 0
+                                    # Calculate orientation from azimuth (BIM building data)
+                                    azimuth = float(building_data[2]) if len(building_data) > 2 and building_data[2] else 0
+                                    
+                                    # Calculate orientation from azimuth value
+                                    if azimuth is not None and azimuth > 0:
+                                        azimuth_norm = azimuth % 360
+                                        if 315 <= azimuth_norm or azimuth_norm < 45:
+                                            orientation = "North"
+                                        elif 45 <= azimuth_norm < 135:
+                                            orientation = "East"
+                                        elif 135 <= azimuth_norm < 225:
+                                            orientation = "South"
+                                        elif 225 <= azimuth_norm < 315:
+                                            orientation = "West"
+                                        else:
+                                            orientation = "Unknown"
+                                    else:
+                                        orientation = building_data[1] if len(building_data) > 1 and building_data[1] else 'Unknown'
                                     
                                     # Get authentic BIPV glass specifications from Step 6
                                     glass_area = float(element.get('glass_area_m2', 0))
@@ -1437,9 +1452,17 @@ def render_optimization():
                                     # Get authentic PV capacity from specs
                                     pv_capacity = float(element.get('capacity_kw', 0))
                                     
-                                    # Get window dimensions
-                                    window_width = float(building_data[7]) if len(building_data) > 7 and building_data[7] else 0
-                                    window_height = float(building_data[8]) if len(building_data) > 8 and building_data[8] else 0
+                                    # Get window dimensions from BIM building data (columns 7,8)
+                                    window_width = float(building_data[7]) if len(building_data) > 7 and building_data[7] is not None and building_data[7] > 0 else 0
+                                    window_height = float(building_data[8]) if len(building_data) > 8 and building_data[8] is not None and building_data[8] > 0 else 0
+                                    
+                                    # If dimensions are 0, try to calculate from glass area (assuming square windows)
+                                    if window_width == 0 and window_height == 0 and glass_area > 0:
+                                        # Use glass_area from building data (column 3) if available
+                                        bim_glass_area = float(building_data[3]) if len(building_data) > 3 and building_data[3] else glass_area
+                                        estimated_width = (bim_glass_area ** 0.5)  # Estimate width assuming square
+                                        window_width = estimated_width
+                                        window_height = estimated_width
                                     
                                     # Get authentic glass technology
                                     glass_type = element.get('panel_technology', 'Custom Heliatek HeliaSol')
