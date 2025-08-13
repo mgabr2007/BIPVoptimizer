@@ -51,8 +51,8 @@ class UltraFastRadiationAnalyzer:
         
         total_time = time.time() - start_time
         
-        # Phase 4: Single database save operation
-        self._save_results_batch(project_id, results, precision, total_time)
+        # Phase 4: Database save operation handled by execution flow
+        # Note: Database saving is now handled by Step5ExecutionFlow to avoid duplication
         
         return {
             "element_radiation": results,

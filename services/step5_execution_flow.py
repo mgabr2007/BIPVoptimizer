@@ -318,12 +318,50 @@ class Step5ExecutionFlow:
             self.update_progress("Saving results to database...", 0.95)
             
             # Get the actual radiation data from results
-            radiation_data = results.get('results', results)  # Try 'results' key first, fallback to results itself
+            if results.get('results') and isinstance(results['results'], dict):
+                # For wrapped results from execution flow
+                raw_radiation_data = results['results'].get('element_radiation', {})
+            elif results.get('element_radiation'):
+                # For direct analyzer results
+                raw_radiation_data = results.get('element_radiation', {})
+            else:
+                # Fallback - results might be the radiation data itself
+                raw_radiation_data = results if isinstance(results, dict) and results else {}
             
-            # Ensure radiation_data is a dictionary
-            if not isinstance(radiation_data, dict):
-                st.error(f"Error saving radiation analysis: Expected dictionary, got {type(radiation_data)}")
+            # Ensure raw_radiation_data is a dictionary
+            if not isinstance(raw_radiation_data, dict):
+                st.error(f"Error saving radiation analysis: Expected dictionary, got {type(raw_radiation_data)}")
+                st.error(f"Results structure: {type(results)} - {list(results.keys()) if isinstance(results, dict) else 'Not a dict'}")
                 return False
+            
+            # Convert element radiation data to database format
+            element_radiation_list = []
+            total_radiation = 0
+            element_count = 0
+            
+            for element_id, radiation_value in raw_radiation_data.items():
+                if isinstance(radiation_value, (int, float)) and radiation_value > 0:
+                    element_radiation_list.append({
+                        'element_id': str(element_id),
+                        'annual_radiation': float(radiation_value),
+                        'irradiance': float(radiation_value) * 365 / 8760,  # Convert to average irradiance
+                        'orientation_multiplier': 1.0
+                    })
+                    total_radiation += float(radiation_value)
+                    element_count += 1
+            
+            # Create structured radiation data for database
+            radiation_data = {
+                'avg_irradiance': total_radiation / element_count if element_count > 0 else 0,
+                'peak_irradiance': max(raw_radiation_data.values()) if raw_radiation_data else 0,
+                'shading_factor': 0.85,  # Default shading factor
+                'grid_points': len(raw_radiation_data),
+                'analysis_complete': True,
+                'element_radiation': element_radiation_list
+            }
+            
+            # Debug information
+            st.write(f"🔍 Debug - Saving radiation data: {len(element_radiation_list)} elements, avg: {radiation_data['avg_irradiance']:.1f} kWh/m²/year")
             
             success = self.db_manager.save_radiation_analysis(
                 project_id=project_id,
