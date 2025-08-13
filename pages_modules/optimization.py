@@ -1204,8 +1204,19 @@ def render_optimization():
                     # Only process if selection details exist - no fallback data
                     if selection_result and selection_result[0] and selection_result[0] != 'null':
                         import json
-                        selection_data = json.loads(selection_result[0])
-                        selection_mask = selection_data.get('selection_mask', [])
+                        try:
+                            # Handle both string JSON and direct dict objects
+                            if isinstance(selection_result[0], str):
+                                selection_data = json.loads(selection_result[0])
+                            elif isinstance(selection_result[0], dict):
+                                selection_data = selection_result[0]
+                            else:
+                                st.error(f"Unexpected selection data format: {type(selection_result[0])}")
+                                return
+                            selection_mask = selection_data.get('selection_mask', [])
+                        except json.JSONDecodeError as e:
+                            st.error(f"Invalid JSON in selection details: {str(e)}")
+                            return
                         
                         # Get BIPV specifications and radiation data - authentic data only
                         if pv_spec_result and pv_spec_result[0]:
