@@ -1301,17 +1301,15 @@ def render_optimization():
                         radiation_result = cursor.fetchone()
                         st.info(f"🔍 Radiation data check: {radiation_result}")
                         
-                        # Use default radiation values if no radiation analysis found
+                        # Only proceed with authentic radiation analysis data
                         if radiation_result and radiation_result[0] and radiation_result[2]:
                             avg_irradiance = float(radiation_result[0])
                             shading_factor = float(radiation_result[2])
                             st.success(f"✅ Using authentic radiation data: {avg_irradiance} kWh/m²/year, shading {shading_factor}")
                         else:
-                            # Use Berlin standard values for BIPV calculations
-                            avg_irradiance = 1100.0  # Berlin annual solar irradiation kWh/m²/year
-                            shading_factor = 0.85     # Standard building integration factor
-                            st.warning("⚠️ No radiation analysis found, using Berlin standard values for CSV generation")
-                            st.info(f"📊 Using: {avg_irradiance} kWh/m²/year irradiance, {shading_factor} shading factor")
+                            st.error("❌ No authentic radiation analysis data found. CSV export requires completed Step 5 (Radiation Analysis).")
+                            st.info("💡 Please complete Step 5 Radiation Analysis to generate authentic element-by-element performance data for CSV export.")
+                            return
                             
                             # Process each selected element using the selection_mask
                             for i, element in enumerate(bipv_specifications):
