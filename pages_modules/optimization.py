@@ -20,7 +20,7 @@ def create_individual(n_elements):
     """Create a random individual for genetic algorithm."""
     return [random.randint(0, 1) for _ in range(n_elements)]
 
-def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
+def evaluate_individual(individual, pv_specs, energy_balance, financial_params, radiation_lookup=None):
     """Evaluate fitness of an individual solution using weighted multi-objective approach."""
     
     try:
@@ -44,7 +44,21 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
         else:
             total_cost = 0
             
-        total_annual_yield = selected_specs['annual_energy_kwh'].sum()
+        # Calculate authentic annual yield using Step 5 radiation data
+        if radiation_lookup:
+            total_annual_yield = 0
+            for idx in selected_specs.index:
+                element_id = str(selected_specs.loc[idx, 'element_id'])
+                if element_id in radiation_lookup:
+                    # Use authentic radiation data from Step 5
+                    annual_radiation = radiation_lookup[element_id]
+                    glass_area = selected_specs.loc[idx, 'glass_area_m2']
+                    efficiency = selected_specs.loc[idx, 'efficiency_percent'] / 100 if selected_specs.loc[idx, 'efficiency_percent'] > 1 else selected_specs.loc[idx, 'efficiency_percent']
+                    authentic_yield = glass_area * annual_radiation * efficiency
+                    total_annual_yield += authentic_yield
+        else:
+            # Fallback to PV spec values if no radiation data available
+            total_annual_yield = selected_specs['annual_energy_kwh'].sum()
         
         # Calculate net import reduction with proper data handling
         if energy_balance is not None and len(energy_balance) > 0:
@@ -162,7 +176,7 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params):
     except Exception as e:
         return (0.0,)
 
-def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_params):
+def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_params, radiation_lookup=None):
     """Run optimized genetic algorithm with enhanced performance."""
     
     n_elements = len(pv_specs)
@@ -186,7 +200,7 @@ def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_para
         # Evaluate population
         fitness_scores = []
         for individual in population:
-            fitness = evaluate_individual(individual, pv_specs, energy_balance, financial_params)
+            fitness = evaluate_individual(individual, pv_specs, energy_balance, financial_params, radiation_lookup)
             fitness_scores.append(fitness)
         
         # Find best individuals (handle single fitness values)
@@ -238,7 +252,7 @@ def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_para
     
     return best_individuals, fitness_history
 
-def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, financial_params):
+def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, financial_params, radiation_lookup=None):
     """Analyze optimization results and generate solution alternatives."""
     
     solutions = []
@@ -271,6 +285,8 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
             else:
                 total_cost = 0
                 
+            # Note: This analyze function uses PV spec values for display
+            # The optimization fitness calculation now uses authentic Step 5 radiation data
             total_annual_yield = selected_specs['annual_energy_kwh'].sum()
             selected_elements = selected_specs['element_id'].tolist() if 'element_id' in selected_specs.columns else [f"Element_{j}" for j in range(len(selected_specs))]
             
@@ -741,9 +757,25 @@ def render_optimization():
                     'system_size_preference': system_size_preference
                 }
                 
-                # Run genetic algorithm on all PV specs (no budget filtering)
+                # Get authentic radiation data from Step 5 before optimization
+                conn = db_manager.get_connection()
+                radiation_lookup = {}
+                if conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT element_id, annual_radiation 
+                            FROM element_radiation 
+                            WHERE project_id = %s
+                        """, (project_id,))
+                        
+                        radiation_data = cursor.fetchall()
+                        radiation_lookup = {str(elem_id): float(annual_rad) for elem_id, annual_rad in radiation_data}
+                        st.info(f"🔍 Using authentic Step 5 radiation data for {len(radiation_lookup)} elements in optimization")
+                    conn.close()
+                
+                # Run genetic algorithm with authentic radiation data
                 pareto_solutions, fitness_history = simple_genetic_algorithm(
-                    pv_specs, energy_balance, financial_params, ga_params
+                    pv_specs, energy_balance, financial_params, ga_params, radiation_lookup
                 )
                 
                 if not pareto_solutions:
@@ -752,7 +784,7 @@ def render_optimization():
                 
                 # Analyze optimization results
                 solutions_df = analyze_optimization_results(
-                    pareto_solutions, pv_specs, energy_balance, financial_params
+                    pareto_solutions, pv_specs, energy_balance, financial_params, radiation_lookup
                 )
                 
                 # Sort by ROI
