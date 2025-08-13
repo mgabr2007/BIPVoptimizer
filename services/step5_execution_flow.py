@@ -339,13 +339,20 @@ class Step5ExecutionFlow:
     def update_session_state(self, project_id: int, results: Dict[str, Any]):
         """Update Streamlit session state with results."""
         try:
-            if 'project_data' not in st.session_state:
+            # Safe session state initialization 
+            if not hasattr(st.session_state, 'project_data') or st.session_state.project_data is None:
                 st.session_state.project_data = {}
             
-            # Save radiation data
+            # Save radiation data safely
             if results.get('success') and results.get('results'):
                 analysis_results = results['results']
-                st.session_state.project_data['radiation_data'] = analysis_results.get('element_radiation', {})
+                
+                # Ensure project_data exists before accessing
+                try:
+                    st.session_state.project_data['radiation_data'] = analysis_results.get('element_radiation', {})
+                except (AttributeError, TypeError):
+                    st.session_state.project_data = {'radiation_data': analysis_results.get('element_radiation', {})}
+                
                 st.session_state.radiation_completed = True
                 st.session_state.step5_completed = True
                 st.session_state.analysis_just_completed = True

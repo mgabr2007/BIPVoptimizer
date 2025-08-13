@@ -509,7 +509,13 @@ def check_dependencies():
     """Check if required data is available for radiation analysis."""
     
     from services.io import get_current_project_id
-    project_id = get_current_project_id()
+    
+    # Get project_id with proper error handling
+    project_id = None
+    try:
+        project_id = get_current_project_id()
+    except Exception as e:
+        st.warning(f"Could not retrieve project ID from dependencies check: {str(e)}")
     
     # Enhanced project detection with debugging info
     if not project_id:
