@@ -1105,14 +1105,41 @@ def render_optimization():
             }
         )
         
-        # Solution selection for Step 9
+        # Solution selection for Step 9 - mark which solutions have CSV export
         st.subheader("✅ Select Solution for Detailed Analysis")
         
-        selected_solution_id = st.selectbox(
+        # Get solutions with selection details for better labeling
+        try:
+            conn_temp = db_manager.get_connection()
+            if conn_temp:
+                with conn_temp.cursor() as cursor_temp:
+                    cursor_temp.execute("""
+                        SELECT solution_id FROM optimization_results 
+                        WHERE project_id = %s AND selection_details IS NOT NULL AND selection_details != 'null'
+                    """, (project_id,))
+                    solutions_with_csv = {row[0] for row in cursor_temp.fetchall()}
+                conn_temp.close()
+            else:
+                solutions_with_csv = set()
+        except:
+            solutions_with_csv = set()
+        
+        # Create enhanced option labels
+        solution_options = []
+        for sol_id in solutions['solution_id'].tolist():
+            sol_data = solutions[solutions['solution_id'] == sol_id].iloc[0]
+            csv_indicator = "📥 CSV Available" if sol_id in solutions_with_csv else "📄 Summary Only"
+            label = f"{sol_id} - ROI {sol_data['roi']:.1f}% - {csv_indicator}"
+            solution_options.append((label, sol_id))
+        
+        selected_option = st.selectbox(
             "Choose solution for detailed analysis:",
-            solutions['solution_id'].tolist(),
+            solution_options,
+            format_func=lambda x: x[0],
             key="selected_solution_opt"
         )
+        
+        selected_solution_id = selected_option[1]
         
         # Get selected solution data
         selected_solution = solutions[solutions['solution_id'] == selected_solution_id].iloc[0]
