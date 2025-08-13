@@ -1454,8 +1454,6 @@ def render_optimization():
                                     
                                     # BIM data from Revit export does not include individual window dimensions
                                     # Only glass area is available from the BIM extraction
-                                    window_width = None  # Not available in BIM data
-                                    window_height = None  # Not available in BIM data
                                     
                                     # Get authentic glass technology
                                     glass_type = element.get('panel_technology', 'Custom Heliatek HeliaSol')
@@ -1471,8 +1469,6 @@ def render_optimization():
                                         'Azimuth_Degrees': round(azimuth, 1),
                                         'Building_Level': building_data[4] if len(building_data) > 4 else '',
                                         'Family_Type': building_data[5] if len(building_data) > 5 else '',
-                                        'Window_Width_m': 'N/A - Not in BIM data',
-                                        'Window_Height_m': 'N/A - Not in BIM data',
                                         'Efficiency_Percent': round(efficiency_percent, 1),
                                         'PV_Capacity_kW': round(pv_capacity, 3),
                                         'Performance_Ratio': round(performance_ratio, 2),
