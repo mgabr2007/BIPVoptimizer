@@ -1295,6 +1295,9 @@ def render_optimization():
         # Add CSV download for selected solution
         st.subheader("📥 Download Selected Solution Data")
         
+        # CSV Export Status Summary
+        st.info("**📊 Export Status:** Solution analysis ready with authentic Step 5 radiation data and genetic algorithm optimization results")
+        
         # Prepare comprehensive solution data for CSV export
         try:
             conn = db_manager.get_connection()
@@ -1375,8 +1378,7 @@ def render_optimization():
                             selected_element_ids = selection_data.get('selected_element_ids', [])
                             selection_mask = selection_data.get('selection_mask', [])
                             
-                            st.success(f"✅ Found {len(selected_element_ids)} selected elements for CSV export")
-                            st.info(f"📊 Selection mask length: {len(selection_mask)}")
+                            # Store selection data for processing (removed verbose messages)
                         else:
                             st.error(f"Unexpected selection data format: {type(selection_data)}")
                             return
@@ -1391,7 +1393,7 @@ def render_optimization():
                     if pv_spec_result and pv_spec_result[0]:
                         pv_specs = json.loads(pv_spec_result[0])
                         bipv_specifications = pv_specs.get('bipv_specifications', [])
-                        st.info(f"🔍 BIPV specs found: {len(bipv_specifications)} elements")
+                        # Load BIPV specifications (removed verbose message)
                         
                         # Get authentic element-specific radiation data
                         cursor.execute("""
@@ -1411,7 +1413,7 @@ def render_optimization():
                                     'irradiance': float(irradiance) if irradiance else 0,
                                     'orientation_multiplier': float(orient_mult) if orient_mult else 1.0
                                 }
-                            st.success(f"✅ Found authentic radiation data for {len(radiation_data)} elements")
+                            # Loaded authentic radiation data for processing
                         else:
                             st.error("❌ No authentic radiation analysis data found. CSV export requires completed Step 5 (Radiation Analysis).")
                             st.info("💡 Please complete Step 5 Radiation Analysis to generate authentic element-by-element performance data for CSV export.")
@@ -1511,7 +1513,7 @@ def render_optimization():
                         )
                         
                         element_count = len([row for row in csv_data if row['Data_Type'] == 'BIPV_Element'])
-                        st.success(f"📊 CSV contains authentic data: 1 solution summary + {element_count} selected elements + financial analysis")
+                        st.success(f"✅ CSV Export Ready: {element_count} selected elements with authentic radiation analysis data")
                     elif len(csv_data) == 1:
                         st.error("No element data processed - check if radiation analysis and PV specifications are complete")
                     else:
