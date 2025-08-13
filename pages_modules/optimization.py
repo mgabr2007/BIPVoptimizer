@@ -743,12 +743,22 @@ def render_optimization():
                     }
                 }
                 
-                # Save results to database only - strict database-only architecture
+                # Save results to database with selection details
                 try:
+                    # Convert DataFrame to dict and ensure selection_mask is preserved
+                    solutions_dict = solutions_df.to_dict('records')
+                    
+                    # Ensure selection mask data is preserved in each solution
+                    for i, solution in enumerate(solutions_dict):
+                        if 'selection_mask' not in solution and i < len(pareto_solutions):
+                            # Get selection mask from original pareto solutions
+                            _, _, _, individual = pareto_solutions[i]
+                            solution['selection_mask'] = individual
+                    
                     db_manager.save_optimization_results(project_id, {
-                        'solutions': solutions_df.to_dict('records')
+                        'solutions': solutions_dict
                     })
-                    st.success("✅ Optimization results saved to database (database-only architecture verified)")
+                    st.success("✅ Optimization results with selection details saved to database")
                 except Exception as db_error:
                     st.error(f"Database save error: {str(db_error)}")
                     return
