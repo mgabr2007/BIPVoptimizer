@@ -1221,6 +1221,77 @@ def render_optimization():
         with col4:
             st.metric("Annual Energy", f"{selected_solution['annual_energy_kwh']:,.0f} kWh")
         
+        # Financial Performance Analysis - Using Authentic Data
+        st.subheader("💰 Solution Performance Analysis")
+        
+        # Calculate authentic financial metrics
+        annual_energy_kwh = float(selected_solution['annual_energy_kwh'])
+        total_investment = float(selected_solution['total_cost'])
+        electricity_rate = 0.300  # Default rate - can be made dynamic
+        
+        # Financial calculations
+        annual_savings = annual_energy_kwh * electricity_rate
+        system_lifetime = 25  # years
+        total_savings_25yr = annual_savings * system_lifetime
+        simple_payback = total_investment / annual_savings if annual_savings > 0 else 0
+        roi_25yr = ((total_savings_25yr - total_investment) / total_investment) * 100 if total_investment > 0 else 0
+        
+        st.markdown("**💰 Financial Performance Breakdown**")
+        
+        # Display metrics in organized columns
+        perf_col1, perf_col2 = st.columns(2)
+        
+        with perf_col1:
+            st.metric("Annual Generation", f"{annual_energy_kwh:,.0f} kWh")
+            st.metric("Electricity Rate", f"€{electricity_rate:.3f}/kWh")
+            st.metric("Annual Savings", f"€{annual_savings:,.0f}")
+            st.metric("25-Year Savings", f"€{total_savings_25yr:,.0f}")
+            
+        with perf_col2:
+            st.metric("Total Investment", f"€{total_investment:,.0f}")
+            st.metric("Simple Payback", f"{simple_payback:.1f} years")
+            st.metric("ROI (25-year)", f"{roi_25yr:.1f}%")
+            st.metric("Cost per kWh (Lifetime)", f"€{total_investment/(annual_energy_kwh * system_lifetime):.3f}")
+        
+        st.markdown("**📋 Solution Performance Summary**")
+        
+        # Performance indicators
+        performance_data = {
+            'Metric': [
+                'Annual Energy Generation',
+                'System Capacity',
+                'Annual CO₂ Savings',
+                'Energy Independence Contribution',
+                'Cost per Installed kW',
+                'Capacity Factor (Est.)',
+                'Performance Ratio (Est.)'
+            ],
+            'Value': [
+                f"{annual_energy_kwh:,.0f} kWh/year",
+                f"{selected_solution['capacity']:.1f} kW",
+                f"{annual_energy_kwh * 0.401:,.0f} kg CO₂/year",  # German grid factor ~0.401 kg/kWh
+                f"{min(100, (annual_energy_kwh / 10000) * 100):.1f}%",  # Assume 10 MWh typical building
+                f"€{total_investment / selected_solution['capacity']:,.0f}/kW",
+                f"{(annual_energy_kwh / (selected_solution['capacity'] * 8760)) * 100:.1f}%",
+                "85-90%" # Typical BIPV performance ratio
+            ],
+            'Note': [
+                'From authentic Step 5 radiation analysis',
+                'From genetic algorithm optimization',
+                'Using German electricity grid CO₂ factor',
+                'Estimated building energy independence',
+                'Total system cost per installed capacity',
+                'Annual generation vs theoretical maximum',
+                'System efficiency vs ideal conditions'
+            ]
+        }
+        
+        st.dataframe(
+            pd.DataFrame(performance_data),
+            use_container_width=True,
+            hide_index=True
+        )
+        
         # Add CSV download for selected solution
         st.subheader("📥 Download Selected Solution Data")
         
