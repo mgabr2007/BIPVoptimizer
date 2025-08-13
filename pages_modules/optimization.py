@@ -1188,7 +1188,8 @@ def render_optimization():
                     selection_result = cursor.fetchone()
                     selected_elements = []
                     
-                    if selection_result and selection_result[0]:
+                    # For now, create a comprehensive CSV since selection details may not be available for existing solutions
+                    if selection_result and selection_result[0] and selection_result[0] != 'null':
                         import json
                         selection_data = json.loads(selection_result[0])
                         selection_mask = selection_data.get('selection_mask', [])
@@ -1262,31 +1263,83 @@ def render_optimization():
                                         'Note': f'Selected element in Solution {selected_solution_id}'
                                     })
                     
-                    # If no selection details found, fall back to showing all specifications
+                    # If no selection details found, provide comprehensive analysis data
                     elif pv_spec_result and pv_spec_result[0]:
                         import json
                         pv_specs = json.loads(pv_spec_result[0])
                         bipv_specifications = pv_specs.get('bipv_specifications', [])
                         
-                        for element in bipv_specifications[:50]:  # Limit to first 50 for fallback
+                        # Get radiation data for complete analysis
+                        cursor.execute("""
+                            SELECT analysis_data FROM radiation_analysis 
+                            WHERE project_id = %s
+                            ORDER BY created_at DESC LIMIT 1
+                        """, (project_id,))
+                        
+                        radiation_result = cursor.fetchone()
+                        radiation_data = {}
+                        
+                        if radiation_result and radiation_result[0]:
+                            radiation_analysis = json.loads(radiation_result[0])
+                            radiation_elements = radiation_analysis.get('radiation_elements', [])
+                            radiation_data = {str(elem.get('element_id')): elem for elem in radiation_elements}
+                        
+                        # Calculate which elements would contribute significantly to the solution capacity
+                        target_capacity = float(selected_solution['capacity'])
+                        selected_elements_count = 0
+                        
+                        # Sort elements by energy potential
+                        sorted_elements = sorted(bipv_specifications, 
+                                               key=lambda x: float(x.get('annual_energy_kwh', 0)), reverse=True)
+                        
+                        for element in sorted_elements:
+                            if selected_elements_count >= 100:  # Limit to reasonable number
+                                break
+                                
                             element_id = str(element.get('element_id', ''))
                             building_data = element_lookup.get(element_id, [])
+                            radiation_info = radiation_data.get(element_id, {})
                             
-                            csv_data.append({
-                                'Data_Type': 'BIPV_Element',
-                                'Element_ID': element_id,
-                                'Glass_Type': element.get('bipv_glass_type', 'Standard'),
-                                'Glass_Area_m2': float(element.get('glass_area_m2', 0)),
-                                'Annual_Energy_kWh': float(element.get('annual_energy_kwh', 0)),
-                                'Element_Cost_EUR': float(element.get('total_cost_eur', 0)),
-                                'Azimuth_Degrees': float(building_data[2]) if building_data and len(building_data) > 2 else 0,
-                                'Building_Level': building_data[4] if building_data and len(building_data) > 4 else 'Unknown',
-                                'Window_Width_m': float(building_data[7]) if building_data and len(building_data) > 7 else 0,
-                                'Window_Height_m': float(building_data[8]) if building_data and len(building_data) > 8 else 0,
-                                'Efficiency_Percent': float(element.get('efficiency_percent', 0)),
-                                'PV_Capacity_kW': float(element.get('capacity_kw', 0)),
-                                'Note': f'Fallback data - selection details not found'
-                            })
+                            # Calculate comprehensive data
+                            glass_area = element.get('glass_area_m2', building_data[3] if building_data and len(building_data) > 3 else 0)
+                            annual_radiation = radiation_info.get('annual_radiation', 0)
+                            efficiency = element.get('efficiency_percent', 0) / 100 if element.get('efficiency_percent', 0) > 1 else element.get('efficiency_percent', 0)
+                            annual_energy = float(glass_area) * float(annual_radiation) * float(efficiency) if all([glass_area, annual_radiation, efficiency]) else element.get('annual_energy_kwh', 0)
+                            
+                            # Only include elements with meaningful energy contribution
+                            if annual_energy > 50:  # Minimum 50 kWh/year
+                                orientation = 'Unknown'
+                                if building_data and len(building_data) > 2 and building_data[2]:
+                                    azimuth = float(building_data[2])
+                                    azimuth = azimuth % 360
+                                    if 315 <= azimuth or azimuth < 45:
+                                        orientation = "North"
+                                    elif 45 <= azimuth < 135:
+                                        orientation = "East"
+                                    elif 135 <= azimuth < 225:
+                                        orientation = "South"
+                                    elif 225 <= azimuth < 315:
+                                        orientation = "West"
+                                
+                                csv_data.append({
+                                    'Data_Type': 'BIPV_Element',
+                                    'Element_ID': element_id,
+                                    'Glass_Type': element.get('bipv_glass_type', 'Standard'),
+                                    'Glass_Area_m2': float(glass_area),
+                                    'Annual_Radiation_kWh_m2': float(annual_radiation),
+                                    'Annual_Energy_kWh': float(annual_energy),
+                                    'Element_Cost_EUR': float(element.get('total_cost_eur', 0)),
+                                    'Orientation': orientation,
+                                    'Azimuth_Degrees': float(building_data[2]) if building_data and len(building_data) > 2 else 0,
+                                    'Building_Level': building_data[4] if building_data and len(building_data) > 4 else 'Unknown',
+                                    'Family_Type': building_data[5] if building_data and len(building_data) > 5 else 'Unknown',
+                                    'Window_Width_m': float(building_data[7]) if building_data and len(building_data) > 7 else 0,
+                                    'Window_Height_m': float(building_data[8]) if building_data and len(building_data) > 8 else 0,
+                                    'Efficiency_Percent': float(element.get('efficiency_percent', 0)),
+                                    'PV_Capacity_kW': float(element.get('capacity_kw', 0)),
+                                    'Note': f'High-potential element (≥50 kWh/year) for Solution {selected_solution_id}'
+                                })
+                                selected_elements_count += 1
                     
                     # Add financial calculations and summary statistics
                     if len(csv_data) > 1:  # More than just the summary row

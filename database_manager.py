@@ -411,6 +411,7 @@ class BIPVDatabaseManager:
     
     def save_optimization_results(self, project_id, optimization_data):
         """Save optimization results"""
+        import json
         conn = self.get_connection()
         if not conn:
             return False
@@ -431,10 +432,17 @@ class BIPVDatabaseManager:
                     # Include annual energy in optimization results
                     annual_energy = solution.get('annual_energy_kwh', solution.get('annual_energy', capacity * 1200 if capacity else 0))
                     
+                    # Prepare selection details JSON
+                    selection_details = {
+                        'selection_mask': solution.get('selection_mask', []),
+                        'selected_element_ids': solution.get('selected_elements', []),
+                        'optimization_parameters': solution.get('optimization_params', {})
+                    }
+                    
                     cursor.execute("""
                         INSERT INTO optimization_results 
-                        (project_id, solution_id, capacity, roi, net_import, total_cost, annual_energy_kwh, rank_position, pareto_optimal)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        (project_id, solution_id, capacity, roi, net_import, total_cost, annual_energy_kwh, rank_position, pareto_optimal, selection_details)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         project_id,
                         solution.get('solution_id', f'solution_{i}'),
@@ -444,7 +452,8 @@ class BIPVDatabaseManager:
                         float(total_cost) if total_cost is not None else 0,
                         float(annual_energy) if annual_energy is not None else 0,
                         i + 1,
-                        solution.get('pareto_optimal', False)
+                        solution.get('pareto_optimal', False),
+                        json.dumps(selection_details)
                     ))
                 
                 conn.commit()
