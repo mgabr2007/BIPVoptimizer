@@ -1520,7 +1520,7 @@ class BIPVDatabaseManager:
                     SELECT * FROM building_elements 
                     WHERE project_id = %s
                     ORDER BY element_id
-                """, (result['project_id'],))
+                """, (result['id'],))
                 building_elements_raw = cursor.fetchall()
                 result['building_elements'] = [dict(row) for row in building_elements_raw]
                 
@@ -1529,7 +1529,7 @@ class BIPVDatabaseManager:
                     SELECT * FROM element_radiation 
                     WHERE project_id = %s
                     ORDER BY element_id
-                """, (result['project_id'],))
+                """, (result['id'],))
                 result['element_radiation'] = [dict(row) for row in cursor.fetchall()]
                 
                 # Get optimization results
@@ -1537,16 +1537,16 @@ class BIPVDatabaseManager:
                     SELECT * FROM optimization_results 
                     WHERE project_id = %s
                     ORDER BY rank_position
-                """, (result['project_id'],))
+                """, (result['id'],))
                 result['optimization_results'] = [dict(row) for row in cursor.fetchall()]
                 
                 # Get financial analysis data
-                financial_data = self.get_financial_analysis(result['project_id'])
+                financial_data = self.get_financial_analysis(result['id'])
                 if financial_data:
                     result['financial_analysis'] = financial_data
                 
                 # Get PV specifications
-                pv_data = self.get_pv_specifications(result['project_id'])
+                pv_data = self.get_pv_specifications(result['id'])
                 if pv_data:
                     result['pv_specifications'] = pv_data
                 
@@ -1555,7 +1555,7 @@ class BIPVDatabaseManager:
                     SELECT * FROM energy_analysis 
                     WHERE project_id = %s
                     ORDER BY created_at DESC LIMIT 1
-                """, (result['project_id'],))
+                """, (result['id'],))
                 energy_result = cursor.fetchone()
                 if energy_result:
                     result['yield_demand_analysis'] = dict(energy_result)
