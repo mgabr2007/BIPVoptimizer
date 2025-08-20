@@ -49,12 +49,12 @@ class Step5ExecutionFlow:
                 return validation_result
                 
             with conn.cursor() as cursor:
-                # Check building elements
+                # Check building elements (only selected window types)
                 cursor.execute("""
                     SELECT COUNT(*) as count,
-                           COUNT(CASE WHEN orientation IN ('South', 'East', 'West', 'SE', 'SW') THEN 1 END) as suitable
+                           COUNT(CASE WHEN orientation IN ('South', 'East', 'West', 'SE', 'SW') AND pv_suitable = true THEN 1 END) as suitable
                     FROM building_elements 
-                    WHERE project_id = %s
+                    WHERE project_id = %s AND pv_suitable = true
                 """, (project_id,))
                 element_stats = cursor.fetchone()
                 

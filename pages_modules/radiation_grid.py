@@ -272,11 +272,11 @@ def render_radiation_grid():
                     st.error(f"Error checking wall data: {e}")
                     walls_available = False
                 
-                # Check window elements from Step 4 upload  
+                # Check window elements from Step 4 upload (only selected types)
                 try:
                     cursor.execute("""
                         SELECT COUNT(*) FROM building_elements 
-                        WHERE project_id = %s
+                        WHERE project_id = %s AND pv_suitable = true
                     """, (project_id,))
                     result = cursor.fetchone()
                     total_building_elements = result[0] if result else 0

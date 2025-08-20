@@ -358,6 +358,136 @@ def render_facade_extraction():
             finally:
                 conn.close()
     
+    # Window Type Selection Section (only show if windows are uploaded)
+    if windows_uploaded and windows_element_count > 0:
+        st.subheader("🎯 Step 1.5: Window Type Selection for Analysis")
+        st.markdown("""
+        **Historical Significance Filter**: Some window types may have historical significance and cannot be replaced with BIPV glass. 
+        Select which window types should be included in the BIPV analysis:
+        """)
+        
+        # Get available window families from database
+        conn = db_manager.get_connection()
+        available_families = []
+        family_counts = {}
+        
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT family, COUNT(*) as element_count 
+                        FROM building_elements 
+                        WHERE project_id = %s 
+                        GROUP BY family 
+                        ORDER BY element_count DESC
+                    """, (project_id,))
+                    results = cursor.fetchall()
+                    
+                    for family, count in results:
+                        if family and family.strip():  # Only include non-empty families
+                            available_families.append(family)
+                            family_counts[family] = count
+                            
+            except Exception as e:
+                st.error(f"Error loading window families: {e}")
+            finally:
+                conn.close()
+        
+        if available_families:
+            # Check for existing selections
+            selected_families = []
+            conn = db_manager.get_connection()
+            if conn:
+                try:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT selected_families FROM selected_window_types 
+                            WHERE project_id = %s
+                        """, (project_id,))
+                        result = cursor.fetchone()
+                        if result and result[0]:
+                            selected_families = result[0]
+                        else:
+                            # Default: select all families initially
+                            selected_families = available_families.copy()
+                except Exception:
+                    # Default: select all families initially  
+                    selected_families = available_families.copy()
+                finally:
+                    conn.close()
+            
+            # Create checkboxes for each family type
+            st.markdown("**Select window types to include in BIPV analysis:**")
+            
+            # Create columns for better layout
+            cols = st.columns(2)
+            
+            new_selections = []
+            for i, family in enumerate(available_families):
+                col_idx = i % 2
+                with cols[col_idx]:
+                    is_selected = st.checkbox(
+                        f"{family} ({family_counts[family]} elements)",
+                        value=family in selected_families,
+                        key=f"family_select_{family}_{project_id}"
+                    )
+                    if is_selected:
+                        new_selections.append(family)
+            
+            # Save selection when changed
+            if set(new_selections) != set(selected_families):
+                conn = db_manager.get_connection()
+                if conn:
+                    try:
+                        with conn.cursor() as cursor:
+                            # Upsert the selection
+                            cursor.execute("""
+                                INSERT INTO selected_window_types (project_id, selected_families) 
+                                VALUES (%s, %s)
+                                ON CONFLICT (project_id) 
+                                DO UPDATE SET 
+                                    selected_families = EXCLUDED.selected_families,
+                                    updated_at = CURRENT_TIMESTAMP
+                            """, (project_id, new_selections))
+                            conn.commit()
+                            
+                            # Update building_elements table to mark selected families as suitable
+                            cursor.execute("""
+                                UPDATE building_elements 
+                                SET pv_suitable = CASE 
+                                    WHEN family = ANY(%s) THEN true 
+                                    ELSE false 
+                                END
+                                WHERE project_id = %s
+                            """, (new_selections, project_id))
+                            conn.commit()
+                            
+                    except Exception as e:
+                        st.error(f"Error saving window type selection: {e}")
+                    finally:
+                        conn.close()
+                
+                st.rerun()  # Refresh to show updated selection
+            
+            # Show selection summary
+            selected_count = sum(family_counts[family] for family in new_selections)
+            total_count = sum(family_counts.values())
+            
+            if new_selections:
+                st.success(f"✅ **{len(new_selections)} window types selected** ({selected_count} of {total_count} elements will be analyzed for BIPV)")
+                
+                # Show selected families
+                with st.expander("Selected Window Types Details"):
+                    for family in new_selections:
+                        st.write(f"• **{family}**: {family_counts[family]} elements")
+                        
+                st.session_state['window_types_selected'] = True
+            else:
+                st.warning("⚠️ **No window types selected** - Please select at least one window type for BIPV analysis")
+                st.session_state['window_types_selected'] = False
+        
+        st.markdown("---")
+    
     # Wall Data Upload Section
     st.subheader("🧱 Step 2: Wall Self-Shading Data Upload")
     

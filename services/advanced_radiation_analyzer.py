@@ -51,14 +51,14 @@ class AdvancedRadiationAnalyzer:
                     st.warning(f"⚠️ No building elements found for project {project_id_int}")
                     return []
                 
-                # Get window elements (suitable for BIPV)
+                # Get window elements (only selected types for BIPV analysis)
                 cursor.execute("""
                     SELECT element_id, orientation, azimuth, glass_area, building_level, 
                            family, wall_element_id
                     FROM building_elements 
-                    WHERE project_id = %s AND (family ILIKE %s OR family ILIKE %s OR family ILIKE %s)
+                    WHERE project_id = %s AND pv_suitable = true
                     ORDER BY orientation, azimuth
-                """, (project_id_int, '%window%', '%glazing%', '%curtain%'))
+                """, (project_id_int,))
                 
                 elements = cursor.fetchall()
                 

@@ -1323,12 +1323,12 @@ def render_optimization():
                     
                     pv_spec_result = cursor.fetchone()
                     
-                    # Get building elements data with correct column order
+                    # Get building elements data with correct column order (only selected window types)
                     cursor.execute("""
                         SELECT element_id, orientation, azimuth, glass_area, building_level, 
                                family, element_type, window_width, window_height
                         FROM building_elements 
-                        WHERE project_id = %s AND element_type IN ('Window', 'Windows')
+                        WHERE project_id = %s AND pv_suitable = true
                         ORDER BY element_id
                     """, (project_id,))
                     
