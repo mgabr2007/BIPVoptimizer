@@ -434,40 +434,56 @@ def render_facade_extraction():
                     if is_selected:
                         new_selections.append(family)
             
-            # Save selection when changed
-            if set(new_selections) != set(selected_families):
-                conn = db_manager.get_connection()
-                if conn:
-                    try:
-                        with conn.cursor() as cursor:
-                            # Upsert the selection
-                            cursor.execute("""
-                                INSERT INTO selected_window_types (project_id, selected_families) 
-                                VALUES (%s, %s)
-                                ON CONFLICT (project_id) 
-                                DO UPDATE SET 
-                                    selected_families = EXCLUDED.selected_families,
-                                    updated_at = CURRENT_TIMESTAMP
-                            """, (project_id, new_selections))
-                            conn.commit()
-                            
-                            # Update building_elements table to mark selected families as suitable
-                            cursor.execute("""
-                                UPDATE building_elements 
-                                SET pv_suitable = CASE 
-                                    WHEN family = ANY(%s) THEN true 
-                                    ELSE false 
-                                END
-                                WHERE project_id = %s
-                            """, (new_selections, project_id))
-                            conn.commit()
-                            
-                    except Exception as e:
-                        st.error(f"Error saving window type selection: {e}")
-                    finally:
-                        conn.close()
+            # Save selection when Apply Changes button is pressed
+            col_apply1, col_apply2 = st.columns([1, 3])
+            with col_apply1:
+                apply_selection = st.button("✅ Apply Selection", key=f"apply_window_selection_{project_id}")
+            
+            if apply_selection or set(new_selections) != set(selected_families):
+                # Only save if Apply button pressed or if this is initial load with different selection
+                save_changes = apply_selection or (not hasattr(st.session_state, f'window_selection_saved_{project_id}'))
                 
-                st.rerun()  # Refresh to show updated selection
+                if save_changes:
+                    conn = db_manager.get_connection()
+                    if conn:
+                        try:
+                            with conn.cursor() as cursor:
+                                # Upsert the selection
+                                cursor.execute("""
+                                    INSERT INTO selected_window_types (project_id, selected_families) 
+                                    VALUES (%s, %s)
+                                    ON CONFLICT (project_id) 
+                                    DO UPDATE SET 
+                                        selected_families = EXCLUDED.selected_families,
+                                        updated_at = CURRENT_TIMESTAMP
+                                """, (project_id, new_selections))
+                                conn.commit()
+                                
+                                # Update building_elements table to mark selected families as suitable
+                                cursor.execute("""
+                                    UPDATE building_elements 
+                                    SET pv_suitable = CASE 
+                                        WHEN family = ANY(%s) THEN true 
+                                        ELSE false 
+                                    END
+                                    WHERE project_id = %s
+                                """, (new_selections, project_id))
+                                conn.commit()
+                                
+                                # Mark that we've saved the selection
+                                st.session_state[f'window_selection_saved_{project_id}'] = True
+                                
+                                if apply_selection:
+                                    st.success("✅ Window type selection saved successfully!")
+                                
+                        except Exception as e:
+                            st.error(f"Error saving window type selection: {e}")
+                        finally:
+                            conn.close()
+                    
+                    # Only rerun if Apply button was pressed
+                    if apply_selection:
+                        st.rerun()
             
             # Show selection summary
             selected_count = sum(family_counts[family] for family in new_selections)
