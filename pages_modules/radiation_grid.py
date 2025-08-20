@@ -342,7 +342,7 @@ def render_radiation_grid():
     col1, col2 = st.columns(2)
     with col1:
         if total_building_elements > 0:
-            st.success(f"✅ Window Elements: {total_building_elements:,} available")
+            st.success(f"✅ Window Elements: {total_building_elements:,} selected for analysis (from Step 4)")
         else:
             st.error("❌ Window Elements: Missing - Go to Step 4 first")
     with col2:
