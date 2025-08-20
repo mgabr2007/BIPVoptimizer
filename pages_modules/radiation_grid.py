@@ -36,6 +36,12 @@ def render_radiation_grid():
     
     try:
         project_id = get_current_project_id()
+        if project_id:
+            # Ensure project_id is set in session state for radiation analysis
+            st.session_state.project_id = project_id
+            if 'project_data' not in st.session_state:
+                st.session_state.project_data = {}
+            st.session_state.project_data['project_id'] = project_id
     except Exception as e:
         st.warning(f"Could not retrieve project ID: {str(e)}")
     

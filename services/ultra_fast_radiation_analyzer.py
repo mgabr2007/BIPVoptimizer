@@ -114,13 +114,12 @@ class UltraFastRadiationAnalyzer:
                 else:
                     self.tmy_data = None  # Will use synthetic fallback
                 
-                # Load ALL building elements (1 query instead of 759)
+                # Load ALL building elements (only selected window types)
                 cursor.execute("""
                     SELECT DISTINCT element_id, azimuth, glass_area, window_width, 
                            window_height, family, orientation
                     FROM building_elements 
-                    WHERE project_id = %s
-                    AND element_type IN ('Window', 'Windows')
+                    WHERE project_id = %s AND pv_suitable = true
                     AND glass_area > 0.5
                     ORDER BY element_id
                 """, (project_id,))
