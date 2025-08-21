@@ -11,19 +11,19 @@ from services.io import get_current_project_id
 def render_yield_demand():
     """Simplified Step 7 to eliminate refresh loop issues."""
     
-    st.header("⚖️ Energy Yield vs Demand Analysis")
+    st.header("⚖️ Energy Yield vs Demand Analysis for Selected Windows")
     
     st.markdown("""
     ### What This Step Does
     
-    This analysis compares the energy your BIPV systems will generate with your building's actual energy needs. 
-    We calculate how much of your electricity demand can be met by solar energy and identify potential cost savings.
+    This analysis compares the energy your BIPV systems will generate from selected window types with your building's actual energy needs. 
+    We calculate how much of your electricity demand can be met by solar energy from the chosen windows and identify potential cost savings.
     
     **Key Outputs:**
-    - Monthly energy balance (generation vs consumption)
-    - Self-consumption percentage
-    - Grid electricity savings
-    - Feed-in revenue from excess energy
+    - Monthly energy balance (generation from selected windows vs consumption)
+    - Self-consumption percentage from selected BIPV windows
+    - Grid electricity savings from selected window installations
+    - Feed-in revenue from excess energy from selected windows
     """)
     
     # Check prerequisites and ensure project data is loaded
@@ -59,9 +59,9 @@ def render_yield_demand():
         
         with col2:
             if has_pv_specs:
-                st.success("✅ PV specifications available (Step 6)")
+                st.success("✅ PV specifications for selected windows available (Step 6)")
             else:
-                st.error("❌ PV specifications missing (Step 6)")
+                st.error("❌ PV specifications for selected windows missing (Step 6)")
         
         if not has_historical or not has_pv_specs:
             st.warning("Please complete the required steps before proceeding with yield analysis.")

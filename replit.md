@@ -1,7 +1,7 @@
 # BIPV Optimizer
 
 ## Overview
-BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optimization platform built with Streamlit for academic research at Technische Universität Berlin. It provides a complete 10-step workflow, with a bonus AI consultation (10+1), for analyzing and optimizing BIPV system installations where semi-transparent PV cells replace existing window glass using exact building element data. The platform covers interactive map-based location selection, AI model training, ISO-compliant TMY generation, BIM data processing, radiation analysis, BIPV glass specification, multi-objective optimization, financial analysis, and AI-powered research consultation. Its business vision is to accelerate the adoption of BIPV technologies by providing a robust, research-backed tool for precise performance and financial forecasting.
+BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optimization platform built with Streamlit for academic research at Technische Universität Berlin. It provides a complete 10-step workflow, with a bonus AI consultation (10+1), for analyzing and optimizing BIPV system installations where semi-transparent PV cells replace existing window glass using exact building element data. The platform features intelligent window type selection based on historical significance and architectural constraints, ensuring only suitable windows are analyzed throughout the workflow. It covers interactive map-based location selection, AI model training, ISO-compliant TMY generation, BIM data processing with window filtering, radiation analysis on selected windows, BIPV glass specification, multi-objective optimization, financial analysis, and AI-powered research consultation. Its business vision is to accelerate the adoption of BIPV technologies by providing a robust, research-backed tool for precise performance and financial forecasting of viable window installations.
 
 ## User Preferences
 
@@ -42,14 +42,14 @@ BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optim
 - **Project Setup**: Interactive map for location selection, geocoding, and weather station integration.
 - **Historical Data**: AI model training for energy consumption using RandomForestRegressor.
 - **Weather & Environment**: ISO 15927-4 compliant TMY generation and environmental shading factors.
-- **Facade & Window Extraction**: Mandatory BIM data upload (CSV) for building element geometry.
-- **Radiation & Shading Analysis**: pvlib for solar position, irradiance modeling, and self-shading calculations.
-- **BIPV Glass Specification**: Built-in database with 5 commercial BIPV glass types and customization.
-- **Yield vs Demand Analysis**: Compares PV energy generation with predicted building demand.
-- **Multi-Objective Optimization**: NSGA-II genetic algorithm for cost, yield, and ROI optimization.
-- **Financial & Environmental Analysis**: NPV, IRR, payback analysis with real-time electricity rates and CO₂ savings.
-- **Comprehensive Reporting**: Consolidated reporting system with HTML reports and interactive Plotly charts.
-- **Bonus AI Consultation**: Perplexity AI integration for research-based BIPV recommendations.
+- **Window Selection & BIM Extraction**: Mandatory BIM data upload (CSV) with window type filtering for BIPV suitability based on historical significance and architectural constraints.
+- **Radiation & Shading Analysis**: pvlib for solar position, irradiance modeling, and self-shading calculations on selected window types only.
+- **BIPV Glass Specification**: Built-in database with 5 commercial BIPV glass types and customization for selected windows.
+- **Yield vs Demand Analysis**: Compares PV energy generation from selected windows with predicted building demand.
+- **Multi-Objective Optimization**: NSGA-II genetic algorithm for cost, yield, and ROI optimization of selected window installations.
+- **Financial & Environmental Analysis**: NPV, IRR, payback analysis for selected window types with real-time electricity rates and CO₂ savings.
+- **Comprehensive Reporting**: Consolidated reporting system with HTML reports and interactive Plotly charts for selected window analysis.
+- **Bonus AI Consultation**: Perplexity AI integration for research-based BIPV recommendations on selected window installations.
 
 ## External Dependencies
 

@@ -936,13 +936,13 @@ def main():
         ("project_setup", "📍 Project Setup", "Location and configuration"),
         ("historical_data", "📊 Historical Data", "Energy consumption analysis"),
         ("weather_environment", "🌤️ Weather Integration", "TMY and climate data"),
-        ("facade_extraction", "🏢 BIM Extraction", "Building geometry analysis"),
-        ("radiation_grid", "☀️ Radiation Analysis", "Solar irradiance modeling"),
-        ("pv_specification", "⚡ PV Specification", "Technology selection"),
-        ("yield_demand", "🔋 Yield vs Demand", "Energy balance analysis"),
+        ("facade_extraction", "🏢 Window Selection", "BIM extraction & window type filtering"),
+        ("radiation_grid", "☀️ Radiation Analysis", "Solar analysis for selected windows"),
+        ("pv_specification", "⚡ PV Specification", "BIPV technology for selected windows"),
+        ("yield_demand", "🔋 Yield vs Demand", "Energy balance for selected windows"),
         ("optimization", "🎯 Optimization", "Multi-objective optimization"),
-        ("financial_analysis", "💰 Financial Analysis", "Economic viability"),
-        ("reporting", "📄 Reporting", "Results and export"),
+        ("financial_analysis", "💰 Financial Analysis", "Economic analysis for selected windows"),
+        ("reporting", "📄 Reporting", "Comprehensive results and export"),
         ("ai_consultation", "🤖 AI Consultation", "Expert analysis and recommendations")
     ]
     

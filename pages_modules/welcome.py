@@ -28,7 +28,9 @@ def render_welcome():
     ### What is BIPV?
     
     **Building-Integrated Photovoltaics (BIPV)** replaces conventional windows with semi-transparent 
-    photovoltaic glass that generates electricity while maintaining natural lighting.
+    photovoltaic glass that generates electricity while maintaining natural lighting. This platform 
+    analyzes building geometry to identify suitable window types for BIPV installation, considering 
+    historical significance and architectural constraints.
     
     ### Key Platform Features
     
@@ -44,12 +46,12 @@ def render_welcome():
     **1. Project Setup** - Location selection and project configuration  
     **2. Historical Data** - Energy consumption analysis and AI model training  
     **3. Weather Integration** - TMY data generation and climate analysis  
-    **4. BIM Extraction** - Building geometry and window element analysis  
-    **5. Radiation Analysis** - Solar irradiance and shading calculations  
-    **6. PV Specification** - BIPV technology selection and system design  
-    **7. Yield vs Demand** - Energy balance and grid interaction analysis  
+    **4. Window Selection** - BIM extraction and window type filtering for BIPV suitability  
+    **5. Radiation Analysis** - Solar irradiance and shading calculations for selected windows  
+    **6. PV Specification** - BIPV technology selection for selected window types  
+    **7. Yield vs Demand** - Energy balance analysis for selected windows  
     **8. Optimization** - Multi-objective genetic algorithm optimization  
-    **9. Financial Analysis** - Economic viability and investment analysis  
+    **9. Financial Analysis** - Economic viability analysis for selected windows  
     **10. Reporting** - Comprehensive analysis reports and data export  
     **11. AI Consultation** - Expert analysis and optimization recommendations
     """)
@@ -86,12 +88,13 @@ def render_welcome():
     with col2:
         st.markdown("**Building Elements Extraction**")
         st.info("""
-        **For Step 4 - BIM Data Upload**
+        **For Step 4 - Window Selection & BIM Data Upload**
         
         Dynamo script to extract window elements from Revit:
         - Element IDs and orientations
-        - Glass areas and dimensions
+        - Glass areas and window family types
         - Building levels and wall relationships
+        - Window type filtering for BIPV suitability
         """)
         
         # Download Dynamo script
@@ -111,8 +114,9 @@ def render_welcome():
     st.warning("""
     **Important Workflow Requirements:**
     
-    • **Step 4 (BIM Extraction) is MANDATORY** - All subsequent analysis steps require building element data
-    • **Steps must be completed in sequence** - Each step builds on previous results
+    • **Step 4 (Window Selection) is MANDATORY** - Window type filtering for BIPV suitability is required
+    • **Historical significance filtering** - Some windows cannot be replaced due to heritage constraints
+    • **Steps must be completed in sequence** - Each step builds on previous results  
     • **Use sample files above** as templates for your data uploads
     """)
     

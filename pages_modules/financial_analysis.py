@@ -141,7 +141,7 @@ def render_financial_analysis():
     # Add OptiSunny character header image
     st.image("attached_assets/step09_1751436847831.png", width=400)
     
-    st.header("💰 Step 9: Financial & Environmental Impact Analysis")
+    st.header("💰 Step 9: Financial & Environmental Impact Analysis for Selected Windows")
     
     # Check prerequisites and ensure project data is loaded
     from services.io import get_current_project_id, ensure_project_data_loaded
@@ -200,8 +200,8 @@ def render_financial_analysis():
         st.error("⚠️ No optimization solutions available.")
         return
     
-    st.success(f"✅ Analyzing financial performance of {selected_solution['solution_id']} (suitable elements only)")
-    st.info("💡 Financial analysis based on South/East/West-facing elements only for accurate ROI calculations")
+    st.success(f"✅ Analyzing financial performance of {selected_solution['solution_id']} for selected window types")
+    st.info("💡 Financial analysis based on selected window types from Step 4 for accurate ROI calculations")
     
     # Get electricity rates for display (define at top level) - ensure it's a dict
     electricity_rates_raw = project_data.get('electricity_rates', {})

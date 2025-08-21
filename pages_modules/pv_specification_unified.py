@@ -172,8 +172,8 @@ def calculate_unified_bipv_specifications(building_elements, radiation_lookup, p
 def render_pv_specification():
     """Unified Step 6: BIPV Panel Specifications interface"""
     
-    st.header("⚡ Step 6: BIPV Panel Specifications")
-    st.markdown("**Unified Interface** - Consistent dataflow for all workflow steps")
+    st.header("⚡ Step 6: BIPV Panel Specifications for Selected Windows")
+    st.markdown("**Unified Interface** - BIPV technology selection for selected window types from Step 4")
     
     # Check prerequisites and ensure project data is loaded
     from services.io import ensure_project_data_loaded
