@@ -768,24 +768,46 @@ def render_pv_specification():
                     
                     st.dataframe(display_df, use_container_width=True)
                     
-                    # Performance visualization
-                    st.subheader("📈 Performance Analysis")
+                    # System performance visualization (after calculation)
+                    st.subheader("📊 System Performance Summary")
                     
-                    # Capacity by orientation
+                    # Enhanced capacity and performance analysis by orientation
                     orientation_performance = bipv_specifications.groupby(STANDARD_FIELD_NAMES['orientation']).agg({
                         STANDARD_FIELD_NAMES['capacity_kw']: 'sum',
                         STANDARD_FIELD_NAMES['annual_energy_kwh']: 'sum',
                         STANDARD_FIELD_NAMES['total_cost_eur']: 'sum'
                     }).reset_index()
                     
-                    fig = px.bar(
-                        orientation_performance,
-                        x=STANDARD_FIELD_NAMES['orientation'],
-                        y=STANDARD_FIELD_NAMES['capacity_kw'],
-                        title="BIPV Capacity Distribution by Orientation",
-                        labels={'capacity_kw': 'Capacity (kW)', 'orientation': 'Building Orientation'}
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
+                    # Create multiple performance charts
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        fig_capacity = px.bar(
+                            orientation_performance,
+                            x=STANDARD_FIELD_NAMES['orientation'],
+                            y=STANDARD_FIELD_NAMES['capacity_kw'],
+                            title="BIPV Capacity by Orientation",
+                            labels={'capacity_kw': 'Capacity (kW)', 'orientation': 'Orientation'},
+                            color=STANDARD_FIELD_NAMES['capacity_kw'],
+                            color_continuous_scale='blues',
+                            text=STANDARD_FIELD_NAMES['capacity_kw']
+                        )
+                        fig_capacity.update_traces(texttemplate='%{text:.1f}kW', textposition='outside')
+                        st.plotly_chart(fig_capacity, use_container_width=True)
+                    
+                    with col2:
+                        fig_energy = px.bar(
+                            orientation_performance,
+                            x=STANDARD_FIELD_NAMES['orientation'],
+                            y=STANDARD_FIELD_NAMES['annual_energy_kwh'],
+                            title="Annual Energy Generation by Orientation",
+                            labels={'annual_energy_kwh': 'Annual Energy (kWh)', 'orientation': 'Orientation'},
+                            color=STANDARD_FIELD_NAMES['annual_energy_kwh'],
+                            color_continuous_scale='greens',
+                            text=STANDARD_FIELD_NAMES['annual_energy_kwh']
+                        )
+                        fig_energy.update_traces(texttemplate='%{text:.0f}kWh', textposition='outside')
+                        st.plotly_chart(fig_energy, use_container_width=True)
                     
                     # Store for CSV download
                     st.session_state['csv_download_data'] = {
