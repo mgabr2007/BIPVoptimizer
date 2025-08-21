@@ -669,7 +669,28 @@ def render_facade_extraction():
     col1, col2 = st.columns(2)
     with col1:
         if windows_uploaded:
-            st.success(f"✅ Window Elements: {windows_element_count:,} uploaded")
+            # Get actual counts from database for accurate display
+            conn = db_manager.get_connection()
+            if conn:
+                try:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT 
+                                COUNT(*) as total,
+                                COUNT(CASE WHEN pv_suitable = true THEN 1 END) as pv_suitable
+                            FROM building_elements 
+                            WHERE project_id = %s
+                        """, (project_id,))
+                        result = cursor.fetchone()
+                        total_elements = result[0]
+                        pv_suitable_elements = result[1]
+                    st.success(f"✅ Window Elements: {total_elements:,} uploaded ({pv_suitable_elements:,} PV-suitable)")
+                except Exception as e:
+                    st.success(f"✅ Window Elements: {windows_element_count:,} uploaded")
+                finally:
+                    conn.close()
+            else:
+                st.success(f"✅ Window Elements: {windows_element_count:,} uploaded")
         else:
             st.error("❌ Window Elements: Not uploaded")
     with col2:
@@ -685,9 +706,31 @@ def render_facade_extraction():
         
         # Provide navigation guidance
         with st.expander("📋 What happens next in Step 5", expanded=False):
+            # Get current authentic counts for guidance
+            conn = db_manager.get_connection()
+            authentic_window_count = windows_element_count
+            authentic_pv_suitable = 0
+            if conn:
+                try:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT 
+                                COUNT(*) as total,
+                                COUNT(CASE WHEN pv_suitable = true THEN 1 END) as pv_suitable
+                            FROM building_elements 
+                            WHERE project_id = %s
+                        """, (project_id,))
+                        result = cursor.fetchone()
+                        authentic_window_count = result[0]
+                        authentic_pv_suitable = result[1]
+                except:
+                    pass
+                finally:
+                    conn.close()
+                    
             st.markdown(f"""
             **Your uploaded data is now available for radiation analysis:**
-            - **{windows_element_count:,} Window Elements**: Ready for BIPV suitability analysis
+            - **{authentic_window_count:,} Window Elements**: Total BIM elements ({authentic_pv_suitable:,} selected as PV-suitable)
             - **{wall_element_count:,} Wall Elements**: Ready for self-shading calculations
             
             **Step 5 will use this data to:**
