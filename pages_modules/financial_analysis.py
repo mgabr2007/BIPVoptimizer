@@ -846,6 +846,11 @@ def render_financial_analysis():
                 total_investment = solution_dict.get('total_cost', 0)
                 annual_production = solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0))
                 
+                # Calculate annual savings if not provided
+                electricity_price = financial_data.get('analysis_parameters', {}).get('electricity_price', 0.25)
+                calculated_annual_savings = annual_production * electricity_price
+                annual_savings = solution_dict.get('annual_savings', calculated_annual_savings)
+                
                 cost_per_kwh_installed = safe_divide(total_investment, annual_production * system_lifetime, 0)
                 capacity_factor = safe_divide(annual_production, solution_dict.get('capacity', 1) * 8760, 0)
                 
@@ -854,7 +859,7 @@ def render_financial_analysis():
                     'Cost per kW Installed': f"€{safe_divide(total_investment, solution_dict.get('capacity', 1), 0):,.0f}",
                     'Capacity Factor': f"{capacity_factor * 100:.1f}%",
                     'Annual Yield per €1000': f"{safe_divide(annual_production, total_investment / 1000, 0):.0f} kWh",
-                    'ROI (Simple)': f"{safe_divide(solution_dict.get('annual_savings', 0) * system_lifetime, total_investment, 0) * 100:.1f}%",
+                    'ROI (Simple)': f"{safe_divide(annual_savings, total_investment, 0) * 100:.1f}%",
                     'Energy Independence': f"{min(100, safe_divide(annual_production * 100, 10000, 0)):.1f}%"  # Assume 10,000 kWh annual demand
                 }
                 
