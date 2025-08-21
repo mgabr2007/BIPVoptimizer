@@ -23,7 +23,7 @@ def render_radiation_grid():
     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 10px; margin-bottom: 2rem;">
         <h1 style="color: white; margin: 0; text-align: center;">☀️ Step 5: Solar Radiation & Shading Analysis</h1>
         <p style="color: #e6f3ff; margin: 0.5rem 0 0 0; text-align: center; font-size: 1.1em;">
-            Advanced Database-Driven Analysis with High-Performance Computing
+            Analyzing Selected Window Types from Step 4 with High-Performance Computing
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -120,14 +120,14 @@ def render_radiation_grid():
         config_col1, config_col2, config_col3 = st.columns([1, 1, 1])
         
         with config_col1:
-            st.markdown("**🎯 Calculation Precision**")
+            st.markdown("**🎯 Calculation Precision for Selected Windows**")
             
             # New calculation precision radio buttons
             calc_precision = st.radio(
                 "Solar Calculation Mode",
                 ["Simple", "Advanced", "Auto"],
                 index=2,  # Default to Auto
-                help="Simple: DNI-only (5-15% lower accuracy, 3x faster) | Advanced: Full GHI+DNI+DHI model (research-grade) | Auto: Smart data-based selection",
+                help="Analysis method for selected window types from Step 4 | Simple: DNI-only (5-15% lower accuracy, 3x faster) | Advanced: Full GHI+DNI+DHI model (research-grade) | Auto: Smart data-based selection",
                 horizontal=True
             )
             
@@ -173,11 +173,11 @@ def render_radiation_grid():
             st.markdown(f"{indicator} **{time}** - {description}")
         
         with config_col2:
-            st.markdown("**🏗️ Shading Analysis**")
+            st.markdown("**🏗️ Shading Analysis for Selected Windows**")
             include_shading = st.checkbox(
                 "Include Geometric Shading",
                 value=True,
-                help="Calculate precise shadows from building walls"
+                help="Calculate precise shadows from building walls on selected window types"
             )
             if include_shading:
                 st.success("✅ 3D shadow calculations enabled")
@@ -185,11 +185,11 @@ def render_radiation_grid():
                 st.info("ℹ️ No shading calculations")
         
         with config_col3:
-            st.markdown("**🧭 Physics Corrections**")
+            st.markdown("**🧭 Physics Corrections for Selected Windows**")
             apply_corrections = st.checkbox(
                 "Apply Orientation Corrections",
                 value=True,
-                help="Apply physics-based orientation corrections for realistic radiation values"
+                help="Apply physics-based orientation corrections for realistic radiation values on selected window types"
             )
             if apply_corrections:
                 st.success("✅ Physics-based corrections active")
@@ -198,7 +198,7 @@ def render_radiation_grid():
     
     # Enhanced calculation overview with visual metrics
     st.markdown("---")
-    st.markdown("### 📊 Analysis Scope & Calculations")
+    st.markdown("### 📊 Analysis Scope & Calculations for Selected Window Types")
     
     calculation_details = {
         "Hourly": {"calculations": 4015, "icon": "⏰", "description": "11 hours × 365 days", "accuracy": "Maximum"},
@@ -215,24 +215,24 @@ def render_radiation_grid():
     
     # Data readiness information
     st.markdown("---")
-    st.markdown("### 📋 Data Requirements Status")
+    st.markdown("### 📋 Selected Window Types Analysis Status")
     
-    with st.expander("📊 Data Sources & Analysis Flow", expanded=False):
+    with st.expander("📊 Data Sources & Analysis Flow for Selected Windows", expanded=False):
         st.markdown("""
-        **Step 4 Data**: Window and wall elements from BIM extraction
-        - Window glass areas, orientations, and building levels
-        - Wall geometry for self-shading calculations
+        **Step 4 Data**: Selected window types from BIM extraction and historical filtering
+        - Window glass areas, orientations, and building levels for chosen window families
+        - Wall geometry for self-shading calculations on selected windows
         
         **Step 3 Data**: TMY weather data for radiation calculations
         - Hourly solar irradiance values (DNI, GHI)
         - Temperature and atmospheric conditions
         
-        **Analysis Output**: Hourly radiation values for each building element
+        **Analysis Output**: Hourly radiation values for each selected window element
         - Direct and diffuse radiation components
-        - Self-shading corrections applied
+        - Self-shading corrections applied to selected window types only
         """)
     
-    st.info("💡 **Note**: Both window and wall data are uploaded in Step 4 (Facade Extraction). This step performs the radiation analysis on that data.")
+    st.info("💡 **Note**: Window types are selected in Step 4 based on historical significance. This step performs radiation analysis only on the selected window types suitable for BIPV installation.")
     
     # Check for existing analysis
     existing_data = db_manager.get_radiation_analysis_data(project_id)
@@ -334,17 +334,17 @@ def render_radiation_grid():
         finally:
             conn.close()
     
-    # Debug information
-    st.info(f"📊 **Found**: {total_building_elements:,} window elements, {wall_count:,} wall elements")
+    # Debug information  
+    st.info(f"📊 **Found**: {total_building_elements:,} selected window elements (from Step 4), {wall_count:,} wall elements")
     
     # Show requirements status clearly
-    st.subheader("📋 Analysis Requirements Status")
+    st.subheader("📋 Selected Window Types Analysis Requirements")
     col1, col2 = st.columns(2)
     with col1:
         if total_building_elements > 0:
             st.success(f"✅ Window Elements: {total_building_elements:,} selected for analysis (from Step 4)")
         else:
-            st.error("❌ Window Elements: Missing - Go to Step 4 first")
+            st.error("❌ Window Elements: Missing - Go to Step 4 and select window types first")
     with col2:
         if walls_available:
             st.success(f"✅ Wall Data: {wall_count} walls available")  
@@ -353,14 +353,15 @@ def render_radiation_grid():
             
     # Clear instructions based on what's missing
     if total_building_elements == 0:
-        st.warning("🚨 **CRITICAL**: No window elements found! You must complete Step 4 (Facade Extraction) first to upload window data before proceeding to Step 5.")
+        st.warning("🚨 **CRITICAL**: No selected window elements found! You must complete Step 4 (Facade Extraction) and select window types suitable for BIPV installation.")
         st.markdown("**Next Steps:**")
         st.markdown("1. Go back to **Step 4: Facade & Window Extraction**")
         st.markdown("2. Upload your window/glass areas CSV file")  
-        st.markdown("3. Upload wall data CSV file in Step 4")
-        st.markdown("4. Run radiation analysis")
+        st.markdown("3. Select window types that can be replaced (historical significance filtering)")
+        st.markdown("4. Upload wall data CSV file in Step 4")
+        st.markdown("5. Run radiation analysis on selected window types")
     elif not walls_available:
-        st.warning("Upload wall data in Step 4 (Facade Extraction) to enable radiation analysis with self-shading calculations.")
+        st.warning("Upload wall data in Step 4 (Facade Extraction) to enable radiation analysis with self-shading calculations on selected windows.")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -368,7 +369,7 @@ def render_radiation_grid():
         can_run_analysis = walls_available and total_building_elements > 0
         
         if can_run_analysis:
-            if st.button("▶️ Run Radiation Analysis", type="primary", key="run_radiation_analysis"):
+            if st.button("▶️ Run Radiation Analysis on Selected Windows", type="primary", key="run_radiation_analysis"):
                 # Import the execution flow
                 from services.step5_execution_flow import Step5ExecutionFlow
                 
@@ -391,14 +392,14 @@ def render_radiation_grid():
                 
                 # Show analysis type info
                 if analysis_config['analysis_type'] == 'ultra_fast':
-                    st.info("⚡ **Ultra-Fast Analysis** - Optimized for 10-15 second processing")
+                    st.info("⚡ **Ultra-Fast Analysis** - Processing selected window types in 10-15 seconds")
                 elif analysis_config['analysis_type'] == 'optimized':
-                    st.info("🚀 **High-Performance Analysis** - Optimized for 3-5 minute processing")
+                    st.info("🚀 **High-Performance Analysis** - Processing selected window types in 3-5 minutes")
                 else:
-                    st.info("🔬 **Research-Grade Analysis** - Maximum accuracy, longer processing time")
+                    st.info("🔬 **Research-Grade Analysis** - Maximum accuracy for selected window types, longer processing time")
                 
                 # Execute the complete analysis flow
-                with st.spinner("Running comprehensive radiation analysis..."):
+                with st.spinner("Running comprehensive radiation analysis on selected window types..."):
                     execution_result = executor.run_complete_analysis(project_id, analysis_config)
                 
                 # Process execution results
