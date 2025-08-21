@@ -144,17 +144,11 @@ class OptimizedRadiationAnalyzer:
         if not building_elements:
             return {"error": "No building elements found"}
         
-        # Filter for suitable elements only (silent processing)
-        suitable_elements = [elem for elem in building_elements 
-                           if self._is_pv_suitable(elem)]
+        # Building elements already filtered to PV suitable in _get_building_elements
+        suitable_elements = building_elements
         
         if not suitable_elements:
-            # If strict filtering fails, try all elements with reasonable glass area
-            suitable_elements = [elem for elem in building_elements 
-                               if elem.get('glass_area', 0) >= 0.5]
-            
-            if not suitable_elements:
-                return {"error": f"No suitable elements found from {len(building_elements)} total elements"}
+            return {"error": "No PV suitable elements found. Please ensure window types are selected in Step 4."}
         
         # Get precision configuration and generate time steps based on calculation mode
         config = self.precision_configs.get(precision, self.precision_configs["Daily Peak"])
@@ -257,12 +251,13 @@ class OptimizedRadiationAnalyzer:
         
         try:
             with conn.cursor() as cursor:
-                # Get window elements for BIPV analysis - eliminate duplicates
+                # Get PV suitable window elements only - respects include_north_facade setting
                 cursor.execute("""
-                    SELECT DISTINCT element_id, azimuth, glass_area, window_width, window_height, family
+                    SELECT DISTINCT element_id, azimuth, glass_area, window_width, window_height, family, pv_suitable
                     FROM building_elements 
                     WHERE project_id = %s
                     AND element_type IN ('Window', 'Windows')
+                    AND pv_suitable = true
                     ORDER BY element_id
                 """, (project_id,))
                 
@@ -270,9 +265,9 @@ class OptimizedRadiationAnalyzer:
                 elements = []
                 
                 for row in results:
-                    if len(row) != 6:
+                    if len(row) != 7:
                         continue  # Skip malformed rows
-                    element_id, azimuth, glass_area, window_width, window_height, family = row
+                    element_id, azimuth, glass_area, window_width, window_height, family, pv_suitable = row
                     
                     # Calculate glass area from dimensions if not available
                     if not glass_area or glass_area == 0:
