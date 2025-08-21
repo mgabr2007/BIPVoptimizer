@@ -186,21 +186,44 @@ class OptimizedRadiationAnalyzer:
         total_calculations = len(suitable_elements) * len(time_steps)
         st.info(f"📊 **Processing Overview**: {len(suitable_elements):,} elements × {len(time_steps)} time points = {total_calculations:,} total calculations")
         
-        # Initialize clean progress tracking
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        status_text.text(f"Starting radiation analysis for {len(suitable_elements)} elements...")
+        # Initialize comprehensive progress tracking
+        progress_container = st.container()
+        
+        with progress_container:
+            st.markdown("### 📊 Radiation Analysis Progress")
+            
+            # Main progress bar
+            main_progress = st.progress(0.0)
+            
+            # Status display
+            status_col1, status_col2, status_col3 = st.columns(3)
+            
+            with status_col1:
+                elements_processed = st.empty()
+                elements_processed.metric("Elements Processed", "0", f"of {len(suitable_elements)}")
+            
+            with status_col2:
+                calculations_done = st.empty() 
+                calculations_done.metric("Calculations", "0", f"of {total_calculations:,}")
+            
+            with status_col3:
+                current_status = st.empty()
+                current_status.metric("Status", "Starting", "0%")
+            
+            # Detailed progress text
+            detailed_status = st.empty()
+            detailed_status.text(f"🚀 Initializing {precision} analysis for {len(suitable_elements)} selected window elements...")
         
         # Vectorized calculation for all elements
         results = {}
         total_elements = len(suitable_elements)
+        total_calcs_completed = 0
         
         # Process elements in batches for better performance
-        # For Simple mode, use larger batches to reduce overhead
         if calculation_mode == "simple":
             batch_size = min(total_elements, 100)  # Large batches for ultra-fast mode
         else:
-            batch_size = max(1, min(50, total_elements // 10))
+            batch_size = max(1, min(20, total_elements // 5))  # Smaller batches for better progress tracking
         
         for i in range(0, total_elements, batch_size):
             batch = suitable_elements[i:i + batch_size]
@@ -209,17 +232,43 @@ class OptimizedRadiationAnalyzer:
             )
             results.update(batch_results)
             
-            # Update progress with clean percentage display
-            progress = min(1.0, (i + len(batch)) / total_elements)
-            progress_bar.progress(progress)
+            # Update comprehensive progress tracking
+            elements_done = i + len(batch)
+            batch_calculations = len(batch) * len(time_steps)
+            total_calcs_completed += batch_calculations
+            
+            # Calculate progress percentage
+            progress = min(1.0, elements_done / total_elements)
             percentage = int(progress * 100)
-            status_text.text(f"Processing radiation analysis... {percentage}% complete")
+            
+            # Update all progress indicators
+            main_progress.progress(progress)
+            elements_processed.metric("Elements Processed", f"{elements_done}", f"of {total_elements}")
+            calculations_done.metric("Calculations", f"{total_calcs_completed:,}", f"of {total_calculations:,}")
+            current_status.metric("Status", "Processing", f"{percentage}%")
+            
+            # Update detailed status
+            if percentage < 100:
+                detailed_status.text(f"⚡ Processing batch {(i//batch_size)+1} of {(total_elements-1)//batch_size+1} | {percentage}% complete | {elements_done}/{total_elements} elements")
+            else:
+                detailed_status.text(f"✅ Analysis complete! Processed {total_elements} elements with {total_calcs_completed:,} calculations")
         
         # Calculate summary statistics
         total_time = time.time() - start_time
         
+        # Final progress update
+        main_progress.progress(1.0)
+        elements_processed.metric("Elements Processed", f"{total_elements}", f"of {total_elements}")
+        calculations_done.metric("Calculations", f"{total_calcs_completed:,}", f"of {total_calculations:,}")
+        current_status.metric("Status", "Saving", "100%")
+        detailed_status.text(f"💾 Saving {len(results)} radiation analysis results to database...")
+        
         # Save results to database
-        self._save_radiation_results(project_id, results, precision, total_time)
+        save_success = self._save_radiation_results(project_id, results, precision, total_time)
+        
+        if save_success:
+            current_status.metric("Status", "Complete", "✓")
+            detailed_status.text(f"✅ Analysis complete! {total_elements} elements processed in {total_time:.1f}s with {len(results)} results saved to database")
         
         # Prepare return data
         analysis_summary = {
@@ -228,18 +277,15 @@ class OptimizedRadiationAnalyzer:
             "calculation_time": total_time,
             "precision_level": precision,
             "time_steps_used": len(time_steps),
-            "total_calculations": len(suitable_elements) * len(time_steps),
+            "total_calculations": total_calcs_completed,
             "orientation_corrections": apply_corrections,
             "geometric_shading": include_shading,
             "performance_metrics": {
-                "calculations_per_second": (len(suitable_elements) * len(time_steps)) / total_time,
-                "elements_per_second": len(suitable_elements) / total_time,
+                "calculations_per_second": total_calcs_completed / total_time if total_time > 0 else 0,
+                "elements_per_second": len(suitable_elements) / total_time if total_time > 0 else 0,
                 "method": "optimized_vectorized"
             }
         }
-        
-        progress_bar.progress(1.0)
-        status_text.text(f"✅ Analysis completed successfully in {total_time:.1f} seconds")
         
         return analysis_summary
     
