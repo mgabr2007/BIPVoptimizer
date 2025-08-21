@@ -227,6 +227,7 @@ def render_financial_analysis():
     
     # Get electricity rates for display (define at top level) - ensure it's a dict
     electricity_rates_raw = project_data.get('electricity_rates', {})
+    electricity_rates = {}  # Initialize to prevent scope issues
     
     if isinstance(electricity_rates_raw, str):
         try:
@@ -234,12 +235,13 @@ def render_financial_analysis():
             electricity_rates = json.loads(electricity_rates_raw)
         except Exception as e:
             raise ValueError(f"Failed to parse authentic electricity rates from project: {str(e)}")
+    elif isinstance(electricity_rates_raw, dict) and electricity_rates_raw:
+        electricity_rates = electricity_rates_raw
     else:
-        if not electricity_rates_raw:
-            raise ValueError("No authentic electricity rates found in project configuration")
+        raise ValueError("No authentic electricity rates found in project configuration")
     
     # CRITICAL: No session state fallback allowed - require authentic project rates only
-    if not electricity_rates_raw:
+    if not electricity_rates or not electricity_rates.get('import_rate'):
         raise ValueError("No authentic electricity rates found in project configuration")
     
     # Add manual override option if rates don't match expected values
