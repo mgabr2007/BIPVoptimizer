@@ -432,8 +432,10 @@ class BIPVDatabaseManager:
                     net_import = solution.get('net_import_kwh', solution.get('net_import', 0))  # Map net_import_kwh to net_import
                     total_cost = solution.get('total_investment', solution.get('total_cost', 0))  # Map total_investment to total_cost
                     
-                    # Include annual energy in optimization results
-                    annual_energy = solution.get('annual_energy_kwh', solution.get('annual_energy', capacity * 1200 if capacity else 0))
+                    # Include annual energy in optimization results - AUTHENTIC DATA ONLY
+                    annual_energy = solution.get('annual_energy_kwh') or solution.get('annual_energy')
+                    if annual_energy is None:
+                        raise ValueError(f"Solution {i} missing authentic annual energy data. PhD research requires only calculated values from Step 7.")
                     
                     # Prepare selection details JSON - ensure proper data types
                     selection_mask = solution.get('selection_mask', [])

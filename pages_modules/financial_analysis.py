@@ -500,18 +500,14 @@ def render_financial_analysis():
                 irr = calculate_irr(cash_flows)
                 payback_period = calculate_payback_period(cash_flows)
                 
-                # CRITICAL: Require authentic annual energy data - try multiple field names
-                annual_energy_kwh = (
-                    solution_dict.get('annual_energy_kwh') or 
-                    solution_dict.get('annual_energy') or 
-                    solution_dict.get('energy_yield') or
-                    solution_dict.get('yield')
-                )
+                # CRITICAL: Require authentic annual energy data ONLY - no fallbacks
+                annual_energy_kwh = solution_dict.get('annual_energy_kwh')
                 if annual_energy_kwh is None:
-                    # Debug: Show available fields to help identify the correct field name
+                    # Show available fields for debugging but require authentic data
                     available_fields = list(solution_dict.keys())
-                    st.error(f"Available fields in optimization solution: {available_fields}")
-                    raise ValueError("Financial analysis requires authentic annual energy data from optimization solution. Check available fields above.")
+                    st.error(f"Missing 'annual_energy_kwh' field in optimization solution. Available fields: {available_fields}")
+                    st.error("⚠️ Financial analysis requires authentic optimization data from Step 8. Please ensure optimization completed successfully with valid energy calculations.")
+                    return
                 
                 # Ensure we have valid energy data
                 if annual_energy_kwh == 0:
