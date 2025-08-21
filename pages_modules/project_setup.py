@@ -54,6 +54,7 @@ def load_existing_project_data():
                     'lng': float(project_info.get('longitude') or 13.3270)
                 },
                 'location_name': project_info.get('location') or 'Berlin, Germany',
+                'include_north_facade': project_info.get('include_north_facade', False),
                 'weather_station': {
                     'name': project_info.get('weather_station_name'),
                     'wmo_id': project_info.get('weather_station_id'),
@@ -81,6 +82,7 @@ def initialize_session_state():
         }
         st.session_state.location_name = existing_data['location_name']
         st.session_state.project_name = existing_data['project_name']
+        st.session_state.include_north_facade = existing_data.get('include_north_facade', False)
         
         # Clear any cached coordinate keys to force fresh updates
         if 'last_updated_coord' in st.session_state:
@@ -97,6 +99,8 @@ def initialize_session_state():
             st.session_state.location_name = "Berlin, Germany"
         if 'project_name' not in st.session_state:
             st.session_state.project_name = "BIPV Optimization Project"
+        if 'include_north_facade' not in st.session_state:
+            st.session_state.include_north_facade = False
 
 
 def render_project_info_section():
