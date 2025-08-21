@@ -434,7 +434,7 @@ def render_facade_extraction():
                         WHERE project_id = %s 
                         GROUP BY family 
                         ORDER BY element_count DESC
-                    """, (project_id,))
+                    """, (str(project_id),))
                     results = cursor.fetchall()
                     
                     for family, count in results:
@@ -457,7 +457,7 @@ def render_facade_extraction():
                         cursor.execute("""
                             SELECT selected_families FROM selected_window_types 
                             WHERE project_id = %s
-                        """, (project_id,))
+                        """, (str(project_id),))
                         result = cursor.fetchone()
                         if result and result[0]:
                             selected_families = result[0]
@@ -510,11 +510,11 @@ def render_facade_extraction():
                                     DO UPDATE SET 
                                         selected_families = EXCLUDED.selected_families,
                                         updated_at = CURRENT_TIMESTAMP
-                                """, (project_id, new_selections))
+                                """, (str(project_id), new_selections))
                                 conn.commit()
                                 
                                 # Get project settings for orientation filtering
-                                cursor.execute("SELECT include_north_facade FROM projects WHERE id = %s", (project_id,))
+                                cursor.execute("SELECT include_north_facade FROM projects WHERE id = %s", (str(project_id),))
                                 project_result = cursor.fetchone()
                                 include_north = project_result[0] if project_result else False
                                 
@@ -529,7 +529,7 @@ def render_facade_extraction():
                                             ELSE false 
                                         END
                                         WHERE project_id = %s
-                                    """, (new_selections, project_id))
+                                    """, (new_selections, str(project_id)))
                                 else:
                                     # Exclude north-facing elements (azimuth 315-360 and 0-45 degrees)
                                     cursor.execute("""
@@ -541,7 +541,7 @@ def render_facade_extraction():
                                             ELSE false 
                                         END
                                         WHERE project_id = %s
-                                    """, (new_selections, project_id))
+                                    """, (new_selections, str(project_id)))
                                 conn.commit()
                                 
                                 # Mark that we've saved the selection
