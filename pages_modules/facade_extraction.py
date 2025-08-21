@@ -51,18 +51,35 @@ def render_window_selection_visualizations(project_id, selected_families):
                 SELECT 
                     family,
                     CASE 
-                        WHEN azimuth <= 45 OR azimuth > 315 THEN 'North'
-                        WHEN azimuth <= 135 THEN 'East' 
-                        WHEN azimuth <= 225 THEN 'South'
-                        ELSE 'West'
+                        WHEN orientation IS NOT NULL AND orientation != '' THEN orientation
+                        WHEN azimuth IS NOT NULL THEN
+                            CASE 
+                                WHEN azimuth <= 45 OR azimuth > 315 THEN 'North'
+                                WHEN azimuth <= 135 THEN 'East' 
+                                WHEN azimuth <= 225 THEN 'South'
+                                ELSE 'West'
+                            END
+                        ELSE 'Unknown'
                     END as orientation,
-                    level,
+                    COALESCE(building_level, 'Ground') as level,
                     COUNT(*) as element_count,
                     SUM(CASE WHEN pv_suitable = true THEN 1 ELSE 0 END) as pv_suitable_count,
-                    AVG(COALESCE("Glass Area (m²)", area, 0)) as avg_area
+                    AVG(COALESCE(glass_area, 0)) as avg_area
                 FROM building_elements 
                 WHERE project_id = %s 
-                GROUP BY family, orientation, level
+                GROUP BY family, 
+                    CASE 
+                        WHEN orientation IS NOT NULL AND orientation != '' THEN orientation
+                        WHEN azimuth IS NOT NULL THEN
+                            CASE 
+                                WHEN azimuth <= 45 OR azimuth > 315 THEN 'North'
+                                WHEN azimuth <= 135 THEN 'East' 
+                                WHEN azimuth <= 225 THEN 'South'
+                                ELSE 'West'
+                            END
+                        ELSE 'Unknown'
+                    END, 
+                    building_level
                 ORDER BY family, orientation
             """, (str(project_id),))
             
