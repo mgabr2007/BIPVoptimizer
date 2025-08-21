@@ -203,44 +203,91 @@ def render_bipv_selection_analysis(suitable_elements, all_elements):
     tab1, tab2, tab3 = st.tabs(["📊 Orientation Analysis", "🏢 Building Distribution", "📈 Performance Potential"])
     
     with tab1:
-        # Orientation distribution analysis
+        # Orientation distribution analysis with enhanced data extraction
         orientation_data = {}
         for element in suitable_elements:
-            orientation = element.get('orientation', 'Unknown')
+            # Try multiple orientation field names
+            orientation = element.get('orientation', element.get('Orientation'))
+            
+            # If orientation is empty/None, derive from azimuth
+            if not orientation or orientation == 'Unknown' or orientation == '':
+                try:
+                    azimuth = float(element.get('azimuth', 180))
+                    # Convert azimuth to cardinal direction
+                    if 315 <= azimuth < 360 or 0 <= azimuth < 45:
+                        orientation = 'North'
+                    elif 45 <= azimuth < 135:
+                        orientation = 'East' 
+                    elif 135 <= azimuth < 225:
+                        orientation = 'South'
+                    elif 225 <= azimuth < 315:
+                        orientation = 'West'
+                    else:
+                        orientation = 'Unknown'
+                except (ValueError, TypeError):
+                    orientation = 'Unknown'
+            
+            # Initialize orientation data
             if orientation not in orientation_data:
                 orientation_data[orientation] = {'count': 0, 'area': 0}
             orientation_data[orientation]['count'] += 1
-            orientation_data[orientation]['area'] += float(element.get('glass_area', 0))
-        
-        # Create orientation charts
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Orientation count chart
-            orientations = list(orientation_data.keys())
-            counts = [orientation_data[ori]['count'] for ori in orientations]
             
-            fig_count = px.pie(
-                values=counts,
-                names=orientations,
-                title="Selected Windows by Orientation",
-                color_discrete_sequence=px.colors.qualitative.Set3
-            )
-            st.plotly_chart(fig_count, use_container_width=True)
+            # Try multiple area field names
+            glass_area = element.get('glass_area', element.get('Glass Area (m²)', element.get('area_m2', 0)))
+            orientation_data[orientation]['area'] += float(glass_area)
         
-        with col2:
-            # Orientation area chart
-            areas = [orientation_data[ori]['area'] for ori in orientations]
+        # Debug orientation data
+        st.write(f"**Debug**: Found orientations: {list(orientation_data.keys())}")
+        
+        # Create orientation charts only if we have valid data
+        if orientation_data and any(data['count'] > 0 for data in orientation_data.values()):
+            col1, col2 = st.columns(2)
             
-            fig_area = px.bar(
-                x=orientations,
-                y=areas,
-                title="Glass Area by Orientation (m²)",
-                labels={'x': 'Orientation', 'y': 'Glass Area (m²)'},
-                color=areas,
-                color_continuous_scale='viridis'
-            )
-            st.plotly_chart(fig_area, use_container_width=True)
+            with col1:
+                # Orientation count chart
+                orientations = list(orientation_data.keys())
+                counts = [orientation_data[ori]['count'] for ori in orientations]
+                
+                # Remove empty orientations
+                valid_data = [(ori, count) for ori, count in zip(orientations, counts) if count > 0]
+                if valid_data:
+                    valid_orientations, valid_counts = zip(*valid_data)
+                    
+                    fig_count = px.pie(
+                        values=valid_counts,
+                        names=valid_orientations,
+                        title="Selected Windows by Orientation",
+                        color_discrete_sequence=px.colors.qualitative.Set3
+                    )
+                    fig_count.update_traces(textinfo='percent+label+value')
+                    st.plotly_chart(fig_count, use_container_width=True)
+                else:
+                    st.warning("No valid orientation data found for pie chart")
+            
+            with col2:
+                # Orientation area chart  
+                areas = [orientation_data[ori]['area'] for ori in orientations]
+                
+                # Remove empty areas
+                valid_area_data = [(ori, area) for ori, area in zip(orientations, areas) if area > 0]
+                if valid_area_data:
+                    valid_ori_areas, valid_areas = zip(*valid_area_data)
+                    
+                    fig_area = px.bar(
+                        x=valid_ori_areas,
+                        y=valid_areas,
+                        title="Glass Area by Orientation (m²)",
+                        labels={'x': 'Orientation', 'y': 'Glass Area (m²)'},
+                        color=valid_areas,
+                        color_continuous_scale='viridis',
+                        text=valid_areas
+                    )
+                    fig_area.update_traces(texttemplate='%{text:.0f}m²', textposition='outside')
+                    st.plotly_chart(fig_area, use_container_width=True)
+                else:
+                    st.warning("No valid area data found for bar chart")
+        else:
+            st.warning("No orientation data available for visualization")
     
     with tab2:
         # Building level distribution
