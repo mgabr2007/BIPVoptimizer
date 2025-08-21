@@ -502,11 +502,15 @@ def render_financial_analysis():
                 
                 # CRITICAL: Require authentic annual energy data ONLY - no fallbacks
                 annual_energy_kwh = solution_dict.get('annual_energy_kwh')
-                if annual_energy_kwh is None:
+                if annual_energy_kwh is None or annual_energy_kwh == 0:
                     # Show available fields for debugging but require authentic data
                     available_fields = list(solution_dict.keys())
-                    st.error(f"Missing 'annual_energy_kwh' field in optimization solution. Available fields: {available_fields}")
-                    st.error("⚠️ Financial analysis requires authentic optimization data from Step 8. Please ensure optimization completed successfully with valid energy calculations.")
+                    st.error(f"Missing or zero 'annual_energy_kwh' field in optimization solution. Available fields: {available_fields}")
+                    st.error("⚠️ **Complete workflow sequence required:**")
+                    st.error("1. **Step 6**: Complete BIPV specifications with authentic radiation data from Step 5")
+                    st.error("2. **Step 7**: Complete yield vs demand analysis") 
+                    st.error("3. **Step 8**: Complete optimization with authentic energy calculations")
+                    st.error("4. **Step 9**: Financial analysis (current step)")
                     return
                 
                 # Ensure we have valid energy data

@@ -283,7 +283,14 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
                 
             # Note: This analyze function uses PV spec values for display
             # The optimization fitness calculation now uses authentic Step 5 radiation data
-            total_annual_yield = selected_specs['annual_energy_kwh'].sum()
+            # Handle field name mapping for annual energy from Step 6 PV specifications
+            if 'annual_energy_kwh' in selected_specs.columns:
+                total_annual_yield = selected_specs['annual_energy_kwh'].sum()
+            else:
+                # Debug: Show available columns if field is missing
+                st.error(f"Missing 'annual_energy_kwh' field in PV specifications. Available columns: {selected_specs.columns.tolist()}")
+                st.error("⚠️ Step 6 (PV Specifications) must be completed first with authentic energy calculations.")
+                return pd.DataFrame()  # Return empty DataFrame to prevent further errors
             selected_elements = selected_specs['element_id'].tolist() if 'element_id' in selected_specs.columns else [f"Element_{j}" for j in range(len(selected_specs))]
             
             # Calculate net import reduction
