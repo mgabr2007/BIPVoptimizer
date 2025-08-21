@@ -759,6 +759,50 @@ def render_electricity_rate_integration():
             st.write(f"**Source:** {rates['source']}")
 
 
+def render_facade_orientation_settings():
+    """Render facade orientation inclusion settings"""
+    st.subheader("6️⃣ Facade Orientation Configuration")
+    
+    st.markdown("""
+    **BIPV Suitability Configuration**: By default, only South, East, and West-facing windows are analyzed 
+    for BIPV installation due to their superior solar exposure. You can optionally include North-facing 
+    facades if your project specifically requires it.
+    """)
+    
+    # Check for existing setting
+    include_north = st.session_state.get('include_north_facade', False)
+    
+    # Configuration option
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        include_north_facade = st.checkbox(
+            "Include North-facing facades in BIPV analysis",
+            value=include_north,
+            help="North-facing windows typically have lower solar potential but may be included for specific project requirements",
+            key="include_north_facade_checkbox"
+        )
+    
+    with col2:
+        if include_north_facade:
+            st.success("✅ All orientations")
+        else:
+            st.info("📍 South/East/West only")
+    
+    # Show impact information
+    if include_north_facade != include_north:
+        if include_north_facade:
+            st.info("💡 Including North facades will analyze all building orientations but may reduce overall system efficiency")
+        else:
+            st.info("💡 Restricting to South/East/West facades optimizes for maximum solar potential and economic viability")
+    
+    # Save setting
+    st.session_state.include_north_facade = include_north_facade
+    
+    # Show current configuration
+    orientations = "All orientations (N/S/E/W)" if include_north_facade else "Optimal orientations (S/E/W)"
+    st.write(f"**Current setting:** {orientations}")
+
+
 def save_project_configuration(project_name):
     """Save project configuration to database"""
     try:
@@ -793,6 +837,9 @@ def save_project_configuration(project_name):
         # Add electricity rates if configured
         if 'electricity_rates' in st.session_state:
             project_data['electricity_rates'] = st.session_state.electricity_rates
+        
+        # Add facade orientation setting
+        project_data['include_north_facade'] = st.session_state.get('include_north_facade', False)
         
         # Add weather station data if selected
         if 'selected_weather_station' in st.session_state:
@@ -838,9 +885,10 @@ def render_project_setup():
     render_weather_api_selection()
     render_weather_station_selection()
     render_electricity_rate_integration()
+    render_facade_orientation_settings()
     
     # Configuration summary and save
-    st.subheader("6️⃣ Configuration Summary")
+    st.subheader("7️⃣ Configuration Summary")
     
     # Display current configuration
     coords = st.session_state.map_coordinates
@@ -878,6 +926,11 @@ def render_project_setup():
             st.write(f"• Source: {rates['source'][:30]}...")
         else:
             st.warning("⚠️ No electricity rates configured")
+        
+        # Show facade orientation setting
+        include_north = st.session_state.get('include_north_facade', False)
+        orientations = "All orientations (N/S/E/W)" if include_north else "Optimal orientations (S/E/W)"
+        st.write(f"**BIPV Analysis:** {orientations}")
     
     # Save configuration button
     if st.button("💾 Save Project Configuration", type="primary", key="save_config"):

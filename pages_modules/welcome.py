@@ -30,7 +30,8 @@ def render_welcome():
     **Building-Integrated Photovoltaics (BIPV)** replaces conventional windows with semi-transparent 
     photovoltaic glass that generates electricity while maintaining natural lighting. This platform 
     analyzes building geometry to identify suitable window types for BIPV installation, considering 
-    historical significance and architectural constraints.
+    historical significance and architectural constraints. Project configuration allows analysis of 
+    optimal orientations (South/East/West) or all orientations including North-facing facades.
     
     ### Key Platform Features
     
@@ -114,6 +115,7 @@ def render_welcome():
     st.warning("""
     **Important Workflow Requirements:**
     
+    • **Step 1 (Project Setup)** - Configure facade orientation analysis (optimal S/E/W or all orientations)
     • **Step 4 (Window Selection) is MANDATORY** - Window type filtering for BIPV suitability is required
     • **Historical significance filtering** - Some windows cannot be replaced due to heritage constraints
     • **Steps must be completed in sequence** - Each step builds on previous results  

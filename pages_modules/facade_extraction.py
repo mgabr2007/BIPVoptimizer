@@ -459,15 +459,35 @@ def render_facade_extraction():
                                 """, (project_id, new_selections))
                                 conn.commit()
                                 
+                                # Get project settings for orientation filtering
+                                cursor.execute("SELECT include_north_facade FROM projects WHERE id = %s", (project_id,))
+                                project_result = cursor.fetchone()
+                                include_north = project_result[0] if project_result else False
+                                
                                 # Update building_elements table to mark selected families as suitable
-                                cursor.execute("""
-                                    UPDATE building_elements 
-                                    SET pv_suitable = CASE 
-                                        WHEN family = ANY(%s) THEN true 
-                                        ELSE false 
-                                    END
-                                    WHERE project_id = %s
-                                """, (new_selections, project_id))
+                                # Also apply orientation filtering based on project settings
+                                if include_north:
+                                    # Include all orientations when north facade is enabled
+                                    cursor.execute("""
+                                        UPDATE building_elements 
+                                        SET pv_suitable = CASE 
+                                            WHEN family = ANY(%s) THEN true 
+                                            ELSE false 
+                                        END
+                                        WHERE project_id = %s
+                                    """, (new_selections, project_id))
+                                else:
+                                    # Exclude north-facing elements (azimuth 315-45 degrees)
+                                    cursor.execute("""
+                                        UPDATE building_elements 
+                                        SET pv_suitable = CASE 
+                                            WHEN family = ANY(%s) AND 
+                                                 (azimuth IS NULL OR 
+                                                  azimuth < 315 AND azimuth > 45) THEN true 
+                                            ELSE false 
+                                        END
+                                        WHERE project_id = %s
+                                    """, (new_selections, project_id))
                                 conn.commit()
                                 
                                 # Mark that we've saved the selection

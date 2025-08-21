@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS projects (
     weather_api_choice VARCHAR(50) DEFAULT 'auto',
     location_method VARCHAR(50),
     search_radius INTEGER DEFAULT 500,
+    include_north_facade BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

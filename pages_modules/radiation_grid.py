@@ -122,6 +122,23 @@ def render_radiation_grid():
         with config_col1:
             st.markdown("**🎯 Calculation Precision for Selected Windows**")
             
+            # Show facade orientation configuration
+            try:
+                conn = db_manager.get_connection()
+                if conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("SELECT include_north_facade FROM projects WHERE id = %s", (project_id,))
+                        result = cursor.fetchone()
+                        include_north = result[0] if result else False
+                        
+                        if include_north:
+                            st.info("📍 **All orientations** (N/S/E/W) - North facades included")
+                        else:
+                            st.info("📍 **Optimal orientations** (S/E/W only) - North facades excluded")
+                    conn.close()
+            except Exception:
+                st.info("📍 **Default:** South/East/West orientations only")
+            
             # New calculation precision radio buttons
             calc_precision = st.radio(
                 "Solar Calculation Mode",

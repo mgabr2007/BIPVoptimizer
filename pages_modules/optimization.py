@@ -358,6 +358,27 @@ def render_optimization():
     
     st.header("🎯 Step 8: Multi-Objective BIPV Optimization")
     
+    # Show facade orientation configuration
+    from services.io import get_current_project_id
+    project_id = get_current_project_id()
+    
+    if project_id:
+        try:
+            conn = db_manager.get_connection()
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT include_north_facade FROM projects WHERE id = %s", (project_id,))
+                    result = cursor.fetchone()
+                    include_north = result[0] if result else False
+                    
+                    if include_north:
+                        st.info("📍 **Optimizing all orientations** (N/S/E/W) per project configuration")
+                    else:
+                        st.info("📍 **Optimizing optimal orientations** (S/E/W only) per project configuration")
+                conn.close()
+        except Exception:
+            st.info("📍 **Default:** Optimizing South/East/West orientations only")
+    
     # Optimization Methodology Explanation
     with st.expander("🔬 How BIPV Optimization Works", expanded=True):
         st.markdown("""

@@ -234,6 +234,21 @@ def render_pv_specification():
     
     st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_analysis_data.get('element_radiation', []))} radiation records")
     
+    # Show facade orientation configuration
+    try:
+        with db_manager.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT include_north_facade FROM projects WHERE id = %s", (project_id,))
+                result = cursor.fetchone()
+                include_north = result[0] if result else False
+                
+                if include_north:
+                    st.info("📍 **All orientations** (N/S/E/W) included in analysis per project configuration")
+                else:
+                    st.info("📍 **Optimal orientations** (S/E/W) only per project configuration - North facades excluded")
+    except Exception:
+        st.info("📍 **Default:** Analyzing South/East/West orientations only")
+    
     # Apply BIPV suitability filtering based on azimuth
     suitable_elements = []
     
