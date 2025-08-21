@@ -453,6 +453,7 @@ def render_pv_specification():
         st.markdown("- ✅ **Step 5**: Solar radiation analysis for selected windows")
     
     # Show facade orientation configuration
+    include_north = False
     try:
         with db_manager.get_connection() as conn:
             with conn.cursor() as cursor:
@@ -462,10 +463,13 @@ def render_pv_specification():
                 
                 if include_north:
                     st.info("📍 **All orientations** (N/S/E/W) included in analysis per project configuration")
+                    orientation_text = "all orientation"
                 else:
                     st.info("📍 **Optimal orientations** (S/E/W) only per project configuration - North facades excluded")
+                    orientation_text = "South/East/West-facing"
     except Exception:
         st.info("📍 **Default:** Analyzing South/East/West orientations only")
+        orientation_text = "South/East/West-facing"
     
     # Apply BIPV suitability filtering based on azimuth
     suitable_elements = []
@@ -500,11 +504,14 @@ def render_pv_specification():
     
     if suitable_count == 0:
         st.error("❌ No suitable elements found for BIPV installation. Check building orientation data.")
-        st.info("💡 BIPV requires South, East, or West-facing windows for viable energy generation")
+        if include_north:
+            st.info("💡 BIPV requires windows with sufficient solar exposure for viable energy generation")
+        else:
+            st.info("💡 BIPV requires South, East, or West-facing windows for viable energy generation")
         return
     
     st.success(f"✅ Found {suitable_count} suitable BIPV elements ({suitability_rate:.1f}% suitability rate)")
-    st.info("💡 Analysis includes only South/East/West-facing elements with good solar performance")
+    st.info(f"💡 Analysis includes only {orientation_text} elements with good solar performance")
     
     # BIPV Panel Technology Selection
     st.subheader("🔧 BIPV Glass Technology Selection")
