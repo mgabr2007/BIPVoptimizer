@@ -32,6 +32,60 @@ def get_orientation_from_azimuth(azimuth):
     else:
         return "West"
 
+
+def update_pv_suitable_flags(project_id, include_north_facade):
+    """Update pv_suitable flags for all elements based on current window selections and orientation setting"""
+    conn = db_manager.get_connection()
+    if not conn:
+        return False
+    
+    try:
+        with conn.cursor() as cursor:
+            # Get currently selected window families
+            cursor.execute("SELECT selected_families FROM selected_window_types WHERE project_id = %s", (project_id,))
+            result = cursor.fetchone()
+            
+            if not result or not result[0]:
+                # No window selections yet, set all to false
+                cursor.execute("UPDATE building_elements SET pv_suitable = false WHERE project_id = %s", (project_id,))
+                conn.commit()
+                return True
+            
+            selected_families = result[0]
+            
+            # Apply orientation filtering based on project settings
+            if include_north_facade:
+                # Include all orientations when north facade is enabled
+                cursor.execute("""
+                    UPDATE building_elements 
+                    SET pv_suitable = CASE 
+                        WHEN family = ANY(%s) THEN true 
+                        ELSE false 
+                    END
+                    WHERE project_id = %s
+                """, (selected_families, project_id))
+            else:
+                # Exclude north-facing elements (azimuth 315-360 and 0-45 degrees)
+                cursor.execute("""
+                    UPDATE building_elements 
+                    SET pv_suitable = CASE 
+                        WHEN family = ANY(%s) AND 
+                             (azimuth IS NULL OR 
+                              (azimuth > 45 AND azimuth < 315)) THEN true 
+                        ELSE false 
+                    END
+                    WHERE project_id = %s
+                """, (selected_families, project_id))
+            
+            conn.commit()
+            return True
+            
+    except Exception as e:
+        st.error(f"Error updating PV suitable flags: {e}")
+        return False
+    finally:
+        conn.close()
+
 def save_walls_data_to_database(project_id, walls_df, progress_callback=None):
     """Save wall data to building_walls table with progress tracking"""
     conn = db_manager.get_connection()

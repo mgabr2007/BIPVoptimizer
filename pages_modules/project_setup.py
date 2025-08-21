@@ -795,8 +795,37 @@ def render_facade_orientation_settings():
         else:
             st.info("💡 Restricting to South/East/West facades optimizes for maximum solar potential and economic viability")
     
-    # Save setting
-    st.session_state.include_north_facade = include_north_facade
+    # Save setting and trigger database update for existing projects
+    if include_north_facade != include_north:
+        st.session_state.include_north_facade = include_north_facade
+        
+        # Update database immediately for current project
+        current_project_id = get_current_project_id()
+        if current_project_id:
+            try:
+                from database_manager import BIPVDatabaseManager
+                db_helper = BIPVDatabaseManager()
+                with db_helper.get_connection() as conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute(
+                            "UPDATE projects SET include_north_facade = %s WHERE id = %s",
+                            (include_north_facade, current_project_id)
+                        )
+                        conn.commit()
+                
+                # Also update pv_suitable flags immediately based on current window selections
+                from pages_modules.facade_extraction import update_pv_suitable_flags
+                update_pv_suitable_flags(current_project_id, include_north_facade)
+                
+                if include_north_facade:
+                    st.success("✅ North facades enabled - building elements updated immediately")
+                else:
+                    st.success("✅ North facades disabled - building elements updated immediately")
+                    
+            except Exception as e:
+                st.warning(f"Setting saved but database update pending: {e}")
+    else:
+        st.session_state.include_north_facade = include_north_facade
     
     # Show current configuration
     orientations = "All orientations (N/S/E/W)" if include_north_facade else "Optimal orientations (S/E/W)"
