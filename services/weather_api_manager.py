@@ -184,7 +184,7 @@ class WeatherAPIManager:
             response = requests.get(geolocation_url, headers=headers, timeout=15)
             
             if response.status_code != 200:
-                return {'error': f'TU Berlin API request failed: {response.status_code}', 'fallback_recommended': 'openweathermap'}
+                raise ValueError(f'TU Berlin API request failed: {response.status_code}. Please check API status or use OpenWeatherMap.')
             
             stations_data = response.json()
             
@@ -291,10 +291,10 @@ class WeatherAPIManager:
                     'all_nearby_stations': stations_list  # Include all 5 stations
                 }
             else:
-                return {'error': 'No nearby stations found', 'fallback_recommended': 'openweathermap'}
+                raise ValueError('No nearby TU Berlin weather stations found for location. Please select different location or use OpenWeatherMap API.')
                 
         except Exception as e:
-            return {'error': f'TU Berlin API error: {str(e)}', 'fallback_recommended': 'openweathermap'}
+            raise ValueError(f'TU Berlin API error: {str(e)}. Please check API configuration or use OpenWeatherMap.')
     
     async def fetch_openweathermap_data(self, lat, lon):
         """Fetch weather data from OpenWeatherMap API"""
@@ -308,7 +308,7 @@ class WeatherAPIManager:
                 api_key = os.environ.get("OPENWEATHER_API_KEY")
             
             if not api_key:
-                return {'error': 'OpenWeatherMap API key not available'}
+                raise ValueError('OpenWeatherMap API key not available. Please configure OPENWEATHER_API_KEY in environment or secrets.')
             
             # Current weather
             current_url = f"{self.openweather_base_url}/weather"
@@ -355,10 +355,10 @@ class WeatherAPIManager:
                 
                 return formatted_data
             else:
-                return {'error': f'OpenWeatherMap API error: {response.status_code}'}
+                raise ValueError(f'OpenWeatherMap API request failed: {response.status_code}. Please check API key and location.')
                 
         except Exception as e:
-            return {'error': f'OpenWeatherMap error: {str(e)}'}
+            raise ValueError(f'OpenWeatherMap API error: {str(e)}. Please check API configuration.')
     
     async def fetch_weather_data(self, lat, lon, api_choice='auto'):
         """Main method to fetch weather data with API selection"""
@@ -370,10 +370,8 @@ class WeatherAPIManager:
         if api_choice == 'tu_berlin':
             result = await self.fetch_tu_berlin_weather_data(lat, lon)
             
-            # Fallback to OpenWeatherMap if TU Berlin fails
-            if 'error' in result and result.get('fallback_recommended') == 'openweathermap':
-                st.warning(f"TU Berlin API unavailable ({result['error']}). Falling back to OpenWeatherMap.")
-                result = await self.fetch_openweathermap_data(lat, lon)
+            # CRITICAL: No automatic fallback allowed - require explicit user choice or authentic API success
+            return result
         else:
             result = await self.fetch_openweathermap_data(lat, lon)
         

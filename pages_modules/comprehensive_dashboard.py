@@ -35,15 +35,19 @@ def create_optimized_windows_csv(project_id):
             
             project_details = cursor.fetchone()
             
-            # Extract electricity rate for payback calculations
-            electricity_rate = 0.30  # Default EUR/kWh
+            # CRITICAL: Require authentic electricity rates - no defaults
+            electricity_rate = None
             if project_details and project_details[1]:
                 try:
                     import json
                     rates_data = json.loads(project_details[1]) if isinstance(project_details[1], str) else project_details[1]
-                    electricity_rate = float(rates_data.get('import_rate', 0.30))
-                except:
-                    electricity_rate = 0.30  # Fallback to default
+                    electricity_rate = float(rates_data.get('import_rate'))
+                    if electricity_rate is None:
+                        raise ValueError("No authentic import_rate found in project electricity rates")
+                except Exception as e:
+                    raise ValueError(f"Failed to parse authentic electricity rates: {str(e)}")
+            else:
+                raise ValueError("No authentic electricity rates found in project configuration")
             
             # Get the recommended optimization solution for current project only
             cursor.execute("""
@@ -429,22 +433,26 @@ def get_dashboard_data(project_id):
             project_info = cursor.fetchone()
             
             if project_info:
-                # Parse electricity rates from JSON
-                electricity_rate = 0.30  # Default fallback
+                # CRITICAL: Require authentic electricity rates - no defaults
+                electricity_rate = None
                 if project_info[6]:  # electricity_rates JSON
                     try:
                         import json
                         rates_data = json.loads(project_info[6])
-                        electricity_rate = float(rates_data.get('import_rate', 0.30))
-                    except (json.JSONDecodeError, ValueError, TypeError):
-                        electricity_rate = 0.30
+                        electricity_rate = float(rates_data.get('import_rate'))
+                        if electricity_rate is None:
+                            raise ValueError("No authentic import_rate found in project electricity rates")
+                    except (json.JSONDecodeError, ValueError, TypeError) as e:
+                        raise ValueError(f"Failed to parse authentic electricity rates: {str(e)}")
+                else:
+                    raise ValueError("No authentic electricity rates found in project configuration")
                 
                 dashboard_data['project'] = {
                     'name': project_info[0],
                     'location': project_info[1] if project_info[1] and project_info[1] != 'TBD' else f"Coordinates: {project_info[2]:.4f}, {project_info[3]:.4f}",
                     'latitude': project_info[2],
                     'longitude': project_info[3],
-                    'timezone': project_info[4] if project_info[4] else 'UTC',
+                    'timezone': project_info[4] if project_info[4] else None,
                     'currency': project_info[5],
                     'electricity_rate': electricity_rate,
                     'created_at': project_info[7]
@@ -463,13 +471,13 @@ def get_dashboard_data(project_id):
             if ai_model:
                 dashboard_data['ai_model'] = {
                     'model_type': ai_model[0],
-                    'r2_score': float(ai_model[1]) if ai_model[1] else 0.0,
+                    'r2_score': float(ai_model[1]) if ai_model[1] is not None else None,
                     'training_data_points': ai_model[2],
                     'forecast_years': ai_model[3],
-                    'building_area': float(ai_model[4]) if ai_model[4] else 0.0,
-                    'growth_rate': float(ai_model[5]) if ai_model[5] else 0.0,
-                    'peak_demand': float(ai_model[6]) if ai_model[6] else 0.0,
-                    'annual_consumption': float(ai_model[7]) if ai_model[7] else 0.0
+                    'building_area': float(ai_model[4]) if ai_model[4] is not None else None,
+                    'growth_rate': float(ai_model[5]) if ai_model[5] is not None else None,
+                    'peak_demand': float(ai_model[6]) if ai_model[6] is not None else None,
+                    'annual_consumption': float(ai_model[7]) if ai_model[7] is not None else None
                 }
             
             # Weather Data (Step 3)
@@ -482,17 +490,18 @@ def get_dashboard_data(project_id):
             if weather_result:
                 temperature = weather_result[0]
                 humidity = weather_result[1] 
-                ghi = float(weather_result[3]) if weather_result[3] else 1200  # Berlin default
-                dni = float(weather_result[4]) if weather_result[4] else 800   # Berlin default  
-                dhi = float(weather_result[5]) if weather_result[5] else 400   # Berlin default
+                # CRITICAL: No default weather values - require authentic TMY data
+                ghi = float(weather_result[3]) if weather_result[3] is not None else None
+                dni = float(weather_result[4]) if weather_result[4] is not None else None
+                dhi = float(weather_result[5]) if weather_result[5] is not None else None
                 
                 dashboard_data['weather'] = {
-                    'temperature': float(temperature) if temperature else 0,
-                    'humidity': float(humidity) if humidity else 0,
+                    'temperature': float(temperature) if temperature is not None else None,
+                    'humidity': float(humidity) if humidity is not None else None,
                     'annual_ghi': ghi,
                     'annual_dni': dni,
                     'annual_dhi': dhi,
-                    'total_solar_resource': ghi + dni + dhi,
+                    'total_solar_resource': (ghi + dni + dhi) if all(x is not None for x in [ghi, dni, dhi]) else None,
                     'data_points': 8760  # Standard TMY hours per year
                 }
             
@@ -755,17 +764,7 @@ def create_overview_cards(data):
                     f"Avg: {avg_power:.1f} W/m²"
                 )
             else:
-                # Use energy analysis data as backup
-                if 'energy_analysis' in data:
-                    generation = data['energy_analysis']['annual_generation']
-                    estimated_capacity = generation / 1000  # Rough estimate: 1000 kWh/kW/year
-                    st.metric(
-                        "Estimated PV Capacity",
-                        f"{estimated_capacity:.1f} kW",
-                        f"From {generation:,.0f} kWh/year"
-                    )
-                else:
-                    st.metric("Total PV Capacity", "No data", "")
+                st.metric("Total PV Capacity", "No authentic data", "Complete Step 6 for PV specifications")
         else:
             st.metric("Total PV Capacity", "No data", "")
     
@@ -1143,11 +1142,17 @@ def create_project_timeline_section(data):
     
     with col2:
         st.markdown("**Economic Parameters:**")
-        # Get electricity rate from session state or use default
-        electricity_rate = st.session_state.get('electricity_rates', {}).get('import_rate', 0.30)
+        # CRITICAL: Require authentic electricity rate - no session state fallback
+        electricity_rate = project.get('electricity_rate')
+        if electricity_rate is None:
+            st.error("❌ No authentic electricity rate found - please complete Step 1 configuration")
+            return
         st.write(f"• **Electricity Rate:** €{electricity_rate:.3f}/kWh")
         st.write(f"• **Currency:** {project['currency']}")
-        st.write(f"• **Timezone:** {project['timezone']}")
+        if project.get('timezone'):
+            st.write(f"• **Timezone:** {project['timezone']}")
+        else:
+            st.write("• **Timezone:** Not configured")
         
         # AI Model Performance
         if 'ai_model' in data:

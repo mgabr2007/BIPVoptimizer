@@ -80,9 +80,9 @@ def render_yield_demand():
             )
         
         with col4:
-            # Try to get electricity rate from Step 1 project data
-            default_rate = 0.25
-            rate_source = "Default"
+            # CRITICAL: Require authentic electricity rates from Step 1 - no defaults
+            default_rate = None
+            rate_source = "REQUIRED_FROM_STEP_1"
             
             try:
                 # Use already imported functions from module level
@@ -104,15 +104,23 @@ def render_yield_demand():
                             rate_source = f"Step 1 ({rates.get('source', 'Unknown')})"
                             st.info(f"✅ Using electricity rate from Step 1: {default_rate:.3f} €/kWh")
                         else:
-                            st.warning("⚠️ Electricity rates from Step 1 are not in expected format")
+                            st.error("❌ Electricity rates from Step 1 are not in expected format - analysis cannot proceed")
+                            return
                     else:
-                        st.warning("⚠️ No electricity rates found from Step 1 - please configure rates in Step 1")
+                        st.error("❌ No electricity rates found from Step 1 - please configure rates in Step 1")
+                        return
                 else:
-                    st.warning("⚠️ No project ID found - using default rate")
+                    st.error("❌ No project ID found - please complete Step 1 first")
+                    return
                     
             except Exception as e:
-                st.warning(f"⚠️ Error retrieving electricity rates from Step 1: {str(e)}")
+                st.error(f"❌ Error retrieving electricity rates from Step 1: {str(e)}")
+                return
             
+            if default_rate is None:
+                st.error("❌ No valid electricity rate available - please configure rates in Step 1")
+                return
+                
             electricity_price = st.number_input(
                 "Electricity Price (€/kWh)",
                 0.01, 0.50, default_rate, 0.01,

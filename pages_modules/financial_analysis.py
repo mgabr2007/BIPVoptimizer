@@ -83,21 +83,43 @@ def calculate_co2_savings(annual_energy_kwh, grid_co2_factor, system_lifetime):
 def create_cash_flow_analysis(solution_data, financial_params, system_lifetime):
     """Create detailed cash flow analysis for a solution."""
     
-    # Handle different key names for cost
-    initial_cost = solution_data.get('total_investment', solution_data.get('total_cost', 0))
-    annual_energy = solution_data.get('annual_energy_kwh', solution_data.get('annual_energy', 0))
+    # CRITICAL: Require authentic solution data - no fallback keys
+    initial_cost = solution_data.get('total_cost')
+    if initial_cost is None:
+        raise ValueError("Financial analysis requires authentic 'total_cost' data from optimization")
+    
+    annual_energy = solution_data.get('annual_energy_kwh')
+    if annual_energy is None:
+        raise ValueError("Financial analysis requires authentic 'annual_energy_kwh' data from optimization")
     
     # Financial parameters
     discount_rate = financial_params['discount_rate']
     electricity_price = financial_params['electricity_price']
-    price_escalation = financial_params.get('price_escalation', 0.02)
-    maintenance_cost_rate = financial_params.get('maintenance_cost_rate', 0.01)
-    inverter_replacement_year = financial_params.get('inverter_replacement_year', 12)
-    inverter_replacement_cost = financial_params.get('inverter_replacement_cost_ratio', 0.15)
+    # CRITICAL: Require explicit financial parameters - no defaults allowed
+    price_escalation = financial_params.get('price_escalation')
+    if price_escalation is None:
+        raise ValueError("Financial analysis requires explicit 'price_escalation' parameter")
+        
+    maintenance_cost_rate = financial_params.get('maintenance_cost_rate')
+    if maintenance_cost_rate is None:
+        raise ValueError("Financial analysis requires explicit 'maintenance_cost_rate' parameter")
+        
+    inverter_replacement_year = financial_params.get('inverter_replacement_year')
+    if inverter_replacement_year is None:
+        raise ValueError("Financial analysis requires explicit 'inverter_replacement_year' parameter")
+        
+    inverter_replacement_cost = financial_params.get('inverter_replacement_cost_ratio')
+    if inverter_replacement_cost is None:
+        raise ValueError("Financial analysis requires explicit 'inverter_replacement_cost_ratio' parameter")
     
-    # Incentives
-    tax_credit = financial_params.get('tax_credit', 0.0)
-    rebate_amount = financial_params.get('rebate_amount', 0.0)
+    # Incentives - explicit configuration required
+    tax_credit = financial_params.get('tax_credit')
+    if tax_credit is None:
+        raise ValueError("Financial analysis requires explicit 'tax_credit' parameter")
+        
+    rebate_amount = financial_params.get('rebate_amount')
+    if rebate_amount is None:
+        raise ValueError("Financial analysis requires explicit 'rebate_amount' parameter")
     
     cash_flows = []
     annual_details = []
@@ -210,22 +232,22 @@ def render_financial_analysis():
         try:
             import json
             electricity_rates = json.loads(electricity_rates_raw)
-        except:
-            electricity_rates = {'import_rate': 0.25, 'source': 'fallback'}
+        except Exception as e:
+            raise ValueError(f"Failed to parse authentic electricity rates from project: {str(e)}")
     else:
-        electricity_rates = electricity_rates_raw or {'import_rate': 0.25, 'source': 'fallback'}
+        if not electricity_rates_raw:
+            raise ValueError("No authentic electricity rates found in project configuration")
     
-    # If no rates found in current project, check session state as backup
-    if not electricity_rates or electricity_rates.get('import_rate') in [0.25, None]:
-        if 'electricity_rates' in st.session_state:
-            session_rates = st.session_state['electricity_rates']
-            st.warning(f"⚠️ Using rates from session state: {session_rates.get('import_rate', 'N/A')} €/kWh")
-            electricity_rates = session_rates
+    # CRITICAL: No session state fallback allowed - require authentic project rates only
+    if not electricity_rates_raw:
+        raise ValueError("No authentic electricity rates found in project configuration")
     
     # Add manual override option if rates don't match expected values
     st.subheader("⚙️ Electricity Rate Override")
     
-    current_rate = electricity_rates.get('import_rate', 0.25)
+    current_rate = electricity_rates.get('import_rate')
+    if current_rate is None:
+        raise ValueError("No valid import_rate found in authentic electricity rates")
     
     # Allow manual override
     override_rate = st.number_input(
@@ -254,9 +276,13 @@ def render_financial_analysis():
     auto_col1, auto_col2 = st.columns(2)
     
     with auto_col1:
-        rate_value = electricity_rates.get('import_rate', 0.25)
-        rate_source = electricity_rates.get('source', 'manual')
-        location = project_data.get('location_name', project_data.get('location', 'Not set'))
+        rate_value = electricity_rates.get('import_rate')
+        if rate_value is None:
+            raise ValueError("No authentic import_rate available for financial analysis")
+        rate_source = electricity_rates.get('source', 'Unknown authentic source')
+        location = project_data.get('location_name') or project_data.get('location')
+        if not location:
+            raise ValueError("No authentic location data found in project configuration")
         
         st.info(f"**💰 Electricity Rate:** {rate_value:.3f} €/kWh\n"
                 f"**📍 Location:** {location}\n"
@@ -472,12 +498,10 @@ def render_financial_analysis():
                 irr = calculate_irr(cash_flows)
                 payback_period = calculate_payback_period(cash_flows)
                 
-                # Calculate environmental impact - get annual energy from multiple possible sources
-                annual_energy_kwh = (
-                    solution_dict.get('annual_energy_kwh') or 
-                    solution_dict.get('annual_energy') or 
-                    solution_dict.get('capacity', 0) * 1200  # Fallback: capacity * average solar hours
-                )
+                # CRITICAL: Require authentic annual energy data - no fallbacks
+                annual_energy_kwh = solution_dict.get('annual_energy_kwh')
+                if annual_energy_kwh is None:
+                    raise ValueError("Financial analysis requires authentic 'annual_energy_kwh' data from optimization solution")
                 
                 # Ensure we have valid energy data
                 if annual_energy_kwh == 0:
@@ -492,8 +516,10 @@ def render_financial_analysis():
                 carbon_value = lifetime_co2_savings * carbon_price
                 
                 # Sensitivity analysis
-                # Get system cost from solution data
-                system_cost = solution_dict.get('total_cost', solution_dict.get('total_investment', 0))
+                # CRITICAL: Require authentic system cost data - no fallbacks
+                system_cost = solution_dict.get('total_cost')
+                if system_cost is None:
+                    raise ValueError("Financial analysis requires authentic 'total_cost' data from optimization solution")
                 
                 sensitivity_ranges = {
                     'electricity_price': np.linspace(electricity_price * 0.8, electricity_price * 1.2, 5),
@@ -514,7 +540,6 @@ def render_financial_analysis():
                             temp_params['discount_rate'] = value
                         elif param == 'system_cost':
                             temp_solution['total_cost'] = value
-                            temp_solution['total_investment'] = value  # Support both keys
                         
                         temp_cash_flows, _ = create_cash_flow_analysis(temp_solution, temp_params, system_lifetime)
                         temp_npv = calculate_npv(temp_cash_flows, temp_params['discount_rate'])
@@ -677,20 +702,18 @@ def render_financial_analysis():
             else:
                 solution_dict = selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution
                 
-                # Ensure we have annual energy data
-                if 'annual_energy_kwh' not in solution_dict and 'annual_energy' not in solution_dict:
-                    # Get from database based on capacity
-                    capacity = solution_dict.get('capacity', 0)
-                    estimated_annual_energy = capacity * 1200  # Conservative estimate: 1200 kWh/kW/year
-                    solution_dict['annual_energy_kwh'] = estimated_annual_energy
-                    st.info(f"📊 Estimated annual energy: {estimated_annual_energy:,.0f} kWh (capacity × 1200 kWh/kW/year)")
+                # CRITICAL: Require authentic annual energy data - no estimates allowed
+                if 'annual_energy_kwh' not in solution_dict:
+                    raise ValueError("Financial analysis requires authentic 'annual_energy_kwh' data from optimization solution")
                 
                 # Ensure we have annual savings
                 if 'annual_savings' not in solution_dict:
-                    annual_energy = solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0))
+                    annual_energy = solution_dict.get('annual_energy_kwh')
+                    if annual_energy is None:
+                        raise ValueError("Financial analysis requires authentic 'annual_energy_kwh' data from optimization solution")
                     estimated_savings = annual_energy * electricity_price
                     solution_dict['annual_savings'] = estimated_savings
-                    st.info(f"💰 Estimated annual savings: €{estimated_savings:,.0f} (energy × electricity price)")
+                    st.info(f"💰 Calculated annual savings: €{estimated_savings:,.0f} (authentic energy × electricity price)")
             
             # Detailed analysis tabs
             st.subheader("📈 Detailed Financial Analysis")

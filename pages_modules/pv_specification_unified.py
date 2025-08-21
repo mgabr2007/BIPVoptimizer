@@ -263,8 +263,26 @@ def render_pv_specification():
                 element_hash = abs(hash(element_id)) % 360
                 azimuth = element_hash
                 element['azimuth'] = azimuth
-            # BIPV suitability check: Exclude North-facing (315-45°) windows
-            if not (315 <= azimuth or azimuth < 45):  # NOT North-facing
+            # BIPV suitability check with project orientation configuration
+            # Get project orientation setting from database
+            include_north = False
+            try:
+                with db_manager.get_connection() as conn:
+                    with conn.cursor() as cursor:
+                        cursor.execute("SELECT include_north_facade FROM projects WHERE id = %s", (project_id,))
+                        result = cursor.fetchone()
+                        include_north = result[0] if result else False
+            except Exception:
+                pass  # Default to False if query fails
+            
+            # Apply orientation filtering based on project configuration
+            is_suitable = True
+            if not include_north:
+                # Exclude North-facing (315-45°) windows when North facades disabled
+                if 315 <= azimuth or azimuth < 45:  # North-facing
+                    is_suitable = False
+            
+            if is_suitable:
                 suitable_elements.append(element)
         except (ValueError, TypeError):
             continue  # Skip elements with invalid azimuth data

@@ -110,9 +110,8 @@ def render_analysis_configuration():
     with col2:
         st.markdown("**💶 Electricity Pricing**")
         
-        # This will be populated with actual rates from Step 1
-        # Placeholder for now - will be updated with real data
-        st.info("Electricity rates will be loaded from Step 1 project configuration")
+        # CRITICAL: Require authentic electricity rates from Step 1 - no placeholders
+        st.info("Electricity rates MUST be configured in Step 1 project setup - no fallback values allowed")
         
         # Allow custom rates override
         override_rates = st.checkbox("Use custom electricity rates", value=False, 
@@ -133,8 +132,9 @@ def render_analysis_configuration():
                 help="How much you receive for excess electricity fed into the grid"
             )
         else:
-            electricity_price = 0.25  # Will be updated from database
-            feed_in_tariff = 0.08     # Will be updated from database
+            # CRITICAL: No fallback values - require authentic rates from database
+            electricity_price = None  # Must be loaded from project configuration
+            feed_in_tariff = None     # Must be loaded from project configuration
     
     # Advanced parameters
     with st.expander("⚙️ Advanced Analysis Parameters", expanded=False):

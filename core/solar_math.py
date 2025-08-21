@@ -392,8 +392,8 @@ def get_location_electricity_rates(location, currency='EUR'):
     if location_key in rates_eur:
         rates = rates_eur[location_key]
     else:
-        # Default rates (European average)
-        rates = {'import': 0.28, 'export': 0.07, 'demand_charge': 0.04}
+        # CRITICAL: No fallback rates allowed - require authentic project electricity rates
+        raise ValueError(f"No authentic electricity rates found for location '{location}'. Please configure rates in Step 1 (Project Setup).")
     
     # Return rates in EUR (standardized currency)
     return {

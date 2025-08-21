@@ -78,7 +78,7 @@ class BIPVDatabaseManager:
                             location_method = %s, search_radius = %s, electricity_rates = %s,
                             weather_station_name = %s, weather_station_id = %s, weather_station_distance = %s,
                             weather_station_latitude = %s, weather_station_longitude = %s, weather_station_elevation = %s,
-                            updated_at = CURRENT_TIMESTAMP
+                            include_north_facade = %s, updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
                         RETURNING id
                     """, (
@@ -98,6 +98,7 @@ class BIPVDatabaseManager:
                         weather_station.get('latitude'),
                         weather_station.get('longitude'),
                         weather_station.get('height'),
+                        project_data.get('include_north_facade', False),
                         project_id_to_update
                     ))
                 else:
@@ -113,8 +114,8 @@ class BIPVDatabaseManager:
                     
                     cursor.execute("""
                         INSERT INTO projects (project_name, location, latitude, longitude, timezone, currency, weather_api_choice, location_method, search_radius, electricity_rates,
-                                            weather_station_name, weather_station_id, weather_station_distance, weather_station_latitude, weather_station_longitude, weather_station_elevation)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                            weather_station_name, weather_station_id, weather_station_distance, weather_station_latitude, weather_station_longitude, weather_station_elevation, include_north_facade)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
                     """, (
                         project_data.get('project_name'),
@@ -132,7 +133,8 @@ class BIPVDatabaseManager:
                         weather_station.get('distance_km'),
                         weather_station.get('latitude'),
                         weather_station.get('longitude'),
-                        weather_station.get('height')
+                        weather_station.get('height'),
+                        project_data.get('include_north_facade', False)
                     ))
                 
                 project_id = cursor.fetchone()[0]
@@ -167,7 +169,8 @@ class BIPVDatabaseManager:
                             import json
                             project_data['electricity_rates'] = json.loads(project_data['electricity_rates'])
                         except (json.JSONDecodeError, TypeError):
-                            project_data['electricity_rates'] = {'import_rate': 0.25, 'source': 'fallback'}
+                            # No fallback - require authentic electricity rates
+                            project_data['electricity_rates'] = None
                     return project_data
                 return None
                 

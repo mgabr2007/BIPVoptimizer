@@ -13,13 +13,16 @@ BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optim
 - Professional BIPV Optimizer branding with light green color scheme and OptiSunny character integration
 
 **Technical Preferences**:
-- Authentic data requirements - zero fallback values, only real TMY and BIM data used
+- **CRITICAL PhD Research Integrity**: ZERO tolerance for fallback data - all calculations must use authentic database sources only
+- **Comprehensive Fallback Elimination (2025-08-21)**: Systematically removed ALL default values, placeholder data, and fallback mechanisms across entire platform
+- **Authentic Data Requirements**: Only real TMY and BIM data used - no synthetic/estimated values allowed
 - Complete 11-step workflow with proper step dependencies and validation
 - PostgreSQL database persistence for reliable project data management
-- Multi-source API integration for weather data (TU Berlin + OpenWeatherMap)
+- Multi-source API integration for weather data (TU Berlin + OpenWeatherMap) with explicit error handling
 - Comprehensive reporting with real calculated values instead of placeholder data
 - Research-grade academic attribution to TU Berlin and Mostafa Gabr PhD research
 - Element duplication prevention system ensuring each building element is processed exactly once
+- **North Facade Configuration**: User-configurable facade orientation settings with include_north_facade database field
 
 ## System Architecture
 
@@ -34,9 +37,10 @@ BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optim
 - **Language**: Python 3.11 with a comprehensive scientific computing stack.
 - **Structure**: Modular design (pages_modules/, services/, utils/, core/).
 - **Data Management**: ConsolidatedDataManager for unified data flow and PostgreSQL 16 for persistence.
+- **Data Integrity (2025-08-21)**: All modules enforce authentic data requirements with ValueError exceptions for missing data
 - **Machine Learning**: Scikit-learn RandomForestRegressor for demand prediction with R² tracking.
-- **Optimization**: DEAP genetic algorithms (NSGA-II) for multi-objective optimization (cost, yield, ROI).
-- **APIs**: Multi-source integration for weather data and electricity rates.
+- **Optimization**: DEAP genetic algorithms (NSGA-II) for multi-objective optimization (cost, yield, ROI) using only authentic radiation data.
+- **APIs**: Multi-source integration for weather data and electricity rates with explicit error handling instead of fallbacks.
 
 ### Core Workflow Components
 - **Project Setup**: Interactive map for location selection, geocoding, and weather station integration.

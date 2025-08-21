@@ -33,32 +33,30 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params, 
         # Calculate selected systems metrics
         selected_specs = pv_specs[selection_mask]
         
-        # Calculate total metrics (handle different possible column names)
-        # Use standardized field names with fallback support
+        # Calculate total metrics using ONLY authentic standardized data
         if 'total_cost_eur' in selected_specs.columns:
             total_cost = selected_specs['total_cost_eur'].sum()
-        elif 'total_installation_cost' in selected_specs.columns:
-            total_cost = selected_specs['total_installation_cost'].sum()
-        elif 'total_cost' in selected_specs.columns:
-            total_cost = selected_specs['total_cost'].sum()
         else:
-            total_cost = 0
+            raise ValueError("Optimization requires authentic cost data with 'total_cost_eur' field from Step 6")
             
-        # Calculate authentic annual yield using Step 5 radiation data
-        if radiation_lookup:
-            total_annual_yield = 0
-            for idx in selected_specs.index:
-                element_id = str(selected_specs.loc[idx, 'element_id'])
-                if element_id in radiation_lookup:
-                    # Use authentic radiation data from Step 5
-                    annual_radiation = radiation_lookup[element_id]
-                    glass_area = selected_specs.loc[idx, 'glass_area_m2']
-                    efficiency = selected_specs.loc[idx, 'efficiency_percent'] / 100 if selected_specs.loc[idx, 'efficiency_percent'] > 1 else selected_specs.loc[idx, 'efficiency_percent']
-                    authentic_yield = glass_area * annual_radiation * efficiency
-                    total_annual_yield += authentic_yield
-        else:
-            # Fallback to PV spec values if no radiation data available
-            total_annual_yield = selected_specs['annual_energy_kwh'].sum()
+        # Calculate authentic annual yield using Step 5 radiation data ONLY
+        if not radiation_lookup:
+            # CRITICAL: No fallback data allowed - require authentic Step 5 radiation data
+            raise ValueError("Optimization requires authentic radiation data from Step 5. Please complete radiation analysis first.")
+        
+        total_annual_yield = 0
+        for idx in selected_specs.index:
+            element_id = str(selected_specs.loc[idx, 'element_id'])
+            if element_id in radiation_lookup:
+                # Use ONLY authentic radiation data from Step 5
+                annual_radiation = radiation_lookup[element_id]
+                glass_area = selected_specs.loc[idx, 'glass_area_m2']
+                efficiency = selected_specs.loc[idx, 'efficiency_percent'] / 100 if selected_specs.loc[idx, 'efficiency_percent'] > 1 else selected_specs.loc[idx, 'efficiency_percent']
+                authentic_yield = glass_area * annual_radiation * efficiency
+                total_annual_yield += authentic_yield
+            else:
+                # Element missing radiation data - optimization cannot proceed
+                raise ValueError(f"Element {element_id} missing authentic radiation data from Step 5")
         
         # Calculate net import reduction with proper data handling
         if energy_balance is not None and len(energy_balance) > 0:
@@ -72,8 +70,10 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params, 
         else:
             net_import_reduction = total_annual_yield
         
-        # Calculate annual savings and ROI
-        electricity_price = financial_params.get('electricity_price', 0.25)
+        # Calculate annual savings and ROI using authentic electricity rates
+        electricity_price = financial_params.get('electricity_price')
+        if electricity_price is None:
+            raise ValueError("Optimization requires authentic electricity rates from project configuration")
         annual_savings = net_import_reduction * electricity_price
         
         # Include maintenance costs if enabled
@@ -97,15 +97,11 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params, 
         
         # Normalize objectives (0-1 scale)
         # For cost: lower is better, so use 1/(1+normalized_cost)
-        # Use standardized field names with fallback support
+        # Use ONLY standardized field names - no fallbacks allowed
         if 'total_cost_eur' in pv_specs.columns:
             max_possible_cost = pv_specs['total_cost_eur'].sum()
-        elif 'total_installation_cost' in pv_specs.columns:
-            max_possible_cost = pv_specs['total_installation_cost'].sum()
-        elif 'total_cost' in pv_specs.columns:
-            max_possible_cost = pv_specs['total_cost'].sum()
         else:
-            max_possible_cost = 1
+            raise ValueError("Optimization requires authentic cost data with 'total_cost_eur' field from Step 6")
             
         normalized_cost = total_cost / max_possible_cost if max_possible_cost > 0 else 0
         cost_fitness = 1 / (1 + normalized_cost)  # Higher is better
