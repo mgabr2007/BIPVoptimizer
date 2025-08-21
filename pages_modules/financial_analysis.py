@@ -789,21 +789,50 @@ def render_financial_analysis():
                 if sensitivity_data:
                     st.markdown("**NPV Sensitivity to Key Parameters:**")
                     
-                    for param, data in sensitivity_data.items():
-                        param_names = {
-                            'electricity_price': 'Electricity Price (€/kWh)',
-                            'discount_rate': 'Discount Rate (%)',
-                            'system_cost': 'System Cost (€)'
-                        }
+                    # Create combined sensitivity chart
+                    fig_combined = go.Figure()
+                    
+                    param_names = {
+                        'electricity_price': 'Electricity Price (€/kWh)',
+                        'discount_rate': 'Discount Rate (%)', 
+                        'system_cost': 'System Cost (€)'
+                    }
+                    
+                    colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue, Orange, Green
+                    
+                    for i, (param, data) in enumerate(sensitivity_data.items()):
+                        # Normalize values to percentage change for better comparison
+                        values = data['values']
+                        base_value = values[len(values)//2]  # Middle value as baseline
+                        pct_changes = [(v - base_value) / base_value * 100 for v in values]
                         
-                        fig_sens = px.line(
-                            x=data['values'],
+                        fig_combined.add_trace(go.Scatter(
+                            x=pct_changes,
                             y=data['npv'],
-                            title=f"NPV Sensitivity to {param_names.get(param, param)}",
-                            labels={'x': param_names.get(param, param), 'y': 'NPV (€)'}
-                        )
-                        fig_sens.update_layout(width=700, height=400)  # Fixed width to prevent expansion
-                        st.plotly_chart(fig_sens, use_container_width=False)
+                            mode='lines+markers',
+                            name=param_names.get(param, param),
+                            line=dict(color=colors[i % len(colors)], width=3),
+                            marker=dict(size=6)
+                        ))
+                    
+                    fig_combined.update_layout(
+                        title="Combined NPV Sensitivity Analysis",
+                        xaxis_title="Percentage Change from Baseline (%)",
+                        yaxis_title="Net Present Value (€)",
+                        height=500,
+                        hovermode='x unified',
+                        legend=dict(
+                            yanchor="top",
+                            y=0.99,
+                            xanchor="left",
+                            x=0.01
+                        ),
+                        plot_bgcolor='white',
+                        xaxis=dict(gridcolor='lightgray', zeroline=True, zerolinecolor='black', zerolinewidth=1),
+                        yaxis=dict(gridcolor='lightgray', zeroline=True, zerolinecolor='black', zerolinewidth=1)
+                    )
+                    
+                    st.plotly_chart(fig_combined, use_container_width=True)
                 else:
                     st.info("Sensitivity analysis data not available. Please run financial analysis first.")
             
