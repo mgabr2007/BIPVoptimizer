@@ -4,6 +4,8 @@ Handles both window elements and wall self-shading data upload
 """
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
 from database_manager import BIPVDatabaseManager
 from utils.consolidated_data_manager import ConsolidatedDataManager
 from utils.session_state_standardizer import BIPVSessionStateManager
@@ -31,6 +33,267 @@ def get_orientation_from_azimuth(azimuth):
         return "South"
     else:
         return "West"
+
+
+def render_window_selection_visualizations(project_id, selected_families):
+    """Render interactive visualizations for window selection analysis"""
+    st.subheader("📊 Window Selection Analysis")
+    
+    # Get data for visualizations
+    conn = db_manager.get_connection()
+    if not conn:
+        return
+    
+    try:
+        with conn.cursor() as cursor:
+            # Get orientation and family data for selected windows
+            cursor.execute("""
+                SELECT 
+                    family,
+                    CASE 
+                        WHEN azimuth <= 45 OR azimuth > 315 THEN 'North'
+                        WHEN azimuth <= 135 THEN 'East' 
+                        WHEN azimuth <= 225 THEN 'South'
+                        ELSE 'West'
+                    END as orientation,
+                    level,
+                    COUNT(*) as element_count,
+                    SUM(CASE WHEN pv_suitable = true THEN 1 ELSE 0 END) as pv_suitable_count,
+                    AVG(COALESCE("Glass Area (m²)", area, 0)) as avg_area
+                FROM building_elements 
+                WHERE project_id = %s 
+                GROUP BY family, orientation, level
+                ORDER BY family, orientation
+            """, (str(project_id),))
+            
+            data = cursor.fetchall()
+            
+            if data:
+                # Convert to DataFrame for easier processing
+                df = pd.DataFrame(data, columns=[
+                    'family', 'orientation', 'level', 'element_count', 
+                    'pv_suitable_count', 'avg_area'
+                ])
+                
+                # Create visualizations
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    create_sankey_diagram(df, selected_families)
+                
+                with col2:
+                    create_sunburst_chart(df, selected_families)
+                    
+                # Additional summary charts
+                create_summary_charts(df, selected_families)
+                
+    except Exception as e:
+        st.error(f"Error generating visualizations: {e}")
+    finally:
+        conn.close()
+
+
+def create_sankey_diagram(df, selected_families):
+    """Create Sankey diagram showing flow from orientation to family to level"""
+    st.markdown("**🌊 Data Flow: Orientation → Family → Level**")
+    
+    # Filter for selected families
+    selected_df = df[df['family'].isin(selected_families)]
+    
+    if selected_df.empty:
+        st.info("No data available for selected window types")
+        return
+    
+    # Prepare data for Sankey
+    orientations = selected_df['orientation'].unique()
+    families = selected_df['family'].unique()
+    levels = selected_df['level'].unique()
+    
+    # Create node labels and indices
+    nodes = list(orientations) + list(families) + [f"Level {level}" for level in levels]
+    
+    # Create links
+    source = []
+    target = []
+    value = []
+    
+    # Orientation to Family links
+    for _, row in selected_df.groupby(['orientation', 'family'])['pv_suitable_count'].sum().reset_index().iterrows():
+        if row['pv_suitable_count'] > 0:
+            source.append(nodes.index(row['orientation']))
+            target.append(nodes.index(row['family']))
+            value.append(row['pv_suitable_count'])
+    
+    # Family to Level links
+    for _, row in selected_df.groupby(['family', 'level'])['pv_suitable_count'].sum().reset_index().iterrows():
+        if row['pv_suitable_count'] > 0:
+            source.append(nodes.index(row['family']))
+            target.append(nodes.index(f"Level {row['level']}"))
+            value.append(row['pv_suitable_count'])
+    
+    # Create Sankey diagram
+    fig = go.Figure(data=[go.Sankey(
+        node=dict(
+            pad=15,
+            thickness=20,
+            line=dict(color="black", width=0.5),
+            label=nodes,
+            color=["lightblue" if "Level" in node else "lightgreen" if node in families else "orange" for node in nodes]
+        ),
+        link=dict(
+            source=source,
+            target=target,
+            value=value
+        )
+    )])
+    
+    fig.update_layout(
+        title_text="BIPV Suitable Elements Flow",
+        font_size=10,
+        height=400
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def create_sunburst_chart(df, selected_families):
+    """Create sunburst chart showing hierarchical breakdown"""
+    st.markdown("**☀️ Hierarchical Breakdown: Family → Orientation → Level**")
+    
+    # Filter for selected families
+    selected_df = df[df['family'].isin(selected_families)]
+    
+    if selected_df.empty:
+        st.info("No data available for selected window types")
+        return
+    
+    # Prepare data for sunburst
+    sunburst_data = []
+    
+    for _, row in selected_df.iterrows():
+        if row['pv_suitable_count'] > 0:
+            sunburst_data.append({
+                'ids': f"{row['family']}/{row['orientation']}/Level {row['level']}",
+                'labels': f"Level {row['level']}",
+                'parents': f"{row['family']}/{row['orientation']}",
+                'values': row['pv_suitable_count']
+            })
+            
+            # Add orientation level
+            sunburst_data.append({
+                'ids': f"{row['family']}/{row['orientation']}",
+                'labels': row['orientation'],
+                'parents': row['family'],
+                'values': row['pv_suitable_count']
+            })
+            
+            # Add family level
+            sunburst_data.append({
+                'ids': row['family'],
+                'labels': row['family'],
+                'parents': "",
+                'values': row['pv_suitable_count']
+            })
+    
+    # Remove duplicates and aggregate values
+    sunburst_df = pd.DataFrame(sunburst_data)
+    if not sunburst_df.empty:
+        sunburst_df = sunburst_df.groupby(['ids', 'labels', 'parents'])['values'].sum().reset_index()
+        
+        fig = go.Figure(go.Sunburst(
+            ids=sunburst_df['ids'],
+            labels=sunburst_df['labels'],
+            parents=sunburst_df['parents'],
+            values=sunburst_df['values'],
+            branchvalues="total",
+        ))
+        
+        fig.update_layout(
+            title_text="BIPV Elements Distribution",
+            font_size=10,
+            height=400
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+
+
+def create_summary_charts(df, selected_families):
+    """Create additional summary charts"""
+    st.subheader("📈 Selection Summary")
+    
+    # Filter for selected families
+    selected_df = df[df['family'].isin(selected_families)]
+    
+    if selected_df.empty:
+        st.info("No data available for selected window types")
+        return
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # PV Suitable vs Total by Orientation
+        orientation_summary = selected_df.groupby('orientation').agg({
+            'element_count': 'sum',
+            'pv_suitable_count': 'sum'
+        }).reset_index()
+        
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            name='Total Elements',
+            x=orientation_summary['orientation'],
+            y=orientation_summary['element_count'],
+            marker_color='lightblue'
+        ))
+        fig.add_trace(go.Bar(
+            name='PV Suitable',
+            x=orientation_summary['orientation'],
+            y=orientation_summary['pv_suitable_count'],
+            marker_color='green'
+        ))
+        
+        fig.update_layout(
+            title='Elements by Orientation',
+            barmode='group',
+            height=300,
+            xaxis_title='Orientation',
+            yaxis_title='Element Count'
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        # Family distribution pie chart
+        family_summary = selected_df.groupby('family')['pv_suitable_count'].sum().reset_index()
+        
+        fig = px.pie(
+            family_summary, 
+            values='pv_suitable_count', 
+            names='family',
+            title='PV Suitable Elements by Family'
+        )
+        fig.update_layout(height=300)
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col3:
+        # Level distribution
+        level_summary = selected_df.groupby('level')['pv_suitable_count'].sum().reset_index()
+        level_summary = level_summary.sort_values('level')
+        
+        fig = go.Figure(go.Bar(
+            x=[f"Level {level}" for level in level_summary['level']],
+            y=level_summary['pv_suitable_count'],
+            marker_color='orange'
+        ))
+        
+        fig.update_layout(
+            title='PV Suitable Elements by Level',
+            height=300,
+            xaxis_title='Building Level',
+            yaxis_title='Element Count'
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
 
 
 def update_pv_suitable_flags(project_id, include_north_facade):
@@ -570,6 +833,9 @@ def render_facade_extraction():
                 with st.expander("Selected Window Types Details"):
                     for family in new_selections:
                         st.write(f"• **{family}**: {family_counts[family]} elements")
+                
+                # Add interactive visualizations
+                render_window_selection_visualizations(project_id, new_selections)
                         
                 st.session_state['window_types_selected'] = True
             else:
