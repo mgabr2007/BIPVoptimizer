@@ -290,43 +290,82 @@ def render_bipv_selection_analysis(suitable_elements, all_elements):
             st.warning("No orientation data available for visualization")
     
     with tab2:
-        # Building level distribution
+        # Building level distribution with enhanced data extraction
         level_data = {}
         for element in suitable_elements:
-            level = element.get('building_level', element.get('level', 'Unknown'))
+            # Try multiple level field names and ensure proper formatting
+            level = element.get('building_level', element.get('level', element.get('Level', element.get('Building Level'))))
+            
+            # Handle various level formats and ensure consistent naming
+            if level is None or level == '' or level == 'Unknown':
+                level = 'Unknown Level'
+            else:
+                # Convert to string and ensure proper formatting
+                level = str(level)
+                if level.replace('.', '').replace('-', '').isdigit():
+                    # If it's a number, format as "Level X"
+                    level = f"Level {level}"
+                elif not level.startswith('Level') and not level.startswith('Floor'):
+                    # Add "Level" prefix if missing
+                    level = f"Level {level}"
+            
             if level not in level_data:
                 level_data[level] = {'count': 0, 'area': 0}
             level_data[level]['count'] += 1
-            level_data[level]['area'] += float(element.get('glass_area', 0))
+            
+            # Try multiple area field names
+            glass_area = element.get('glass_area', element.get('Glass Area (m²)', element.get('area_m2', 0)))
+            level_data[level]['area'] += float(glass_area)
         
-        # Building level visualization
-        levels = list(level_data.keys())
-        level_counts = [level_data[level]['count'] for level in levels]
-        level_areas = [level_data[level]['area'] for level in levels]
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            fig_level = px.bar(
-                x=levels,
-                y=level_counts,
-                title="Selected Windows by Building Level",
-                labels={'x': 'Building Level', 'y': 'Number of Windows'},
-                color=level_counts,
-                color_continuous_scale='blues'
-            )
-            st.plotly_chart(fig_level, use_container_width=True)
-        
-        with col2:
-            fig_level_area = px.bar(
-                x=levels,
-                y=level_areas,
-                title="Glass Area by Building Level (m²)",
-                labels={'x': 'Building Level', 'y': 'Glass Area (m²)'},
-                color=level_areas,
-                color_continuous_scale='greens'
-            )
-            st.plotly_chart(fig_level_area, use_container_width=True)
+        # Building level visualization with proper sorting and formatting
+        if level_data and any(data['count'] > 0 for data in level_data.values()):
+            # Sort levels properly (numerical if possible)
+            def sort_key(level_name):
+                try:
+                    # Extract number from level name for proper sorting
+                    import re
+                    numbers = re.findall(r'\d+', level_name)
+                    return int(numbers[0]) if numbers else 999
+                except:
+                    return 999
+            
+            sorted_levels = sorted(level_data.keys(), key=sort_key)
+            level_counts = [level_data[level]['count'] for level in sorted_levels]
+            level_areas = [level_data[level]['area'] for level in sorted_levels]
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                fig_level = px.bar(
+                    x=sorted_levels,
+                    y=level_counts,
+                    title="Selected Windows by Building Level",
+                    labels={'x': 'Building Level', 'y': 'Number of Windows'},
+                    color=level_counts,
+                    color_continuous_scale='blues',
+                    text=level_counts
+                )
+                fig_level.update_traces(texttemplate='%{text}', textposition='outside')
+                fig_level.update_layout(xaxis_title="Building Level", yaxis_title="Number of Windows")
+                fig_level.update_xaxes(tickangle=45)
+                st.plotly_chart(fig_level, use_container_width=True)
+            
+            with col2:
+                fig_level_area = px.bar(
+                    x=sorted_levels,
+                    y=level_areas,
+                    title="Glass Area by Building Level (m²)",
+                    labels={'x': 'Building Level', 'y': 'Glass Area (m²)'},
+                    color=level_areas,
+                    color_continuous_scale='greens',
+                    text=level_areas
+                )
+                fig_level_area.update_traces(texttemplate='%{text:.0f}m²', textposition='outside')
+                fig_level_area.update_layout(xaxis_title="Building Level", yaxis_title="Glass Area (m²)")
+                fig_level_area.update_xaxes(tickangle=45)
+                st.plotly_chart(fig_level_area, use_container_width=True)
+        else:
+            st.warning("No building level data available for visualization")
     
     with tab3:
         # Performance potential analysis with radiation data
