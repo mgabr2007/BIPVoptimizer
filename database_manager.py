@@ -495,7 +495,7 @@ class BIPVDatabaseManager:
             import pandas as pd
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute("""
-                    SELECT solution_id, capacity, roi, net_import, total_cost, rank_position, pareto_optimal
+                    SELECT solution_id, capacity, roi, net_import, total_cost, annual_energy_kwh, rank_position, pareto_optimal
                     FROM optimization_results 
                     WHERE project_id = %s 
                     ORDER BY rank_position
@@ -508,7 +508,7 @@ class BIPVDatabaseManager:
                     for row in results:
                         solution = dict(row)
                         # Convert decimal.Decimal to float to prevent arithmetic errors
-                        for key in ['capacity', 'roi', 'net_import', 'total_cost']:
+                        for key in ['capacity', 'roi', 'net_import', 'total_cost', 'annual_energy_kwh']:
                             if solution[key] is not None:
                                 solution[key] = float(solution[key])
                         solutions_data.append(solution)
