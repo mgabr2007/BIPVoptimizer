@@ -236,8 +236,8 @@ def render_bipv_selection_analysis(suitable_elements, all_elements):
             glass_area = element.get('glass_area', element.get('Glass Area (m²)', element.get('area_m2', 0)))
             orientation_data[orientation]['area'] += float(glass_area)
         
-        # Debug orientation data
-        st.write(f"**Debug**: Found orientations: {list(orientation_data.keys())}")
+        # Debug orientation data (temporary)
+        # st.write(f"**Debug**: Found orientations: {list(orientation_data.keys())}")
         
         # Create orientation charts only if we have valid data
         if orientation_data and any(data['count'] > 0 for data in orientation_data.values()):
@@ -358,15 +358,33 @@ def render_bipv_selection_analysis(suitable_elements, all_elements):
                         if radiation_value:
                             radiation_lookup[element_id] = float(radiation_value)
             
-            # Create performance potential analysis
+            # Create performance potential analysis with enhanced orientation extraction
             performance_data = []
             for element in suitable_elements:
                 element_id = str(element.get('element_id', ''))
                 radiation = float(radiation_lookup.get(element_id, 0))
-                glass_area = float(element.get('glass_area', 0))
-                orientation = element.get('orientation', 'Unknown')
+                glass_area = float(element.get('glass_area', element.get('Glass Area (m²)', 0)))
                 
-                if radiation > 0:  # Only include elements with radiation data
+                # Enhanced orientation extraction (same logic as in tab1)
+                orientation = element.get('orientation', element.get('Orientation'))
+                if not orientation or orientation == 'Unknown' or orientation == '':
+                    try:
+                        azimuth = float(element.get('azimuth', 180))
+                        # Convert azimuth to cardinal direction
+                        if 315 <= azimuth < 360 or 0 <= azimuth < 45:
+                            orientation = 'North'
+                        elif 45 <= azimuth < 135:
+                            orientation = 'East' 
+                        elif 135 <= azimuth < 225:
+                            orientation = 'South'
+                        elif 225 <= azimuth < 315:
+                            orientation = 'West'
+                        else:
+                            orientation = 'Unknown'
+                    except (ValueError, TypeError):
+                        orientation = 'Unknown'
+                
+                if radiation > 0 and glass_area > 0:  # Only include elements with valid data
                     performance_data.append({
                         'element_id': element_id,
                         'orientation': orientation,
@@ -395,19 +413,29 @@ def render_bipv_selection_analysis(suitable_elements, all_elements):
                     st.plotly_chart(fig_radiation, use_container_width=True)
                 
                 with col2:
-                    # Energy potential by orientation
+                    # Energy potential by orientation with proper filtering
                     potential_by_orientation = perf_df.groupby('orientation')['energy_potential'].sum().reset_index()
                     
-                    fig_potential = px.bar(
-                        potential_by_orientation,
-                        x='orientation',
-                        y='energy_potential',
-                        title="Energy Potential by Orientation (kWh/year)",
-                        labels={'orientation': 'Orientation', 'energy_potential': 'Energy Potential (kWh/year)'},
-                        color='energy_potential',
-                        color_continuous_scale='plasma'
-                    )
-                    st.plotly_chart(fig_potential, use_container_width=True)
+                    # Filter out empty orientations and sort by potential
+                    potential_by_orientation = potential_by_orientation[potential_by_orientation['energy_potential'] > 0]
+                    potential_by_orientation = potential_by_orientation.sort_values('energy_potential', ascending=False)
+                    
+                    if len(potential_by_orientation) > 0:
+                        fig_potential = px.bar(
+                            potential_by_orientation,
+                            x='orientation',
+                            y='energy_potential',
+                            title="Energy Potential by Orientation (kWh/year)",
+                            labels={'orientation': 'Orientation', 'energy_potential': 'Energy Potential (kWh/year)'},
+                            color='energy_potential',
+                            color_continuous_scale='plasma',
+                            text='energy_potential'
+                        )
+                        fig_potential.update_traces(texttemplate='%{text:.0f}', textposition='outside')
+                        fig_potential.update_layout(xaxis_title="Orientation", yaxis_title="Energy Potential (kWh/year)")
+                        st.plotly_chart(fig_potential, use_container_width=True)
+                    else:
+                        st.warning("No energy potential data available for orientation analysis")
                 
                 # Performance summary
                 total_potential = perf_df['energy_potential'].sum()
