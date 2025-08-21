@@ -289,7 +289,27 @@ def render_bipv_selection_analysis(suitable_elements, all_elements):
         
         try:
             radiation_data = db_manager.get_radiation_analysis_data(project_id)
-            radiation_lookup = radiation_data.get('element_radiation', {})
+            
+            # Handle radiation data format from database
+            radiation_lookup = {}
+            if isinstance(radiation_data, dict) and 'element_radiation' in radiation_data:
+                element_radiation_list = radiation_data['element_radiation']
+                
+                # Convert list of radiation records to lookup dictionary
+                for item in element_radiation_list:
+                    if isinstance(item, dict) and 'element_id' in item:
+                        element_id = str(item['element_id'])
+                        radiation_value = item.get('annual_radiation', 0)
+                        if radiation_value:
+                            radiation_lookup[element_id] = float(radiation_value)
+            elif isinstance(radiation_data, list):
+                # Direct list format
+                for item in radiation_data:
+                    if isinstance(item, dict) and 'element_id' in item:
+                        element_id = str(item['element_id'])
+                        radiation_value = item.get('annual_radiation', 0)
+                        if radiation_value:
+                            radiation_lookup[element_id] = float(radiation_value)
             
             # Create performance potential analysis
             performance_data = []
@@ -400,8 +420,14 @@ def render_pv_specification():
         radiation_analysis_data = db_manager.get_radiation_analysis_data(project_id)
         building_elements = db_manager.get_building_elements(project_id)
         
-        # Validate prerequisites
-        if not radiation_analysis_data or len(radiation_analysis_data.get('element_radiation', [])) == 0:
+        # Validate prerequisites - handle both dict and list formats
+        radiation_elements = []
+        if isinstance(radiation_analysis_data, dict):
+            radiation_elements = radiation_analysis_data.get('element_radiation', [])
+        elif isinstance(radiation_analysis_data, list):
+            radiation_elements = radiation_analysis_data
+        
+        if not radiation_analysis_data or len(radiation_elements) == 0:
             st.error("⚠️ No radiation analysis found. Please complete Step 5 (Radiation Analysis) first.")
             st.info("💡 Step 5 generates solar radiation data for each building element, which is essential for BIPV calculations.")
             return
@@ -416,7 +442,7 @@ def render_pv_specification():
         st.info("💡 Try refreshing the page or check if the database connection is working.")
         return
     
-    st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_analysis_data.get('element_radiation', []))} radiation records")
+    st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_elements)} radiation records")
     
     # Display data source validation
     st.info("📊 **Data Sources Verified:**")
