@@ -42,12 +42,12 @@ def update_pv_suitable_flags(project_id, include_north_facade):
     try:
         with conn.cursor() as cursor:
             # Get currently selected window families
-            cursor.execute("SELECT selected_families FROM selected_window_types WHERE project_id = %s", (project_id,))
+            cursor.execute("SELECT selected_families FROM selected_window_types WHERE project_id = %s", (str(project_id),))
             result = cursor.fetchone()
             
             if not result or not result[0]:
                 # No window selections yet, set all to false
-                cursor.execute("UPDATE building_elements SET pv_suitable = false WHERE project_id = %s", (project_id,))
+                cursor.execute("UPDATE building_elements SET pv_suitable = false WHERE project_id = %s", (str(project_id),))
                 conn.commit()
                 return True
             
@@ -63,7 +63,7 @@ def update_pv_suitable_flags(project_id, include_north_facade):
                         ELSE false 
                     END
                     WHERE project_id = %s
-                """, (selected_families, project_id))
+                """, (selected_families, str(project_id)))
             else:
                 # Exclude north-facing elements (azimuth 315-360 and 0-45 degrees)
                 cursor.execute("""
@@ -75,7 +75,7 @@ def update_pv_suitable_flags(project_id, include_north_facade):
                         ELSE false 
                     END
                     WHERE project_id = %s
-                """, (selected_families, project_id))
+                """, (selected_families, str(project_id)))
             
             conn.commit()
             return True
