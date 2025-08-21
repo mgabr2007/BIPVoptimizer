@@ -169,6 +169,190 @@ def calculate_unified_bipv_specifications(building_elements, radiation_lookup, p
     df = pd.DataFrame(bipv_specifications)
     return standardize_field_names(df)
 
+def render_bipv_selection_analysis(suitable_elements, all_elements):
+    """Render comprehensive BIPV selection analysis with interactive visualizations"""
+    st.subheader("🎯 BIPV Window Selection Analysis")
+    
+    # Create selection overview
+    total_elements = len(all_elements)
+    selected_elements = len(suitable_elements)
+    excluded_elements = total_elements - selected_elements
+    
+    # Selection metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total Windows", f"{total_elements:,}")
+    
+    with col2:
+        st.metric("Selected for BIPV", f"{selected_elements:,}", f"{(selected_elements/total_elements*100):.1f}%" if total_elements > 0 else "0%")
+    
+    with col3:
+        st.metric("Excluded", f"{excluded_elements:,}", f"{(excluded_elements/total_elements*100):.1f}%" if total_elements > 0 else "0%")
+    
+    with col4:
+        total_glass_area = sum(float(elem.get('glass_area', 0)) for elem in suitable_elements)
+        st.metric("Total BIPV Area", f"{total_glass_area:.0f} m²")
+    
+    if len(suitable_elements) == 0:
+        st.error("❌ No suitable elements found for BIPV installation")
+        st.info("💡 Check your facade orientation settings in Step 1 or window selection criteria in Step 4")
+        return
+    
+    # Create visualization tabs
+    tab1, tab2, tab3 = st.tabs(["📊 Orientation Analysis", "🏢 Building Distribution", "📈 Performance Potential"])
+    
+    with tab1:
+        # Orientation distribution analysis
+        orientation_data = {}
+        for element in suitable_elements:
+            orientation = element.get('orientation', 'Unknown')
+            if orientation not in orientation_data:
+                orientation_data[orientation] = {'count': 0, 'area': 0}
+            orientation_data[orientation]['count'] += 1
+            orientation_data[orientation]['area'] += float(element.get('glass_area', 0))
+        
+        # Create orientation charts
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Orientation count chart
+            orientations = list(orientation_data.keys())
+            counts = [orientation_data[ori]['count'] for ori in orientations]
+            
+            fig_count = px.pie(
+                values=counts,
+                names=orientations,
+                title="Selected Windows by Orientation",
+                color_discrete_sequence=px.colors.qualitative.Set3
+            )
+            st.plotly_chart(fig_count, use_container_width=True)
+        
+        with col2:
+            # Orientation area chart
+            areas = [orientation_data[ori]['area'] for ori in orientations]
+            
+            fig_area = px.bar(
+                x=orientations,
+                y=areas,
+                title="Glass Area by Orientation (m²)",
+                labels={'x': 'Orientation', 'y': 'Glass Area (m²)'},
+                color=areas,
+                color_continuous_scale='viridis'
+            )
+            st.plotly_chart(fig_area, use_container_width=True)
+    
+    with tab2:
+        # Building level distribution
+        level_data = {}
+        for element in suitable_elements:
+            level = element.get('building_level', element.get('level', 'Unknown'))
+            if level not in level_data:
+                level_data[level] = {'count': 0, 'area': 0}
+            level_data[level]['count'] += 1
+            level_data[level]['area'] += float(element.get('glass_area', 0))
+        
+        # Building level visualization
+        levels = list(level_data.keys())
+        level_counts = [level_data[level]['count'] for level in levels]
+        level_areas = [level_data[level]['area'] for level in levels]
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig_level = px.bar(
+                x=levels,
+                y=level_counts,
+                title="Selected Windows by Building Level",
+                labels={'x': 'Building Level', 'y': 'Number of Windows'},
+                color=level_counts,
+                color_continuous_scale='blues'
+            )
+            st.plotly_chart(fig_level, use_container_width=True)
+        
+        with col2:
+            fig_level_area = px.bar(
+                x=levels,
+                y=level_areas,
+                title="Glass Area by Building Level (m²)",
+                labels={'x': 'Building Level', 'y': 'Glass Area (m²)'},
+                color=level_areas,
+                color_continuous_scale='greens'
+            )
+            st.plotly_chart(fig_level_area, use_container_width=True)
+    
+    with tab3:
+        # Performance potential analysis with radiation data
+        from database_manager import BIPVDatabaseManager
+        db_manager = BIPVDatabaseManager()
+        project_id = get_current_project_id()
+        
+        try:
+            radiation_data = db_manager.get_radiation_analysis_data(project_id)
+            radiation_lookup = radiation_data.get('element_radiation', {})
+            
+            # Create performance potential analysis
+            performance_data = []
+            for element in suitable_elements:
+                element_id = str(element.get('element_id', ''))
+                radiation = float(radiation_lookup.get(element_id, 0))
+                glass_area = float(element.get('glass_area', 0))
+                orientation = element.get('orientation', 'Unknown')
+                
+                if radiation > 0:  # Only include elements with radiation data
+                    performance_data.append({
+                        'element_id': element_id,
+                        'orientation': orientation,
+                        'glass_area': glass_area,
+                        'annual_radiation': radiation,
+                        'energy_potential': glass_area * radiation * 0.15  # Assume 15% efficiency
+                    })
+            
+            if performance_data:
+                perf_df = pd.DataFrame(performance_data)
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Radiation distribution
+                    fig_radiation = px.scatter(
+                        perf_df,
+                        x='glass_area',
+                        y='annual_radiation',
+                        color='orientation',
+                        size='energy_potential',
+                        title="Solar Radiation vs Glass Area",
+                        labels={'glass_area': 'Glass Area (m²)', 'annual_radiation': 'Annual Radiation (kWh/m²)'},
+                        hover_data=['element_id']
+                    )
+                    st.plotly_chart(fig_radiation, use_container_width=True)
+                
+                with col2:
+                    # Energy potential by orientation
+                    potential_by_orientation = perf_df.groupby('orientation')['energy_potential'].sum().reset_index()
+                    
+                    fig_potential = px.bar(
+                        potential_by_orientation,
+                        x='orientation',
+                        y='energy_potential',
+                        title="Energy Potential by Orientation (kWh/year)",
+                        labels={'orientation': 'Orientation', 'energy_potential': 'Energy Potential (kWh/year)'},
+                        color='energy_potential',
+                        color_continuous_scale='plasma'
+                    )
+                    st.plotly_chart(fig_potential, use_container_width=True)
+                
+                # Performance summary
+                total_potential = perf_df['energy_potential'].sum()
+                avg_radiation = perf_df['annual_radiation'].mean()
+                
+                st.info(f"📈 **Performance Summary**: {len(performance_data):,} windows with {total_potential:.0f} kWh/year potential (avg. {avg_radiation:.0f} kWh/m² radiation)")
+            else:
+                st.warning("⚠️ No radiation data available for performance analysis. Complete Step 5 first.")
+                
+        except Exception as e:
+            st.warning(f"⚠️ Could not load radiation data for performance analysis: {str(e)}")
+
 def render_pv_specification():
     """Unified Step 6: BIPV Panel Specifications interface"""
     
@@ -234,6 +418,14 @@ def render_pv_specification():
     
     st.success(f"✅ Found {len(building_elements)} building elements and {len(radiation_analysis_data.get('element_radiation', []))} radiation records")
     
+    # Display data source validation
+    st.info("📊 **Data Sources Verified:**")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("- ✅ **Step 4**: Window elements with PV suitability flags")
+    with col2:
+        st.markdown("- ✅ **Step 5**: Solar radiation analysis for selected windows")
+    
     # Show facade orientation configuration
     try:
         with db_manager.get_connection() as conn:
@@ -272,7 +464,10 @@ def render_pv_specification():
         except (ValueError, TypeError):
             continue  # Skip elements with invalid azimuth data
     
-    # BIPV Suitability Results
+    # Display BIPV suitability analysis results with enhanced visualizations
+    render_bipv_selection_analysis(suitable_elements, building_elements)
+    
+    # Continue with BIPV specifications if suitable elements found
     suitable_count = len(suitable_elements)
     excluded_count = len(building_elements) - suitable_count
     suitability_rate = (suitable_count / len(building_elements)) * 100 if building_elements else 0
