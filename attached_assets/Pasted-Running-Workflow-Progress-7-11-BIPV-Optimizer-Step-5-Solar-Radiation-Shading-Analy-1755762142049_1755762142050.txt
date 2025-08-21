@@ -1,0 +1,85 @@
+Running...
+Workflow Progress
+7/11
+🏢 BIPV Optimizer
+
+☀️ Step 5: Solar Radiation & Shading Analysis
+Analyzing Selected Window Types from Step 4 with High-Performance Computing
+
+🎯 Current Project: 121
+
+✅ Found 948 building elements in database
+
+✅ Found 1,045 wall elements for self-shading analysis
+
+✅ TMY weather data available (8,760 hourly records)
+
+⚡ Performance & Precision Configuration
+
+🎯 Optimized Mode Active
+
+🎯 Calculation Precision for Selected Windows
+
+📍 All orientations (N/S/E/W) - North facades included
+
+Solar Calculation Mode
+
+
+Simple
+
+
+Advanced
+
+
+Auto
+
+🟡 Intelligent - Automatically selects best method based on available TMY data
+
+⚡ Performance Settings
+
+Analysis Speed vs Accuracy
+
+1
+5
+🟢 30-60 seconds - good accuracy
+
+🏗️ Shading Analysis for Selected Windows
+
+
+✅ 3D shadow calculations enabled
+
+🧭 Physics Corrections for Selected Windows
+
+
+✅ Physics-based corrections active
+
+📊 Analysis Scope & Calculations for Selected Window Types
+🔄 Optimized Vectorized Processing • Good accuracy • 📅 monthly representatives
+
+📋 Selected Window Types Analysis Status
+📊 Data Sources & Analysis Flow for Selected Windows
+
+💡 Note: Window types are selected in Step 4 based on historical significance. This step performs radiation analysis only on the selected window types suitable for BIPV installation.
+
+🔍 Analysis Readiness Dashboard
+📍 TU Berlin H Building PhD Calculations
+Unknown Location • Project ID: 121
+
+📊 Found: 640 selected window elements (from Step 4), 1,045 wall elements
+
+📋 Selected Window Types Analysis Requirements
+✅ Window Elements: 640 selected for analysis (from Step 4)
+
+✅ Wall Data: 1045 walls available
+
+
+Starting optimized radiation calculations...
+🚀 High-Performance Analysis - Processing selected window types in 3-5 minutes
+
+Running comprehensive radiation analysis on selected window types...
+
+🤖 Auto Mode: Large dataset detected, using seasonal sampling (4 calculations per element)
+
+📊 Processing Overview: 756 elements × 4 time points = 3,024 total calculations
+
+Starting radiation analysis for 756 elements...

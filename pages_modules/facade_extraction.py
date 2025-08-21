@@ -477,13 +477,13 @@ def render_facade_extraction():
                                         WHERE project_id = %s
                                     """, (new_selections, project_id))
                                 else:
-                                    # Exclude north-facing elements (azimuth 315-45 degrees)
+                                    # Exclude north-facing elements (azimuth 315-360 and 0-45 degrees)
                                     cursor.execute("""
                                         UPDATE building_elements 
                                         SET pv_suitable = CASE 
                                             WHEN family = ANY(%s) AND 
                                                  (azimuth IS NULL OR 
-                                                  azimuth < 315 AND azimuth > 45) THEN true 
+                                                  (azimuth > 45 AND azimuth < 315)) THEN true 
                                             ELSE false 
                                         END
                                         WHERE project_id = %s

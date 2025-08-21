@@ -310,25 +310,16 @@ class OptimizedRadiationAnalyzer:
             conn.close()
     
     def _is_pv_suitable(self, element: Dict) -> bool:
-        """Check if element is suitable for PV installation."""
-        orientation = element.get('orientation', 'Unknown')
+        """Check if element is suitable for PV installation - delegates to database pv_suitable flag."""
+        # CRITICAL: Use authentic database pv_suitable flag instead of hardcoded orientation logic
+        # This respects the project's include_north_facade setting applied in Step 4
+        pv_suitable = element.get('pv_suitable', False)
         glass_area = element.get('glass_area', 0)
         
-        # Handle descriptive orientations like "East (45-135°)", "South (225-315°)"
-        orientation_lower = orientation.lower()
-        
-        # Check for key orientation indicators
-        suitable_patterns = ['south', 'east', 'west', 'southeast', 'southwest']
-        orientation_suitable = any(pattern in orientation_lower for pattern in suitable_patterns)
-        
-        # Also check azimuth directly - exclude North-facing (315-45°)
-        azimuth = element.get('azimuth', 0)
-        azimuth_suitable = not (315 <= azimuth <= 360 or 0 <= azimuth <= 45)
-        
-        # Require minimum glass area
+        # Require minimum glass area and database pv_suitable flag
         area_suitable = glass_area >= 0.5
         
-        return (orientation_suitable or azimuth_suitable) and area_suitable
+        return bool(pv_suitable) and area_suitable
     
     def _azimuth_to_orientation(self, azimuth: float) -> str:
         """Convert azimuth angle to orientation string."""
