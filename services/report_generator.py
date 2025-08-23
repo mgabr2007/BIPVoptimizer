@@ -727,17 +727,26 @@ class BIPVReportGenerator:
                     perf_ranks = [int(row[3]) for row in perf_data]
                     
                     # Create 2D scatter plot for solution distribution
+                    # Normalize bubble sizes for better visibility
+                    min_import = min(perf_imports)
+                    max_import = max(perf_imports)
+                    import_range = max_import - min_import if max_import != min_import else 1
+                    
+                    # Scale bubble sizes from 8 to 30 pixels based on net import
+                    bubble_sizes = [8 + 22 * (imp - min_import) / import_range for imp in perf_imports]
+                    
                     perf_fig = go.Figure(data=[go.Scatter(
                         x=perf_capacities,
                         y=perf_rois,
                         mode='markers',
                         marker=dict(
-                            size=[imp/1000 + 5 for imp in perf_imports],  # Size represents net import
+                            size=bubble_sizes,
                             color=perf_ranks,
                             colorscale='Viridis',
                             colorbar=dict(title="Rank Position"),
                             opacity=0.7,
-                            line=dict(width=1, color='black')
+                            line=dict(width=1, color='white'),
+                            sizemode='diameter'
                         ),
                         text=[f"Rank: {rank}<br>Capacity: {cap:.1f} kW<br>ROI: {roi:.1f}%<br>Net Import: {imp:,.0f} kWh" 
                               for rank, cap, roi, imp in zip(perf_ranks, perf_capacities, perf_rois, perf_imports)],
