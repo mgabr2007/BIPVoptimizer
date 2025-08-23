@@ -1605,13 +1605,7 @@ def render_optimization():
             st.error(f"Error retrieving solution details: {str(e)}")
             st.info("Using basic solution metrics for analysis.")
         
-        # Add step-specific download button
-        st.markdown("---")
-        st.markdown("### 📄 Step 8 Analysis Report")
-        st.markdown("Download detailed multi-objective optimization analysis report:")
-        
-        from utils.individual_step_reports import create_step_download_button
-        create_step_download_button(8, "Optimization", "Download Optimization Analysis Report")
+        # Section removed per user request
         
         # Navigation - Single Continue Button
         st.markdown("---")
