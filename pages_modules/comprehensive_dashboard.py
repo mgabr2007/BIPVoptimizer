@@ -914,11 +914,15 @@ def create_overview_cards(data):
         else:
             st.metric("CO₂ Impact", "Calculating...", "")
 
-def create_building_analysis_section(data):
+def create_building_analysis_section(data, project_id=None):
     """Create reorganized building elements and radiation analysis section"""
     if not data or 'building' not in data:
         st.warning("No building data available")
         return
+    
+    # Get project_id if not provided
+    if not project_id:
+        project_id = get_current_project_id()
     
     st.markdown("### 🏢 Building Analysis (Steps 4-5)")
     
@@ -1802,7 +1806,7 @@ def render_comprehensive_dashboard():
         create_project_timeline_section(dashboard_data)
         
         st.markdown("---")
-        create_building_analysis_section(dashboard_data)
+        create_building_analysis_section(dashboard_data, project_id)
         
         st.markdown("---")
         create_energy_analysis_section(dashboard_data)
