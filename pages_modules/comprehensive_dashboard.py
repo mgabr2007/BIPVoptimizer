@@ -860,7 +860,8 @@ def create_overview_cards(data):
     
     with col10:
         if 'ai_model' in data:
-            r2_score = data['ai_model']['r2_score']
+            r2_score = data['ai_model'].get('r2_score', 0)
+            r2_score = r2_score if r2_score is not None else 0
             model_quality = "Excellent" if r2_score > 0.9 else "Good" if r2_score > 0.8 else "Fair"
             st.metric(
                 "AI Model Quality",
@@ -873,7 +874,8 @@ def create_overview_cards(data):
     with col11:
         # Fix weather resource calculation
         if 'weather' in data:
-            total_solar = data['weather']['total_solar_resource']
+            total_solar = data['weather'].get('total_solar_resource', 2400)
+            total_solar = total_solar if total_solar is not None else 2400
             # If total_solar is 0, use Berlin typical values
             if total_solar == 0:
                 total_solar = 2400  # Berlin typical total solar resource
@@ -894,8 +896,10 @@ def create_overview_cards(data):
     
     with col12:
         if 'environmental' in data:
-            co2_annual = data['environmental']['annual_co2_reduction_kg']
-            co2_lifetime = data['environmental']['lifetime_co2_reduction_kg']
+            co2_annual = data['environmental'].get('annual_co2_reduction_kg', 0)
+            co2_lifetime = data['environmental'].get('lifetime_co2_reduction_kg', 0)
+            co2_annual = co2_annual if co2_annual is not None else 0
+            co2_lifetime = co2_lifetime if co2_lifetime is not None else 0
             st.metric(
                 "CO₂ Impact",
                 f"{co2_annual:,.0f} kg/year",
@@ -1137,10 +1141,16 @@ def create_project_timeline_section(data):
     
     with col1:
         st.markdown("**Project Details:**")
-        st.write(f"• **Name:** {project['name']}")
-        st.write(f"• **Location:** {project['location']}")
-        st.write(f"• **Coordinates:** {project['latitude']:.4f}, {project['longitude']:.4f}")
-        st.write(f"• **Created:** {project['created_at'].strftime('%Y-%m-%d %H:%M')}")
+        st.write(f"• **Name:** {project.get('name', 'Not specified')}")
+        st.write(f"• **Location:** {project.get('location', 'Not specified')}")
+        latitude = project.get('latitude', 0)
+        longitude = project.get('longitude', 0)
+        st.write(f"• **Coordinates:** {latitude:.4f}, {longitude:.4f}")
+        created_at = project.get('created_at')
+        if created_at:
+            st.write(f"• **Created:** {created_at.strftime('%Y-%m-%d %H:%M')}")
+        else:
+            st.write("• **Created:** Not available")
     
     with col2:
         st.markdown("**Economic Parameters:**")
@@ -1150,9 +1160,10 @@ def create_project_timeline_section(data):
             st.error("❌ No authentic electricity rate found - please complete Step 1 configuration")
             return
         st.write(f"• **Electricity Rate:** €{electricity_rate:.3f}/kWh")
-        st.write(f"• **Currency:** {project['currency']}")
-        if project.get('timezone'):
-            st.write(f"• **Timezone:** {project['timezone']}")
+        st.write(f"• **Currency:** {project.get('currency', 'EUR')}")
+        timezone = project.get('timezone')
+        if timezone:
+            st.write(f"• **Timezone:** {timezone}")
         else:
             st.write("• **Timezone:** Not configured")
         
@@ -1160,8 +1171,10 @@ def create_project_timeline_section(data):
         if 'ai_model' in data:
             ai = data['ai_model']
             st.markdown("**AI Model (Step 2):**")
-            st.write(f"• **R² Score:** {ai['r2_score']:.3f}")
-            st.write(f"• **Training Points:** {ai['training_data_points']}")
+            r2_score = ai.get('r2_score', 0)
+            training_points = ai.get('training_data_points', 0)
+            st.write(f"• **R² Score:** {r2_score:.3f}")
+            st.write(f"• **Training Points:** {training_points}")
 
 def render_comprehensive_dashboard():
     """Render the comprehensive BIPV analysis dashboard"""
