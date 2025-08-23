@@ -483,7 +483,14 @@ class BIPVReportGenerator:
                         COUNT(*) as count
                     FROM building_elements 
                     WHERE project_id = %s AND azimuth IS NOT NULL AND family IS NOT NULL
-                    GROUP BY orientation, family
+                    GROUP BY 
+                        CASE 
+                            WHEN azimuth >= 315 OR azimuth < 45 THEN 'North'
+                            WHEN azimuth >= 45 AND azimuth < 135 THEN 'East'
+                            WHEN azimuth >= 135 AND azimuth < 225 THEN 'South'
+                            WHEN azimuth >= 225 AND azimuth < 315 THEN 'West'
+                        END, 
+                        family
                     HAVING COUNT(*) > 5
                     ORDER BY orientation, count DESC
                 """, (self.project_id,))
