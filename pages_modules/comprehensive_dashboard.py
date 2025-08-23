@@ -1418,32 +1418,30 @@ def create_step4_sankey_diagram(family_data, level_data, azimuth_data, project_i
             return
         cursor = conn.cursor()
         
-        # First check what data is available
-        cursor.execute("""
-            SELECT 
-                COUNT(*) as total_elements,
-                COUNT(CASE WHEN orientation IS NOT NULL AND orientation != '' THEN 1 END) as has_orientation,
-                COUNT(CASE WHEN family IS NOT NULL AND family != '' THEN 1 END) as has_family,
-                COUNT(CASE WHEN building_level IS NOT NULL AND building_level != '' THEN 1 END) as has_level
-            FROM building_elements 
-            WHERE project_id = %s
-        """, (project_id,))
+        # Convert azimuth to orientation using authentic database values
+        def azimuth_to_orientation(azimuth):
+            """Convert azimuth degrees to cardinal orientation"""
+            if azimuth is None:
+                return None
+            azimuth = float(azimuth)
+            if 315 <= azimuth or azimuth < 45:
+                return "North"
+            elif 45 <= azimuth < 135:
+                return "East"
+            elif 135 <= azimuth < 225:
+                return "South"
+            elif 225 <= azimuth < 315:
+                return "West"
+            return None
         
-        data_check = cursor.fetchone()
-        st.write(f"**Data Availability Check:**")
-        st.write(f"- Total Elements: {data_check[0]}")
-        st.write(f"- With Orientation: {data_check[1]}")
-        st.write(f"- With Family: {data_check[2]}")
-        st.write(f"- With Building Level: {data_check[3]}")
-        
-        # Get orientation → family relationships (simplified for available data)
+        # Get azimuth → family relationships using authentic azimuth data
         cursor.execute("""
-            SELECT orientation, family, COUNT(*) as count
+            SELECT azimuth, family, COUNT(*) as count
             FROM building_elements 
             WHERE project_id = %s 
-                AND orientation IS NOT NULL AND orientation != ''
+                AND azimuth IS NOT NULL
                 AND family IS NOT NULL AND family != ''
-            GROUP BY orientation, family
+            GROUP BY azimuth, family
             ORDER BY count DESC
         """, (project_id,))
         
@@ -1451,57 +1449,69 @@ def create_step4_sankey_diagram(family_data, level_data, azimuth_data, project_i
         conn.close()
         
         if sankey_data:
-            # Build Sankey diagram data structure for Orientation → Family
-            orientations = set()
-            families = set()
+            # Convert azimuth data to orientation → family flows
+            orientation_family_counts = {}
             
             for row in sankey_data:
-                orientations.add(row[0])
-                families.add(row[1])
+                azimuth, family, count = row
+                orientation = azimuth_to_orientation(azimuth)
+                if orientation:
+                    key = (orientation, family)
+                    orientation_family_counts[key] = orientation_family_counts.get(key, 0) + count
             
-            # Create node labels and indices
-            all_nodes = list(orientations) + list(families)
-            node_indices = {node: i for i, node in enumerate(all_nodes)}
-            
-            # Build links
-            source = []
-            target = []
-            value = []
-            
-            for row in sankey_data:
-                orientation, family, count = row
+            if orientation_family_counts:
+                # Build Sankey diagram data structure
+                orientations = set()
+                families = set()
                 
-                # Orientation → Family
-                source.append(node_indices[orientation])
-                target.append(node_indices[family])
-                value.append(count)
+                for (orientation, family), count in orientation_family_counts.items():
+                    orientations.add(orientation)
+                    families.add(family)
+                
+                # Create node labels and indices
+                all_nodes = list(orientations) + list(families)
+                node_indices = {node: i for i, node in enumerate(all_nodes)}
+                
+                # Build links
+                source = []
+                target = []
+                value = []
+                
+                for (orientation, family), count in orientation_family_counts.items():
+                    source.append(node_indices[orientation])
+                    target.append(node_indices[family])
+                    value.append(count)
+                
+                st.write(f"**Sankey Data Summary:** {len(orientation_family_counts)} orientation-family relationships found")
             
-            # Create Sankey diagram
-            fig = go.Figure(data=[go.Sankey(
-                node = dict(
-                    pad = 15,
-                    thickness = 20,
-                    line = dict(color = "black", width = 0.5),
-                    label = all_nodes,
-                    color = "rgba(0,116,217,0.8)"
-                ),
-                link = dict(
-                    source = source,
-                    target = target,
-                    value = value,
-                    color = "rgba(0,116,217,0.4)"
+                # Create Sankey diagram
+                fig = go.Figure(data=[go.Sankey(
+                    node = dict(
+                        pad = 15,
+                        thickness = 20,
+                        line = dict(color = "black", width = 0.5),
+                        label = all_nodes,
+                        color = "rgba(0,116,217,0.8)"
+                    ),
+                    link = dict(
+                        source = source,
+                        target = target,
+                        value = value,
+                        color = "rgba(0,116,217,0.4)"
+                    )
+                )])
+                
+                fig.update_layout(
+                    title_text="Building Element Flow: Orientation → Family (from Azimuth Data)",
+                    font_size=12,
+                    height=400
                 )
-            )])
-            
-            fig.update_layout(
-                title_text="Building Element Flow: Orientation → Family",
-                font_size=12,
-                height=400
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
+                
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("❌ Could not convert azimuth data to orientations for Sankey diagram")
         else:
-            st.warning("❌ No authentic orientation and family data found in database - Sankey requires real BIM relationships")
+            st.warning("❌ No authentic azimuth and family data found in database - Sankey requires real BIM relationships")
             
     except Exception as e:
         st.error(f"Error creating Sankey diagram: {str(e)}")
