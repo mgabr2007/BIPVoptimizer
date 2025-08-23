@@ -1527,14 +1527,25 @@ def create_step4_sunburst_chart(azimuth_df, family_data, level_data, project_id)
             return
         cursor = conn.cursor()
         
-        # Get hierarchical data: orientation → family → level
+        # Get hierarchical data using azimuth → family → level with orientation conversion
         cursor.execute("""
-            SELECT orientation, family, building_level, COUNT(*) as count, AVG(glass_area) as avg_area
+            SELECT 
+                CASE 
+                    WHEN azimuth >= 315 OR azimuth < 45 THEN 'North'
+                    WHEN azimuth >= 45 AND azimuth < 135 THEN 'East'
+                    WHEN azimuth >= 135 AND azimuth < 225 THEN 'South'
+                    WHEN azimuth >= 225 AND azimuth < 315 THEN 'West'
+                END as orientation,
+                family, 
+                building_level, 
+                COUNT(*) as count, 
+                AVG(glass_area) as avg_area
             FROM building_elements 
             WHERE project_id = %s 
-                AND orientation IS NOT NULL AND orientation != ''
+                AND azimuth IS NOT NULL
                 AND family IS NOT NULL AND family != ''
             GROUP BY orientation, family, building_level
+            HAVING orientation IS NOT NULL
             ORDER BY orientation, family, building_level
         """, (project_id,))
         
@@ -1586,12 +1597,19 @@ def create_step4_sunburst_chart(azimuth_df, family_data, level_data, project_id)
                 values.append(count)
                 # Lighter shade of orientation color
                 base_color = orientation_colors.get(orientation, '#808080')
-                colors.append(base_color.replace(')', ', 0.7)').replace('#', 'rgba(').replace('#', ''))
+                # Create proper rgba color
+                if base_color.startswith('#'):
+                    # Convert hex to rgba
+                    hex_color = base_color.lstrip('#')
+                    rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+                    colors.append(f"rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, 0.7)")
+                else:
+                    colors.append(base_color)
             
             # Level 3: Building Levels within Families (if available)
             for row in hierarchy_data:
                 orientation, family, level, count = row[0], row[1], row[2], row[3]
-                if level and level.strip():
+                if level and level.strip() and str(level).strip() != '':
                     level_id = f"{orientation}-{family}-{level}"
                     family_id = f"{orientation}-{family}"
                     
@@ -1601,7 +1619,12 @@ def create_step4_sunburst_chart(azimuth_df, family_data, level_data, project_id)
                     values.append(count)
                     # Even lighter shade
                     base_color = orientation_colors.get(orientation, '#808080')
-                    colors.append(base_color.replace(')', ', 0.4)').replace('#', 'rgba(').replace('#', ''))
+                    if base_color.startswith('#'):
+                        hex_color = base_color.lstrip('#')
+                        rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+                        colors.append(f"rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, 0.4)")
+                    else:
+                        colors.append(base_color)
             
             # Create Sunburst chart
             fig = go.Figure(go.Sunburst(
@@ -1622,7 +1645,7 @@ def create_step4_sunburst_chart(azimuth_df, family_data, level_data, project_id)
             
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("Insufficient hierarchical data for Sunburst chart")
+            st.warning("❌ No authentic hierarchical data found - Sunburst requires real orientation and family relationships from database")
             
     except Exception as e:
         st.error(f"Error creating Sunburst chart: {str(e)}")
