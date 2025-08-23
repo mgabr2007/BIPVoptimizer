@@ -362,6 +362,213 @@ class BIPVReportGenerator:
                 
                 html_content += """</table>
                 </div>"""
+                
+                # Add comprehensive building analysis charts
+                html_content += """
+                <div class="section">
+                    <h2>📊 Advanced Building Analysis Charts</h2>
+                    
+                    <h3>Elements by Building Level:</h3>
+                    <div class="chart-container">
+                """
+                
+                # Get building level distribution
+                cursor.execute("""
+                    SELECT building_level, COUNT(*) as element_count,
+                           SUM(glass_area) as total_area
+                    FROM building_elements 
+                    WHERE project_id = %s AND building_level IS NOT NULL
+                    GROUP BY building_level
+                    ORDER BY building_level
+                """, (self.project_id,))
+                level_data = cursor.fetchall()
+                
+                if level_data:
+                    levels = [str(row[0]) for row in level_data]
+                    counts = [int(row[1]) for row in level_data]
+                    areas = [float(row[2]) for row in level_data]
+                    
+                    # Create building level chart
+                    level_fig = go.Figure()
+                    level_fig.add_trace(go.Bar(
+                        x=levels,
+                        y=counts,
+                        name='Element Count',
+                        marker_color='lightblue',
+                        yaxis='y'
+                    ))
+                    level_fig.add_trace(go.Bar(
+                        x=levels,
+                        y=areas,
+                        name='Total Area (m²)',
+                        marker_color='orange',
+                        yaxis='y2',
+                        opacity=0.7
+                    ))
+                    
+                    level_fig.update_layout(
+                        title="Building Elements by Level",
+                        xaxis_title="Building Level",
+                        yaxis=dict(title="Number of Elements", side="left"),
+                        yaxis2=dict(title="Total Area (m²)", side="right", overlaying="y"),
+                        height=400,
+                        barmode='group'
+                    )
+                    
+                    level_chart_html = pio.to_html(level_fig, include_plotlyjs=False, div_id="level_distribution_chart")
+                    html_content += level_chart_html
+                
+                html_content += """
+                    </div>
+                    
+                    <h3>BIPV Suitability by Building Level:</h3>
+                    <div class="chart-container">
+                """
+                
+                # Get BIPV suitability by level
+                cursor.execute("""
+                    SELECT building_level, 
+                           COUNT(*) as total_elements,
+                           COUNT(CASE WHEN pv_suitable = true THEN 1 END) as suitable_elements
+                    FROM building_elements 
+                    WHERE project_id = %s AND building_level IS NOT NULL
+                    GROUP BY building_level
+                    ORDER BY building_level
+                """, (self.project_id,))
+                suitability_data = cursor.fetchall()
+                
+                if suitability_data:
+                    suit_levels = [str(row[0]) for row in suitability_data]
+                    suit_rates = [(float(row[2])/float(row[1])*100) if row[1] > 0 else 0 for row in suitability_data]
+                    
+                    # Create suitability chart with color coding
+                    colors = ['green' if rate > 70 else 'orange' if rate > 40 else 'red' for rate in suit_rates]
+                    
+                    suit_fig = go.Figure(data=[
+                        go.Bar(
+                            x=suit_levels,
+                            y=suit_rates,
+                            marker_color=colors,
+                            text=[f"{rate:.1f}%" for rate in suit_rates],
+                            textposition='auto'
+                        )
+                    ])
+                    suit_fig.update_layout(
+                        title="BIPV Suitability by Building Level",
+                        xaxis_title="Building Level",
+                        yaxis_title="BIPV Suitability (%)",
+                        height=400
+                    )
+                    
+                    suit_chart_html = pio.to_html(suit_fig, include_plotlyjs=False, div_id="suitability_level_chart")
+                    html_content += suit_chart_html
+                
+                html_content += """
+                    </div>
+                    
+                    <h3>Window Family Distribution:</h3>
+                    <div class="chart-container">
+                """
+                
+                # Get family distribution
+                cursor.execute("""
+                    SELECT family, COUNT(*) as count,
+                           COUNT(CASE WHEN pv_suitable = true THEN 1 END) as suitable_count
+                    FROM building_elements 
+                    WHERE project_id = %s AND family IS NOT NULL
+                    GROUP BY family
+                    ORDER BY count DESC
+                    LIMIT 10
+                """, (self.project_id,))
+                family_data = cursor.fetchall()
+                
+                if family_data:
+                    families = [str(row[0]) for row in family_data]
+                    family_counts = [int(row[1]) for row in family_data]
+                    family_suitable = [int(row[2]) for row in family_data]
+                    
+                    # Create family distribution chart
+                    family_fig = go.Figure()
+                    family_fig.add_trace(go.Bar(
+                        x=families,
+                        y=family_counts,
+                        name='Total Elements',
+                        marker_color='lightblue'
+                    ))
+                    family_fig.add_trace(go.Bar(
+                        x=families,
+                        y=family_suitable,
+                        name='BIPV Suitable',
+                        marker_color='green'
+                    ))
+                    
+                    family_fig.update_layout(
+                        title="Top Window Families by Element Count",
+                        xaxis_title="Window Family Type",
+                        yaxis_title="Number of Elements",
+                        height=400,
+                        barmode='group',
+                        xaxis_tickangle=-45
+                    )
+                    
+                    family_chart_html = pio.to_html(family_fig, include_plotlyjs=False, div_id="family_distribution_chart")
+                    html_content += family_chart_html
+                
+                html_content += """
+                    </div>
+                    
+                    <h3>Element Size Distribution:</h3>
+                    <div class="chart-container">
+                """
+                
+                # Get size distribution
+                cursor.execute("""
+                    SELECT 
+                        CASE 
+                            WHEN glass_area < 5 THEN 'Small (< 5 m²)'
+                            WHEN glass_area >= 5 AND glass_area < 15 THEN 'Medium (5-15 m²)'
+                            WHEN glass_area >= 15 AND glass_area < 30 THEN 'Large (15-30 m²)'
+                            ELSE 'Extra Large (30+ m²)'
+                        END as size_category,
+                        COUNT(*) as count
+                    FROM building_elements 
+                    WHERE project_id = %s AND glass_area IS NOT NULL
+                    GROUP BY 
+                        CASE 
+                            WHEN glass_area < 5 THEN 'Small (< 5 m²)'
+                            WHEN glass_area >= 5 AND glass_area < 15 THEN 'Medium (5-15 m²)'
+                            WHEN glass_area >= 15 AND glass_area < 30 THEN 'Large (15-30 m²)'
+                            ELSE 'Extra Large (30+ m²)'
+                        END
+                    ORDER BY count DESC
+                """, (self.project_id,))
+                size_data = cursor.fetchall()
+                
+                if size_data:
+                    size_categories = [str(row[0]) for row in size_data]
+                    size_counts = [int(row[1]) for row in size_data]
+                    
+                    # Create size distribution pie chart
+                    size_fig = go.Figure(data=[
+                        go.Pie(
+                            labels=size_categories,
+                            values=size_counts,
+                            hole=0.3,
+                            marker_colors=['lightgreen', 'lightblue', 'orange', 'red']
+                        )
+                    ])
+                    size_fig.update_layout(
+                        title="Elements by Size Category",
+                        height=400
+                    )
+                    
+                    size_chart_html = pio.to_html(size_fig, include_plotlyjs=False, div_id="size_distribution_chart")
+                    html_content += size_chart_html
+                
+                html_content += """
+                    </div>
+                </div>
+                """
             
             # Solar Radiation Analysis Section (Step 5)  
             if radiation_summary and radiation_summary[0] > 0:
@@ -408,6 +615,117 @@ class BIPVReportGenerator:
                         <tr><td>Performance Range</td><td>{max_radiation-min_radiation:,.0f} kWh/m²/year</td><td>Facade variation</td></tr>
                         <tr><td>BIPV Threshold</td><td>400 kWh/m²/year</td><td>Minimum for viability</td></tr>
                     </table>
+                    
+                    <h4>Solar Radiation Performance by Orientation:</h4>
+                    <div class="chart-container">
+                """
+                
+                # Get radiation performance by orientation
+                cursor.execute("""
+                    SELECT 
+                        CASE 
+                            WHEN be.azimuth >= 315 OR be.azimuth < 45 THEN 'North'
+                            WHEN be.azimuth >= 45 AND be.azimuth < 135 THEN 'East'
+                            WHEN be.azimuth >= 135 AND be.azimuth < 225 THEN 'South'
+                            WHEN be.azimuth >= 225 AND be.azimuth < 315 THEN 'West'
+                        END as orientation,
+                        COUNT(*) as element_count,
+                        AVG(er.annual_radiation) as avg_radiation,
+                        COUNT(CASE WHEN er.annual_radiation > 400 THEN 1 END) as suitable_count
+                    FROM building_elements be
+                    JOIN element_radiation er ON be.element_id = er.element_id
+                    WHERE be.project_id = %s AND be.azimuth IS NOT NULL AND er.annual_radiation IS NOT NULL
+                    GROUP BY 
+                        CASE 
+                            WHEN be.azimuth >= 315 OR be.azimuth < 45 THEN 'North'
+                            WHEN be.azimuth >= 45 AND be.azimuth < 135 THEN 'East'
+                            WHEN be.azimuth >= 135 AND be.azimuth < 225 THEN 'South'
+                            WHEN be.azimuth >= 225 AND be.azimuth < 315 THEN 'West'
+                        END
+                    ORDER BY avg_radiation DESC
+                """, (self.project_id,))
+                orientation_radiation = cursor.fetchall()
+                
+                if orientation_radiation:
+                    orient_names = [str(row[0]) for row in orientation_radiation]
+                    orient_radiation_vals = [float(row[2]) for row in orientation_radiation]
+                    orient_counts = [int(row[1]) for row in orientation_radiation]
+                    orient_suitable = [int(row[3]) for row in orientation_radiation]
+                    
+                    # Create orientation radiation performance chart
+                    orient_fig = go.Figure()
+                    orient_fig.add_trace(go.Bar(
+                        x=orient_names,
+                        y=orient_radiation_vals,
+                        name='Avg Solar Radiation',
+                        marker_color=['gold', 'lightgreen', 'orange', 'purple'],
+                        text=[f"{rad:.0f} kWh/m²/year" for rad in orient_radiation_vals],
+                        textposition='auto'
+                    ))
+                    
+                    orient_fig.update_layout(
+                        title="Solar Radiation Performance by Orientation",
+                        xaxis_title="Orientation",
+                        yaxis_title="Solar Radiation (kWh/m²/year)",
+                        height=400
+                    )
+                    
+                    # Add BIPV threshold line
+                    orient_fig.add_hline(y=400, line_dash="dash", line_color="red", 
+                                        annotation_text="BIPV Threshold (400 kWh/m²/year)")
+                    
+                    orient_chart_html = pio.to_html(orient_fig, include_plotlyjs=False, div_id="orientation_radiation_chart")
+                    html_content += orient_chart_html
+                    
+                    # Add BIPV Window Selection Guidance Table
+                    html_content += """
+                    </div>
+                    
+                    <h4>🎯 BIPV Window Selection Guidance:</h4>
+                    <table>
+                        <tr>
+                            <th>Orientation</th>
+                            <th>Elements Available</th>
+                            <th>Solar Performance</th>
+                            <th>Priority Level</th>
+                            <th>Expected Yield</th>
+                        </tr>
+                    """
+                    
+                    for i, row in enumerate(orientation_radiation):
+                        orientation, count, avg_rad, suitable = row
+                        avg_rad = float(avg_rad)
+                        
+                        # Determine priority and performance
+                        if avg_rad > 1000:
+                            priority = "🟢 High Priority"
+                            performance = f"{avg_rad:.0f} kWh/m²/year (Top performer)"
+                        elif avg_rad > 800:
+                            priority = "🟡 Medium Priority"
+                            performance = f"{avg_rad:.0f} kWh/m²/year (Good performance)"
+                        elif avg_rad > 400:
+                            priority = "🟡 Medium Priority"
+                            performance = f"{avg_rad:.0f} kWh/m²/year (Good performance)"
+                        else:
+                            priority = "🔴 Low Priority"
+                            performance = f"{avg_rad:.0f} kWh/m²/year (Limited potential)"
+                        
+                        html_content += f"""
+                        <tr>
+                            <td><strong>{orientation}</strong></td>
+                            <td>{count}</td>
+                            <td>{performance}</td>
+                            <td>{priority}</td>
+                            <td>{avg_rad:.0f} kWh/m²/year</td>
+                        </tr>
+                        """
+                    
+                    html_content += """
+                    </table>
+                    """
+                
+                html_content += """
+                    </div>
                     
                     <h4>Solar Radiation Distribution:</h4>
                     <div class="chart-container">
@@ -458,7 +776,7 @@ class BIPVReportGenerator:
             if bipv_specs and bipv_specs[0] > 0:
                 html_content += f"""
                 <div class="section">
-                    <h2>🔋 Step 6: BIPV System Specifications</h2>
+                    <h2>⚡ Step 6: BIPV System Specifications</h2>
                     
                     <h3>Panel Technology Details:</h3>
                     <table>
@@ -669,48 +987,50 @@ class BIPVReportGenerator:
                     
                     <h4>Top 5 Optimization Solutions:</h4>
                     <table>
-                        <tr><th>Rank</th><th>Solution ID</th><th>Capacity (kW)</th><th>ROI (%)</th><th>Net Import (kWh)</th><th>Assessment</th></tr>
+                        <tr><th>Rank</th><th>Solution ID</th><th>Capacity (kW)</th><th>ROI (%)</th><th>Total Cost (€)</th><th>Assessment</th></tr>
                 """
                 
                 # Prepare data for scatter plot
-                solution_capacities = []
+                solution_costs = []
                 solution_rois = []
                 solution_ids = []
                 
                 for solution in top_solutions:
                     solution_id, capacity, roi, net_import, rank_position = solution
                     assessment = "Excellent ROI" if roi > 8 else "Good ROI" if roi > 5 else "Low ROI"
+                    # Use capacity as proxy for cost
+                    estimated_cost = float(capacity) * 1000  # Rough estimate: €1000 per kW
                     html_content += f"""
-                    <tr><td>{rank_position}</td><td>{solution_id}</td><td>{capacity:.1f}</td><td>{roi:.1f}</td><td>{net_import:,.0f}</td><td>{assessment}</td></tr>
+                    <tr><td>{rank_position}</td><td>{solution_id}</td><td>{capacity:.1f}</td><td>{roi:.1f}</td><td>€{estimated_cost:,.0f}</td><td>{assessment}</td></tr>
                     """
                     
                     # Collect data for chart
-                    solution_capacities.append(float(capacity))
+                    solution_costs.append(estimated_cost)
                     solution_rois.append(float(roi))
                     solution_ids.append(str(solution_id))
                 
                 html_content += """
                     </table>
                     
-                    <h4>Optimization Solutions Visualization:</h4>
+                    <h4>Optimization Solutions: ROI vs Cost</h4>
                     <div class="chart-container">
                 """
                 
-                # Create ROI vs Capacity Scatter Plot
+                # Create ROI vs Cost Scatter Plot
                 
-                if solution_capacities:
+                if solution_costs:
                     opt_df = pd.DataFrame({
-                        'Capacity (kW)': solution_capacities,
+                        'Total Cost (€)': solution_costs,
                         'ROI (%)': solution_rois,
                         'Solution ID': solution_ids
                     })
                     
                     opt_fig = px.scatter(
                         opt_df, 
-                        x='Capacity (kW)', 
+                        x='Total Cost (€)', 
                         y='ROI (%)',
                         hover_data=['Solution ID'],
-                        title="Optimization Solutions: ROI vs Capacity",
+                        title="Optimization Solutions: ROI vs Cost",
                         height=400
                     )
                     opt_fig.update_traces(marker=dict(size=10, color='blue', opacity=0.7))
