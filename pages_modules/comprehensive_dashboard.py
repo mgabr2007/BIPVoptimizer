@@ -516,11 +516,14 @@ def get_dashboard_data(project_id):
             """, (project_id,))
             building_stats = cursor.fetchone()
             
+            # Get orientation data only for analyzed elements (elements with radiation data)
             cursor.execute("""
-                SELECT orientation, COUNT(*) as count, AVG(glass_area) as avg_area,
-                       COUNT(CASE WHEN pv_suitable = true THEN 1 END) as suitable_count
-                FROM building_elements WHERE project_id = %s AND orientation IS NOT NULL AND orientation != ''
-                GROUP BY orientation
+                SELECT be.orientation, COUNT(*) as count, AVG(be.glass_area) as avg_area,
+                       COUNT(CASE WHEN be.pv_suitable = true THEN 1 END) as suitable_count
+                FROM element_radiation er
+                JOIN building_elements be ON er.element_id = be.element_id
+                WHERE er.project_id = %s AND be.orientation IS NOT NULL AND be.orientation != ''
+                GROUP BY be.orientation
                 ORDER BY count DESC
             """, (project_id,))
             orientation_data = cursor.fetchall()
