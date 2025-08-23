@@ -912,27 +912,105 @@ def create_overview_cards(data):
             st.metric("CO₂ Impact", "Calculating...", "")
 
 def create_building_analysis_section(data):
-    """Create building analysis visualizations"""
+    """Create reorganized building elements and radiation analysis section"""
     if not data or 'building' not in data:
-        st.warning("No building analysis data available")
+        st.warning("No building data available")
         return
     
     st.markdown("### 🏢 Building Analysis (Steps 4-5)")
     
-    col1, col2 = st.columns(2)
+    building = data['building']
+    
+    # Step 4: Building Elements Overview
+    st.markdown("#### 📊 Step 4: Building Elements Analysis")
+    
+    # Key metrics in organized layout
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        # Orientation distribution
-        orientation_dist = data['building'].get('orientation_distribution', [])
+        total_elements = building.get('total_elements', 0)
+        suitable_count = building.get('pv_suitable_count', 0)
+        suitability_rate = (suitable_count / total_elements * 100) if total_elements > 0 else 0
+        
+        st.metric("Total Building Elements", f"{total_elements:,}")
+        st.metric("BIPV Suitable Elements", f"{suitable_count:,}")
+        st.metric("Suitability Rate", f"{suitability_rate:.1f}%")
+    
+    with col2:
+        total_area = building.get('total_glass_area', 0)
+        avg_area = (total_area / total_elements) if total_elements > 0 else 0
+        suitable_area = (total_area * suitability_rate / 100) if total_area > 0 else 0
+        
+        st.metric("Total Glass Area", f"{total_area:,.0f} m²")
+        st.metric("Average Element Size", f"{avg_area:.1f} m²")
+        st.metric("Suitable Glass Area", f"{suitable_area:,.0f} m²")
+    
+    with col3:
+        unique_orientations = building.get('unique_orientations', 0)
+        building_levels = building.get('building_levels', 0)
+        
+        st.metric("Unique Orientations", unique_orientations)
+        st.metric("Building Levels", building_levels)
+        
+        # Element size distribution insight
+        if avg_area > 0:
+            if avg_area > 30:
+                size_category = "Large Windows"
+            elif avg_area > 15:
+                size_category = "Medium Windows"
+            else:
+                size_category = "Small Windows"
+            st.metric("Element Category", size_category)
+
+    # Step 5: Solar Radiation & Orientation Analysis
+    st.markdown("#### ☀️ Step 5: Solar Radiation Analysis")
+    
+    if 'radiation' in data:
+        radiation = data['radiation']
+        
+        # Radiation overview metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            analyzed = radiation.get('analyzed_elements', 0)
+            coverage = (analyzed / total_elements * 100) if total_elements > 0 else 0
+            st.metric("Analyzed Elements", f"{analyzed:,}")
+            st.caption(f"Coverage: {coverage:.1f}%")
+        
+        with col2:
+            avg_rad = radiation.get('avg_radiation', 0)
+            st.metric("Average Radiation", f"{avg_rad:.0f} kWh/m²/year")
+        
+        with col3:
+            max_rad = radiation.get('max_radiation', 0)
+            st.metric("Peak Performance", f"{max_rad:.0f} kWh/m²/year")
+        
+        with col4:
+            min_rad = radiation.get('min_radiation', 0)
+            range_spread = max_rad - min_rad
+            st.metric("Performance Range", f"{range_spread:.0f} kWh/m²/year")
+    
+    # Detailed Orientation Analysis
+    st.markdown("#### 🧭 Orientation Performance & Selection Strategy")
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        # Orientation distribution pie chart
+        orientation_dist = building.get('orientation_distribution', [])
         if orientation_dist:
             orientation_df = pd.DataFrame(orientation_dist)
             fig = px.pie(
                 orientation_df, 
                 values='count', 
                 names='orientation',
-                title="Element Distribution by Orientation"
+                title="Building Elements by Orientation",
+                color_discrete_sequence=px.colors.qualitative.Set3
             )
+            fig.update_traces(textposition='inside', textinfo='percent+label')
             st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No orientation data available - elements may need orientation classification")
     
     with col2:
         # Radiation performance by orientation
@@ -940,44 +1018,84 @@ def create_building_analysis_section(data):
             radiation_by_orient = data['radiation'].get('by_orientation', [])
             if radiation_by_orient:
                 radiation_df = pd.DataFrame(radiation_by_orient)
+                
+                # Color-code by performance
+                colors = []
+                for _, row in radiation_df.iterrows():
+                    if row['avg_radiation'] >= 1400:
+                        colors.append('#2E8B57')  # Green for excellent
+                    elif row['avg_radiation'] >= 1100:
+                        colors.append('#FFD700')  # Gold for good
+                    else:
+                        colors.append('#CD5C5C')  # Red for limited
+                
                 fig = px.bar(
                     radiation_df,
                     x='orientation',
                     y='avg_radiation',
-                    title="Average Solar Radiation by Orientation",
-                    labels={'avg_radiation': 'Solar Radiation (kWh/m²/year)'}
+                    title="Solar Radiation Performance by Orientation",
+                    labels={'avg_radiation': 'Solar Radiation (kWh/m²/year)', 'orientation': 'Orientation'},
+                    color='avg_radiation',
+                    color_continuous_scale='Viridis'
                 )
+                fig.update_layout(showlegend=False)
                 st.plotly_chart(fig, use_container_width=True)
-                
-                # Add orientation selection guidance
-                st.markdown("### 🎯 BIPV Window Selection Guidance")
-                st.markdown("**Orientation Performance Rankings:**")
-                
-                # Sort by radiation performance
-                sorted_orientations = sorted(radiation_by_orient, key=lambda x: x['avg_radiation'], reverse=True)
-                
-                for i, orient in enumerate(sorted_orientations):
-                    orientation = orient['orientation']
-                    radiation = orient['avg_radiation']
-                    count = orient['count']
-                    
-                    if radiation >= 1400:
-                        icon = "🟢"
-                        performance = "Excellent"
-                        recommendation = "Priority for BIPV installation"
-                    elif radiation >= 1100:
-                        icon = "🟡"
-                        performance = "Good"
-                        recommendation = "Include for balanced generation"
-                    else:
-                        icon = "🔴"
-                        performance = "Limited"
-                        recommendation = "Consider only if necessary"
-                    
-                    st.markdown(f"{icon} **{orientation}**: {radiation:.0f} kWh/m²/year ({performance}) - {count} elements")
-                    st.caption(f"   ↳ {recommendation}")
             else:
-                st.info("No radiation data by orientation available")
+                st.info("No radiation analysis by orientation - complete Step 5 calculations")
+
+    # BIPV Selection Guidance Panel
+    if 'radiation' in data and data['radiation'].get('by_orientation'):
+        st.markdown("#### 🎯 BIPV Window Selection Guidance")
+        
+        radiation_by_orient = data['radiation']['by_orientation']
+        sorted_orientations = sorted(radiation_by_orient, key=lambda x: x['avg_radiation'], reverse=True)
+        
+        # Create guidance table
+        guidance_data = []
+        for orient in sorted_orientations:
+            orientation = orient['orientation']
+            radiation = orient['avg_radiation']
+            count = orient['count']
+            
+            if radiation >= 1400:
+                priority = "🟢 High Priority"
+                performance = "Excellent"
+                recommendation = "Install BIPV on majority of these elements"
+                expected_yield = "1,400+ kWh/kW/year"
+            elif radiation >= 1100:
+                priority = "🟡 Medium Priority"
+                performance = "Good"
+                recommendation = "Include for balanced daily generation"
+                expected_yield = "1,100-1,400 kWh/kW/year"
+            else:
+                priority = "🔴 Low Priority"
+                performance = "Limited"
+                recommendation = "Consider only for specific requirements"
+                expected_yield = "< 1,100 kWh/kW/year"
+            
+            guidance_data.append({
+                "Orientation": orientation,
+                "Elements Available": count,
+                "Solar Performance": f"{radiation:.0f} kWh/m²/year",
+                "Priority Level": priority,
+                "Expected Yield": expected_yield,
+                "Recommendation": recommendation
+            })
+        
+        guidance_df = pd.DataFrame(guidance_data)
+        st.dataframe(guidance_df, use_container_width=True, hide_index=True)
+        
+        # Strategic recommendations
+        st.markdown("**Strategic Implementation Approach:**")
+        high_performing = sum(1 for x in sorted_orientations if x['avg_radiation'] >= 1400)
+        medium_performing = sum(1 for x in sorted_orientations if 1100 <= x['avg_radiation'] < 1400)
+        low_performing = sum(1 for x in sorted_orientations if x['avg_radiation'] < 1100)
+        
+        st.markdown(f"• **Phase 1**: Focus on {high_performing} high-priority orientation(s) for maximum ROI")
+        st.markdown(f"• **Phase 2**: Include {medium_performing} medium-priority orientations for generation balance")
+        st.markdown(f"• **Phase 3**: Evaluate {low_performing} low-priority orientations based on specific requirements")
+    else:
+        st.info("Complete Step 5 radiation analysis to unlock detailed orientation guidance")
 
 def create_energy_analysis_section(data):
     """Create energy analysis visualizations"""
