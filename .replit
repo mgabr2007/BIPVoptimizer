@@ -2,7 +2,7 @@ modules = ["python-3.11", "postgresql-16"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["arrow-cpp", "freetype", "gcc", "gcc-unwrapped", "glibc", "glibcLocales", "libcxx", "libgcc", "libgccjit", "libstdcxx5", "libxcrypt", "postgresql", "zlib"]
+packages = ["arrow-cpp", "freetype", "gcc", "gcc-unwrapped", "glibc", "glibcLocales", "libcxx", "libgcc", "libgccjit", "libstdcxx5", "libxcrypt", "postgresql", "zlib", "chromium"]
 
 [deployment]
 deploymentTarget = "autoscale"

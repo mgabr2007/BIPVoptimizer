@@ -24,6 +24,9 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.shared import qn
 from database_manager import db_manager
 
+# Configure Kaleido to use system Chromium
+os.environ['PLOTLY_KALEIDO_EXECUTABLE'] = '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium'
+
 class BIPVReportGenerator:
     def __init__(self, project_id):
         self.project_id = project_id
