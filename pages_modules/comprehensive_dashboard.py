@@ -1057,21 +1057,26 @@ def create_building_analysis_section(data):
             radiation = orient['avg_radiation']
             count = orient['count']
             
-            if radiation >= 1400:
+            # Adaptive thresholds based on actual project performance
+            max_radiation = max([x['avg_radiation'] for x in sorted_orientations])
+            high_threshold = max_radiation * 0.85  # Top performers (85%+ of max)
+            medium_threshold = max_radiation * 0.60  # Medium performers (60%+ of max)
+            
+            if radiation >= high_threshold:
                 priority = "🟢 High Priority"
                 performance = "Excellent"
                 recommendation = "Install BIPV on majority of these elements"
-                expected_yield = "1,400+ kWh/kW/year"
-            elif radiation >= 1100:
+                expected_yield = f"{radiation:.0f} kWh/m²/year (Top performer)"
+            elif radiation >= medium_threshold:
                 priority = "🟡 Medium Priority"
                 performance = "Good"
                 recommendation = "Include for balanced daily generation"
-                expected_yield = "1,100-1,400 kWh/kW/year"
+                expected_yield = f"{radiation:.0f} kWh/m²/year (Good performance)"
             else:
                 priority = "🔴 Low Priority"
                 performance = "Limited"
                 recommendation = "Consider only for specific requirements"
-                expected_yield = "< 1,100 kWh/kW/year"
+                expected_yield = f"{radiation:.0f} kWh/m²/year (Limited potential)"
             
             guidance_data.append({
                 "Orientation": orientation,
@@ -1085,15 +1090,38 @@ def create_building_analysis_section(data):
         guidance_df = pd.DataFrame(guidance_data)
         st.dataframe(guidance_df, use_container_width=True, hide_index=True)
         
-        # Strategic recommendations
+        # Strategic recommendations with adaptive thresholds
         st.markdown("**Strategic Implementation Approach:**")
-        high_performing = sum(1 for x in sorted_orientations if x['avg_radiation'] >= 1400)
-        medium_performing = sum(1 for x in sorted_orientations if 1100 <= x['avg_radiation'] < 1400)
-        low_performing = sum(1 for x in sorted_orientations if x['avg_radiation'] < 1100)
         
-        st.markdown(f"• **Phase 1**: Focus on {high_performing} high-priority orientation(s) for maximum ROI")
-        st.markdown(f"• **Phase 2**: Include {medium_performing} medium-priority orientations for generation balance")
-        st.markdown(f"• **Phase 3**: Evaluate {low_performing} low-priority orientations based on specific requirements")
+        # Calculate adaptive thresholds based on actual project data
+        max_radiation = max([x['avg_radiation'] for x in sorted_orientations])
+        high_threshold = max_radiation * 0.85
+        medium_threshold = max_radiation * 0.60
+        
+        high_performing = sum(1 for x in sorted_orientations if x['avg_radiation'] >= high_threshold)
+        medium_performing = sum(1 for x in sorted_orientations if medium_threshold <= x['avg_radiation'] < high_threshold)
+        low_performing = sum(1 for x in sorted_orientations if x['avg_radiation'] < medium_threshold)
+        
+        # Calculate total elements for each category
+        high_elements = sum(x['count'] for x in sorted_orientations if x['avg_radiation'] >= high_threshold)
+        medium_elements = sum(x['count'] for x in sorted_orientations if medium_threshold <= x['avg_radiation'] < high_threshold)
+        low_elements = sum(x['count'] for x in sorted_orientations if x['avg_radiation'] < medium_threshold)
+        
+        st.markdown(f"• **Phase 1**: Focus on {high_performing} high-priority orientation(s) with {high_elements:,} elements for maximum ROI")
+        st.markdown(f"  ↳ *Target orientations with {high_threshold:.0f}+ kWh/m²/year (top 85% performance)*")
+        
+        st.markdown(f"• **Phase 2**: Include {medium_performing} medium-priority orientations with {medium_elements:,} elements for generation balance")
+        st.markdown(f"  ↳ *Include orientations with {medium_threshold:.0f}-{high_threshold:.0f} kWh/m²/year (good performance)*")
+        
+        st.markdown(f"• **Phase 3**: Evaluate {low_performing} low-priority orientations with {low_elements:,} elements based on specific requirements")
+        st.markdown(f"  ↳ *Consider orientations with <{medium_threshold:.0f} kWh/m²/year only if necessary*")
+        
+        # Add explanation of thresholds
+        st.markdown("**Performance Threshold Explanation:**")
+        st.markdown(f"• **High Priority**: ≥{high_threshold:.0f} kWh/m²/year (85%+ of peak performance)")
+        st.markdown(f"• **Medium Priority**: {medium_threshold:.0f}-{high_threshold:.0f} kWh/m²/year (60-85% of peak)")
+        st.markdown(f"• **Low Priority**: <{medium_threshold:.0f} kWh/m²/year (<60% of peak performance)")
+        st.markdown(f"• **Peak Site Performance**: {max_radiation:.0f} kWh/m²/year (best orientation at this location)")
     else:
         st.info("Complete Step 5 radiation analysis to unlock detailed orientation guidance")
 
