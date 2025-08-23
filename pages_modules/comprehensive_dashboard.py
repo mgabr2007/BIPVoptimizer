@@ -84,6 +84,28 @@ def create_optimized_windows_csv(project_id):
                 if not bipv_specs:
                     return None
                 
+                # Function to calculate orientation from azimuth
+                def calculate_orientation_from_azimuth(azimuth):
+                    """Calculate orientation from azimuth degrees"""
+                    if azimuth is None:
+                        return 'Unknown'
+                    
+                    azimuth = float(azimuth) % 360  # Normalize to 0-360
+                    
+                    if 315 <= azimuth or azimuth < 45:
+                        return "North"
+                    elif 45 <= azimuth < 135:
+                        return "East"
+                    elif 135 <= azimuth < 225:
+                        return "South"
+                    elif 225 <= azimuth < 315:
+                        return "West"
+                    else:
+                        return "Unknown"
+                
+                # Get solution number for CSV
+                solution_number = recommended_solution[0] if recommended_solution else "N/A"
+                
                 # Create comprehensive CSV data
                 csv_data = []
                 headers = [
@@ -92,7 +114,7 @@ def create_optimized_windows_csv(project_id):
                     'Annual_Radiation_kWh_m2', 'PV_Suitable', 'BIPV_Technology',
                     'BIPV_Efficiency_%', 'BIPV_Transparency_%', 'BIPV_Power_Density_W_m2',
                     'System_Capacity_kW', 'Annual_Generation_kWh', 'Cost_per_m2_EUR',
-                    'Total_System_Cost_EUR', 'Payback_Period_Years', 'Solution_Status'
+                    'Total_System_Cost_EUR', 'Payback_Period_Years', 'Solution_Number', 'Solution_Status'
                 ]
                 
                 csv_data.append(headers)
@@ -190,16 +212,20 @@ def create_optimized_windows_csv(project_id):
                         elif window_height == 0:
                             window_height = glass_area / window_width
                     
+                    # Calculate orientation from azimuth degrees
+                    azimuth_value = float(element[7] or 0)
+                    calculated_orientation = calculate_orientation_from_azimuth(azimuth_value)
+                    
                     # Add row to CSV
                     row = [
                         element[0],  # Element_ID
                         element[1] or 'N/A',  # Wall_Element_ID
                         element[2] or 'N/A',  # Building_Level
-                        element[3] or 'N/A',  # Orientation
+                        calculated_orientation,  # Orientation (calculated from azimuth)
                         round(glass_area, 2),  # Glass_Area_m2
                         round(window_width, 2),  # Window_Width_m
                         round(window_height, 2),  # Window_Height_m
-                        round(float(element[7] or 0), 1),  # Azimuth_degrees
+                        round(azimuth_value, 1),  # Azimuth_degrees
                         round(float(element[9] or 0), 0),  # Annual_Radiation_kWh_m2
                         'YES' if element[8] else 'NO',  # PV_Suitable
                         bipv_tech,  # BIPV_Technology
@@ -211,6 +237,7 @@ def create_optimized_windows_csv(project_id):
                         round(cost_per_m2, 0),  # Cost_per_m2_EUR
                         round(total_cost, 0),  # Total_System_Cost_EUR
                         payback,  # Payback_Period_Years
+                        solution_number,  # Solution_Number
                         solution_status  # Solution_Status
                     ]
                     
