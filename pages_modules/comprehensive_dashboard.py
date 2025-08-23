@@ -1150,7 +1150,10 @@ def create_step4_detailed_analysis(data, project_id):
     
     try:
         # Get detailed building elements data from database
-        conn = get_db_connection()
+        conn = db_manager.get_connection()
+        if not conn:
+            st.error("❌ Database connection failed - authentic data analysis requires active database")
+            return
         cursor = conn.cursor()
         
         # Window family analysis
@@ -1368,7 +1371,10 @@ def create_step4_data_quality_metrics(project_id):
         return
     
     try:
-        conn = get_db_connection()
+        conn = db_manager.get_connection()
+        if not conn:
+            st.error("❌ Database connection failed - data quality analysis requires active database")
+            return
         cursor = conn.cursor()
         
         # Data completeness analysis
