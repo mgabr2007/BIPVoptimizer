@@ -1163,16 +1163,35 @@ def create_energy_analysis_section(data):
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        # Energy metrics
+        # Energy metrics with corrected calculations
         st.markdown("**Key Energy Metrics:**")
         self_consumption = energy.get('self_consumption_rate', 0)
-        yield_per_m2 = energy.get('energy_yield_per_m2', 0)
         annual_gen = energy.get('annual_generation', 0)
         annual_demand = energy.get('annual_demand', 1)
         coverage_ratio = (annual_gen / annual_demand * 100) if annual_demand > 0 else 0
+        
+        # Calculate energy yield per m² using building glass area from data
+        building_data = data.get('building', {})
+        total_glass_area = building_data.get('total_glass_area', 0)
+        yield_per_m2 = (annual_gen / total_glass_area) if total_glass_area > 0 else 0
+        
         st.write(f"• **Self-Consumption Rate:** {self_consumption:.1f}%")
         st.write(f"• **Energy Yield per m²:** {yield_per_m2:.1f} kWh/m²/year")
         st.write(f"• **Coverage Ratio:** {coverage_ratio:.1f}%")
+        
+        # Additional context metrics
+        st.markdown("**System Context:**")
+        st.write(f"• **Total Glass Area:** {total_glass_area:,.0f} m²")
+        st.write(f"• **Annual Generation:** {annual_gen:,.0f} kWh")
+        st.write(f"• **Annual Demand:** {annual_demand:,.0f} kWh")
+        
+        # Performance assessment
+        if coverage_ratio < 10:
+            st.warning("⚠️ Low coverage ratio suggests high building energy demand relative to BIPV potential")
+        elif coverage_ratio < 25:
+            st.info("ℹ️ Moderate coverage ratio - BIPV provides partial energy offset")
+        else:
+            st.success("✅ Good coverage ratio - BIPV provides significant energy contribution")
         
         net_balance = energy.get('net_energy_balance', 0)
         if net_balance and net_balance > 0:
