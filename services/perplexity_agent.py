@@ -499,7 +499,7 @@ class PerplexityBIPVAgent:
         """Send query to Perplexity API and return response"""
         
         payload = {
-            "model": "llama-3.1-sonar-large-128k-online",
+            "model": "llama-3.1-sonar-small-128k-online",
             "messages": [
                 {
                     "role": "system",
