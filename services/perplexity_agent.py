@@ -499,18 +499,18 @@ class PerplexityBIPVAgent:
         """Send query to Perplexity API and return response"""
         
         payload = {
-            "model": "sonar-pro",
+            "model": "llama-3.1-sonar-large-128k-online",
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an expert BIPV research consultant with deep knowledge of building-integrated photovoltaics, solar energy systems, and building energy optimization. Provide precise, actionable insights based on current research and industry best practices."
+                    "content": "You are an expert BIPV research consultant with deep knowledge of building-integrated photovoltaics, solar energy systems, and building energy optimization. Provide precise, actionable insights based on current research and industry best practices. Always complete your analysis with full explanations and comprehensive recommendations."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            "max_tokens": 1500,
+            "max_tokens": 4000,
             "temperature": 0.2,
             "top_p": 0.9,
             "return_images": False,
