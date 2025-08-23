@@ -1,0 +1,381 @@
+
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>BIPV Comprehensive Analysis Report - Project 121</title>
+                <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; background-color: #f8f9fa; }
+                    .header { text-align: center; background: white; border-bottom: 3px solid #1f4e79; padding: 30px; margin-bottom: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    h1 { color: #1f4e79; font-size: 32px; margin-bottom: 10px; }
+                    h2 { color: #2e75b6; font-size: 24px; margin-top: 40px; margin-bottom: 20px; border-left: 4px solid #2e75b6; padding-left: 15px; background: white; padding: 15px; border-radius: 5px; }
+                    h3 { color: #2e75b6; font-size: 18px; margin-top: 25px; margin-bottom: 15px; }
+                    h4 { color: #495057; font-size: 16px; margin-top: 20px; margin-bottom: 10px; }
+                    table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    th, td { border: 1px solid #dee2e6; padding: 12px; text-align: left; }
+                    th { background-color: #2e75b6; color: white; font-weight: bold; }
+                    tr:nth-child(even) { background-color: #f8f9fa; }
+                    .chart-container { margin: 30px 0; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 30px 0; }
+                    .metric-card { background: white; border: 1px solid #e9ecef; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+                    .metric-value { font-size: 28px; font-weight: bold; color: #2e75b6; margin-bottom: 5px; }
+                    .metric-label { color: #6c757d; font-size: 14px; }
+                    .metric-subtitle { color: #6c757d; font-size: 12px; margin-top: 5px; }
+                    .timestamp { color: #6c757d; font-style: italic; }
+                    .data-sources { background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 8px; padding: 20px; margin: 20px 0; }
+                    .data-sources h3 { color: #1976d2; margin-top: 0; }
+                    .data-sources ul { margin: 10px 0; padding-left: 20px; }
+                    .data-sources li { margin: 5px 0; }
+                    .success { color: #28a745; font-weight: bold; }
+                    .warning { color: #ffc107; font-weight: bold; }
+                    .error { color: #dc3545; font-weight: bold; }
+                    .section { background: white; border-radius: 8px; padding: 25px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>📊 Step 10: Comprehensive BIPV Analysis Dashboard</h1>
+                    <p class="timestamp">Project 121 | Generated: August 23, 2025 at 13:12</p>
+                    <p><strong>Research Standards:</strong> TU Berlin PhD Research | <strong>Data Integrity:</strong> Authentic Sources Only</p>
+                </div>
+            
+                <!-- Data Sources & Verification Section (Mirror from Step 10) -->
+                <div class="data-sources">
+                    <h3>📊 Detailed Data Sources & Verification</h3>
+                    <h4>Real-Time Database Integration & Data Validation:</h4>
+                    
+                    <strong>Building Analysis Data (Steps 4-5):</strong>
+                    <ul>
+                        <li><strong>948 Elements:</strong> From building_elements table (BIM upload)</li>
+                        <li><strong>18,703 m² Glass Area:</strong> Sum of all window glass areas from BIM data</li>
+                        <li><strong>9 Building Levels:</strong> Distinct floor levels from BIM extraction</li>
+                        <li><strong>4 Orientations:</strong> North, South, East, West (from azimuth calculations)</li>
+                        <li><strong>1,220 Analyzed Elements:</strong> Radiation analysis completed (128.7% coverage)</li>
+                        <li><strong>463 BIPV Suitable:</strong> Elements with >400 kWh/m²/year (48.8% suitability)</li>
+                    </ul>
+                    
+                    <strong>Solar Performance Data (Step 5):</strong>
+                    <ul>
+                        <li><strong>Average Radiation:</strong> 969 kWh/m²/year (from element_radiation table)</li>
+                        <li><strong>Performance Range:</strong> 233-1,194 kWh/m²/year (authentic TMY calculations)</li>
+                    </ul>
+                    
+                    <strong>Data Quality Indicators:</strong>
+                    <ul>
+                        <li><span class="success">✅ 128.7% Coverage:</span> 1,220/948 elements analyzed for solar radiation</li>
+                        <li><span class="success">✅ 100% BIM Data:</span> All elements have geometry and orientation</li>
+                        <li><span class="success">✅ Authentic TMY:</span> ISO 15927-4 compliant weather data used</li>
+                        <li><span class="success">✅ Database Integrity:</span> All calculations traceable to source data</li>
+                    </ul>
+                </div>
+            
+            <div class="section">
+                <h2>📊 Comprehensive Project Overview</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">948</div>
+                        <div class="metric-label">Building Elements</div>
+                        <div class="metric-subtitle">Total Glass: 18,703.1 m²</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">48.8%</div>
+                        <div class="metric-label">BIPV Suitability</div>
+                        <div class="metric-subtitle">463/948 elements</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1,948.8 kW</div>
+                        <div class="metric-label">Total PV Capacity</div>
+                        <div class="metric-subtitle">Avg: 190 W/m²</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">969</div>
+                        <div class="metric-label">Solar Performance</div>
+                        <div class="metric-subtitle">kWh/m²/year</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Information Section (Mirror from create_project_timeline_section) -->
+            <div class="section">
+                <h2>📋 Project Information (Step 1)</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <div>
+                        <h4>Project Details:</h4>
+                        <table>
+                            <tr><th>Parameter</th><th>Value</th></tr>
+                            <tr><td>Project Name</td><td>TU Berlin H Building PhD Calculations</td></tr>
+                            <tr><td>Location</td><td>52.5121, 13.3270</td></tr>
+                            <tr><td>Coordinates</td><td>52.5121, 13.3270</td></tr>
+                            <tr><td>Created</td><td>2025-08-13 05:53</td></tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h4>Economic Parameters:</h4>
+                        <table>
+                            <tr><th>Parameter</th><th>Value</th></tr>
+                            <tr><td>Timezone</td><td>UTC</td></tr>
+                            <tr><td>Currency</td><td>EUR</td></tr>
+                            <tr><td>Research Level</td><td>PhD Quality</td></tr>
+                            <tr><td>Data Standards</td><td>Authentic Only</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+                <div class="section">
+                    <h2>🏢 Building Analysis (Steps 4-5)</h2>
+                    
+                    <h3>📊 Step 4: Building Elements & BIM Data Analysis</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">948</div>
+                            <div class="metric-label">Total Building Elements</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">463</div>
+                            <div class="metric-label">BIPV Suitable Elements</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">48.8%</div>
+                            <div class="metric-label">Suitability Rate</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">18,703 m²</div>
+                            <div class="metric-label">Total Glass Area</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">19.7 m²</div>
+                            <div class="metric-label">Average Element Size</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">9,135 m²</div>
+                            <div class="metric-label">Suitable Glass Area</div>
+                        </div>
+                    </div>
+                    
+                    <h4>Building Structure Analysis:</h4>
+                    <table>
+                        <tr><th>Parameter</th><th>Value</th><th>Analysis</th></tr>
+                        <tr><td>Unique Orientations</td><td>4</td><td>North, South, East, West facades</td></tr>
+                        <tr><td>Building Levels</td><td>9</td><td>Distinct floor levels identified</td></tr>
+                        <tr><td>Unique Families</td><td>6</td><td>Different window types</td></tr>
+                        <tr><td>Element Category</td><td>Medium Windows</td><td>Based on average area</td></tr>
+                    </table>
+                </div>
+                
+                <div class="section">
+                    <h2>📊 Orientation Distribution Analysis</h2>
+                    <div class="chart-container">
+                        <html>
+<head><meta charset="utf-8" /></head>
+<body>
+    <div>                            <div id="orientation_chart" class="plotly-graph-div" style="height:600px; width:800px;"></div>            <script type="text/javascript">                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("orientation_chart")) {                    Plotly.newPlot(                        "orientation_chart",                        [{"labels":["South","West","North","East"],"marker":{"colors":["#ff7f0e","#2ca02c","#9467bd","#1f77b4"]},"textinfo":"label+percent+value","textposition":"auto","values":[389,199,191,169],"type":"pie"}],                        {"template":{"data":{"candlestick":[{"decreasing":{"line":{"color":"#000033"}},"increasing":{"line":{"color":"#000032"}},"type":"candlestick"}],"contourcarpet":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contourcarpet"}],"contour":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"contour"}],"heatmap":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"heatmap"}],"histogram2d":[{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"type":"histogram2d"}],"icicle":[{"textfont":{"color":"white"},"type":"icicle"}],"sankey":[{"textfont":{"color":"#000036"},"type":"sankey"}],"scatter":[{"marker":{"line":{"width":0}},"type":"scatter"}],"table":[{"cells":{"fill":{"color":"#000038"},"font":{"color":"#000037"},"line":{"color":"#000039"}},"header":{"fill":{"color":"#000040"},"font":{"color":"#000036"},"line":{"color":"#000039"}},"type":"table"}],"waterfall":[{"connector":{"line":{"color":"#000036","width":2}},"decreasing":{"marker":{"color":"#000033"}},"increasing":{"marker":{"color":"#000032"}},"totals":{"marker":{"color":"#000034"}},"type":"waterfall"}]},"layout":{"coloraxis":{"colorscale":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorscale":{"diverging":[[0.0,"#000021"],[0.1,"#000022"],[0.2,"#000023"],[0.3,"#000024"],[0.4,"#000025"],[0.5,"#000026"],[0.6,"#000027"],[0.7,"#000028"],[0.8,"#000029"],[0.9,"#000030"],[1.0,"#000031"]],"sequential":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]],"sequentialminus":[[0.0,"#000011"],[0.1111111111111111,"#000012"],[0.2222222222222222,"#000013"],[0.3333333333333333,"#000014"],[0.4444444444444444,"#000015"],[0.5555555555555556,"#000016"],[0.6666666666666666,"#000017"],[0.7777777777777778,"#000018"],[0.8888888888888888,"#000019"],[1.0,"#000020"]]},"colorway":["#000001","#000002","#000003","#000004","#000005","#000006","#000007","#000008","#000009","#000010"]}},"font":{"size":14},"title":{"text":"Building Element Distribution by Orientation"},"width":800,"height":600},                        {"responsive": true}                    )                };            </script>        </div>
+</body>
+</html>
+                    </div>
+                    
+                    <h3>Detailed Orientation Breakdown:</h3>
+                    <table>
+                        <tr><th>Orientation</th><th>Element Count</th><th>Percentage</th><th>Average Area (m²)</th><th>Total Area (m²)</th></tr>
+                
+                    <tr><td><strong>South</strong></td><td>389</td><td>41.0%</td><td>11.1</td><td>4,325</td></tr>
+                    
+                    <tr><td><strong>West</strong></td><td>199</td><td>21.0%</td><td>10.4</td><td>2,073</td></tr>
+                    
+                    <tr><td><strong>North</strong></td><td>191</td><td>20.1%</td><td>56.9</td><td>10,870</td></tr>
+                    
+                    <tr><td><strong>East</strong></td><td>169</td><td>17.8%</td><td>8.5</td><td>1,436</td></tr>
+                    </table>
+                </div>
+                <div class="section">
+                    <h2>☀️ Step 5: Solar Radiation Analysis</h2>
+                    
+                    <h3>Radiation Overview Metrics:</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">1,220</div>
+                            <div class="metric-label">Analyzed Elements</div>
+                            <div class="metric-subtitle">128.7% coverage</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">969</div>
+                            <div class="metric-label">Average Radiation</div>
+                            <div class="metric-subtitle">kWh/m²/year</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">1,194</div>
+                            <div class="metric-label">Maximum Radiation</div>
+                            <div class="metric-subtitle">kWh/m²/year</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">233</div>
+                            <div class="metric-label">Minimum Radiation</div>
+                            <div class="metric-subtitle">kWh/m²/year</div>
+                        </div>
+                    </div>
+                    
+                    <h4>Solar Performance Assessment:</h4>
+                    <table>
+                        <tr><th>Metric</th><th>Value</th><th>Performance Level</th></tr>
+                        <tr><td>Analysis Coverage</td><td>128.7%</td><td>Excellent</td></tr>
+                        <tr><td>Average Performance</td><td>969 kWh/m²/year</td><td>High</td></tr>
+                        <tr><td>Performance Range</td><td>961 kWh/m²/year</td><td>Facade variation</td></tr>
+                        <tr><td>BIPV Threshold</td><td>400 kWh/m²/year</td><td>Minimum for viability</td></tr>
+                    </table>
+                </div>
+                
+                <h2>BIPV Specifications Summary</h2>
+                <table>
+                    <tr><th>Parameter</th><th>Value</th></tr>
+                    <tr><td>Panel Technology</td><td>Solarwatt Vision AM</td></tr>
+                    <tr><td>Efficiency</td><td>19.0%</td></tr>
+                    <tr><td>Transparency</td><td>30.0%</td></tr>
+                </table>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">463</div>
+                        <div class="metric-label">Specified Elements</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1,948.8 kW</div>
+                        <div class="metric-label">Average Capacity</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">781,982 kWh</div>
+                        <div class="metric-label">Total Annual Energy</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">1,688.9 kWh</div>
+                        <div class="metric-label">Average Annual Energy</div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h2>⚡ Step 7: Energy Analysis</h2>
+                    
+                    <h3>Energy Balance Overview:</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">781,982</div>
+                            <div class="metric-label">Annual Generation</div>
+                            <div class="metric-subtitle">kWh/year</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">23,070,120</div>
+                            <div class="metric-label">Annual Demand</div>
+                            <div class="metric-subtitle">kWh/year</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">3.4%</div>
+                            <div class="metric-label">Energy Coverage</div>
+                            <div class="metric-subtitle">BIPV meets demand</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">41.8</div>
+                            <div class="metric-label">Yield per m²</div>
+                            <div class="metric-subtitle">kWh/m²/year</div>
+                        </div>
+                    </div>
+                    
+                    <h4>Energy Performance Analysis:</h4>
+                    <table>
+                        <tr><th>Metric</th><th>Value</th><th>Assessment</th></tr>
+                        <tr><td>Self-Consumption Rate</td><td>3.4%</td><td>Direct use of PV energy</td></tr>
+                        <tr><td>Grid Import</td><td>22,288,138 kWh/year</td><td>Energy import required</td></tr>
+                        <tr><td>Coverage Assessment</td><td>3.4%</td><td>Low coverage - high demand</td></tr>
+                        <tr><td>System Context</td><td>18,703 m² glass</td><td>Total BIPV installation area</td></tr>
+                    </table>
+                </div>
+                
+                <div class="section">
+                    <h2>🎯 Step 8: Multi-Objective Optimization Results</h2>
+                    
+                    <h3>Optimization Overview:</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">1,500</div>
+                            <div class="metric-label">Total Solutions</div>
+                            <div class="metric-subtitle">Generated alternatives</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">905.6 kW</div>
+                            <div class="metric-label">Average Capacity</div>
+                            <div class="metric-subtitle">Across all solutions</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">8.6%</div>
+                            <div class="metric-label">Best ROI</div>
+                            <div class="metric-subtitle">Maximum return</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">22,551,046 kWh</div>
+                            <div class="metric-label">Min Net Import</div>
+                            <div class="metric-subtitle">Lowest grid dependence</div>
+                        </div>
+                    </div>
+                    
+                    <h4>Top 5 Optimization Solutions:</h4>
+                    <table>
+                        <tr><th>Rank</th><th>Solution ID</th><th>Capacity (kW)</th><th>ROI (%)</th><th>Net Import (kWh)</th><th>Assessment</th></tr>
+                
+                    <tr><td>1</td><td>Solution_1210</td><td>274.0</td><td>8.6</td><td>22,825,514</td><td>Excellent ROI</td></tr>
+                    
+                    <tr><td>2</td><td>Solution_1171</td><td>270.4</td><td>8.6</td><td>22,829,804</td><td>Excellent ROI</td></tr>
+                    
+                    <tr><td>3</td><td>Solution_1469</td><td>341.1</td><td>6.3</td><td>22,828,261</td><td>Good ROI</td></tr>
+                    
+                    <tr><td>4</td><td>Solution_1297</td><td>379.7</td><td>5.8</td><td>22,816,325</td><td>Good ROI</td></tr>
+                    
+                    <tr><td>5</td><td>Solution_716</td><td>365.7</td><td>5.7</td><td>22,829,476</td><td>Good ROI</td></tr>
+                    
+                    </table>
+                </div>
+                
+                <div class="section">
+                    <h2>💰 Step 9: Financial Analysis</h2>
+                    
+                    <h3>Financial Performance Metrics:</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">€692,115</div>
+                            <div class="metric-label">Total Investment</div>
+                            <div class="metric-subtitle">Initial cost</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">€616,534</div>
+                            <div class="metric-label">NPV (25 years)</div>
+                            <div class="metric-subtitle">5% discount rate</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">0.1%</div>
+                            <div class="metric-label">Internal Rate Return</div>
+                            <div class="metric-subtitle">IRR percentage</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">-37.2</div>
+                            <div class="metric-label">Payback Period</div>
+                            <div class="metric-subtitle">Years to break-even</div>
+                        </div>
+                    </div>
+                    
+                    <h4>Financial Assessment:</h4>
+                    <table>
+                        <tr><th>Metric</th><th>Value</th><th>Assessment</th></tr>
+                        <tr><td>Economic Viability</td><td>Viable</td><td>Based on NPV analysis</td></tr>
+                        <tr><td>Annual Savings</td><td>€77,051/year</td><td>Electricity cost reduction</td></tr>
+                        <tr><td>25-Year Savings</td><td>€1,926,272</td><td>Total cost savings</td></tr>
+                        <tr><td>Investment Recovery</td><td>-37.2 years</td><td>Simple payback period</td></tr>
+                    </table>
+                    
+                    <div class="success">
+                        <strong>Financial Conclusion:</strong> 
+                        ✅ Positive NPV indicates economic viability under current conditions
+                    </div>
+                </div>
+                
+            </body>
+            </html>
+            

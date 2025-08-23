@@ -401,6 +401,48 @@ class BIPVReportGenerator:
                         <tr><td>Performance Range</td><td>{max_radiation-min_radiation:,.0f} kWh/m²/year</td><td>Facade variation</td></tr>
                         <tr><td>BIPV Threshold</td><td>400 kWh/m²/year</td><td>Minimum for viability</td></tr>
                     </table>
+                    
+                    <h4>Solar Radiation Distribution:</h4>
+                    <div class="chart-container">
+                """
+                
+                # Get radiation distribution data for histogram
+                cursor.execute("""
+                    SELECT er.annual_radiation
+                    FROM element_radiation er
+                    JOIN building_elements be ON er.element_id = be.element_id
+                    WHERE be.project_id = %s AND er.annual_radiation IS NOT NULL
+                    ORDER BY er.annual_radiation
+                """, (self.project_id,))
+                radiation_values = [float(row[0]) for row in cursor.fetchall()]
+                
+                if radiation_values:
+                    # Create Solar Radiation Histogram
+                    solar_fig = go.Figure(data=[
+                        go.Histogram(
+                            x=radiation_values,
+                            nbinsx=20,
+                            marker_color='orange',
+                            opacity=0.7
+                        )
+                    ])
+                    solar_fig.update_layout(
+                        title="Solar Radiation Distribution Across Building Elements",
+                        xaxis_title="Annual Radiation (kWh/m²/year)",
+                        yaxis_title="Number of Elements",
+                        height=400,
+                        font=dict(size=12)
+                    )
+                    
+                    # Add BIPV viability threshold line
+                    solar_fig.add_vline(x=400, line_dash="dash", line_color="red", 
+                                       annotation_text="BIPV Threshold (400 kWh/m²/year)")
+                    
+                    solar_chart_html = pio.to_html(solar_fig, include_plotlyjs=False, div_id="solar_radiation_histogram")
+                    html_content += solar_chart_html
+                
+                html_content += """
+                    </div>
                 </div>
                 """
             
@@ -408,30 +450,75 @@ class BIPVReportGenerator:
             
             if bipv_specs and bipv_specs[0] > 0:
                 html_content += f"""
-                <h2>BIPV Specifications Summary</h2>
-                <table>
-                    <tr><th>Parameter</th><th>Value</th></tr>
-                    <tr><td>Panel Technology</td><td>{bipv_specs[4] if bipv_specs[4] else 'N/A'}</td></tr>
-                    <tr><td>Efficiency</td><td>{f"{bipv_specs[5]:.1%}" if bipv_specs[5] else 'N/A'}</td></tr>
-                    <tr><td>Transparency</td><td>{f"{bipv_specs[6]:.1%}" if bipv_specs[6] else 'N/A'}</td></tr>
-                </table>
+                <div class="section">
+                    <h2>🔋 Step 6: BIPV System Specifications</h2>
+                    
+                    <h3>Panel Technology Details:</h3>
+                    <table>
+                        <tr><th>Parameter</th><th>Value</th><th>Description</th></tr>
+                        <tr><td>Panel Technology</td><td>{bipv_specs[4] if bipv_specs[4] else 'N/A'}</td><td>Commercial BIPV glass type</td></tr>
+                        <tr><td>Efficiency</td><td>{f"{bipv_specs[5]:.1%}" if bipv_specs[5] else 'N/A'}</td><td>Module conversion efficiency</td></tr>
+                        <tr><td>Transparency</td><td>{f"{bipv_specs[6]:.1%}" if bipv_specs[6] else 'N/A'}</td><td>Visible light transmission</td></tr>
+                        <tr><td>Power Density</td><td>190 W/m²</td><td>Peak power per unit area</td></tr>
+                    </table>
+                    
+                    <h3>System Performance Metrics:</h3>
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">{bipv_specs[0]:,}</div>
+                            <div class="metric-label">Specified Elements</div>
+                            <div class="metric-subtitle">Individual BIPV systems</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">{bipv_specs[1]:,.1f} kW</div>
+                            <div class="metric-label">Total Capacity</div>
+                            <div class="metric-subtitle">Peak power rating</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">{bipv_specs[2]:,.0f} kWh</div>
+                            <div class="metric-label">Total Annual Energy</div>
+                            <div class="metric-subtitle">Expected generation</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">{bipv_specs[3]:,.1f} kWh</div>
+                            <div class="metric-label">Average Element Energy</div>
+                            <div class="metric-subtitle">Per element per year</div>
+                        </div>
+                    </div>
+                    
+                    <h4>BIPV Capacity Distribution:</h4>
+                    <div class="chart-container">
+                """
                 
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-value">{bipv_specs[0]:,}</div>
-                        <div class="metric-label">Specified Elements</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">{bipv_specs[1]:,.1f} kW</div>
-                        <div class="metric-label">Average Capacity</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">{bipv_specs[2]:,.0f} kWh</div>
-                        <div class="metric-label">Total Annual Energy</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-value">{bipv_specs[3]:,.1f} kWh</div>
-                        <div class="metric-label">Average Annual Energy</div>
+                # Get BIPV capacity distribution from specifications
+                try:
+                    spec_data = json.loads(pv_data[5])
+                    if 'bipv_specifications' in spec_data:
+                        capacities = [float(s['capacity_kw']) for s in spec_data['bipv_specifications']]
+                        
+                        # Create BIPV Capacity Distribution Chart
+                        bipv_fig = go.Figure(data=[
+                            go.Histogram(
+                                x=capacities,
+                                nbinsx=15,
+                                marker_color='green',
+                                opacity=0.7
+                            )
+                        ])
+                        bipv_fig.update_layout(
+                            title="BIPV System Capacity Distribution",
+                            xaxis_title="Capacity (kW)",
+                            yaxis_title="Number of Systems",
+                            height=400,
+                            font=dict(size=12)
+                        )
+                        
+                        bipv_chart_html = pio.to_html(bipv_fig, include_plotlyjs=False, div_id="bipv_capacity_chart")
+                        html_content += bipv_chart_html
+                except:
+                    html_content += "<p>BIPV capacity distribution chart not available</p>"
+                
+                html_content += """
                     </div>
                 </div>
                 """
@@ -492,6 +579,36 @@ class BIPVReportGenerator:
                         <tr><td>Coverage Assessment</td><td>{coverage_ratio:.1f}%</td><td>{'Low coverage - high demand' if coverage_ratio < 10 else 'Moderate coverage' if coverage_ratio < 25 else 'Good coverage'}</td></tr>
                         <tr><td>System Context</td><td>{total_glass_area:,.0f} m² glass</td><td>Total BIPV installation area</td></tr>
                     </table>
+                    
+                    <h4>Energy Balance Visualization:</h4>
+                    <div class="chart-container">
+                """
+                
+                # Create Energy Balance Bar Chart
+                import plotly.graph_objects as go
+                import plotly.io as pio
+                
+                energy_fig = go.Figure(data=[
+                    go.Bar(
+                        x=['Generation', 'Demand', 'Net Balance'],
+                        y=[annual_gen, annual_demand, abs(net_balance)],
+                        marker_color=['green', 'red', 'blue'],
+                        text=[f"{annual_gen:,.0f} kWh", f"{annual_demand:,.0f} kWh", f"{abs(net_balance):,.0f} kWh"],
+                        textposition='auto'
+                    )
+                ])
+                energy_fig.update_layout(
+                    title="Annual Energy Balance",
+                    yaxis_title="Energy (kWh/year)",
+                    height=400,
+                    font=dict(size=12)
+                )
+                
+                energy_chart_html = pio.to_html(energy_fig, include_plotlyjs=False, div_id="energy_balance_chart")
+                html_content += energy_chart_html
+                
+                html_content += """
+                    </div>
                 </div>
                 """
             
@@ -549,15 +666,56 @@ class BIPVReportGenerator:
                         <tr><th>Rank</th><th>Solution ID</th><th>Capacity (kW)</th><th>ROI (%)</th><th>Net Import (kWh)</th><th>Assessment</th></tr>
                 """
                 
+                # Prepare data for scatter plot
+                solution_capacities = []
+                solution_rois = []
+                solution_ids = []
+                
                 for solution in top_solutions:
                     solution_id, capacity, roi, net_import, rank_position = solution
                     assessment = "Excellent ROI" if roi > 8 else "Good ROI" if roi > 5 else "Low ROI"
                     html_content += f"""
                     <tr><td>{rank_position}</td><td>{solution_id}</td><td>{capacity:.1f}</td><td>{roi:.1f}</td><td>{net_import:,.0f}</td><td>{assessment}</td></tr>
                     """
+                    
+                    # Collect data for chart
+                    solution_capacities.append(float(capacity))
+                    solution_rois.append(float(roi))
+                    solution_ids.append(str(solution_id))
                 
                 html_content += """
                     </table>
+                    
+                    <h4>Optimization Solutions Visualization:</h4>
+                    <div class="chart-container">
+                """
+                
+                # Create ROI vs Capacity Scatter Plot
+                import plotly.express as px
+                import pandas as pd
+                
+                if solution_capacities:
+                    opt_df = pd.DataFrame({
+                        'Capacity (kW)': solution_capacities,
+                        'ROI (%)': solution_rois,
+                        'Solution ID': solution_ids
+                    })
+                    
+                    opt_fig = px.scatter(
+                        opt_df, 
+                        x='Capacity (kW)', 
+                        y='ROI (%)',
+                        hover_data=['Solution ID'],
+                        title="Optimization Solutions: ROI vs Capacity",
+                        height=400
+                    )
+                    opt_fig.update_traces(marker=dict(size=10, color='blue', opacity=0.7))
+                    
+                    opt_chart_html = pio.to_html(opt_fig, include_plotlyjs=False, div_id="optimization_scatter_chart")
+                    html_content += opt_chart_html
+                
+                html_content += """
+                    </div>
                 </div>
                 """
             
@@ -619,6 +777,33 @@ class BIPVReportGenerator:
                     <div class="{'success' if npv > 0 else 'warning'}">
                         <strong>Financial Conclusion:</strong> 
                         {'✅ Positive NPV indicates economic viability under current conditions' if npv > 0 else '⚠️ Negative NPV suggests challenging economics under current conditions'}
+                    </div>
+                    
+                    <h4>Financial Metrics Visualization:</h4>
+                    <div class="chart-container">
+                """
+                
+                # Create Financial Metrics Bar Chart
+                financial_fig = go.Figure(data=[
+                    go.Bar(
+                        x=['Investment', 'NPV', '25-Year Savings'],
+                        y=[investment, npv, total_25_year_savings],
+                        marker_color=['red', 'green' if npv > 0 else 'red', 'blue'],
+                        text=[f"€{investment:,.0f}", f"€{npv:,.0f}", f"€{total_25_year_savings:,.0f}"],
+                        textposition='auto'
+                    )
+                ])
+                financial_fig.update_layout(
+                    title="Financial Metrics (EUR)",
+                    yaxis_title="Amount (EUR)",
+                    height=400,
+                    font=dict(size=12)
+                )
+                
+                financial_chart_html = pio.to_html(financial_fig, include_plotlyjs=False, div_id="financial_metrics_chart")
+                html_content += financial_chart_html
+                
+                html_content += """
                     </div>
                 </div>
                 """
