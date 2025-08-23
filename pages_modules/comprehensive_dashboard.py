@@ -14,6 +14,7 @@ from database_manager import db_manager
 from services.io import get_current_project_id
 from utils.database_helper import db_helper
 from services.database_state_manager import DatabaseStateManager
+from services.report_generator import BIPVReportGenerator, create_download_links
 
 def create_optimized_windows_csv(project_id):
     """Create CSV export of optimized window elements with detailed BIPV specifications"""
@@ -1626,6 +1627,143 @@ def create_step4_sunburst_chart(azimuth_df, family_data, level_data, project_id)
     except Exception as e:
         st.error(f"Error creating Sunburst chart: {str(e)}")
 
+def create_report_generation_section(project_id):
+    """Create comprehensive report generation section with PDF and Word downloads"""
+    st.markdown("### 📊 Comprehensive Report Generation")
+    st.markdown("Generate detailed reports with all authentic data and visualizations for download.")
+    
+    # CRITICAL: Require authentic project_id
+    if not project_id:
+        st.error("❌ Authentic project ID required for report generation - no synthetic reports permitted")
+        return
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col1:
+        if st.button("🔍 Prepare Report Data", use_container_width=True):
+            with st.spinner("Collecting authentic project data..."):
+                report_generator = BIPVReportGenerator(project_id)
+                project_data = report_generator.get_project_data()
+                
+                if project_data:
+                    st.session_state['report_data'] = project_data
+                    st.session_state['report_generator'] = report_generator
+                    st.success("✅ Report data prepared successfully!")
+                    
+                    # Show data summary
+                    st.markdown("**Data Summary:**")
+                    if project_data['building_summary']:
+                        building = project_data['building_summary']
+                        st.write(f"• Building Elements: {building[0]:,}")
+                        st.write(f"• Suitable Elements: {building[1]:,}")
+                        st.write(f"• Total Glass Area: {building[2]:,.1f} m²")
+                    
+                    if project_data['radiation_summary']:
+                        radiation = project_data['radiation_summary']
+                        st.write(f"• Analyzed Elements: {radiation[0]:,}")
+                        st.write(f"• Avg Radiation: {radiation[1]:,.1f} kWh/m²/year")
+                else:
+                    st.error("❌ Failed to retrieve authentic project data from database")
+    
+    with col2:
+        if st.button("📄 Generate PDF Report", use_container_width=True):
+            if 'report_data' in st.session_state and 'report_generator' in st.session_state:
+                with st.spinner("Generating comprehensive PDF report..."):
+                    report_generator = st.session_state['report_generator']
+                    project_data = st.session_state['report_data']
+                    
+                    # Create visualization images
+                    images = report_generator.create_visualization_images()
+                    
+                    # Generate PDF
+                    pdf_content = report_generator.generate_pdf_report(project_data, images)
+                    
+                    if pdf_content:
+                        st.session_state['pdf_content'] = pdf_content
+                        st.success("✅ PDF report generated successfully!")
+                    else:
+                        st.error("❌ Failed to generate PDF report")
+            else:
+                st.warning("⚠️ Please prepare report data first")
+    
+    with col3:
+        if st.button("📝 Generate Word Report", use_container_width=True):
+            if 'report_data' in st.session_state and 'report_generator' in st.session_state:
+                with st.spinner("Generating comprehensive Word report..."):
+                    report_generator = st.session_state['report_generator']
+                    project_data = st.session_state['report_data']
+                    
+                    # Create visualization images
+                    images = report_generator.create_visualization_images()
+                    
+                    # Generate Word document
+                    docx_content = report_generator.generate_word_report(project_data, images)
+                    
+                    if docx_content:
+                        st.session_state['docx_content'] = docx_content
+                        st.success("✅ Word report generated successfully!")
+                    else:
+                        st.error("❌ Failed to generate Word report")
+            else:
+                st.warning("⚠️ Please prepare report data first")
+    
+    # Download section
+    if 'pdf_content' in st.session_state or 'docx_content' in st.session_state:
+        st.markdown("---")
+        st.markdown("**📥 Download Generated Reports:**")
+        
+        download_col1, download_col2 = st.columns(2)
+        
+        with download_col1:
+            if 'pdf_content' in st.session_state:
+                create_download_links(
+                    st.session_state['pdf_content'], 
+                    None, 
+                    project_id
+                )
+        
+        with download_col2:
+            if 'docx_content' in st.session_state:
+                create_download_links(
+                    None, 
+                    st.session_state['docx_content'], 
+                    project_id
+                )
+    
+    # Report contents preview
+    if 'report_data' in st.session_state:
+        st.markdown("---")
+        st.markdown("**📋 Report Contents Preview:**")
+        
+        project_data = st.session_state['report_data']
+        
+        report_sections = []
+        if project_data['project_info']:
+            report_sections.append("✓ Project Information & Location Details")
+        if project_data['building_summary']:
+            report_sections.append("✓ Building Analysis Summary (Elements, Areas, Families)")
+        if project_data['radiation_summary']:
+            report_sections.append("✓ Radiation Analysis Results (Avg, Max, Min Values)")
+        if project_data['energy_analysis']:
+            report_sections.append("✓ Energy Analysis (Yield, Demand, Coverage)")
+        if project_data['financial_analysis']:
+            report_sections.append("✓ Financial Analysis (NPV, IRR, Payback, CO₂)")
+        if project_data['optimization_results']:
+            report_sections.append("✓ Optimization Results (Top 5 Solutions)")
+        
+        report_sections.extend([
+            "✓ Orientation Distribution Charts",
+            "✓ Radiation vs Area Analysis",
+            "✓ Window Family Distribution",
+            "✓ Professional BIPV Optimizer Branding",
+            "✓ Academic Attribution (TU Berlin PhD Research)"
+        ])
+        
+        for section in report_sections:
+            st.write(section)
+        
+        st.info("📚 **Academic Standards**: All reports maintain PhD research integrity with only authentic database sources and zero synthetic data.")
+
 def create_energy_analysis_section(data):
     """Create energy analysis visualizations"""
     if not data or 'energy_analysis' not in data:
@@ -2031,6 +2169,9 @@ def render_comprehensive_dashboard():
         
         st.markdown("---")
         create_energy_analysis_section(dashboard_data)
+        
+        st.markdown("---")
+        create_report_generation_section(project_id)
         
         st.markdown("---")
         create_optimization_section(dashboard_data)
