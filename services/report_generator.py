@@ -98,6 +98,30 @@ class BIPVReportGenerator:
             if not radiation_summary or radiation_summary[0] == 0:
                 radiation_summary = (0, 0, 0, 0)
             
+            # Get BIPV specifications data before HTML generation
+            cursor.execute("""
+                SELECT panel_type, efficiency, transparency, cost_per_m2, power_density, specification_data
+                FROM pv_specifications
+                WHERE project_id = %s
+            """, (self.project_id,))
+            pv_data = cursor.fetchone()
+            
+            bipv_specs = None
+            if pv_data and pv_data[5]:  # specification_data exists
+                import json
+                try:
+                    spec_data = json.loads(pv_data[5])
+                    if 'bipv_specifications' in spec_data:
+                        specs = spec_data['bipv_specifications']
+                        spec_count = len(specs)
+                        total_capacity = sum(float(s['capacity_kw']) for s in specs)
+                        total_energy = sum(float(s['annual_energy_kwh']) for s in specs)
+                        avg_capacity = total_capacity / spec_count if spec_count > 0 else 0
+                        avg_energy = total_energy / spec_count if spec_count > 0 else 0
+                        bipv_specs = (spec_count, total_capacity, total_energy, avg_energy, pv_data[0], pv_data[1], pv_data[2])
+                except:
+                    bipv_specs = None
+            
             # Get comprehensive dashboard data to mirror Step 10
             from pages_modules.comprehensive_dashboard import get_dashboard_data
             dashboard_data = get_dashboard_data(self.project_id)
@@ -369,29 +393,7 @@ class BIPVReportGenerator:
                 </div>
                 """
             
-            # Get BIPV specifications data from JSON
-            cursor.execute("""
-                SELECT panel_type, efficiency, transparency, cost_per_m2, power_density, specification_data
-                FROM pv_specifications
-                WHERE project_id = %s
-            """, (self.project_id,))
-            pv_data = cursor.fetchone()
-            
-            bipv_specs = None
-            if pv_data and pv_data[5]:  # specification_data exists
-                import json
-                try:
-                    spec_data = json.loads(pv_data[5])
-                    if 'bipv_specifications' in spec_data:
-                        specs = spec_data['bipv_specifications']
-                        spec_count = len(specs)
-                        total_capacity = sum(float(s['capacity_kw']) for s in specs)
-                        total_energy = sum(float(s['annual_energy_kwh']) for s in specs)
-                        avg_capacity = total_capacity / spec_count if spec_count > 0 else 0
-                        avg_energy = total_energy / spec_count if spec_count > 0 else 0
-                        bipv_specs = (spec_count, avg_capacity, total_energy, avg_energy, pv_data[0], pv_data[1], pv_data[2])
-                except:
-                    bipv_specs = None
+            # BIPV specifications section (already loaded above)
             
             if bipv_specs and bipv_specs[0] > 0:
                 html_content += f"""
