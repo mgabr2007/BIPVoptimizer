@@ -15,6 +15,7 @@ from .step7_yield_demand import (
     save_analysis_results,
     render_step7_header,
     render_data_usage_info,
+    render_preview_visualizations,
     render_analysis_configuration,
     render_environmental_factors,
     render_analysis_results,
@@ -47,13 +48,16 @@ def render_yield_demand():
     # 3. Render data usage information
     render_data_usage_info()
     
-    # 4. Get analysis configuration from user
+    # 4. Show preview visualizations to help users understand output
+    render_preview_visualizations()
+    
+    # 5. Get analysis configuration from user
     config = render_analysis_configuration()
     
-    # 5. Display environmental factors from Step 3
+    # 6. Display environmental factors from Step 3
     environmental_factors = render_environmental_factors(project_data)
     
-    # 6. Analysis execution
+    # 7. Analysis execution
     st.subheader("🔄 Energy Balance Analysis")
     
     if st.button("🚀 Run Yield vs Demand Analysis", type="primary"):
@@ -115,7 +119,7 @@ def render_yield_demand():
                 st.error(f"❌ Analysis failed: {str(e)}")
                 return
     
-    # 7. Display results if available
+    # 8. Display results if available
     if 'step7_analysis_data' in st.session_state:
         analysis_data = st.session_state['step7_analysis_data']
         config = st.session_state.get('step7_config', {})
@@ -123,5 +127,5 @@ def render_yield_demand():
         render_analysis_results(analysis_data)
         render_data_export(analysis_data, config)
     
-    # 8. Individual step report download
+    # 9. Individual step report download
     render_step_report_download()

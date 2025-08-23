@@ -55,6 +55,97 @@ def render_data_usage_info():
         """)
 
 
+def render_preview_visualizations():
+    """Render preview visualizations to show what analysis will produce."""
+    st.subheader("📊 Expected Analysis Output")
+    st.markdown("**Here's what your yield vs demand analysis will show:**")
+    
+    # Create preview data for demonstration
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    
+    # Sample data for preview - typical BIPV performance pattern
+    sample_demand = [2800, 2600, 2400, 2200, 2000, 1800, 1600, 1700, 1900, 2300, 2500, 2700]
+    sample_generation = [1200, 1800, 2800, 3400, 4200, 4800, 5200, 4600, 3600, 2400, 1400, 1000]
+    sample_self_consumption = [1200, 1800, 2400, 2200, 2000, 1800, 1600, 1700, 1900, 2300, 1400, 1000]
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Preview Energy Balance Chart
+        fig_preview = go.Figure()
+        
+        fig_preview.add_trace(go.Bar(
+            name='Building Demand',
+            x=months,
+            y=sample_demand,
+            marker_color='lightcoral',
+            opacity=0.7
+        ))
+        
+        fig_preview.add_trace(go.Bar(
+            name='BIPV Generation',
+            x=months,
+            y=sample_generation,
+            marker_color='lightgreen',
+            opacity=0.7
+        ))
+        
+        fig_preview.add_trace(go.Bar(
+            name='Self-Consumption',
+            x=months,
+            y=sample_self_consumption,
+            marker_color='gold',
+            opacity=0.7
+        ))
+        
+        fig_preview.update_layout(
+            title="Preview: Monthly Energy Balance",
+            xaxis_title="Month",
+            yaxis_title="Energy (kWh)",
+            barmode='group',
+            height=350,
+            font=dict(size=10)
+        )
+        
+        st.plotly_chart(fig_preview, use_container_width=True)
+        
+    with col2:
+        # Preview Yield vs Demand Comparison
+        fig_comparison = go.Figure()
+        
+        fig_comparison.add_trace(go.Scatter(
+            x=months,
+            y=sample_demand,
+            mode='lines+markers',
+            name='Energy Demand',
+            line=dict(color='red', width=3),
+            marker=dict(size=8)
+        ))
+        
+        fig_comparison.add_trace(go.Scatter(
+            x=months,
+            y=sample_generation,
+            mode='lines+markers',
+            name='Solar Generation',
+            line=dict(color='green', width=3),
+            marker=dict(size=8),
+            fill='tonexty',
+            fillcolor='rgba(0,255,0,0.1)'
+        ))
+        
+        fig_comparison.update_layout(
+            title="Preview: Yield vs Demand Comparison",
+            xaxis_title="Month",
+            yaxis_title="Energy (kWh)",
+            height=350,
+            font=dict(size=10)
+        )
+        
+        st.plotly_chart(fig_comparison, use_container_width=True)
+    
+    st.info("💡 **These are sample charts.** Your actual analysis will use authentic data from your building's energy consumption patterns, solar irradiance data, and BIPV system specifications.")
+
+
 def render_analysis_configuration():
     """
     Render analysis configuration inputs.
@@ -294,6 +385,135 @@ def render_analysis_results(analysis_data):
     
     st.plotly_chart(fig, use_container_width=True)
     
+    # Enhanced Yield vs Demand Analysis
+    st.subheader("⚖️ Yield vs Demand Direct Comparison")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Direct yield vs demand line chart
+        fig_comparison = go.Figure()
+        
+        demand_values = [month['demand_kwh'] for month in energy_balance]
+        generation_values = [month['generation_kwh'] for month in energy_balance]
+        
+        fig_comparison.add_trace(go.Scatter(
+            x=months,
+            y=demand_values,
+            mode='lines+markers',
+            name='Energy Demand',
+            line=dict(color='red', width=3),
+            marker=dict(size=8)
+        ))
+        
+        fig_comparison.add_trace(go.Scatter(
+            x=months,
+            y=generation_values,
+            mode='lines+markers',
+            name='Solar Generation',
+            line=dict(color='green', width=3),
+            marker=dict(size=8),
+            fill='tonexty',
+            fillcolor='rgba(0,255,0,0.1)'
+        ))
+        
+        fig_comparison.update_layout(
+            title="Monthly Yield vs Demand Comparison",
+            xaxis_title="Month",
+            yaxis_title="Energy (kWh)",
+            height=400
+        )
+        
+        st.plotly_chart(fig_comparison, use_container_width=True)
+    
+    with col2:
+        # Energy surplus/deficit analysis
+        surplus_deficit = []
+        for month in energy_balance:
+            surplus_deficit.append(month['generation_kwh'] - month['demand_kwh'])
+        
+        colors = ['green' if x >= 0 else 'red' for x in surplus_deficit]
+        
+        fig_surplus = go.Figure(data=[
+            go.Bar(
+                x=months,
+                y=surplus_deficit,
+                marker_color=colors,
+                name='Energy Balance'
+            )
+        ])
+        
+        fig_surplus.add_hline(y=0, line_dash="dash", line_color="black")
+        
+        fig_surplus.update_layout(
+            title="Monthly Energy Surplus/Deficit",
+            xaxis_title="Month",
+            yaxis_title="Energy Difference (kWh)",
+            height=400
+        )
+        
+        st.plotly_chart(fig_surplus, use_container_width=True)
+    
+    # Energy Coverage Analysis
+    st.subheader("📊 Energy Coverage Analysis")
+    
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        # Self-consumption vs grid import
+        self_consumption = [month['self_consumption_kwh'] for month in energy_balance]
+        grid_import = [month['net_import_kwh'] for month in energy_balance]
+        
+        fig_coverage = go.Figure()
+        
+        fig_coverage.add_trace(go.Bar(
+            name='Self-Consumption (Solar)',
+            x=months,
+            y=self_consumption,
+            marker_color='lightgreen'
+        ))
+        
+        fig_coverage.add_trace(go.Bar(
+            name='Grid Import',
+            x=months,
+            y=grid_import,
+            marker_color='lightcoral'
+        ))
+        
+        fig_coverage.update_layout(
+            title="Energy Source Breakdown",
+            xaxis_title="Month",
+            yaxis_title="Energy (kWh)",
+            barmode='stack',
+            height=400
+        )
+        
+        st.plotly_chart(fig_coverage, use_container_width=True)
+    
+    with col4:
+        # Self-sufficiency ratio by month
+        self_sufficiency = []
+        for month in energy_balance:
+            if month['demand_kwh'] > 0:
+                ratio = (month['self_consumption_kwh'] / month['demand_kwh']) * 100
+                self_sufficiency.append(min(100, ratio))  # Cap at 100%
+            else:
+                self_sufficiency.append(0)
+        
+        fig_sufficiency = px.line(
+            x=months,
+            y=self_sufficiency,
+            title="Monthly Self-Sufficiency Rate",
+            labels={'x': 'Month', 'y': 'Self-Sufficiency (%)'},
+            markers=True
+        )
+        
+        fig_sufficiency.add_hline(y=100, line_dash="dash", line_color="green", 
+                                annotation_text="100% Self-Sufficient")
+        fig_sufficiency.update_layout(height=400)
+        
+        st.plotly_chart(fig_sufficiency, use_container_width=True)
+    
     # Monthly Financial Analysis
     st.subheader("💰 Monthly Financial Analysis")
     
@@ -322,6 +542,9 @@ def render_analysis_results(analysis_data):
 def render_data_export(analysis_data, config):
     """Render data export section."""
     st.subheader("📤 Export Analysis Data")
+    
+    # Generate timestamp for filenames
+    timestamp = dt.now().strftime("%Y%m%d_%H%M%S")
     
     col1, col2 = st.columns(2)
     
@@ -354,7 +577,6 @@ def render_data_export(analysis_data, config):
             csv_string = csv_buffer.getvalue()
             
             # Generate filename with timestamp
-            timestamp = dt.now().strftime("%Y%m%d_%H%M%S")
             filename = f"BIPV_Monthly_Energy_Balance_{timestamp}.csv"
     
     with col2:
