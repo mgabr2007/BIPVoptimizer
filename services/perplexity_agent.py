@@ -457,6 +457,18 @@ class PerplexityBIPVAgent:
         - Dominant Orientation: {best_orientation} ({orientation_count.get(best_orientation, 0)} elements)
         - Least Common Orientation: {worst_orientation} ({orientation_count.get(worst_orientation, 0)} elements)
         
+        DETAILED ORIENTATION PERFORMANCE GUIDANCE:
+        - South-facing elements: Optimal for BIPV (expect 1,400+ kWh/kW annually)
+        - East/West-facing elements: Good performance (expect 1,100+ kWh/kW annually)  
+        - North-facing elements: Limited performance (expect 800 kWh/kW annually)
+        - Mixed/Unknown orientations: Require individual radiation analysis for selection
+        
+        SELECTION STRATEGY RECOMMENDATIONS:
+        1. Prioritize South-facing windows for maximum energy yield
+        2. Include East/West windows for balanced morning/afternoon generation
+        3. Consider North windows only if high glass quality or special requirements
+        4. Use genetic algorithm to optimize orientation mix for demand patterns
+        
         ENERGY PERFORMANCE CALCULATIONS:
         - AI Demand Model R² Score: {r_squared:.3f} ({"Excellent" if r_squared > 0.85 else "Good" if r_squared > 0.7 else "Needs Improvement"} prediction accuracy)
         - Annual Building Energy Consumption: {total_consumption:,.0f} kWh

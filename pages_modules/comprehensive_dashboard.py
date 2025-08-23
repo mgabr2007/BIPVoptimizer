@@ -948,6 +948,34 @@ def create_building_analysis_section(data):
                     labels={'avg_radiation': 'Solar Radiation (kWh/m²/year)'}
                 )
                 st.plotly_chart(fig, use_container_width=True)
+                
+                # Add orientation selection guidance
+                st.markdown("### 🎯 BIPV Window Selection Guidance")
+                st.markdown("**Orientation Performance Rankings:**")
+                
+                # Sort by radiation performance
+                sorted_orientations = sorted(radiation_by_orient, key=lambda x: x['avg_radiation'], reverse=True)
+                
+                for i, orient in enumerate(sorted_orientations):
+                    orientation = orient['orientation']
+                    radiation = orient['avg_radiation']
+                    count = orient['count']
+                    
+                    if radiation >= 1400:
+                        icon = "🟢"
+                        performance = "Excellent"
+                        recommendation = "Priority for BIPV installation"
+                    elif radiation >= 1100:
+                        icon = "🟡"
+                        performance = "Good"
+                        recommendation = "Include for balanced generation"
+                    else:
+                        icon = "🔴"
+                        performance = "Limited"
+                        recommendation = "Consider only if necessary"
+                    
+                    st.markdown(f"{icon} **{orientation}**: {radiation:.0f} kWh/m²/year ({performance}) - {count} elements")
+                    st.caption(f"   ↳ {recommendation}")
             else:
                 st.info("No radiation data by orientation available")
 
