@@ -99,6 +99,12 @@ class PerplexityBIPVAgent:
     def _prepare_data_summary(self, project_data, building_elements, financial_analysis):
         """Prepare comprehensive data summary for AI analysis with authentic Step 2 integration"""
         
+        # Initialize database manager for authentic data retrieval
+        from database_manager import BIPVDatabaseManager
+        from services.io import get_current_project_id
+        db_manager = BIPVDatabaseManager()
+        project_id = project_data.get('id') or project_data.get('project_id') or get_current_project_id()
+        
         # Extract key metrics
         total_elements = len(building_elements) if building_elements else 0
         suitable_elements = sum(1 for elem in building_elements 
@@ -160,14 +166,8 @@ class PerplexityBIPVAgent:
         growth_rate = 0
         
         # Get comprehensive Step 2 data from database
+        print(f"DEBUG: Using project_id {project_id} for AI consultation data retrieval")
         try:
-            from database_manager import BIPVDatabaseManager
-            db_manager = BIPVDatabaseManager()
-            
-            # Get AI model data for R² score - use authentic project with complete data
-            from services.io import get_current_project_id
-            project_id = project_data.get('id') or project_data.get('project_id') or get_current_project_id()
-            print(f"DEBUG: Using project_id {project_id} for AI consultation data retrieval")
             
             if project_id:
                 # Get comprehensive AI model data directly from ai_models table
