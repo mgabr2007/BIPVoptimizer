@@ -61,16 +61,16 @@ class BIPVReportGenerator:
             """, (self.project_id,))
             building_summary = cursor.fetchone()
             
-            # Radiation analysis data
+            # Radiation analysis data from element_radiation table
             cursor.execute("""
                 SELECT COUNT(*) as analyzed_elements,
-                       AVG(annual_radiation) as avg_radiation,
-                       MAX(annual_radiation) as max_radiation,
-                       MIN(annual_radiation) as min_radiation,
-                       SUM(annual_radiation * be.glass_area) / SUM(be.glass_area) as weighted_avg_radiation
-                FROM radiation_results rr
-                JOIN building_elements be ON rr.element_id = be.element_id
-                WHERE be.project_id = %s
+                       AVG(er.annual_radiation) as avg_radiation,
+                       MAX(er.annual_radiation) as max_radiation,
+                       MIN(er.annual_radiation) as min_radiation,
+                       SUM(er.annual_radiation * be.glass_area) / SUM(be.glass_area) as weighted_avg_radiation
+                FROM element_radiation er
+                JOIN building_elements be ON er.element_id = be.element_id
+                WHERE be.project_id = %s AND er.annual_radiation IS NOT NULL
             """, (self.project_id,))
             radiation_summary = cursor.fetchone()
             
@@ -170,13 +170,13 @@ class BIPVReportGenerator:
                 fig.update_layout(width=800, height=600)
                 images['orientation_pie'] = pio.to_image(fig, format='png', width=800, height=600)
             
-            # 2. Radiation Analysis Chart
+            # 2. Radiation Analysis Chart using element_radiation table
             cursor.execute("""
-                SELECT rr.annual_radiation, be.glass_area
-                FROM radiation_results rr
-                JOIN building_elements be ON rr.element_id = be.element_id
-                WHERE be.project_id = %s
-                ORDER BY rr.annual_radiation DESC
+                SELECT er.annual_radiation, be.glass_area
+                FROM element_radiation er
+                JOIN building_elements be ON er.element_id = be.element_id
+                WHERE be.project_id = %s AND er.annual_radiation IS NOT NULL
+                ORDER BY er.annual_radiation DESC
                 LIMIT 100
             """, (self.project_id,))
             
