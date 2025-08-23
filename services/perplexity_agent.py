@@ -164,8 +164,9 @@ class PerplexityBIPVAgent:
             from database_manager import BIPVDatabaseManager
             db_manager = BIPVDatabaseManager()
             
-            # Get AI model data for R² score - force use Project 116 if no project_id
-            project_id = project_data.get('id') or project_data.get('project_id') or 116
+            # Get AI model data for R² score - use authentic project with complete data
+            from services.io import get_current_project_id
+            project_id = project_data.get('id') or project_data.get('project_id') or get_current_project_id()
             print(f"DEBUG: Using project_id {project_id} for AI consultation data retrieval")
             
             if project_id:
@@ -753,7 +754,22 @@ def render_perplexity_consultation():
             low_performance = []
             
             # Check AI model performance
-            r_squared = historical_data.get('r_squared', 0) if historical_data else 0
+            # Get authentic R² score from ai_models table
+            r_squared = 0
+            try:
+                with db_manager.get_connection().cursor() as cursor:
+                    cursor.execute("""
+                        SELECT r_squared_score FROM ai_models 
+                        WHERE project_id = %s 
+                        ORDER BY created_at DESC LIMIT 1
+                    """, (project_id,))
+                    result = cursor.fetchone()
+                    if result and result[0] is not None:
+                        r_squared = float(result[0])
+            except Exception as e:
+                print(f"Error retrieving R² score: {e}")
+                r_squared = 0
+            
             if r_squared < 0.85:
                 low_performance.append(f"AI model R² score: {r_squared:.3f} (needs improvement)")
             
