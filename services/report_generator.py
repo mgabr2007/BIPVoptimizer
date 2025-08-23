@@ -6,7 +6,9 @@ Generates detailed HTML reports with authentic data and visualizations for downl
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 import plotly.io as pio
+import json
 from datetime import datetime
 import base64
 import io
@@ -257,6 +259,11 @@ class BIPVReportGenerator:
             </div>
             """
             
+            # Define variables with defaults to avoid unbound issues
+            total_elements = 0
+            suitable_elements = 0
+            total_glass_area = 0
+            
             # Building Analysis Section (Mirror from create_building_analysis_section)
             if building_summary:
                 # Convert decimal types to float for calculations
@@ -492,7 +499,8 @@ class BIPVReportGenerator:
                 
                 # Get BIPV capacity distribution from specifications
                 try:
-                    spec_data = json.loads(pv_data[5])
+                    import json as json_module
+                    spec_data = json_module.loads(pv_data[5])
                     if 'bipv_specifications' in spec_data:
                         capacities = [float(s['capacity_kw']) for s in spec_data['bipv_specifications']]
                         
@@ -541,7 +549,7 @@ class BIPVReportGenerator:
                 energy_yield_per_m2 = float(energy_data[4]) if energy_data[4] else 0
                 
                 coverage_ratio = (annual_gen / annual_demand * 100) if annual_demand > 0 else 0
-                yield_per_m2 = (annual_gen / total_glass_area) if building_summary and total_glass_area > 0 else 0
+                yield_per_m2 = (annual_gen / total_glass_area) if total_glass_area > 0 else 0
                 
                 html_content += f"""
                 <div class="section">
@@ -585,8 +593,6 @@ class BIPVReportGenerator:
                 """
                 
                 # Create Energy Balance Bar Chart
-                import plotly.graph_objects as go
-                import plotly.io as pio
                 
                 energy_fig = go.Figure(data=[
                     go.Bar(
@@ -691,8 +697,6 @@ class BIPVReportGenerator:
                 """
                 
                 # Create ROI vs Capacity Scatter Plot
-                import plotly.express as px
-                import pandas as pd
                 
                 if solution_capacities:
                     opt_df = pd.DataFrame({
