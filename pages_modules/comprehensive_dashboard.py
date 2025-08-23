@@ -1544,8 +1544,20 @@ def create_step4_sunburst_chart(azimuth_df, family_data, level_data, project_id)
             WHERE project_id = %s 
                 AND azimuth IS NOT NULL
                 AND family IS NOT NULL AND family != ''
-            GROUP BY orientation, family, building_level
-            HAVING orientation IS NOT NULL
+            GROUP BY 
+                CASE 
+                    WHEN azimuth >= 315 OR azimuth < 45 THEN 'North'
+                    WHEN azimuth >= 45 AND azimuth < 135 THEN 'East'
+                    WHEN azimuth >= 135 AND azimuth < 225 THEN 'South'
+                    WHEN azimuth >= 225 AND azimuth < 315 THEN 'West'
+                END, family, building_level
+            HAVING 
+                CASE 
+                    WHEN azimuth >= 315 OR azimuth < 45 THEN 'North'
+                    WHEN azimuth >= 45 AND azimuth < 135 THEN 'East'
+                    WHEN azimuth >= 135 AND azimuth < 225 THEN 'South'
+                    WHEN azimuth >= 225 AND azimuth < 315 THEN 'West'
+                END IS NOT NULL
             ORDER BY orientation, family, building_level
         """, (project_id,))
         
