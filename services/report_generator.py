@@ -466,6 +466,77 @@ class BIPVReportGenerator:
                 html_content += """
                     </div>
                     
+                    <h3>Building Element Flow: Orientation → Family:</h3>
+                    <div class="chart-container">
+                """
+                
+                # Create Sankey diagram for orientation to family flow
+                cursor.execute("""
+                    SELECT 
+                        CASE 
+                            WHEN azimuth >= 315 OR azimuth < 45 THEN 'North'
+                            WHEN azimuth >= 45 AND azimuth < 135 THEN 'East'
+                            WHEN azimuth >= 135 AND azimuth < 225 THEN 'South'
+                            WHEN azimuth >= 225 AND azimuth < 315 THEN 'West'
+                        END as orientation,
+                        family,
+                        COUNT(*) as count
+                    FROM building_elements 
+                    WHERE project_id = %s AND azimuth IS NOT NULL AND family IS NOT NULL
+                    GROUP BY orientation, family
+                    HAVING COUNT(*) > 5
+                    ORDER BY orientation, count DESC
+                """, (self.project_id,))
+                flow_data = cursor.fetchall()
+                
+                if flow_data:
+                    # Prepare Sankey data
+                    orientations = ['North', 'East', 'South', 'West']
+                    families = list(set([row[1] for row in flow_data]))
+                    
+                    # Create node labels and indices
+                    all_nodes = orientations + families
+                    node_indices = {node: i for i, node in enumerate(all_nodes)}
+                    
+                    # Prepare links for Sankey
+                    source_indices = []
+                    target_indices = []
+                    values = []
+                    
+                    for orientation, family, count in flow_data:
+                        source_indices.append(node_indices[orientation])
+                        target_indices.append(node_indices[family])
+                        values.append(count)
+                    
+                    # Create Sankey diagram
+                    sankey_fig = go.Figure(data=[go.Sankey(
+                        node=dict(
+                            pad=15,
+                            thickness=20,
+                            line=dict(color="black", width=0.5),
+                            label=all_nodes,
+                            color=["lightblue"] * len(orientations) + ["lightgreen"] * len(families)
+                        ),
+                        link=dict(
+                            source=source_indices,
+                            target=target_indices,
+                            value=values,
+                            color="rgba(0,0,255,0.3)"
+                        )
+                    )])
+                    
+                    sankey_fig.update_layout(
+                        title_text="Building Element Flow: Orientation → Family",
+                        font_size=12,
+                        height=400
+                    )
+                    
+                    sankey_html = pio.to_html(sankey_fig, include_plotlyjs=False, div_id="sankey_orientation_family")
+                    html_content += sankey_html
+                
+                html_content += """
+                    </div>
+                    
                     <h3>Window Family Distribution:</h3>
                     <div class="chart-container">
                 """
@@ -564,6 +635,120 @@ class BIPVReportGenerator:
                     
                     size_chart_html = pio.to_html(size_fig, include_plotlyjs=False, div_id="size_distribution_chart")
                     html_content += size_chart_html
+                
+                html_content += """
+                    </div>
+                    
+                    <h3>Optimization Solution Distribution:</h3>
+                    <div class="chart-container">
+                """
+                
+                # Add optimization solution distribution charts
+                cursor.execute("""
+                    SELECT 
+                        CASE 
+                            WHEN capacity < 50 THEN 'Small System (<50 kW)'
+                            WHEN capacity >= 50 AND capacity < 150 THEN 'Medium System (50-150 kW)'
+                            WHEN capacity >= 150 AND capacity < 300 THEN 'Large System (150-300 kW)'
+                            ELSE 'Extra Large System (300+ kW)'
+                        END as system_size,
+                        COUNT(*) as solution_count,
+                        AVG(roi) as avg_roi
+                    FROM optimization_results 
+                    WHERE project_id = %s
+                    GROUP BY system_size
+                    ORDER BY avg_roi DESC
+                """, (self.project_id,))
+                opt_distribution = cursor.fetchall()
+                
+                if opt_distribution:
+                    opt_sizes = [str(row[0]) for row in opt_distribution]
+                    opt_counts = [int(row[1]) for row in opt_distribution]
+                    opt_rois = [float(row[2]) for row in opt_distribution]
+                    
+                    # Create optimization distribution chart
+                    opt_dist_fig = go.Figure()
+                    opt_dist_fig.add_trace(go.Bar(
+                        x=opt_sizes,
+                        y=opt_counts,
+                        name='Solution Count',
+                        marker_color='lightcoral',
+                        yaxis='y'
+                    ))
+                    opt_dist_fig.add_trace(go.Scatter(
+                        x=opt_sizes,
+                        y=opt_rois,
+                        mode='lines+markers',
+                        name='Average ROI (%)',
+                        marker_color='darkgreen',
+                        line=dict(width=3),
+                        yaxis='y2'
+                    ))
+                    
+                    opt_dist_fig.update_layout(
+                        title="Optimization Solutions by System Size",
+                        xaxis_title="System Size Category",
+                        yaxis=dict(title="Number of Solutions", side="left"),
+                        yaxis2=dict(title="Average ROI (%)", side="right", overlaying="y"),
+                        height=400
+                    )
+                    
+                    opt_dist_html = pio.to_html(opt_dist_fig, include_plotlyjs=False, div_id="optimization_distribution")
+                    html_content += opt_dist_html
+                
+                html_content += """
+                    </div>
+                    
+                    <h3>Solution Performance Distribution:</h3>
+                    <div class="chart-container">
+                """
+                
+                # Add solution performance distribution
+                cursor.execute("""
+                    SELECT roi, capacity, net_import, rank_position
+                    FROM optimization_results 
+                    WHERE project_id = %s
+                    ORDER BY rank_position
+                    LIMIT 50
+                """, (self.project_id,))
+                perf_data = cursor.fetchall()
+                
+                if perf_data:
+                    perf_rois = [float(row[0]) for row in perf_data]
+                    perf_capacities = [float(row[1]) for row in perf_data]
+                    perf_imports = [float(row[2]) for row in perf_data]
+                    perf_ranks = [int(row[3]) for row in perf_data]
+                    
+                    # Create 3D scatter plot for solution distribution
+                    perf_fig = go.Figure(data=[go.Scatter3d(
+                        x=perf_capacities,
+                        y=perf_rois,
+                        z=perf_imports,
+                        mode='markers',
+                        marker=dict(
+                            size=8,
+                            color=perf_ranks,
+                            colorscale='Viridis',
+                            colorbar=dict(title="Rank Position"),
+                            opacity=0.8
+                        ),
+                        text=[f"Rank: {rank}<br>Capacity: {cap:.1f} kW<br>ROI: {roi:.1f}%<br>Import: {imp:,.0f} kWh" 
+                              for rank, cap, roi, imp in zip(perf_ranks, perf_capacities, perf_rois, perf_imports)],
+                        hovertemplate='%{text}<extra></extra>'
+                    )])
+                    
+                    perf_fig.update_layout(
+                        title="3D Solution Performance Distribution",
+                        scene=dict(
+                            xaxis_title="Capacity (kW)",
+                            yaxis_title="ROI (%)",
+                            zaxis_title="Net Import (kWh)"
+                        ),
+                        height=500
+                    )
+                    
+                    perf_3d_html = pio.to_html(perf_fig, include_plotlyjs=False, div_id="solution_performance_3d")
+                    html_content += perf_3d_html
                 
                 html_content += """
                     </div>
