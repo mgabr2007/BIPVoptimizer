@@ -734,17 +734,17 @@ def create_overview_cards(data):
         if 'building' in data:
             st.metric(
                 "Building Elements",
-                f"{data['building']['total_elements']:,}",
-                f"Total Glass: {data['building']['total_glass_area']:,.1f} m²"
+                f"{data['building'].get('total_elements', 0):,}",
+                f"Total Glass: {data['building'].get('total_glass_area', 0):,.1f} m²"
             )
         else:
             st.metric("Building Elements", "No data", "")
     
     with col2:
         if 'building' in data:
-            pv_suitable_count = data['building']['pv_suitable_count']
-            total_elements = data['building']['total_elements']
-            suitability_rate = (pv_suitable_count / total_elements * 100) if total_elements > 0 else 0
+            pv_suitable_count = data['building'].get('pv_suitable_count', 0)
+            total_elements = data['building'].get('total_elements', 0)
+            suitability_rate = (pv_suitable_count / total_elements * 100) if total_elements and total_elements > 0 else 0
             st.metric(
                 "BIPV Suitability",
                 f"{suitability_rate:.1f}%",
@@ -756,8 +756,8 @@ def create_overview_cards(data):
     with col3:
         if 'pv_systems' in data:
             if 'total_capacity_kw' in data['pv_systems']:
-                total_capacity = data['pv_systems']['total_capacity_kw']
-                avg_power = data['pv_systems']['avg_power_density']
+                total_capacity = data['pv_systems'].get('total_capacity_kw', 0)
+                avg_power = data['pv_systems'].get('avg_power_density', 0)
                 st.metric(
                     "Total PV Capacity",
                     f"{total_capacity:.1f} kW",
@@ -770,11 +770,13 @@ def create_overview_cards(data):
     
     with col4:
         if 'radiation' in data:
-            avg_radiation = data['radiation']['avg_radiation']
+            avg_radiation = data['radiation'].get('avg_radiation', 0)
+            min_radiation = data['radiation'].get('min_radiation', 0)
+            max_radiation = data['radiation'].get('max_radiation', 0)
             st.metric(
                 "Solar Performance",
                 f"{avg_radiation:.0f} kWh/m²/year",
-                f"Range: {data['radiation']['min_radiation']:.0f}-{data['radiation']['max_radiation']:.0f}"
+                f"Range: {min_radiation:.0f}-{max_radiation:.0f}"
             )
         else:
             st.metric("Solar Performance", "No data", "")
@@ -785,9 +787,9 @@ def create_overview_cards(data):
     
     with col5:
         if 'energy_analysis' in data:
-            generation = data['energy_analysis']['annual_generation']
-            demand = data['energy_analysis']['annual_demand']
-            coverage = (generation / demand * 100) if demand > 0 else 0
+            generation = data['energy_analysis'].get('annual_generation', 0)
+            demand = data['energy_analysis'].get('annual_demand', 0)
+            coverage = (generation / demand * 100) if demand and demand > 0 else 0
             st.metric(
                 "Energy Coverage",
                 f"{coverage:.1f}%",
@@ -799,12 +801,12 @@ def create_overview_cards(data):
     
     with col6:
         if 'energy_analysis' in data:
-            generation = data['energy_analysis']['annual_generation']
-            demand = data['energy_analysis']['annual_demand']
-            net_balance = abs(data['energy_analysis']['net_energy_balance'])
+            generation = data['energy_analysis'].get('annual_generation', 0)
+            demand = data['energy_analysis'].get('annual_demand', 0)
+            net_balance = abs(data['energy_analysis'].get('net_energy_balance', 0))
             # Self-consumption: how much of generated energy is used directly vs exported
             direct_use = generation  # All generation used since demand >> generation
-            self_consumption = (direct_use / generation * 100) if generation > 0 else 0
+            self_consumption = (direct_use / generation * 100) if generation and generation > 0 else 0
             st.metric(
                 "BIPV Utilization",
                 f"{self_consumption:.0f}%",
@@ -816,8 +818,8 @@ def create_overview_cards(data):
     
     with col7:
         if 'financial' in data:
-            irr = data['financial']['irr_percentage']
-            payback = data['financial']['payback_period_years']
+            irr = data['financial'].get('irr_percentage', 0)
+            payback = data['financial'].get('payback_period_years', 0)
             st.metric(
                 "Financial Return",
                 f"IRR: {irr:.1f}%",
@@ -828,9 +830,9 @@ def create_overview_cards(data):
     
     with col8:
         if 'financial' in data:
-            investment = data['financial']['total_investment_eur']
-            npv = data['financial']['npv_eur']
-            npv_status = "Positive" if npv > 0 else "Negative"
+            investment = data['financial'].get('total_investment_eur', 0)
+            npv = data['financial'].get('npv_eur', 0)
+            npv_status = "Positive" if npv and npv > 0 else "Negative"
             st.metric(
                 "Investment Analysis",
                 f"€{investment:,.0f}",
@@ -845,9 +847,9 @@ def create_overview_cards(data):
     
     with col9:
         if 'ai_model' in data and 'building' in data:
-            building_area = data['ai_model']['building_area']
-            total_glass = data['building']['total_glass_area']
-            glass_ratio = (total_glass / building_area * 100) if building_area > 0 else 0
+            building_area = data['ai_model'].get('building_area', 0)
+            total_glass = data['building'].get('total_glass_area', 0)
+            glass_ratio = (total_glass / building_area * 100) if building_area and building_area > 0 else 0
             st.metric(
                 "Building Analysis",
                 f"{building_area:,.0f} m²",
