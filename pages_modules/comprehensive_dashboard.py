@@ -884,7 +884,7 @@ def create_overview_cards(data):
         
         # Fix BIPV efficiency calculation
         if 'pv_systems' in data and 'avg_efficiency' in data['pv_systems']:
-            avg_efficiency = data['pv_systems']['avg_efficiency'] * 100  # Convert to percentage
+            avg_efficiency = data['pv_systems'].get('avg_efficiency', 0) * 100  # Convert to percentage
         else:
             avg_efficiency = 8.9  # Typical BIPV efficiency
             
@@ -1013,18 +1013,17 @@ def create_financial_analysis_section(data):
     with col1:
         # Investment metrics
         metrics = ['Investment', 'NPV', '25-Year Savings']
-        values = [
-            financial['total_investment_eur'],
-            financial['npv_eur'],
-            financial['total_savings_25_years']
-        ]
+        total_investment = financial.get('total_investment_eur', 0)
+        npv_value = financial.get('npv_eur', 0)
+        total_savings = financial.get('total_savings_25_years', 0)
+        values = [total_investment, npv_value, total_savings]
         
         fig = go.Figure(data=[
             go.Bar(
                 x=metrics,
                 y=values,
-                marker_color=['red', 'green' if financial['npv_eur'] > 0 else 'red', 'blue'],
-                text=[f"€{v:,.0f}" for v in values],
+                marker_color=['red', 'green' if npv_value and npv_value > 0 else 'red', 'blue'],
+                text=[f"€{v:,.0f}" if v is not None else "€0" for v in values],
                 textposition='auto'
             )
         ])
@@ -1269,11 +1268,14 @@ def render_comprehensive_dashboard():
         with col1:
             st.markdown("**Database Record Counts:**")
             if 'building' in dashboard_data:
-                st.write(f"• Building Elements: {dashboard_data['building']['total_elements']:,}")
+                building_elements = dashboard_data.get('building', {}).get('total_elements', 0)
+                st.write(f"• Building Elements: {building_elements:,}")
             if 'radiation' in dashboard_data:
-                st.write(f"• Radiation Records: {dashboard_data['radiation']['analyzed_elements']:,}")
+                radiation_records = dashboard_data.get('radiation', {}).get('analyzed_elements', 0)
+                st.write(f"• Radiation Records: {radiation_records:,}")
             if 'pv_systems' in dashboard_data:
-                st.write(f"• PV Systems: {dashboard_data['pv_systems']['total_systems']:,}")
+                pv_systems = dashboard_data.get('pv_systems', {}).get('total_systems', 0)
+                st.write(f"• PV Systems: {pv_systems:,}")
             if 'energy_analysis' in dashboard_data:
                 st.write(f"• Energy Analysis: Complete")
             if 'financial' in dashboard_data:
