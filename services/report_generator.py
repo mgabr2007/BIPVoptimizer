@@ -22,7 +22,7 @@ from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.shared import qn
-import database_manager as db_manager
+from database_manager import db_manager
 
 class BIPVReportGenerator:
     def __init__(self, project_id):

@@ -1627,10 +1627,10 @@ def create_step4_sunburst_chart(azimuth_df, family_data, level_data, project_id)
     except Exception as e:
         st.error(f"Error creating Sunburst chart: {str(e)}")
 
-def create_report_generation_section(project_id):
-    """Create comprehensive report generation section with PDF and Word downloads"""
+def create_report_generation_section(project_id, dashboard_data=None):
+    """Create comprehensive report generation section with PDF and Word downloads using Step 10 data"""
     st.markdown("### 📊 Comprehensive Report Generation")
-    st.markdown("Generate detailed reports with all authentic data and visualizations for download.")
+    st.markdown("Generate detailed reports with all authentic Step 10 dashboard data and visualizations for download.")
     
     # CRITICAL: Require authentic project_id
     if not project_id:
@@ -1641,69 +1641,104 @@ def create_report_generation_section(project_id):
     
     with col1:
         if st.button("🔍 Prepare Report Data", use_container_width=True):
-            with st.spinner("Collecting authentic project data..."):
-                report_generator = BIPVReportGenerator(project_id)
-                project_data = report_generator.get_project_data()
-                
-                if project_data:
-                    st.session_state['report_data'] = project_data
-                    st.session_state['report_generator'] = report_generator
-                    st.success("✅ Report data prepared successfully!")
+            with st.spinner("Collecting authentic Step 10 dashboard data..."):
+                try:
+                    # Use Step 10 dashboard data directly
+                    report_data = {
+                        'dashboard_data': dashboard_data,
+                        'project_id': project_id,
+                        'timestamp': datetime.now()
+                    }
+                    
+                    # Get additional project details from database
+                    conn = db_manager.get_connection()
+                    if conn:
+                        cursor = conn.cursor()
+                        
+                        # Project info
+                        cursor.execute("""
+                            SELECT project_name, latitude, longitude, timezone, created_at
+                            FROM projects WHERE id = %s
+                        """, (project_id,))
+                        project_info = cursor.fetchone()
+                        report_data['project_info'] = project_info
+                        
+                        # Building summary
+                        cursor.execute("""
+                            SELECT COUNT(*) as total, 
+                                   COUNT(CASE WHEN pv_suitable = true THEN 1 END) as suitable,
+                                   SUM(glass_area) as total_area,
+                                   AVG(glass_area) as avg_area
+                            FROM building_elements WHERE project_id = %s
+                        """, (project_id,))
+                        building_summary = cursor.fetchone()
+                        report_data['building_summary'] = building_summary
+                        
+                        conn.close()
+                    
+                    st.session_state['comprehensive_report_data'] = report_data
+                    st.success("✅ Step 10 dashboard data prepared for report generation!")
                     
                     # Show data summary
-                    st.markdown("**Data Summary:**")
-                    if project_data['building_summary']:
-                        building = project_data['building_summary']
-                        st.write(f"• Building Elements: {building[0]:,}")
-                        st.write(f"• Suitable Elements: {building[1]:,}")
-                        st.write(f"• Total Glass Area: {building[2]:,.1f} m²")
-                    
-                    if project_data['radiation_summary']:
-                        radiation = project_data['radiation_summary']
-                        st.write(f"• Analyzed Elements: {radiation[0]:,}")
-                        st.write(f"• Avg Radiation: {radiation[1]:,.1f} kWh/m²/year")
-                else:
-                    st.error("❌ Failed to retrieve authentic project data from database")
+                    st.markdown("**Report Data Summary:**")
+                    if dashboard_data:
+                        st.write("• Complete Step 10 dashboard visualizations")
+                        st.write("• All authentic calculation results")
+                        st.write("• Project timeline and progress tracking")
+                    if building_summary:
+                        st.write(f"• Building Elements: {building_summary[0]:,}")
+                        st.write(f"• Suitable Elements: {building_summary[1]:,}")
+                        st.write(f"• Total Glass Area: {building_summary[2]:,.1f} m²")
+                
+                except Exception as e:
+                    st.error(f"❌ Error preparing report data: {str(e)}")
+                    st.error("Failed to collect authentic Step 10 dashboard data")
     
     with col2:
         if st.button("📄 Generate PDF Report", use_container_width=True):
-            if 'report_data' in st.session_state and 'report_generator' in st.session_state:
-                with st.spinner("Generating comprehensive PDF report..."):
-                    report_generator = st.session_state['report_generator']
-                    project_data = st.session_state['report_data']
-                    
-                    # Create visualization images
-                    images = report_generator.create_visualization_images()
-                    
-                    # Generate PDF
-                    pdf_content = report_generator.generate_pdf_report(project_data, images)
-                    
-                    if pdf_content:
-                        st.session_state['pdf_content'] = pdf_content
-                        st.success("✅ PDF report generated successfully!")
-                    else:
-                        st.error("❌ Failed to generate PDF report")
+            if 'comprehensive_report_data' in st.session_state:
+                with st.spinner("Generating comprehensive PDF report with Step 10 data..."):
+                    try:
+                        report_generator = BIPVReportGenerator(project_id)
+                        report_data = st.session_state['comprehensive_report_data']
+                        
+                        # Create visualization images
+                        images = report_generator.create_visualization_images()
+                        
+                        # Generate PDF using Step 10 dashboard data
+                        pdf_content = report_generator.generate_pdf_report(report_data, images)
+                        
+                        if pdf_content:
+                            st.session_state['pdf_content'] = pdf_content
+                            st.success("✅ PDF report with Step 10 data generated successfully!")
+                        else:
+                            st.error("❌ Failed to generate PDF report")
+                    except Exception as e:
+                        st.error(f"❌ Error generating PDF: {str(e)}")
             else:
                 st.warning("⚠️ Please prepare report data first")
     
     with col3:
         if st.button("📝 Generate Word Report", use_container_width=True):
-            if 'report_data' in st.session_state and 'report_generator' in st.session_state:
-                with st.spinner("Generating comprehensive Word report..."):
-                    report_generator = st.session_state['report_generator']
-                    project_data = st.session_state['report_data']
-                    
-                    # Create visualization images
-                    images = report_generator.create_visualization_images()
-                    
-                    # Generate Word document
-                    docx_content = report_generator.generate_word_report(project_data, images)
-                    
-                    if docx_content:
-                        st.session_state['docx_content'] = docx_content
-                        st.success("✅ Word report generated successfully!")
-                    else:
-                        st.error("❌ Failed to generate Word report")
+            if 'comprehensive_report_data' in st.session_state:
+                with st.spinner("Generating comprehensive Word report with Step 10 data..."):
+                    try:
+                        report_generator = BIPVReportGenerator(project_id)
+                        report_data = st.session_state['comprehensive_report_data']
+                        
+                        # Create visualization images
+                        images = report_generator.create_visualization_images()
+                        
+                        # Generate Word document using Step 10 dashboard data
+                        docx_content = report_generator.generate_word_report(report_data, images)
+                        
+                        if docx_content:
+                            st.session_state['docx_content'] = docx_content
+                            st.success("✅ Word report with Step 10 data generated successfully!")
+                        else:
+                            st.error("❌ Failed to generate Word report")
+                    except Exception as e:
+                        st.error(f"❌ Error generating Word report: {str(e)}")
             else:
                 st.warning("⚠️ Please prepare report data first")
     
@@ -2171,9 +2206,6 @@ def render_comprehensive_dashboard():
         create_energy_analysis_section(dashboard_data)
         
         st.markdown("---")
-        create_report_generation_section(project_id)
-        
-        st.markdown("---")
         create_optimization_section(dashboard_data)
         
         st.markdown("---")
@@ -2230,6 +2262,10 @@ def render_comprehensive_dashboard():
                 )
             else:
                 st.error("No comprehensive data available for export")
+    
+    # Comprehensive Report Generation - Final Section
+    st.markdown("---")
+    create_report_generation_section(project_id, dashboard_data)
     
     # Navigation
     st.markdown("---")
