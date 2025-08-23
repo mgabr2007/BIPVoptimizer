@@ -937,14 +937,16 @@ def create_building_analysis_section(data):
             radiation_by_orient = data['radiation'].get('by_orientation', [])
             if radiation_by_orient:
                 radiation_df = pd.DataFrame(radiation_by_orient)
-            fig = px.bar(
-                radiation_df,
-                x='orientation',
-                y='avg_radiation',
-                title="Average Solar Radiation by Orientation",
-                labels={'avg_radiation': 'Solar Radiation (kWh/m²/year)'}
-            )
-            st.plotly_chart(fig, use_container_width=True)
+                fig = px.bar(
+                    radiation_df,
+                    x='orientation',
+                    y='avg_radiation',
+                    title="Average Solar Radiation by Orientation",
+                    labels={'avg_radiation': 'Solar Radiation (kWh/m²/year)'}
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No radiation data by orientation available")
 
 def create_energy_analysis_section(data):
     """Create energy analysis visualizations"""
@@ -1319,24 +1321,31 @@ def render_comprehensive_dashboard():
     
     st.success("✅ Dashboard data loaded successfully")
     
-    # Create overview section
-    create_overview_cards(dashboard_data)
-    
-    # Create detailed sections
-    st.markdown("---")
-    create_project_timeline_section(dashboard_data)
-    
-    st.markdown("---")
-    create_building_analysis_section(dashboard_data)
-    
-    st.markdown("---")
-    create_energy_analysis_section(dashboard_data)
-    
-    st.markdown("---")
-    create_optimization_section(dashboard_data)
-    
-    st.markdown("---")
-    create_financial_analysis_section(dashboard_data)
+    try:
+        # Create overview section
+        create_overview_cards(dashboard_data)
+        
+        # Create detailed sections
+        st.markdown("---")
+        create_project_timeline_section(dashboard_data)
+        
+        st.markdown("---")
+        create_building_analysis_section(dashboard_data)
+        
+        st.markdown("---")
+        create_energy_analysis_section(dashboard_data)
+        
+        st.markdown("---")
+        create_optimization_section(dashboard_data)
+        
+        st.markdown("---")
+        create_financial_analysis_section(dashboard_data)
+        
+    except Exception as e:
+        st.error(f"Dashboard rendering error: {str(e)}")
+        st.error(f"Error type: {type(e).__name__}")
+        import traceback
+        st.code(traceback.format_exc())
     
     # Data export section
     st.markdown("---")
