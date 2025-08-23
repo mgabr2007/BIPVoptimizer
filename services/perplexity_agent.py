@@ -43,7 +43,16 @@ class PerplexityBIPVAgent:
         BIPV Analysis Data:
         {data_summary}
 
-        **CRITICAL: Analyze and compare the top 3 optimization solutions in detail using their exact Solution IDs. Discuss their trade-offs, recommend the best implementation strategy, and explain why each solution ranks where it does. Reference specific capacity, cost, ROI, window usage, and efficiency metrics. Pay special attention to the window selection strategy - each solution uses a different number of windows out of 759 available suitable elements. Explain how the genetic algorithm selects optimal window combinations rather than installing BIPV on all suitable windows. Note that solutions show "No (Alternative Solution)" for Pareto status - explain what this means and how to choose between them.**
+        **CRITICAL: Analyze and compare the top 3 optimization solutions in detail using their exact Solution IDs. Discuss their trade-offs, recommend the best implementation strategy, and explain why each solution ranks where it does. Reference specific capacity, cost, ROI, window usage, and efficiency metrics. 
+
+        **WINDOW SELECTION STRATEGY ANALYSIS**: Pay special attention to the window selection strategy - each solution uses a different number of windows out of the available suitable elements. Explain how the genetic algorithm selects optimal window combinations rather than installing BIPV on all suitable windows. **SPECIFICALLY ADDRESS**: Why are some south-facing windows excluded from the optimization solutions even though they typically receive excellent solar radiation? Discuss the multi-criteria optimization logic that considers:
+        - Individual window cost-effectiveness vs system-wide optimization
+        - Building energy balance requirements vs maximum generation potential
+        - Economic thresholds per window installation
+        - System capacity targeting vs. orientation-only selection
+        - Installation and maintenance cost considerations per window
+
+        Note that solutions show "No (Alternative Solution)" for Pareto status - explain what this means and how to choose between them.**
 
         Ensure every recommendation includes specific references to the calculated values, window counts, orientations, financial metrics, and performance indicators from this actual analysis. Do not provide generic advice - base everything on the specific results shown above.
         """
@@ -90,8 +99,15 @@ class PerplexityBIPVAgent:
         3. Technical Performance Improvements (reference actual building element data)
         4. Data Quality Improvements (reference AI model and calculation accuracy)
         5. Solution Selection Analysis (compare the top 3 optimization solutions and recommend best implementation strategy)
+        6. **Window Selection Logic Explanation** (CRITICAL QUESTION): Explain why some south-facing windows are excluded from the optimization solution even though they typically receive excellent solar radiation. Discuss the genetic algorithm's decision-making process that considers factors beyond just orientation, such as:
+           - Cost-effectiveness thresholds per window
+           - System capacity optimization vs. individual window performance
+           - Building-level energy balance requirements
+           - Economic optimization criteria (ROI, payback, NPV per window)
+           - Window size and installation cost considerations
+           - Overall system efficiency vs. maximum capacity approaches
 
-        Base all recommendations on the specific analysis results above. Reference actual numbers, orientations, capacities, and performance metrics from this Berlin project data. Pay special attention to the top 3 solutions comparison and provide guidance on which solution offers the best balance of cost, capacity, and ROI for implementation.
+        Base all recommendations on the specific analysis results above. Reference actual numbers, orientations, capacities, and performance metrics from this Berlin project data. **Pay special attention to explaining the optimization algorithm's window selection criteria - why it doesn't simply select all suitable south-facing windows and instead uses a more complex selection strategy that may exclude some well-oriented windows in favor of better overall system performance.**
         """
         
         return self._query_perplexity(prompt)
