@@ -235,27 +235,47 @@ class BIPVReportGenerator:
                 </div>
                 """
             
-            # Get BIPV specifications data
+            # Get BIPV specifications data from JSON
             cursor.execute("""
-                SELECT COUNT(*) as spec_count,
-                       AVG(capacity_kw) as avg_capacity,
-                       SUM(annual_energy) as total_annual_energy,
-                       AVG(annual_energy) as avg_annual_energy
-                FROM bipv_specifications
-                WHERE project_id = %s AND annual_energy IS NOT NULL
+                SELECT panel_type, efficiency, transparency, cost_per_m2, power_density, specification_data
+                FROM pv_specifications
+                WHERE project_id = %s
             """, (self.project_id,))
-            bipv_specs = cursor.fetchone()
+            pv_data = cursor.fetchone()
+            
+            bipv_specs = None
+            if pv_data and pv_data[5]:  # specification_data exists
+                import json
+                try:
+                    spec_data = json.loads(pv_data[5])
+                    if 'bipv_specifications' in spec_data:
+                        specs = spec_data['bipv_specifications']
+                        spec_count = len(specs)
+                        total_capacity = sum(float(s['capacity_kw']) for s in specs)
+                        total_energy = sum(float(s['annual_energy_kwh']) for s in specs)
+                        avg_capacity = total_capacity / spec_count if spec_count > 0 else 0
+                        avg_energy = total_energy / spec_count if spec_count > 0 else 0
+                        bipv_specs = (spec_count, avg_capacity, total_energy, avg_energy, pv_data[0], pv_data[1], pv_data[2])
+                except:
+                    bipv_specs = None
             
             if bipv_specs and bipv_specs[0] > 0:
                 html_content += f"""
                 <h2>BIPV Specifications Summary</h2>
+                <table>
+                    <tr><th>Parameter</th><th>Value</th></tr>
+                    <tr><td>Panel Technology</td><td>{bipv_specs[4] if bipv_specs[4] else 'N/A'}</td></tr>
+                    <tr><td>Efficiency</td><td>{bipv_specs[5]:.1%} if bipv_specs[5] else 'N/A'</td></tr>
+                    <tr><td>Transparency</td><td>{bipv_specs[6]:.1%} if bipv_specs[6] else 'N/A'</td></tr>
+                </table>
+                
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">{bipv_specs[0]:,}</div>
                         <div class="metric-label">Specified Elements</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{bipv_specs[1]:.2f} kW</div>
+                        <div class="metric-value">{bipv_specs[1]:,.1f} kW</div>
                         <div class="metric-label">Average Capacity</div>
                     </div>
                     <div class="metric-card">
