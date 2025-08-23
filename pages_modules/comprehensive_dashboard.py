@@ -924,8 +924,8 @@ def create_building_analysis_section(data):
     
     building = data['building']
     
-    # Step 4: Building Elements Overview
-    st.markdown("#### 📊 Step 4: Building Elements Analysis")
+    # Step 4: Building Elements & BIM Extraction Analysis
+    st.markdown("#### 📊 Step 4: Building Elements & BIM Data Analysis")
     
     # Key metrics in organized layout
     col1, col2, col3 = st.columns(3)
@@ -964,6 +964,12 @@ def create_building_analysis_section(data):
             else:
                 size_category = "Small Windows"
             st.metric("Element Category", size_category)
+    
+    # Step 4 Detailed BIM Analysis
+    create_step4_detailed_analysis(data, project_id)
+    
+    # Data Quality Metrics for Step 4
+    create_step4_data_quality_metrics(project_id)
 
     # Step 5: Solar Radiation & Orientation Analysis
     st.markdown("#### ☀️ Step 5: Solar Radiation Analysis")
@@ -1127,6 +1133,273 @@ def create_building_analysis_section(data):
         st.markdown(f"• **Peak Site Performance**: {max_radiation:.0f} kWh/m²/year (best orientation at this location)")
     else:
         st.info("Complete Step 5 radiation analysis to unlock detailed orientation guidance")
+
+def create_step4_detailed_analysis(data, project_id):
+    """Create comprehensive Step 4 BIM extraction and window selection analysis"""
+    st.markdown("#### 🏗️ BIM Data Extraction & Window Selection Analysis")
+    
+    try:
+        # Get detailed building elements data from database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Window family analysis
+        cursor.execute("""
+            SELECT family, COUNT(*) as count, AVG(glass_area) as avg_area, 
+                   SUM(glass_area) as total_area,
+                   COUNT(CASE WHEN pv_suitable = true THEN 1 END) as suitable_count
+            FROM building_elements 
+            WHERE project_id = %s AND element_type = 'Window'
+            GROUP BY family 
+            ORDER BY count DESC
+            LIMIT 10
+        """, (project_id,))
+        family_data = cursor.fetchall()
+        
+        # Building level analysis
+        cursor.execute("""
+            SELECT building_level, COUNT(*) as count, AVG(glass_area) as avg_area,
+                   SUM(glass_area) as total_area,
+                   COUNT(CASE WHEN pv_suitable = true THEN 1 END) as suitable_count
+            FROM building_elements 
+            WHERE project_id = %s AND building_level IS NOT NULL AND building_level != ''
+            GROUP BY building_level 
+            ORDER BY building_level
+        """, (project_id,))
+        level_data = cursor.fetchall()
+        
+        # Glass area distribution analysis
+        cursor.execute("""
+            SELECT 
+                CASE 
+                    WHEN glass_area < 5 THEN 'Small (< 5 m²)'
+                    WHEN glass_area < 15 THEN 'Medium (5-15 m²)'
+                    WHEN glass_area < 30 THEN 'Large (15-30 m²)'
+                    ELSE 'Extra Large (30+ m²)'
+                END as size_category,
+                COUNT(*) as count,
+                AVG(glass_area) as avg_area,
+                SUM(glass_area) as total_area,
+                COUNT(CASE WHEN pv_suitable = true THEN 1 END) as suitable_count
+            FROM building_elements 
+            WHERE project_id = %s AND glass_area > 0
+            GROUP BY size_category
+            ORDER BY AVG(glass_area)
+        """, (project_id,))
+        size_data = cursor.fetchall()
+        
+        # Azimuth distribution for polar chart
+        cursor.execute("""
+            SELECT azimuth, COUNT(*) as count, AVG(glass_area) as avg_area
+            FROM building_elements 
+            WHERE project_id = %s AND azimuth IS NOT NULL
+            GROUP BY azimuth
+            ORDER BY azimuth
+        """, (project_id,))
+        azimuth_data = cursor.fetchall()
+        
+        conn.close()
+        
+        # Create visualizations
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Window Family Analysis
+            st.markdown("**Window Family Distribution**")
+            if family_data:
+                family_df = pd.DataFrame(family_data, columns=['Family', 'Count', 'Avg Area', 'Total Area', 'Suitable Count'])
+                
+                fig = px.bar(
+                    family_df.head(8), 
+                    x='Count', 
+                    y='Family',
+                    title="Top Window Families by Count",
+                    labels={'Count': 'Number of Elements', 'Family': 'Window Family Type'},
+                    color='Suitable Count',
+                    color_continuous_scale='Viridis'
+                )
+                fig.update_layout(height=400)
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Family summary table
+                family_df['Suitability %'] = (family_df['Suitable Count'] / family_df['Count'] * 100).round(1)
+                st.dataframe(
+                    family_df[['Family', 'Count', 'Avg Area', 'Suitability %']].head(5),
+                    hide_index=True,
+                    use_container_width=True
+                )
+            else:
+                st.info("No window family data available")
+        
+        with col2:
+            # Glass Area Size Distribution
+            st.markdown("**Element Size Distribution**")
+            if size_data:
+                size_df = pd.DataFrame(size_data, columns=['Size Category', 'Count', 'Avg Area', 'Total Area', 'Suitable Count'])
+                
+                fig = px.pie(
+                    size_df, 
+                    values='Count', 
+                    names='Size Category',
+                    title="Elements by Size Category",
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig.update_traces(textposition='inside', textinfo='percent+label')
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Size analysis metrics
+                st.markdown("**Size Category Analysis:**")
+                for _, row in size_df.iterrows():
+                    suitability = (row['Suitable Count'] / row['Count'] * 100) if row['Count'] > 0 else 0
+                    st.write(f"• **{row['Size Category']}**: {row['Count']} elements ({suitability:.1f}% suitable)")
+            else:
+                st.info("No size distribution data available")
+        
+        # Building Level Analysis
+        if level_data:
+            st.markdown("**Building Level Analysis**")
+            level_df = pd.DataFrame(level_data, columns=['Level', 'Count', 'Avg Area', 'Total Area', 'Suitable Count'])
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Level distribution bar chart
+                fig = px.bar(
+                    level_df, 
+                    x='Level', 
+                    y='Count',
+                    title="Elements by Building Level",
+                    labels={'Count': 'Number of Elements', 'Level': 'Building Level'},
+                    color='Total Area',
+                    color_continuous_scale='Blues'
+                )
+                fig.update_layout(height=300)
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with col2:
+                # Level suitability analysis
+                level_df['Suitability %'] = (level_df['Suitable Count'] / level_df['Count'] * 100).round(1)
+                
+                fig = px.bar(
+                    level_df,
+                    x='Level',
+                    y='Suitability %',
+                    title="BIPV Suitability by Level",
+                    labels={'Suitability %': 'BIPV Suitability (%)', 'Level': 'Building Level'},
+                    color='Suitability %',
+                    color_continuous_scale='RdYlGn'
+                )
+                fig.update_layout(height=300)
+                st.plotly_chart(fig, use_container_width=True)
+        
+        # Polar Azimuth Analysis
+        if azimuth_data:
+            st.markdown("**Polar Azimuth Distribution**")
+            azimuth_df = pd.DataFrame(azimuth_data, columns=['Azimuth', 'Count', 'Avg Area'])
+            
+            # Convert azimuth to compass directions for better understanding
+            def azimuth_to_direction(azimuth):
+                directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
+                             'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+                index = round(azimuth / 22.5) % 16
+                return directions[index]
+            
+            azimuth_df['Direction'] = azimuth_df['Azimuth'].apply(azimuth_to_direction)
+            
+            # Create polar plot
+            fig = go.Figure()
+            
+            fig.add_trace(go.Scatterpolar(
+                r=azimuth_df['Count'],
+                theta=azimuth_df['Azimuth'],
+                mode='markers+lines',
+                fill='toself',
+                name='Element Count',
+                marker=dict(size=8, color='rgb(27, 38, 81)', opacity=0.7),
+                line=dict(color='rgb(27, 38, 81)', width=2),
+                hovertemplate='<b>Azimuth:</b> %{theta}°<br><b>Count:</b> %{r}<br><extra></extra>'
+            ))
+            
+            fig.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, max(azimuth_df['Count']) * 1.1]),
+                    angularaxis=dict(direction="clockwise", start=90)
+                ),
+                title="Element Distribution by Azimuth (Polar View)",
+                showlegend=True,
+                height=400
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Azimuth summary
+            st.markdown("**Azimuth Distribution Summary:**")
+            direction_summary = azimuth_df.groupby('Direction').agg({
+                'Count': 'sum',
+                'Avg Area': 'mean'
+            }).round(2)
+            
+            # Show top directions
+            top_directions = direction_summary.nlargest(5, 'Count')
+            for direction, data in top_directions.iterrows():
+                st.write(f"• **{direction}**: {data['Count']} elements (avg {data['Avg Area']:.1f} m²)")
+    
+    except Exception as e:
+        st.error(f"Error loading Step 4 detailed analysis: {str(e)}")
+
+def create_step4_data_quality_metrics(project_id):
+    """Create data quality and validation metrics for Step 4"""
+    st.markdown("#### 📊 Data Quality & Validation Metrics")
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Data completeness analysis
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_elements,
+                COUNT(CASE WHEN glass_area IS NOT NULL AND glass_area > 0 THEN 1 END) as has_glass_area,
+                COUNT(CASE WHEN azimuth IS NOT NULL THEN 1 END) as has_azimuth,
+                COUNT(CASE WHEN orientation IS NOT NULL AND orientation != '' THEN 1 END) as has_orientation,
+                COUNT(CASE WHEN building_level IS NOT NULL AND building_level != '' THEN 1 END) as has_level,
+                COUNT(CASE WHEN family IS NOT NULL AND family != '' THEN 1 END) as has_family
+            FROM building_elements 
+            WHERE project_id = %s
+        """, (project_id,))
+        
+        quality_data = cursor.fetchone()
+        conn.close()
+        
+        if quality_data:
+            total = quality_data[0]
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                glass_completeness = (quality_data[1] / total * 100) if total > 0 else 0
+                azimuth_completeness = (quality_data[2] / total * 100) if total > 0 else 0
+                
+                st.metric("Glass Area Data", f"{glass_completeness:.1f}%", f"{quality_data[1]}/{total}")
+                st.metric("Azimuth Data", f"{azimuth_completeness:.1f}%", f"{quality_data[2]}/{total}")
+            
+            with col2:
+                orientation_completeness = (quality_data[3] / total * 100) if total > 0 else 0
+                level_completeness = (quality_data[4] / total * 100) if total > 0 else 0
+                
+                st.metric("Orientation Data", f"{orientation_completeness:.1f}%", f"{quality_data[3]}/{total}")
+                st.metric("Building Level Data", f"{level_completeness:.1f}%", f"{quality_data[4]}/{total}")
+            
+            with col3:
+                family_completeness = (quality_data[5] / total * 100) if total > 0 else 0
+                overall_quality = (glass_completeness + azimuth_completeness + orientation_completeness) / 3
+                
+                st.metric("Family Data", f"{family_completeness:.1f}%", f"{quality_data[5]}/{total}")
+                st.metric("Overall Quality", f"{overall_quality:.1f}%", 
+                         "Excellent" if overall_quality > 90 else "Good" if overall_quality > 70 else "Needs Improvement")
+    
+    except Exception as e:
+        st.error(f"Error loading data quality metrics: {str(e)}")
 
 def create_energy_analysis_section(data):
     """Create energy analysis visualizations"""
