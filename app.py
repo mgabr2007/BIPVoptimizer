@@ -952,12 +952,14 @@ def main():
     # Render navigation buttons for workflow steps
     for i, (step_key, step_name, description) in enumerate(workflow_steps):
         is_current = current_step == step_key
+        step_number = i + 1  # Convert 0-based index to 1-based step number
+        numbered_step_name = f"Step {step_number}: {step_name}"
         
         if is_current:
-            st.sidebar.markdown(f"**▶️ {step_name}**")
+            st.sidebar.markdown(f"**▶️ {numbered_step_name}**")
             st.sidebar.caption(f"*Current: {description}*")
         else:
-            if st.sidebar.button(step_name, key=f"nav_{step_key}_{i}", use_container_width=True):
+            if st.sidebar.button(numbered_step_name, key=f"nav_{step_key}_{i}", use_container_width=True):
                 st.query_params['step'] = step_key
                 st.rerun()
             st.sidebar.caption(description)
