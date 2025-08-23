@@ -920,9 +920,10 @@ def create_building_analysis_section(data, project_id=None):
         st.warning("No building data available")
         return
     
-    # Get project_id if not provided
+    # CRITICAL: Require authentic project_id - no fallbacks allowed
     if not project_id:
-        project_id = get_current_project_id()
+        st.error("❌ Project ID required for authentic database analysis - no fallback data permitted")
+        return
     
     st.markdown("### 🏢 Building Analysis (Steps 4-5)")
     
@@ -1142,6 +1143,11 @@ def create_step4_detailed_analysis(data, project_id):
     """Create comprehensive Step 4 BIM extraction and window selection analysis"""
     st.markdown("#### 🏗️ BIM Data Extraction & Window Selection Analysis")
     
+    # CRITICAL: Require authentic project_id for database queries
+    if not project_id:
+        st.error("❌ Authentic project ID required - no fallback data permitted for PhD research")
+        return
+    
     try:
         # Get detailed building elements data from database
         conn = get_db_connection()
@@ -1233,7 +1239,7 @@ def create_step4_detailed_analysis(data, project_id):
                     use_container_width=True
                 )
             else:
-                st.info("No window family data available")
+                st.warning("❌ No authentic window family data found in database - analysis requires real BIM data")
         
         with col2:
             # Glass Area Size Distribution
@@ -1257,7 +1263,7 @@ def create_step4_detailed_analysis(data, project_id):
                     suitability = (row['Suitable Count'] / row['Count'] * 100) if row['Count'] > 0 else 0
                     st.write(f"• **{row['Size Category']}**: {row['Count']} elements ({suitability:.1f}% suitable)")
             else:
-                st.info("No size distribution data available")
+                st.warning("❌ No authentic size distribution data found in database - requires real building elements")
         
         # Building Level Analysis
         if level_data:
@@ -1349,11 +1355,17 @@ def create_step4_detailed_analysis(data, project_id):
                 st.write(f"• **{direction}**: {data['Count']} elements (avg {data['Avg Area']:.1f} m²)")
     
     except Exception as e:
-        st.error(f"Error loading Step 4 detailed analysis: {str(e)}")
+        st.error(f"❌ Database error in Step 4 analysis - authentic data required: {str(e)}")
+        st.error("PhD research requires only verified database sources - no fallback data permitted")
 
 def create_step4_data_quality_metrics(project_id):
     """Create data quality and validation metrics for Step 4"""
     st.markdown("#### 📊 Data Quality & Validation Metrics")
+    
+    # CRITICAL: Require authentic project_id for database validation
+    if not project_id:
+        st.error("❌ Authentic project ID required for data quality analysis - no synthetic metrics permitted")
+        return
     
     try:
         conn = get_db_connection()
@@ -1403,7 +1415,8 @@ def create_step4_data_quality_metrics(project_id):
                          "Excellent" if overall_quality > 90 else "Good" if overall_quality > 70 else "Needs Improvement")
     
     except Exception as e:
-        st.error(f"Error loading data quality metrics: {str(e)}")
+        st.error(f"❌ Database error in data quality analysis - authentic data required: {str(e)}")
+        st.error("PhD research integrity requires only verified database metrics - no synthetic data allowed")
 
 def create_energy_analysis_section(data):
     """Create energy analysis visualizations"""
