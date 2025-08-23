@@ -1730,75 +1730,48 @@ def create_report_generation_section(project_id, dashboard_data=None):
                     st.error("Failed to collect authentic Step 10 dashboard data")
     
     with col2:
-        if st.button("📄 Generate PDF Report", use_container_width=True):
-            if 'comprehensive_report_data' in st.session_state:
-                with st.spinner("Generating comprehensive PDF report with Step 10 data..."):
-                    try:
-                        report_generator = BIPVReportGenerator(project_id)
-                        report_data = st.session_state['comprehensive_report_data']
+        if st.button("📊 Generate HTML Report", use_container_width=True, help="Generate comprehensive HTML report with all Step 10 data and interactive charts"):
+            with st.spinner("Generating comprehensive HTML report with authentic Step 10 data..."):
+                try:
+                    report_generator = BIPVReportGenerator(project_id)
+                    html_path, html_filename = report_generator.generate_html_report()
+                    
+                    if html_path:
+                        # Provide download
+                        with open(html_path, 'rb') as f:
+                            st.download_button(
+                                label="📥 Download HTML Report",
+                                data=f.read(),
+                                file_name=html_filename,
+                                mime="text/html",
+                                use_container_width=True
+                            )
                         
-                        # Create visualization images
-                        images = report_generator.create_visualization_images()
+                        st.success("✅ HTML report with authentic Step 10 data and interactive charts generated successfully!")
+                        st.info("📋 Report includes: Project info, building analysis, orientation charts, radiation data, BIPV specifications")
                         
-                        # Generate PDF using Step 10 dashboard data
-                        pdf_content = report_generator.generate_pdf_report(report_data, images)
+                        # Clean up temporary file
+                        import os
+                        os.unlink(html_path)
+                    else:
+                        st.error("❌ Failed to generate HTML report")
                         
-                        if pdf_content:
-                            st.session_state['pdf_content'] = pdf_content
-                            st.success("✅ PDF report with Step 10 data generated successfully!")
-                        else:
-                            st.error("❌ Failed to generate PDF report")
-                    except Exception as e:
-                        st.error(f"❌ Error generating PDF: {str(e)}")
-            else:
-                st.warning("⚠️ Please prepare report data first")
+                except Exception as e:
+                    st.error(f"❌ Error generating HTML report: {str(e)}")
     
     with col3:
-        if st.button("📝 Generate Word Report", use_container_width=True):
-            if 'comprehensive_report_data' in st.session_state:
-                with st.spinner("Generating comprehensive Word report with Step 10 data..."):
-                    try:
-                        report_generator = BIPVReportGenerator(project_id)
-                        report_data = st.session_state['comprehensive_report_data']
-                        
-                        # Create visualization images
-                        images = report_generator.create_visualization_images()
-                        
-                        # Generate Word document using Step 10 dashboard data
-                        docx_content = report_generator.generate_word_report(report_data, images)
-                        
-                        if docx_content:
-                            st.session_state['docx_content'] = docx_content
-                            st.success("✅ Word report with Step 10 data generated successfully!")
-                        else:
-                            st.error("❌ Failed to generate Word report")
-                    except Exception as e:
-                        st.error(f"❌ Error generating Word report: {str(e)}")
-            else:
-                st.warning("⚠️ Please prepare report data first")
+        st.markdown("**🎯 HTML Report Features:**")
+        st.write("• **Interactive Charts**: Plotly visualizations")
+        st.write("• **Authentic Data**: All values from database")
+        st.write("• **Professional Layout**: Clean, readable format")  
+        st.write("• **Complete Analysis**: All Step 10 sections")
+        st.write("• **Zero Fallbacks**: PhD research standards")
     
-    # Download section
-    if 'pdf_content' in st.session_state or 'docx_content' in st.session_state:
-        st.markdown("---")
-        st.markdown("**📥 Download Generated Reports:**")
-        
-        download_col1, download_col2 = st.columns(2)
-        
-        with download_col1:
-            if 'pdf_content' in st.session_state:
-                create_download_links(
-                    st.session_state['pdf_content'], 
-                    None, 
-                    project_id
-                )
-        
-        with download_col2:
-            if 'docx_content' in st.session_state:
-                create_download_links(
-                    None, 
-                    st.session_state['docx_content'], 
-                    project_id
-                )
+    # Success message section
+    st.markdown("---")
+    st.markdown("**🔬 Research-Grade Reporting:**")
+    st.write("HTML reports maintain authentic data integrity required for PhD research documentation.")
+    st.write("All charts use actual calculated values with zero fallback or placeholder data.")
     
     # Report contents preview
     if 'report_data' in st.session_state:
