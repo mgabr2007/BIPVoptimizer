@@ -580,7 +580,7 @@ def get_dashboard_data(project_id):
             # PV Specifications (Step 6) - Enhanced with BIPV specifications data
             pv_specs_data = db_manager.get_pv_specifications(project_id)
             if pv_specs_data and 'bipv_specifications' in pv_specs_data:
-                bipv_specs = pv_specs_data['bipv_specifications']
+                bipv_specs = pv_specs_data.get('bipv_specifications', [])
                 if isinstance(bipv_specs, list) and len(bipv_specs) > 0:
                     total_capacity = sum(float(spec.get('capacity_kw', 0)) for spec in bipv_specs)
                     total_annual_yield = sum(float(spec.get('annual_energy_kwh', 0)) for spec in bipv_specs)
@@ -637,7 +637,7 @@ def get_dashboard_data(project_id):
             optimization_results = db_manager.get_optimization_results(project_id)
             
             if optimization_results and 'solutions' in optimization_results:
-                solutions_df = optimization_results['solutions']
+                solutions_df = optimization_results.get('solutions', pd.DataFrame())
                 if not solutions_df.empty:
                     # Get top 5 solutions
                     top_5 = solutions_df.head(5)
@@ -920,8 +920,9 @@ def create_building_analysis_section(data):
     
     with col1:
         # Orientation distribution
-        if data['building']['orientation_distribution']:
-            orientation_df = pd.DataFrame(data['building']['orientation_distribution'])
+        orientation_dist = data['building'].get('orientation_distribution', [])
+        if orientation_dist:
+            orientation_df = pd.DataFrame(orientation_dist)
             fig = px.pie(
                 orientation_df, 
                 values='count', 
@@ -932,8 +933,10 @@ def create_building_analysis_section(data):
     
     with col2:
         # Radiation performance by orientation
-        if 'radiation' in data and data['radiation']['by_orientation']:
-            radiation_df = pd.DataFrame(data['radiation']['by_orientation'])
+        if 'radiation' in data:
+            radiation_by_orient = data['radiation'].get('by_orientation', [])
+            if radiation_by_orient:
+                radiation_df = pd.DataFrame(radiation_by_orient)
             fig = px.bar(
                 radiation_df,
                 x='orientation',
@@ -959,9 +962,9 @@ def create_energy_analysis_section(data):
         # Energy balance
         categories = ['Generation', 'Demand', 'Net Balance']
         values = [
-            energy['annual_generation'],
-            energy['annual_demand'],
-            abs(energy['net_energy_balance'])
+            energy.get('annual_generation', 0),
+            energy.get('annual_demand', 0),
+            abs(energy.get('net_energy_balance', 0))
         ]
         colors = ['green', 'red', 'blue']
         
@@ -980,14 +983,20 @@ def create_energy_analysis_section(data):
     with col2:
         # Energy metrics
         st.markdown("**Key Energy Metrics:**")
-        st.write(f"• **Self-Consumption Rate:** {energy['self_consumption_rate']:.1f}%")
-        st.write(f"• **Energy Yield per m²:** {energy['energy_yield_per_m2']:.1f} kWh/m²/year")
-        st.write(f"• **Coverage Ratio:** {(energy['annual_generation']/energy['annual_demand']*100):.1f}%")
+        self_consumption = energy.get('self_consumption_rate', 0)
+        yield_per_m2 = energy.get('energy_yield_per_m2', 0)
+        annual_gen = energy.get('annual_generation', 0)
+        annual_demand = energy.get('annual_demand', 1)
+        coverage_ratio = (annual_gen / annual_demand * 100) if annual_demand > 0 else 0
+        st.write(f"• **Self-Consumption Rate:** {self_consumption:.1f}%")
+        st.write(f"• **Energy Yield per m²:** {yield_per_m2:.1f} kWh/m²/year")
+        st.write(f"• **Coverage Ratio:** {coverage_ratio:.1f}%")
         
-        if energy['net_energy_balance'] > 0:
-            st.success(f"✅ Energy Surplus: {energy['net_energy_balance']:,.0f} kWh/year")
+        net_balance = energy.get('net_energy_balance', 0)
+        if net_balance and net_balance > 0:
+            st.success(f"✅ Energy Surplus: {net_balance:,.0f} kWh/year")
         else:
-            st.info(f"ℹ️ Energy Import: {abs(energy['net_energy_balance']):,.0f} kWh/year")
+            st.info(f"ℹ️ Energy Import: {abs(net_balance):,.0f} kWh/year")
 
 def create_financial_analysis_section(data):
     """Create financial analysis visualizations"""
@@ -1025,20 +1034,25 @@ def create_financial_analysis_section(data):
     with col2:
         # Financial performance indicators
         st.markdown("**Financial Performance:**")
-        st.write(f"• **IRR:** {financial['irr_percentage']:.1f}%")
-        st.write(f"• **Payback Period:** {financial['payback_period_years']:.1f} years")
+        irr = financial.get('irr_percentage', 0)
+        payback = financial.get('payback_period_years', 0)
+        st.write(f"• **IRR:** {irr:.1f}%")
+        st.write(f"• **Payback Period:** {payback:.1f} years")
         
-        if financial['npv_eur'] > 0:
-            st.success(f"✅ Positive NPV: €{financial['npv_eur']:,.0f}")
+        npv_value = financial.get('npv_eur', 0)
+        if npv_value and npv_value > 0:
+            st.success(f"✅ Positive NPV: €{npv_value:,.0f}")
         else:
-            st.warning(f"⚠️ Negative NPV: €{financial['npv_eur']:,.0f}")
+            st.warning(f"⚠️ Negative NPV: €{npv_value:,.0f}")
         
         # Environmental impact
         if 'environmental' in data:
             env = data['environmental']
             st.markdown("**Environmental Impact:**")
-            st.write(f"• **Annual CO₂ Reduction:** {env['annual_co2_reduction_kg']:,.0f} kg")
-            st.write(f"• **25-Year CO₂ Reduction:** {env['lifetime_co2_reduction_kg'] / 1000:,.0f} Tons")
+            annual_co2 = env.get('annual_co2_reduction_kg', 0)
+            lifetime_co2 = env.get('lifetime_co2_reduction_kg', 0)
+            st.write(f"• **Annual CO₂ Reduction:** {annual_co2:,.0f} kg")
+            st.write(f"• **25-Year CO₂ Reduction:** {lifetime_co2 / 1000:,.0f} Tons")
 
 def create_optimization_section(data):
     """Create optimization results section with selected solutions"""
@@ -1065,22 +1079,26 @@ def create_optimization_section(data):
     
     # Recommended solution highlight
     if opt.get('recommended_solution'):
-        rec = opt['recommended_solution']
+        rec = opt.get('recommended_solution', {})
         st.markdown("#### ⭐ **RECOMMENDED SOLUTION**")
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown(f"**Solution ID:** {rec['solution_id']}")
-            st.markdown(f"**Capacity:** {rec['capacity_kw']:.1f} kW")
-            st.markdown(f"**Total Cost:** €{rec['total_cost_eur']:,.0f}")
+            solution_id = rec.get('solution_id', 'N/A')
+            capacity = rec.get('capacity_kw', 0)
+            total_cost = rec.get('total_cost_eur', 0)
+            st.markdown(f"**Solution ID:** {solution_id}")
+            st.markdown(f"**Capacity:** {capacity:.1f} kW")
+            st.markdown(f"**Total Cost:** €{total_cost:,.0f}")
         
         with col2:
-            st.markdown(f"**ROI:** {rec['roi_percentage']:.1f}%")
+            roi = rec.get('roi_percentage', 0)
+            st.markdown(f"**ROI:** {roi:.1f}%")
             
             # ROI indicator
-            if rec['roi_percentage'] > 8:
+            if roi and roi > 8:
                 st.success("✅ Excellent ROI")
-            elif rec['roi_percentage'] > 5:
+            elif roi and roi > 5:
                 st.info("✓ Good ROI")
             else:
                 st.warning("⚠️ Low ROI")
@@ -1089,7 +1107,7 @@ def create_optimization_section(data):
     if opt.get('top_solutions'):
         st.markdown("#### 📊 Top 5 Solutions")
         
-        solutions_df = pd.DataFrame(opt['top_solutions'])
+        solutions_df = pd.DataFrame(opt.get('top_solutions', []))
         
         # Format the DataFrame for display
         display_df = solutions_df.copy()
