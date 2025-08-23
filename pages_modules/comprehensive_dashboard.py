@@ -848,7 +848,10 @@ def create_overview_cards(data):
     with col9:
         if 'ai_model' in data and 'building' in data:
             building_area = data['ai_model'].get('building_area', 0)
+            # Ensure building_area is not None
+            building_area = building_area if building_area is not None else 0
             total_glass = data['building'].get('total_glass_area', 0)
+            total_glass = total_glass if total_glass is not None else 0
             glass_ratio = (total_glass / building_area * 100) if building_area and building_area > 0 else 0
             st.metric(
                 "Building Analysis",
