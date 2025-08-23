@@ -62,7 +62,22 @@ def get_current_project_id():
         conn = db_manager.get_connection()
         if conn:
             with conn.cursor() as cursor:
-                # First try to find project with building elements (most common)
+                # First try to find project with complete workflow data (AI model + building elements + radiation)
+                cursor.execute("""
+                    SELECT DISTINCT be.project_id 
+                    FROM building_elements be
+                    INNER JOIN ai_models am ON be.project_id = am.project_id
+                    INNER JOIN element_radiation er ON be.project_id = er.project_id
+                    WHERE am.r_squared_score IS NOT NULL AND am.r_squared_score > 0
+                    ORDER BY be.project_id DESC LIMIT 1
+                """)
+                result = cursor.fetchone()
+                if result:
+                    fallback_project_id = result[0]
+                    st.session_state.current_project_id = fallback_project_id
+                    return fallback_project_id
+                
+                # Fallback: find project with building elements only
                 cursor.execute("""
                     SELECT DISTINCT project_id FROM building_elements 
                     ORDER BY project_id DESC LIMIT 1
