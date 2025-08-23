@@ -116,8 +116,8 @@ class BIPVReportGenerator:
                         spec_count = len(specs)
                         total_capacity = sum(float(s['capacity_kw']) for s in specs)
                         total_energy = sum(float(s['annual_energy_kwh']) for s in specs)
-                        avg_capacity = total_capacity / spec_count if spec_count > 0 else 0
-                        avg_energy = total_energy / spec_count if spec_count > 0 else 0
+                        avg_capacity = float(total_capacity / spec_count) if spec_count > 0 else 0
+                        avg_energy = float(total_energy / spec_count) if spec_count > 0 else 0
                         bipv_specs = (spec_count, total_capacity, total_energy, avg_energy, pv_data[0], pv_data[1], pv_data[2])
                 except:
                     bipv_specs = None
@@ -259,9 +259,14 @@ class BIPVReportGenerator:
             
             # Building Analysis Section (Mirror from create_building_analysis_section)
             if building_summary:
-                suitability_rate = (building_summary[1]/building_summary[0]*100) if building_summary[0] and building_summary[1] else 0
-                avg_area = (building_summary[2] / building_summary[0]) if building_summary[0] > 0 else 0
-                suitable_area = (building_summary[2] * suitability_rate / 100) if building_summary[2] > 0 else 0
+                # Convert decimal types to float for calculations
+                total_elements = float(building_summary[0]) if building_summary[0] else 0
+                suitable_elements = float(building_summary[1]) if building_summary[1] else 0 
+                total_glass_area = float(building_summary[2]) if building_summary[2] else 0
+                
+                suitability_rate = (suitable_elements/total_elements*100) if total_elements > 0 else 0
+                avg_area = (total_glass_area / total_elements) if total_elements > 0 else 0
+                suitable_area = (total_glass_area * suitability_rate / 100) if total_glass_area > 0 else 0
                 
                 html_content += f"""
                 <div class="section">
@@ -270,11 +275,11 @@ class BIPVReportGenerator:
                     <h3>📊 Step 4: Building Elements & BIM Data Analysis</h3>
                     <div class="metrics-grid">
                         <div class="metric-card">
-                            <div class="metric-value">{building_summary[0]:,}</div>
+                            <div class="metric-value">{total_elements:,.0f}</div>
                             <div class="metric-label">Total Building Elements</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-value">{building_summary[1]:,}</div>
+                            <div class="metric-value">{suitable_elements:,.0f}</div>
                             <div class="metric-label">BIPV Suitable Elements</div>
                         </div>
                         <div class="metric-card">
@@ -282,7 +287,7 @@ class BIPVReportGenerator:
                             <div class="metric-label">Suitability Rate</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-value">{building_summary[2]:,.0f} m²</div>
+                            <div class="metric-value">{total_glass_area:,.0f} m²</div>
                             <div class="metric-label">Total Glass Area</div>
                         </div>
                         <div class="metric-card">
@@ -299,8 +304,8 @@ class BIPVReportGenerator:
                     <table>
                         <tr><th>Parameter</th><th>Value</th><th>Analysis</th></tr>
                         <tr><td>Unique Orientations</td><td>4</td><td>North, South, East, West facades</td></tr>
-                        <tr><td>Building Levels</td><td>{building_summary[5]}</td><td>Distinct floor levels identified</td></tr>
-                        <tr><td>Unique Families</td><td>{building_summary[4]}</td><td>Different window types</td></tr>
+                        <tr><td>Building Levels</td><td>{int(building_summary[5]) if building_summary[5] else 0}</td><td>Distinct floor levels identified</td></tr>
+                        <tr><td>Unique Families</td><td>{int(building_summary[4]) if building_summary[4] else 0}</td><td>Different window types</td></tr>
                         <tr><td>Element Category</td><td>{"Large Windows" if avg_area > 30 else "Medium Windows" if avg_area > 15 else "Small Windows"}</td><td>Based on average area</td></tr>
                     </table>
                 </div>
@@ -351,9 +356,15 @@ class BIPVReportGenerator:
                 html_content += """</table>
                 </div>"""
             
-            # Solar Radiation Analysis Section (Step 5)
+            # Solar Radiation Analysis Section (Step 5)  
             if radiation_summary and radiation_summary[0] > 0:
-                coverage_rate = (radiation_summary[0]/building_summary[0]*100) if building_summary[0] > 0 else 0
+                # Convert decimal types to float for calculations
+                analyzed_elements = float(radiation_summary[0])
+                avg_radiation = float(radiation_summary[1])
+                max_radiation = float(radiation_summary[2]) 
+                min_radiation = float(radiation_summary[3])
+                
+                coverage_rate = (analyzed_elements/total_elements*100) if total_elements > 0 else 0
                 html_content += f"""
                 <div class="section">
                     <h2>☀️ Step 5: Solar Radiation Analysis</h2>
@@ -361,22 +372,22 @@ class BIPVReportGenerator:
                     <h3>Radiation Overview Metrics:</h3>
                     <div class="metrics-grid">
                         <div class="metric-card">
-                            <div class="metric-value">{radiation_summary[0]:,}</div>
+                            <div class="metric-value">{analyzed_elements:,.0f}</div>
                             <div class="metric-label">Analyzed Elements</div>
                             <div class="metric-subtitle">{coverage_rate:.1f}% coverage</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-value">{radiation_summary[1]:,.0f}</div>
+                            <div class="metric-value">{avg_radiation:,.0f}</div>
                             <div class="metric-label">Average Radiation</div>
                             <div class="metric-subtitle">kWh/m²/year</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-value">{radiation_summary[2]:,.0f}</div>
+                            <div class="metric-value">{max_radiation:,.0f}</div>
                             <div class="metric-label">Maximum Radiation</div>
                             <div class="metric-subtitle">kWh/m²/year</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-value">{radiation_summary[3]:,.0f}</div>
+                            <div class="metric-value">{min_radiation:,.0f}</div>
                             <div class="metric-label">Minimum Radiation</div>
                             <div class="metric-subtitle">kWh/m²/year</div>
                         </div>
@@ -386,8 +397,8 @@ class BIPVReportGenerator:
                     <table>
                         <tr><th>Metric</th><th>Value</th><th>Performance Level</th></tr>
                         <tr><td>Analysis Coverage</td><td>{coverage_rate:.1f}%</td><td>{"Excellent" if coverage_rate > 95 else "Good" if coverage_rate > 85 else "Partial"}</td></tr>
-                        <tr><td>Average Performance</td><td>{radiation_summary[1]:,.0f} kWh/m²/year</td><td>{"High" if radiation_summary[1] > 800 else "Moderate" if radiation_summary[1] > 600 else "Low"}</td></tr>
-                        <tr><td>Performance Range</td><td>{radiation_summary[2]-radiation_summary[3]:,.0f} kWh/m²/year</td><td>Facade variation</td></tr>
+                        <tr><td>Average Performance</td><td>{avg_radiation:,.0f} kWh/m²/year</td><td>{"High" if avg_radiation > 800 else "Moderate" if avg_radiation > 600 else "Low"}</td></tr>
+                        <tr><td>Performance Range</td><td>{max_radiation-min_radiation:,.0f} kWh/m²/year</td><td>Facade variation</td></tr>
                         <tr><td>BIPV Threshold</td><td>400 kWh/m²/year</td><td>Minimum for viability</td></tr>
                     </table>
                 </div>
@@ -435,9 +446,15 @@ class BIPVReportGenerator:
             energy_data = cursor.fetchone()
             
             if energy_data:
-                annual_gen, annual_demand, net_balance, self_consumption, grid_import = energy_data
+                # Convert decimal types to float for calculations
+                annual_gen = float(energy_data[0]) if energy_data[0] else 0
+                annual_demand = float(energy_data[1]) if energy_data[1] else 0
+                net_balance = float(energy_data[2]) if energy_data[2] else 0
+                self_consumption = float(energy_data[3]) if energy_data[3] else 0
+                grid_import = float(energy_data[4]) if energy_data[4] else 0
+                
                 coverage_ratio = (annual_gen / annual_demand * 100) if annual_demand > 0 else 0
-                yield_per_m2 = (annual_gen / building_summary[2]) if building_summary and building_summary[2] > 0 else 0
+                yield_per_m2 = (annual_gen / total_glass_area) if building_summary and total_glass_area > 0 else 0
                 
                 html_content += f"""
                 <div class="section">
@@ -553,7 +570,13 @@ class BIPVReportGenerator:
             financial_data = cursor.fetchone()
             
             if financial_data:
-                investment, npv, irr, payback, annual_savings = financial_data
+                # Convert decimal types to float for calculations
+                investment = float(financial_data[0]) if financial_data[0] else 0
+                npv = float(financial_data[1]) if financial_data[1] else 0
+                irr = float(financial_data[2]) if financial_data[2] else 0
+                payback = float(financial_data[3]) if financial_data[3] else 0
+                annual_savings = float(financial_data[4]) if financial_data[4] else 0
+                
                 total_25_year_savings = annual_savings * 25 if annual_savings else 0
                 
                 html_content += f"""
