@@ -1213,7 +1213,12 @@ def create_step4_detailed_analysis(data, project_id):
         
         conn.close()
         
-        # Create visualizations
+        # Create comprehensive visualizations matching Step 4 design
+        
+        # First: Sankey Diagram (Orientation → Family → Building Level)
+        create_step4_sankey_diagram(family_data, level_data, azimuth_data, project_id)
+        
+        # Second: Traditional charts section
         col1, col2 = st.columns(2)
         
         with col1:
@@ -1314,36 +1319,15 @@ def create_step4_detailed_analysis(data, project_id):
             def azimuth_to_direction(azimuth):
                 directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
                              'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
-                index = round(azimuth / 22.5) % 16
+                # Convert Decimal to float to handle database decimal types
+                azimuth_float = float(azimuth) if azimuth is not None else 0
+                index = round(azimuth_float / 22.5) % 16
                 return directions[index]
             
             azimuth_df['Direction'] = azimuth_df['Azimuth'].apply(azimuth_to_direction)
             
-            # Create polar plot
-            fig = go.Figure()
-            
-            fig.add_trace(go.Scatterpolar(
-                r=azimuth_df['Count'],
-                theta=azimuth_df['Azimuth'],
-                mode='markers+lines',
-                fill='toself',
-                name='Element Count',
-                marker=dict(size=8, color='rgb(27, 38, 81)', opacity=0.7),
-                line=dict(color='rgb(27, 38, 81)', width=2),
-                hovertemplate='<b>Azimuth:</b> %{theta}°<br><b>Count:</b> %{r}<br><extra></extra>'
-            ))
-            
-            fig.update_layout(
-                polar=dict(
-                    radialaxis=dict(visible=True, range=[0, max(azimuth_df['Count']) * 1.1]),
-                    angularaxis=dict(direction="clockwise", start=90)
-                ),
-                title="Element Distribution by Azimuth (Polar View)",
-                showlegend=True,
-                height=400
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
+            # Create enhanced Sunburst chart (matching Step 4 design)
+            create_step4_sunburst_chart(azimuth_df, family_data, level_data, project_id)
             
             # Azimuth summary
             st.markdown("**Azimuth Distribution Summary:**")
@@ -1423,6 +1407,204 @@ def create_step4_data_quality_metrics(project_id):
     except Exception as e:
         st.error(f"❌ Database error in data quality analysis - authentic data required: {str(e)}")
         st.error("PhD research integrity requires only verified database metrics - no synthetic data allowed")
+
+def create_step4_sankey_diagram(family_data, level_data, azimuth_data, project_id):
+    """Create Sankey diagram showing Orientation → Family → Building Level flow"""
+    st.markdown("**Building Element Flow Analysis (Sankey Diagram)**")
+    
+    try:
+        conn = db_manager.get_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        
+        # Get orientation → family → level relationships
+        cursor.execute("""
+            SELECT orientation, family, building_level, COUNT(*) as count
+            FROM building_elements 
+            WHERE project_id = %s 
+                AND orientation IS NOT NULL AND orientation != ''
+                AND family IS NOT NULL AND family != ''
+                AND building_level IS NOT NULL AND building_level != ''
+            GROUP BY orientation, family, building_level
+            ORDER BY count DESC
+        """, (project_id,))
+        
+        sankey_data = cursor.fetchall()
+        conn.close()
+        
+        if sankey_data:
+            # Build Sankey diagram data structure
+            orientations = set()
+            families = set()
+            levels = set()
+            
+            for row in sankey_data:
+                orientations.add(row[0])
+                families.add(row[1])
+                levels.add(row[2])
+            
+            # Create node labels and indices
+            all_nodes = list(orientations) + list(families) + list(levels)
+            node_indices = {node: i for i, node in enumerate(all_nodes)}
+            
+            # Build links
+            source = []
+            target = []
+            value = []
+            
+            for row in sankey_data:
+                orientation, family, level, count = row
+                
+                # Orientation → Family
+                source.append(node_indices[orientation])
+                target.append(node_indices[family])
+                value.append(count)
+                
+                # Family → Level
+                source.append(node_indices[family])
+                target.append(node_indices[level])
+                value.append(count)
+            
+            # Create Sankey diagram
+            fig = go.Figure(data=[go.Sankey(
+                node = dict(
+                    pad = 15,
+                    thickness = 20,
+                    line = dict(color = "black", width = 0.5),
+                    label = all_nodes,
+                    color = "rgba(0,116,217,0.8)"
+                ),
+                link = dict(
+                    source = source,
+                    target = target,
+                    value = value,
+                    color = "rgba(0,116,217,0.4)"
+                )
+            )])
+            
+            fig.update_layout(
+                title_text="Building Element Flow: Orientation → Family → Level",
+                font_size=12,
+                height=500
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Insufficient data for Sankey diagram - requires orientation, family, and level data")
+            
+    except Exception as e:
+        st.error(f"Error creating Sankey diagram: {str(e)}")
+
+def create_step4_sunburst_chart(azimuth_df, family_data, level_data, project_id):
+    """Create Sunburst chart matching Step 4 design"""
+    st.markdown("**Hierarchical Element Distribution (Sunburst Chart)**")
+    
+    try:
+        conn = db_manager.get_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        
+        # Get hierarchical data: orientation → family → level
+        cursor.execute("""
+            SELECT orientation, family, building_level, COUNT(*) as count, AVG(glass_area) as avg_area
+            FROM building_elements 
+            WHERE project_id = %s 
+                AND orientation IS NOT NULL AND orientation != ''
+                AND family IS NOT NULL AND family != ''
+            GROUP BY orientation, family, building_level
+            ORDER BY orientation, family, building_level
+        """, (project_id,))
+        
+        hierarchy_data = cursor.fetchall()
+        conn.close()
+        
+        if hierarchy_data:
+            # Build Sunburst data
+            ids = []
+            labels = []
+            parents = []
+            values = []
+            colors = []
+            
+            # Color schemes for different levels
+            orientation_colors = {
+                'South': '#FF8C00', 'East': '#4682B4', 'West': '#32CD32', 'North': '#9370DB'
+            }
+            
+            # Level 1: Orientations
+            orientations = {}
+            for row in hierarchy_data:
+                orientation = row[0]
+                if orientation not in orientations:
+                    orientations[orientation] = 0
+                orientations[orientation] += row[3]
+            
+            for orientation, count in orientations.items():
+                ids.append(orientation)
+                labels.append(f"{orientation}<br>{count} elements")
+                parents.append("")
+                values.append(count)
+                colors.append(orientation_colors.get(orientation, '#808080'))
+            
+            # Level 2: Families within Orientations
+            families = {}
+            for row in hierarchy_data:
+                orientation, family = row[0], row[1]
+                family_id = f"{orientation}-{family}"
+                if family_id not in families:
+                    families[family_id] = 0
+                families[family_id] += row[3]
+            
+            for family_id, count in families.items():
+                orientation, family = family_id.split('-', 1)
+                ids.append(family_id)
+                labels.append(f"{family}<br>{count} elements")
+                parents.append(orientation)
+                values.append(count)
+                # Lighter shade of orientation color
+                base_color = orientation_colors.get(orientation, '#808080')
+                colors.append(base_color.replace(')', ', 0.7)').replace('#', 'rgba(').replace('#', ''))
+            
+            # Level 3: Building Levels within Families (if available)
+            for row in hierarchy_data:
+                orientation, family, level, count = row[0], row[1], row[2], row[3]
+                if level and level.strip():
+                    level_id = f"{orientation}-{family}-{level}"
+                    family_id = f"{orientation}-{family}"
+                    
+                    ids.append(level_id)
+                    labels.append(f"Level {level}<br>{count} elements")
+                    parents.append(family_id)
+                    values.append(count)
+                    # Even lighter shade
+                    base_color = orientation_colors.get(orientation, '#808080')
+                    colors.append(base_color.replace(')', ', 0.4)').replace('#', 'rgba(').replace('#', ''))
+            
+            # Create Sunburst chart
+            fig = go.Figure(go.Sunburst(
+                ids=ids,
+                labels=labels,
+                parents=parents,
+                values=values,
+                branchvalues="total",
+                hovertemplate='<b>%{label}</b><br>Elements: %{value}<extra></extra>',
+                maxdepth=3
+            ))
+            
+            fig.update_layout(
+                title="Building Element Hierarchy: Orientation → Family → Level",
+                height=600,
+                font_size=12
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Insufficient hierarchical data for Sunburst chart")
+            
+    except Exception as e:
+        st.error(f"Error creating Sunburst chart: {str(e)}")
 
 def create_energy_analysis_section(data):
     """Create energy analysis visualizations"""
