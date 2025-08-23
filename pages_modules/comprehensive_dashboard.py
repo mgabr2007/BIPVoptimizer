@@ -1418,15 +1418,32 @@ def create_step4_sankey_diagram(family_data, level_data, azimuth_data, project_i
             return
         cursor = conn.cursor()
         
-        # Get orientation → family → level relationships
+        # First check what data is available
         cursor.execute("""
-            SELECT orientation, family, building_level, COUNT(*) as count
+            SELECT 
+                COUNT(*) as total_elements,
+                COUNT(CASE WHEN orientation IS NOT NULL AND orientation != '' THEN 1 END) as has_orientation,
+                COUNT(CASE WHEN family IS NOT NULL AND family != '' THEN 1 END) as has_family,
+                COUNT(CASE WHEN building_level IS NOT NULL AND building_level != '' THEN 1 END) as has_level
+            FROM building_elements 
+            WHERE project_id = %s
+        """, (project_id,))
+        
+        data_check = cursor.fetchone()
+        st.write(f"**Data Availability Check:**")
+        st.write(f"- Total Elements: {data_check[0]}")
+        st.write(f"- With Orientation: {data_check[1]}")
+        st.write(f"- With Family: {data_check[2]}")
+        st.write(f"- With Building Level: {data_check[3]}")
+        
+        # Get orientation → family relationships (simplified for available data)
+        cursor.execute("""
+            SELECT orientation, family, COUNT(*) as count
             FROM building_elements 
             WHERE project_id = %s 
                 AND orientation IS NOT NULL AND orientation != ''
                 AND family IS NOT NULL AND family != ''
-                AND building_level IS NOT NULL AND building_level != ''
-            GROUP BY orientation, family, building_level
+            GROUP BY orientation, family
             ORDER BY count DESC
         """, (project_id,))
         
@@ -1434,18 +1451,16 @@ def create_step4_sankey_diagram(family_data, level_data, azimuth_data, project_i
         conn.close()
         
         if sankey_data:
-            # Build Sankey diagram data structure
+            # Build Sankey diagram data structure for Orientation → Family
             orientations = set()
             families = set()
-            levels = set()
             
             for row in sankey_data:
                 orientations.add(row[0])
                 families.add(row[1])
-                levels.add(row[2])
             
             # Create node labels and indices
-            all_nodes = list(orientations) + list(families) + list(levels)
+            all_nodes = list(orientations) + list(families)
             node_indices = {node: i for i, node in enumerate(all_nodes)}
             
             # Build links
@@ -1454,16 +1469,11 @@ def create_step4_sankey_diagram(family_data, level_data, azimuth_data, project_i
             value = []
             
             for row in sankey_data:
-                orientation, family, level, count = row
+                orientation, family, count = row
                 
                 # Orientation → Family
                 source.append(node_indices[orientation])
                 target.append(node_indices[family])
-                value.append(count)
-                
-                # Family → Level
-                source.append(node_indices[family])
-                target.append(node_indices[level])
                 value.append(count)
             
             # Create Sankey diagram
@@ -1484,14 +1494,14 @@ def create_step4_sankey_diagram(family_data, level_data, azimuth_data, project_i
             )])
             
             fig.update_layout(
-                title_text="Building Element Flow: Orientation → Family → Level",
+                title_text="Building Element Flow: Orientation → Family",
                 font_size=12,
-                height=500
+                height=400
             )
             
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("Insufficient data for Sankey diagram - requires orientation, family, and level data")
+            st.warning("❌ No authentic orientation and family data found in database - Sankey requires real BIM relationships")
             
     except Exception as e:
         st.error(f"Error creating Sankey diagram: {str(e)}")
