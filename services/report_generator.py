@@ -165,9 +165,12 @@ class BIPVReportGenerator:
                 fig = go.Figure(data=[go.Pie(
                     labels=df['Orientation'],
                     values=df['Count'],
-                    title="Building Element Distribution by Orientation"
+                    name="Orientation Distribution"
                 )])
-                fig.update_layout(width=800, height=600)
+                fig.update_layout(
+                    title="Building Element Distribution by Orientation",
+                    width=800, height=600
+                )
                 images['orientation_pie'] = pio.to_image(fig, format='png', width=800, height=600)
             
             # 2. Radiation Analysis Chart using element_radiation table
@@ -187,9 +190,10 @@ class BIPVReportGenerator:
                     x=df['Area'],
                     y=df['Radiation'],
                     mode='markers',
-                    title="Radiation vs Window Area Analysis"
+                    name='Window Elements'
                 )])
                 fig.update_layout(
+                    title="Radiation vs Window Area Analysis",
                     xaxis_title="Window Area (m²)",
                     yaxis_title="Annual Radiation (kWh/m²)",
                     width=800, height=600
@@ -212,9 +216,10 @@ class BIPVReportGenerator:
                 fig = go.Figure(data=[go.Bar(
                     x=df['Family'],
                     y=df['Count'],
-                    title="Window Family Distribution"
+                    name='Window Families'
                 )])
                 fig.update_layout(
+                    title="Window Family Distribution",
                     xaxis_title="Window Family",
                     yaxis_title="Element Count",
                     width=800, height=600
