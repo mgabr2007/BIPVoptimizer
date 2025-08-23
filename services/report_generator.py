@@ -1196,17 +1196,20 @@ class BIPVReportGenerator:
                 
                 for solution in top_solutions:
                     solution_id, capacity, roi, net_import, rank_position = solution
-                    assessment = "Excellent ROI" if roi > 8 else "Good ROI" if roi > 5 else "Low ROI"
+                    capacity_float = float(capacity) if capacity else 0
+                    roi_float = float(roi) if roi else 0
+                    assessment = "Excellent ROI" if roi_float > 8 else "Good ROI" if roi_float > 5 else "Low ROI"
                     # Use capacity as proxy for cost
-                    estimated_cost = float(capacity) * 1000  # Rough estimate: €1000 per kW
+                    estimated_cost = capacity_float * 1000  # Rough estimate: €1000 per kW
                     html_content += f"""
-                    <tr><td>{rank_position}</td><td>{solution_id}</td><td>{capacity:.1f}</td><td>{roi:.1f}</td><td>€{estimated_cost:,.0f}</td><td>{assessment}</td></tr>
+                    <tr><td>{rank_position}</td><td>{solution_id}</td><td>{capacity_float:.1f}</td><td>{roi_float:.1f}</td><td>€{estimated_cost:,.0f}</td><td>{assessment}</td></tr>
                     """
                     
-                    # Collect data for chart
-                    solution_costs.append(estimated_cost)
-                    solution_rois.append(float(roi))
-                    solution_ids.append(str(solution_id))
+                    # Collect data for chart - ensure we have valid data
+                    if capacity_float > 0 and roi_float is not None:
+                        solution_costs.append(estimated_cost)
+                        solution_rois.append(roi_float)
+                        solution_ids.append(str(solution_id))
                 
                 html_content += """
                     </table>
@@ -1217,22 +1220,34 @@ class BIPVReportGenerator:
                 
                 # Create ROI vs Cost Scatter Plot
                 
-                if solution_costs:
-                    opt_df = pd.DataFrame({
-                        'Total Cost (€)': solution_costs,
-                        'ROI (%)': solution_rois,
-                        'Solution ID': solution_ids
-                    })
+                # Debug: Add chart data info
+                html_content += f"""
+                    </table>
+                    <p><small>Debug: Found {len(solution_costs)} solutions for chart</small>
+                """
+                
+                if solution_costs and len(solution_costs) > 0:
+                    opt_fig = go.Figure(data=[go.Scatter(
+                        x=solution_costs,
+                        y=solution_rois,
+                        mode='markers',
+                        marker=dict(
+                            size=12,
+                            color='blue',
+                            opacity=0.7,
+                            line=dict(width=1, color='white')
+                        ),
+                        text=[f"Solution {sid}<br>Cost: €{cost:,.0f}<br>ROI: {roi:.1f}%" 
+                              for sid, cost, roi in zip(solution_ids, solution_costs, solution_rois)],
+                        hovertemplate='%{text}<extra></extra>'
+                    )])
                     
-                    opt_fig = px.scatter(
-                        opt_df, 
-                        x='Total Cost (€)', 
-                        y='ROI (%)',
-                        hover_data=['Solution ID'],
+                    opt_fig.update_layout(
                         title="Optimization Solutions: ROI vs Cost",
+                        xaxis_title="Total Cost (€)",
+                        yaxis_title="ROI (%)",
                         height=400
                     )
-                    opt_fig.update_traces(marker=dict(size=10, color='blue', opacity=0.7))
                     
                     opt_chart_html = pio.to_html(opt_fig, include_plotlyjs=False, div_id="optimization_scatter_chart")
                     html_content += opt_chart_html
