@@ -726,36 +726,34 @@ class BIPVReportGenerator:
                     perf_imports = [float(row[2]) for row in perf_data]
                     perf_ranks = [int(row[3]) for row in perf_data]
                     
-                    # Create 3D scatter plot for solution distribution
-                    perf_fig = go.Figure(data=[go.Scatter3d(
+                    # Create 2D scatter plot for solution distribution
+                    perf_fig = go.Figure(data=[go.Scatter(
                         x=perf_capacities,
                         y=perf_rois,
-                        z=perf_imports,
                         mode='markers',
                         marker=dict(
-                            size=8,
+                            size=[imp/1000 + 5 for imp in perf_imports],  # Size represents net import
                             color=perf_ranks,
                             colorscale='Viridis',
                             colorbar=dict(title="Rank Position"),
-                            opacity=0.8
+                            opacity=0.7,
+                            line=dict(width=1, color='black')
                         ),
-                        text=[f"Rank: {rank}<br>Capacity: {cap:.1f} kW<br>ROI: {roi:.1f}%<br>Import: {imp:,.0f} kWh" 
+                        text=[f"Rank: {rank}<br>Capacity: {cap:.1f} kW<br>ROI: {roi:.1f}%<br>Net Import: {imp:,.0f} kWh" 
                               for rank, cap, roi, imp in zip(perf_ranks, perf_capacities, perf_rois, perf_imports)],
                         hovertemplate='%{text}<extra></extra>'
                     )])
                     
                     perf_fig.update_layout(
-                        title="3D Solution Performance Distribution",
-                        scene=dict(
-                            xaxis_title="Capacity (kW)",
-                            yaxis_title="ROI (%)",
-                            zaxis_title="Net Import (kWh)"
-                        ),
-                        height=500
+                        title="Solution Performance Distribution (Bubble Size = Net Import)",
+                        xaxis_title="Capacity (kW)",
+                        yaxis_title="ROI (%)",
+                        height=500,
+                        showlegend=False
                     )
                     
-                    perf_3d_html = pio.to_html(perf_fig, include_plotlyjs=False, div_id="solution_performance_3d")
-                    html_content += perf_3d_html
+                    perf_2d_html = pio.to_html(perf_fig, include_plotlyjs=False, div_id="solution_performance_2d")
+                    html_content += perf_2d_html
                 
                 html_content += """
                     </div>
