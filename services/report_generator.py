@@ -82,6 +82,22 @@ class BIPVReportGenerator:
             """, (self.project_id,))
             orientation_data = cursor.fetchall()
             
+            # Get radiation data before HTML generation
+            cursor.execute("""
+                SELECT COUNT(*) as analyzed_elements,
+                       AVG(er.annual_radiation) as avg_radiation,
+                       MAX(er.annual_radiation) as max_radiation,
+                       MIN(er.annual_radiation) as min_radiation
+                FROM element_radiation er
+                JOIN building_elements be ON er.element_id = be.element_id
+                WHERE be.project_id = %s AND er.annual_radiation IS NOT NULL
+            """, (self.project_id,))
+            radiation_summary = cursor.fetchone()
+            
+            # Set default values if no radiation data
+            if not radiation_summary or radiation_summary[0] == 0:
+                radiation_summary = (0, 0, 0, 0)
+            
             # Get comprehensive dashboard data to mirror Step 10
             from pages_modules.comprehensive_dashboard import get_dashboard_data
             dashboard_data = get_dashboard_data(self.project_id)
