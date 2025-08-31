@@ -116,23 +116,38 @@ class DataProcessor:
     
     def get_orientation_from_azimuth(self, azimuth: float) -> OrientationType:
         """Convert azimuth to orientation using configuration."""
-        if pd.isna(azimuth):
+        if pd.isna(azimuth) or azimuth is None:
+            self.logger.warning(f"Missing azimuth data, returning UNKNOWN orientation")
             return OrientationType.UNKNOWN
         
-        azimuth = float(azimuth) % 360
+        try:
+            azimuth = float(azimuth) % 360
+        except (ValueError, TypeError):
+            self.logger.warning(f"Invalid azimuth value: {azimuth}, returning UNKNOWN orientation")
+            return OrientationType.UNKNOWN
+            
         config = self.config.orientation
         
-        # Check each orientation range
+        # Check each orientation range with improved logic
         if (azimuth >= config.north_range[0] or azimuth <= config.north_range[1]):
-            return OrientationType.NORTH
+            orientation = OrientationType.NORTH
         elif config.east_range[0] <= azimuth <= config.east_range[1]:
-            return OrientationType.EAST
+            orientation = OrientationType.EAST
         elif config.south_range[0] <= azimuth <= config.south_range[1]:
-            return OrientationType.SOUTH
+            orientation = OrientationType.SOUTH
         elif config.west_range[0] <= azimuth <= config.west_range[1]:
-            return OrientationType.WEST
+            orientation = OrientationType.WEST
         else:
-            return OrientationType.UNKNOWN
+            self.logger.warning(f"Azimuth {azimuth}° does not fit standard orientation ranges")
+            orientation = OrientationType.UNKNOWN
+            
+        # Debug logging for orientation calculation
+        if hasattr(self, 'debug_orientation_count'):
+            self.debug_orientation_count = getattr(self, 'debug_orientation_count', 0) + 1
+            if self.debug_orientation_count <= 5:  # Log first 5 calculations
+                self.logger.info(f"Azimuth {azimuth}° → {orientation.value}")
+        
+        return orientation
     
     def determine_pv_suitability(self, orientation: OrientationType, glass_area: float, 
                                 family: str) -> bool:
@@ -153,6 +168,117 @@ class DataProcessor:
                 return False
         
         return True
+        
+    def repair_missing_orientations(self, project_id: int) -> Tuple[int, List[str]]:
+        """Repair missing orientation data for existing records."""
+        from .database import BulkDatabaseOperations
+        
+        repaired_count = 0
+        errors = []
+        
+        try:
+            db_ops = BulkDatabaseOperations(project_id)
+            
+            with db_ops.connection_manager.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # Get records with missing orientation but valid azimuth
+                    cursor.execute("""
+                        SELECT element_id, azimuth 
+                        FROM building_elements 
+                        WHERE project_id = %s 
+                        AND (orientation IS NULL OR orientation = '') 
+                        AND azimuth IS NOT NULL 
+                        AND azimuth >= 0
+                    """, (project_id,))
+                    
+                    records_to_fix = cursor.fetchall()
+                    self.logger.info(f"Found {len(records_to_fix)} records with missing orientation data")
+                    
+                    # Update each record with calculated orientation
+                    for element_id, azimuth in records_to_fix:
+                        try:
+                            orientation = self.get_orientation_from_azimuth(azimuth)
+                            pv_suitable = self.determine_pv_suitability(
+                                orientation, 1.0, "Window"  # Use default values for existing check
+                            )
+                            
+                            cursor.execute("""
+                                UPDATE building_elements 
+                                SET orientation = %s, pv_suitable = %s 
+                                WHERE project_id = %s AND element_id = %s
+                            """, (orientation.value, pv_suitable, project_id, element_id))
+                            
+                            repaired_count += 1
+                            
+                        except Exception as e:
+                            errors.append(f"Element {element_id}: {str(e)}")
+                            
+                    # Re-calculate PV suitability based on actual glass area
+                    cursor.execute("""
+                        UPDATE building_elements 
+                        SET pv_suitable = (
+                            orientation IN ('South', 'East', 'West', 'Southeast', 'Southwest') 
+                            AND glass_area >= %s 
+                            AND glass_area <= %s
+                            AND family NOT ILIKE ANY(ARRAY['%%roof%%', '%%floor%%', '%%ceiling%%'])
+                        )
+                        WHERE project_id = %s 
+                        AND orientation IS NOT NULL 
+                        AND orientation != ''
+                    """, (
+                        self.config.suitability.min_glass_area,
+                        self.config.suitability.max_glass_area,
+                        project_id
+                    ))
+                    
+                    conn.commit()
+                    self.logger.info(f"Successfully repaired {repaired_count} orientation records")
+                    
+        except Exception as e:
+            errors.append(f"Database repair error: {str(e)}")
+            self.logger.error(f"Failed to repair orientations: {str(e)}")
+            
+        return repaired_count, errors
+    
+    def validate_csv_data_quality(self, df: pd.DataFrame) -> Tuple[bool, List[str]]:
+        """Validate CSV data quality before processing."""
+        errors = []
+        warnings = []
+        
+        # Check required columns
+        required_columns = ['ElementId', 'Glass Area (m²)', 'Azimuth (°)']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            errors.append(f"Missing required columns: {', '.join(missing_columns)}")
+        
+        if not errors:  # Only check data quality if columns exist
+            # Check for missing azimuth data
+            missing_azimuth = df['Azimuth (°)'].isna().sum()
+            total_rows = len(df)
+            
+            if missing_azimuth > 0:
+                missing_percent = (missing_azimuth / total_rows) * 100
+                if missing_percent > 10:  # More than 10% missing
+                    errors.append(f"Too many records with missing azimuth data: {missing_azimuth}/{total_rows} ({missing_percent:.1f}%)")
+                else:
+                    warnings.append(f"Some records have missing azimuth data: {missing_azimuth}/{total_rows} ({missing_percent:.1f}%)")
+            
+            # Check for invalid azimuth values
+            invalid_azimuth = ((df['Azimuth (°)'] < 0) | (df['Azimuth (°)'] >= 360)).sum()
+            if invalid_azimuth > 0:
+                warnings.append(f"Found {invalid_azimuth} records with invalid azimuth values (should be 0-360°)")
+            
+            # Check for missing glass area
+            missing_glass_area = df['Glass Area (m²)'].isna().sum()
+            if missing_glass_area > 0:
+                warnings.append(f"Found {missing_glass_area} records with missing glass area data")
+        
+        # Log warnings
+        for warning in warnings:
+            self.logger.warning(warning)
+            
+        return len(errors) == 0, errors
     
     def process_window_chunk(self, chunk: pd.DataFrame) -> Tuple[List[WindowRecord], List[str]]:
         """Process a chunk of window data."""
@@ -175,6 +301,10 @@ class DataProcessor:
                 orientation = self.get_orientation_from_azimuth(azimuth)
                 pv_suitable = self.determine_pv_suitability(orientation, glass_area, family)
                 
+                # Validate orientation was calculated properly
+                if orientation == OrientationType.UNKNOWN and azimuth > 0:
+                    self.logger.warning(f"Element {element_id}: Azimuth {azimuth}° resulted in UNKNOWN orientation")
+                
                 # Create window record
                 window = WindowRecord(
                     element_id=element_id,
@@ -189,6 +319,12 @@ class DataProcessor:
                     pv_suitable=pv_suitable,
                     project_id=self.project_id or 0
                 )
+                
+                # Debug: Log first few records to verify orientation storage
+                if hasattr(self, 'debug_record_count'):
+                    self.debug_record_count = getattr(self, 'debug_record_count', 0) + 1
+                    if self.debug_record_count <= 3:
+                        self.logger.info(f"Window record: ID={element_id}, Azimuth={azimuth}°, Orientation={orientation.value}, PV_Suitable={pv_suitable}")
                 
                 windows.append(window)
                 
