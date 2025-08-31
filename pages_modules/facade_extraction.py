@@ -584,7 +584,8 @@ def render_facade_extraction():
                 repair_status.text("Calculating orientations from azimuth data...")
                 repair_progress.progress(40)
                 
-                repaired_count, errors = processor.repair_missing_orientations(project_id)
+                # Repair orientations only for user-selected window types
+                repaired_count, errors = processor.repair_missing_orientations(project_id, selected_families_only=True)
                 
                 repair_progress.progress(80)
                 repair_status.text("Validating repair results...")

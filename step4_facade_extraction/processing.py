@@ -169,7 +169,7 @@ class DataProcessor:
         
         return True
         
-    def repair_missing_orientations(self, project_id: int) -> Tuple[int, List[str]]:
+    def repair_missing_orientations(self, project_id: int, selected_families_only: bool = True) -> Tuple[int, List[str]]:
         """Repair missing orientation data for existing records."""
         from .database import BulkDatabaseOperations
         
@@ -181,26 +181,59 @@ class DataProcessor:
             
             with db_ops.connection_manager.get_connection() as conn:
                 with conn.cursor() as cursor:
-                    # Get records with missing orientation but valid azimuth
-                    cursor.execute("""
-                        SELECT element_id, azimuth 
+                    # Get selected window families if respecting user selections
+                    selected_families = []
+                    if selected_families_only:
+                        cursor.execute("""
+                            SELECT selected_families FROM selected_window_types 
+                            WHERE project_id = %s
+                        """, (str(project_id),))
+                        result = cursor.fetchone()
+                        if result and result[0]:
+                            selected_families = result[0]
+                            self.logger.info(f"Repairing orientation data for selected families only: {selected_families}")
+                        else:
+                            self.logger.warning("No window type selections found, repairing all windows")
+                            selected_families_only = False
+                    
+                    # Build query with optional family filter
+                    base_query = """
+                        SELECT element_id, azimuth, glass_area, family 
                         FROM building_elements 
                         WHERE project_id = %s 
                         AND (orientation IS NULL OR orientation = '') 
                         AND azimuth IS NOT NULL 
                         AND azimuth >= 0
-                    """, (project_id,))
+                    """
+                    params = [project_id]
                     
+                    if selected_families_only and selected_families:
+                        base_query += " AND family = ANY(%s)"
+                        params.append(selected_families)
+                    
+                    cursor.execute(base_query, params)
                     records_to_fix = cursor.fetchall()
-                    self.logger.info(f"Found {len(records_to_fix)} records with missing orientation data")
+                    
+                    if selected_families_only and selected_families:
+                        self.logger.info(f"Found {len(records_to_fix)} records with missing orientation data in selected families")
+                    else:
+                        self.logger.info(f"Found {len(records_to_fix)} records with missing orientation data")
                     
                     # Update each record with calculated orientation
-                    for element_id, azimuth in records_to_fix:
+                    for element_id, azimuth, glass_area, family in records_to_fix:
                         try:
                             orientation = self.get_orientation_from_azimuth(azimuth)
-                            pv_suitable = self.determine_pv_suitability(
-                                orientation, 1.0, "Window"  # Use default values for existing check
-                            )
+                            
+                            # Only calculate suitability for selected families
+                            if selected_families_only and selected_families:
+                                # For selected families, check if they meet BIPV criteria
+                                pv_suitable = (
+                                    family in selected_families and
+                                    self.determine_pv_suitability(orientation, glass_area or 1.0, family)
+                                )
+                            else:
+                                # For all families, use standard suitability check
+                                pv_suitable = self.determine_pv_suitability(orientation, glass_area or 1.0, family)
                             
                             cursor.execute("""
                                 UPDATE building_elements 
@@ -212,24 +245,55 @@ class DataProcessor:
                             
                         except Exception as e:
                             errors.append(f"Element {element_id}: {str(e)}")
-                            
-                    # Re-calculate PV suitability based on actual glass area
-                    cursor.execute("""
-                        UPDATE building_elements 
-                        SET pv_suitable = (
-                            orientation IN ('South', 'East', 'West', 'Southeast', 'Southwest') 
-                            AND glass_area >= %s 
-                            AND glass_area <= %s
-                            AND family NOT ILIKE ANY(ARRAY['%%roof%%', '%%floor%%', '%%ceiling%%'])
-                        )
-                        WHERE project_id = %s 
-                        AND orientation IS NOT NULL 
-                        AND orientation != ''
-                    """, (
-                        self.config.suitability.min_glass_area,
-                        self.config.suitability.max_glass_area,
-                        project_id
-                    ))
+                    
+                    # Apply final suitability rules respecting user selections
+                    if selected_families_only and selected_families:
+                        # Only mark selected families as suitable
+                        cursor.execute("""
+                            UPDATE building_elements 
+                            SET pv_suitable = (
+                                family = ANY(%s)
+                                AND orientation IN ('South', 'East', 'West', 'Southeast', 'Southwest') 
+                                AND glass_area >= %s 
+                                AND glass_area <= %s
+                                AND family NOT ILIKE ANY(ARRAY['%%roof%%', '%%floor%%', '%%ceiling%%'])
+                            )
+                            WHERE project_id = %s 
+                            AND orientation IS NOT NULL 
+                            AND orientation != ''
+                        """, (
+                            selected_families,
+                            self.config.suitability.min_glass_area,
+                            self.config.suitability.max_glass_area,
+                            project_id
+                        ))
+                        
+                        # Ensure non-selected families are marked as unsuitable
+                        cursor.execute("""
+                            UPDATE building_elements 
+                            SET pv_suitable = false
+                            WHERE project_id = %s 
+                            AND family != ALL(%s)
+                        """, (project_id, selected_families))
+                        
+                    else:
+                        # Apply standard suitability rules to all families
+                        cursor.execute("""
+                            UPDATE building_elements 
+                            SET pv_suitable = (
+                                orientation IN ('South', 'East', 'West', 'Southeast', 'Southwest') 
+                                AND glass_area >= %s 
+                                AND glass_area <= %s
+                                AND family NOT ILIKE ANY(ARRAY['%%roof%%', '%%floor%%', '%%ceiling%%'])
+                            )
+                            WHERE project_id = %s 
+                            AND orientation IS NOT NULL 
+                            AND orientation != ''
+                        """, (
+                            self.config.suitability.min_glass_area,
+                            self.config.suitability.max_glass_area,
+                            project_id
+                        ))
                     
                     conn.commit()
                     self.logger.info(f"Successfully repaired {repaired_count} orientation records")
