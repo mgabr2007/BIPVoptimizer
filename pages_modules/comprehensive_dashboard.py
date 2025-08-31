@@ -125,23 +125,41 @@ def create_optimized_windows_csv(project_id):
                     csv_data.append([f"# Electricity Rate Used: {electricity_rate:.3f} EUR/kWh"])
                     csv_data.append([])  # Empty row for spacing
                 
-                # Get building elements and radiation data for current project only
+                # CRITICAL: Get only selected window families with final analyzed data
+                # Step 1: Get selected window families from Step 4
+                cursor.execute("""
+                    SELECT selected_families FROM selected_window_types 
+                    WHERE project_id = %s
+                """, (str(project_id),))
+                family_result = cursor.fetchone()
+                
+                if not family_result or not family_result[0]:
+                    st.error("❌ No window type selections found from Step 4. Please complete window selection first.")
+                    return None
+                
+                selected_families = family_result[0]
+                
+                # Step 2: Get building elements ONLY from selected families with authentic analysis data
                 cursor.execute("""
                     SELECT be.element_id, be.wall_element_id, be.building_level, be.orientation,
                            be.glass_area, be.window_width, be.window_height, be.azimuth, be.pv_suitable,
-                           COALESCE(er.annual_radiation, 0) as annual_radiation
+                           er.annual_radiation, be.family
                     FROM building_elements be
-                    LEFT JOIN element_radiation er ON be.element_id = er.element_id AND be.project_id = er.project_id
-                    WHERE be.project_id = %s
+                    INNER JOIN element_radiation er ON be.element_id = er.element_id 
+                    WHERE be.project_id = %s 
+                    AND be.family = ANY(%s)
+                    AND be.pv_suitable = true
+                    AND er.annual_radiation IS NOT NULL
+                    AND er.annual_radiation > 0
                     ORDER BY be.element_id
-                """, (project_id,))
+                """, (project_id, selected_families))
                 
                 building_elements = cursor.fetchall()
                 
-                # Check if current project has any building elements
+                # Check if selected families have analyzed elements
                 if not building_elements:
-                    st.warning("No building elements found in current project. Please ensure data has been uploaded in Step 4.")
-                    return "Element_ID,Wall_Element_ID,Building_Level,Orientation,Glass_Area_m2,Window_Width_m,Window_Height_m,Azimuth_degrees,Annual_Radiation_kWh_m2,PV_Suitable,BIPV_Technology,BIPV_Efficiency_%,BIPV_Transparency_%,BIPV_Power_Density_W_m2,System_Capacity_kW,Annual_Generation_kWh,Cost_per_m2_EUR,Total_System_Cost_EUR,Payback_Period_Years,Solution_Status\nNo building elements found in current project"
+                    st.warning(f"❌ No analyzed elements found for selected window families: {selected_families}. Please complete Step 5 radiation analysis for selected windows.")
+                    return f"# No final analyzed data available for selected window types: {selected_families}\n# Complete Steps 5-9 for selected windows to generate authentic export data\nElement_ID,Status\nNo analyzed elements found for selected families,MISSING_ANALYSIS"
                 
                 # Process each element (avoid duplicates by tracking processed elements)
                 processed_elements = set()
@@ -160,9 +178,29 @@ def create_optimized_windows_csv(project_id):
                             element_spec = spec
                             break
                     
-                    # Determine if this element is part of the optimized solution
-                    is_optimized = element_spec is not None and element[8]  # pv_suitable
-                    solution_status = "INCLUDED" if is_optimized else "EXCLUDED"
+                    # Determine final optimization status from Step 8 results
+                    is_in_optimal_solution = False
+                    if recommended_solution:
+                        cursor.execute("""
+                            SELECT EXISTS(
+                                SELECT 1 FROM optimization_results 
+                                WHERE project_id = %s 
+                                AND rank_position = 1 
+                                AND solution_id = %s
+                            )
+                        """, (project_id, recommended_solution[0]))
+                        
+                        result = cursor.fetchone()
+                        is_in_optimal_solution = result[0] if result else False
+                    
+                    is_optimized = element_spec is not None and element[8] and is_in_optimal_solution
+                    
+                    if is_optimized:
+                        solution_status = "OPTIMAL_SOLUTION"
+                    elif element_spec is not None and element[8]:
+                        solution_status = "ANALYZED_SUITABLE" 
+                    else:
+                        solution_status = "EXCLUDED_FROM_ANALYSIS"
                     
                     # Extract BIPV specifications
                     if element_spec:
@@ -440,7 +478,7 @@ def create_comprehensive_results_csv(project_id, dashboard_data):
         return None
 
 def get_dashboard_data(project_id):
-    """Load all authentic data from database for dashboard display"""
+    """Load authentic final analyzed data from database for dashboard display - only selected window families"""
     if not project_id:
         return None
     
@@ -452,6 +490,19 @@ def get_dashboard_data(project_id):
             return None
         
         with conn.cursor() as cursor:
+            # CRITICAL: Get selected window families from Step 4 first
+            cursor.execute("""
+                SELECT selected_families FROM selected_window_types 
+                WHERE project_id = %s
+            """, (str(project_id),))
+            family_result = cursor.fetchone()
+            
+            if not family_result or not family_result[0]:
+                st.error("❌ No window type selections found from Step 4. Dashboard requires completed window selection.")
+                return None
+            
+            selected_families = family_result[0]
+            dashboard_data['selected_families'] = selected_families
             # Project Information (Step 1) with electricity rates
             cursor.execute("""
                 SELECT project_name, location, latitude, longitude, timezone, 
@@ -533,27 +584,33 @@ def get_dashboard_data(project_id):
                     'data_points': 8760  # Standard TMY hours per year
                 }
             
-            # Building Elements (Step 4)
+            # Building Elements (Step 4) - ONLY SELECTED FAMILIES  
             cursor.execute("""
                 SELECT COUNT(*) as total_elements,
                        SUM(glass_area) as total_glass_area,
                        COUNT(DISTINCT orientation) as unique_orientations,
                        COUNT(DISTINCT building_level) as building_levels,
                        COUNT(CASE WHEN pv_suitable = true THEN 1 END) as pv_suitable_count
-                FROM building_elements WHERE project_id = %s
-            """, (project_id,))
+                FROM building_elements 
+                WHERE project_id = %s 
+                AND family = ANY(%s)
+            """, (project_id, selected_families))
             building_stats = cursor.fetchone()
             
-            # Get orientation data only for analyzed elements (elements with radiation data)
+            # Get orientation data ONLY for selected families with radiation analysis completed
             cursor.execute("""
                 SELECT be.orientation, COUNT(*) as count, AVG(be.glass_area) as avg_area,
                        COUNT(CASE WHEN be.pv_suitable = true THEN 1 END) as suitable_count
                 FROM element_radiation er
                 JOIN building_elements be ON er.element_id = be.element_id
-                WHERE er.project_id = %s AND be.orientation IS NOT NULL AND be.orientation != ''
+                WHERE er.project_id = %s 
+                AND be.family = ANY(%s)
+                AND be.orientation IS NOT NULL 
+                AND be.orientation != ''
+                AND er.annual_radiation IS NOT NULL
                 GROUP BY be.orientation
                 ORDER BY count DESC
-            """, (project_id,))
+            """, (project_id, selected_families))
             orientation_data = cursor.fetchall()
             
             if building_stats:
@@ -574,25 +631,33 @@ def get_dashboard_data(project_id):
                     ]
                 }
             
-            # Radiation Analysis (Step 5)
+            # Radiation Analysis (Step 5) - ONLY SELECTED FAMILIES
             cursor.execute("""
                 SELECT COUNT(*) as analyzed_elements,
-                       AVG(annual_radiation) as avg_radiation,
-                       MAX(annual_radiation) as max_radiation,
-                       MIN(annual_radiation) as min_radiation,
-                       STDDEV(annual_radiation) as std_radiation
-                FROM element_radiation WHERE project_id = %s
-            """, (project_id,))
+                       AVG(er.annual_radiation) as avg_radiation,
+                       MAX(er.annual_radiation) as max_radiation,
+                       MIN(er.annual_radiation) as min_radiation,
+                       STDDEV(er.annual_radiation) as std_radiation
+                FROM element_radiation er
+                JOIN building_elements be ON er.element_id = be.element_id
+                WHERE er.project_id = %s 
+                AND be.family = ANY(%s)
+                AND er.annual_radiation IS NOT NULL
+            """, (project_id, selected_families))
             radiation_stats = cursor.fetchone()
             
             cursor.execute("""
                 SELECT be.orientation, AVG(er.annual_radiation) as avg_radiation, COUNT(*) as count
                 FROM element_radiation er
                 JOIN building_elements be ON er.element_id = be.element_id
-                WHERE er.project_id = %s AND be.orientation IS NOT NULL AND be.orientation != ''
+                WHERE er.project_id = %s 
+                AND be.family = ANY(%s)
+                AND be.orientation IS NOT NULL 
+                AND be.orientation != ''
+                AND er.annual_radiation IS NOT NULL
                 GROUP BY be.orientation
                 ORDER BY avg_radiation DESC
-            """, (project_id,))
+            """, (project_id, selected_families))
             radiation_by_orientation = cursor.fetchall()
             
             if radiation_stats:

@@ -41,7 +41,7 @@ class BIPVReportGenerator:
             """, (self.project_id,))
             project_info = cursor.fetchone()
             
-            # Building elements summary
+            # Building elements summary - ONLY SELECTED FAMILIES  
             cursor.execute("""
                 SELECT COUNT(*) as total_elements,
                        COUNT(CASE WHEN pv_suitable = true THEN 1 END) as suitable_elements,
@@ -49,8 +49,10 @@ class BIPVReportGenerator:
                        AVG(glass_area) as avg_area,
                        COUNT(DISTINCT family) as unique_families,
                        COUNT(DISTINCT building_level) as unique_levels
-                FROM building_elements WHERE project_id = %s
-            """, (self.project_id,))
+                FROM building_elements 
+                WHERE project_id = %s 
+                AND family = ANY(%s)
+            """, (self.project_id, selected_families))
             building_summary = cursor.fetchone()
             
             # Orientation distribution using azimuth
@@ -65,7 +67,9 @@ class BIPVReportGenerator:
                     COUNT(*) as count,
                     AVG(glass_area) as avg_area
                 FROM building_elements 
-                WHERE project_id = %s AND azimuth IS NOT NULL
+                WHERE project_id = %s 
+                AND family = ANY(%s)
+                AND azimuth IS NOT NULL
                 GROUP BY 
                     CASE 
                         WHEN azimuth >= 315 OR azimuth < 45 THEN 'North'
@@ -81,10 +85,10 @@ class BIPVReportGenerator:
                         WHEN azimuth >= 225 AND azimuth < 315 THEN 'West'
                     END IS NOT NULL
                 ORDER BY count DESC
-            """, (self.project_id,))
+            """, (self.project_id, selected_families))
             orientation_data = cursor.fetchall()
             
-            # Get radiation data before HTML generation
+            # Get radiation data ONLY for selected families - final analyzed data
             cursor.execute("""
                 SELECT COUNT(*) as analyzed_elements,
                        AVG(er.annual_radiation) as avg_radiation,
@@ -92,8 +96,10 @@ class BIPVReportGenerator:
                        MIN(er.annual_radiation) as min_radiation
                 FROM element_radiation er
                 JOIN building_elements be ON er.element_id = be.element_id
-                WHERE be.project_id = %s AND er.annual_radiation IS NOT NULL
-            """, (self.project_id,))
+                WHERE be.project_id = %s 
+                AND be.family = ANY(%s)
+                AND er.annual_radiation IS NOT NULL
+            """, (self.project_id, selected_families))
             radiation_summary = cursor.fetchone()
             
             # Set default values if no radiation data
@@ -124,9 +130,22 @@ class BIPVReportGenerator:
                 except:
                     bipv_specs = None
             
-            # Get comprehensive dashboard data to mirror Step 10
+            # CRITICAL: Get comprehensive dashboard data with selected families filter to mirror Step 10
             from pages_modules.comprehensive_dashboard import get_dashboard_data
             dashboard_data = get_dashboard_data(self.project_id)
+            
+            # Ensure we have selected families for authentic final data only
+            if not dashboard_data or 'selected_families' not in dashboard_data:
+                return f"""
+                <html><body>
+                <h1>BIPV Report Generation Error</h1>
+                <p><strong>Error:</strong> No window type selections found from Step 4.</p>
+                <p><strong>Required:</strong> Complete Step 4 window selection before generating reports.</p>
+                <p><strong>Note:</strong> This report only includes authentic final analyzed data from selected window families.</p>
+                </body></html>
+                """
+            
+            selected_families = dashboard_data['selected_families']
             
             # Start building HTML content - mirroring Step 10 dashboard exactly
             html_content = f"""
@@ -177,14 +196,14 @@ class BIPVReportGenerator:
                     <h3>📊 Detailed Data Sources & Verification</h3>
                     <h4>Real-Time Database Integration & Data Validation:</h4>
                     
-                    <strong>Building Analysis Data (Steps 4-5):</strong>
+                    <strong>Selected Window Types Analysis (Steps 4-5):</strong>
                     <ul>
-                        <li><strong>{building_summary[0]:,} Elements:</strong> From building_elements table (BIM upload)</li>
-                        <li><strong>{building_summary[2]:,.0f} m² Glass Area:</strong> Sum of all window glass areas from BIM data</li>
-                        <li><strong>{building_summary[5]} Building Levels:</strong> Distinct floor levels from BIM extraction</li>
-                        <li><strong>4 Orientations:</strong> North, South, East, West (from azimuth calculations)</li>
-                        <li><strong>{radiation_summary[0]:,} Analyzed Elements:</strong> Radiation analysis completed ({(radiation_summary[0]/building_summary[0]*100 if building_summary[0] > 0 else 0):.1f}% coverage)</li>
-                        <li><strong>{building_summary[1]:,} BIPV Suitable:</strong> Elements with >400 kWh/m²/year ({(building_summary[1]/building_summary[0]*100 if building_summary[0] > 0 else 0):.1f}% suitability)</li>
+                        <li><strong>Selected Families:</strong> {', '.join(selected_families)}</li>
+                        <li><strong>{building_summary[0]:,} Elements:</strong> From selected window families only (BIM filtered)</li>
+                        <li><strong>{building_summary[2]:,.0f} m² Glass Area:</strong> Total area of selected window types</li>
+                        <li><strong>{building_summary[5]} Building Levels:</strong> Levels containing selected windows</li>
+                        <li><strong>{radiation_summary[0]:,} Analyzed Elements:</strong> Final radiation analysis for selected types ({(radiation_summary[0]/building_summary[0]*100 if building_summary[0] > 0 else 0):.1f}% coverage)</li>
+                        <li><strong>{building_summary[1]:,} BIPV Suitable:</strong> Selected windows meeting BIPV criteria ({(building_summary[1]/building_summary[0]*100 if building_summary[0] > 0 else 0):.1f}% suitability)</li>
                     </ul>
                     
                     <strong>Solar Performance Data (Step 5):</strong>
