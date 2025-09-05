@@ -50,9 +50,9 @@ def create_optimized_windows_csv(project_id):
             else:
                 raise ValueError("No authentic electricity rates found in project configuration")
             
-            # Get the recommended optimization solution for current project only
+            # Get the recommended optimization solution with selection data for current project only
             cursor.execute("""
-                SELECT solution_id, capacity, roi, total_cost, annual_energy_kwh
+                SELECT solution_id, capacity, roi, total_cost, annual_energy_kwh, solution_data
                 FROM optimization_results 
                 WHERE project_id = %s 
                 ORDER BY rank_position ASC 
@@ -62,6 +62,23 @@ def create_optimized_windows_csv(project_id):
             recommended_solution = cursor.fetchone()
             if not recommended_solution:
                 st.warning("No optimization results found for current project")
+                return None
+                
+            # CRITICAL: Extract selected elements from optimization solution data
+            selected_element_ids = []
+            if recommended_solution[5]:  # solution_data exists
+                try:
+                    solution_data = json.loads(recommended_solution[5]) if isinstance(recommended_solution[5], str) else recommended_solution[5]
+                    selected_element_ids = solution_data.get('selected_elements', [])
+                    if not selected_element_ids:
+                        # Try alternative field names
+                        selected_element_ids = solution_data.get('selected_element_ids', [])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            
+            if not selected_element_ids:
+                st.warning("❌ No selected elements found in optimization solution. This may indicate incomplete optimization.")
+                return f"# No optimized elements found in solution {recommended_solution[0]}\n# Please re-run Step 8 optimization to generate proper selection data\nElement_ID,Status\nNo optimized elements,MISSING_OPTIMIZATION"
             
             # Get PV specifications data with element details for current project only
             cursor.execute("""
@@ -125,21 +142,10 @@ def create_optimized_windows_csv(project_id):
                     csv_data.append([f"# Electricity Rate Used: {electricity_rate:.3f} EUR/kWh"])
                     csv_data.append([])  # Empty row for spacing
                 
-                # CRITICAL: Get only selected window families with final analyzed data
-                # Step 1: Get selected window families from Step 4
-                cursor.execute("""
-                    SELECT selected_families FROM selected_window_types 
-                    WHERE project_id = %s
-                """, (str(project_id),))
-                family_result = cursor.fetchone()
+                # CRITICAL: Get ONLY the elements selected by optimization algorithm (not all analyzed elements)
+                # Convert selected element IDs to proper format for database query
+                selected_element_ids_str = [str(eid) for eid in selected_element_ids]
                 
-                if not family_result or not family_result[0]:
-                    st.error("❌ No window type selections found from Step 4. Please complete window selection first.")
-                    return None
-                
-                selected_families = family_result[0]
-                
-                # Step 2: Get building elements ONLY from selected families with authentic analysis data
                 cursor.execute("""
                     SELECT be.element_id, be.wall_element_id, be.building_level, be.orientation,
                            be.glass_area, be.window_width, be.window_height, be.azimuth, be.pv_suitable,
@@ -147,19 +153,19 @@ def create_optimized_windows_csv(project_id):
                     FROM building_elements be
                     INNER JOIN element_radiation er ON be.element_id = er.element_id 
                     WHERE be.project_id = %s 
-                    AND be.family = ANY(%s)
+                    AND be.element_id = ANY(%s)
                     AND be.pv_suitable = true
                     AND er.annual_radiation IS NOT NULL
                     AND er.annual_radiation > 0
                     ORDER BY be.element_id
-                """, (project_id, selected_families))
+                """, (project_id, selected_element_ids_str))
                 
                 building_elements = cursor.fetchall()
                 
-                # Check if selected families have analyzed elements
+                # Check if optimization selected elements exist in database
                 if not building_elements:
-                    st.warning(f"❌ No analyzed elements found for selected window families: {selected_families}. Please complete Step 5 radiation analysis for selected windows.")
-                    return f"# No final analyzed data available for selected window types: {selected_families}\n# Complete Steps 5-9 for selected windows to generate authentic export data\nElement_ID,Status\nNo analyzed elements found for selected families,MISSING_ANALYSIS"
+                    st.warning(f"❌ No building elements found for optimized selection. Selected IDs: {selected_element_ids[:5]}... (showing first 5)")
+                    return f"# No building elements found for optimization solution {recommended_solution[0]}\n# This indicates data inconsistency between optimization and building elements\nElement_ID,Status\nOptimization data missing,DATA_INCONSISTENCY"
                 
                 # Process each element (avoid duplicates by tracking processed elements)
                 processed_elements = set()
@@ -178,29 +184,9 @@ def create_optimized_windows_csv(project_id):
                             element_spec = spec
                             break
                     
-                    # Determine final optimization status from Step 8 results
-                    is_in_optimal_solution = False
-                    if recommended_solution:
-                        cursor.execute("""
-                            SELECT EXISTS(
-                                SELECT 1 FROM optimization_results 
-                                WHERE project_id = %s 
-                                AND rank_position = 1 
-                                AND solution_id = %s
-                            )
-                        """, (project_id, recommended_solution[0]))
-                        
-                        result = cursor.fetchone()
-                        is_in_optimal_solution = result[0] if result else False
-                    
-                    is_optimized = element_spec is not None and element[8] and is_in_optimal_solution
-                    
-                    if is_optimized:
-                        solution_status = "OPTIMAL_SOLUTION"
-                    elif element_spec is not None and element[8]:
-                        solution_status = "ANALYZED_SUITABLE" 
-                    else:
-                        solution_status = "EXCLUDED_FROM_ANALYSIS"
+                    # All elements in this CSV are from the optimal solution by design
+                    # Since we filtered to only selected_element_ids from optimization solution
+                    solution_status = "OPTIMAL_SOLUTION"
                     
                     # Extract BIPV specifications
                     if element_spec:
