@@ -901,7 +901,7 @@ def render_financial_analysis():
             col1, col2 = st.columns(2)
             
             with col1:
-                if st.button("📊 Download Financial Report (CSV)", key="download_financial"):
+                if st.button("📊 Prepare Financial Report (CSV)", key="prepare_financial_csv"):
                     # Combine all financial data
                     export_data = {
                         'Financial Metrics': pd.DataFrame([metrics]),
@@ -916,6 +916,20 @@ def render_financial_analysis():
                         csv_buffer.append(df.to_csv(index=False))
                     
                     combined_csv = '\n'.join(csv_buffer)
+                    
+                    # Create download button
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"BIPV_Financial_Analysis_{timestamp}.csv"
+                    
+                    st.download_button(
+                        label="💾 Download Financial Analysis CSV",
+                        data=combined_csv,
+                        file_name=filename,
+                        mime="text/csv",
+                        help="Download comprehensive financial analysis including metrics, environmental impact, and cash flow projections",
+                        key="download_financial_csv_final"
+                    )
             
             with col2:
                 st.info("Financial analysis complete - ready for final reporting")
