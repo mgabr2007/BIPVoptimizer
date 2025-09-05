@@ -52,7 +52,7 @@ def create_optimized_windows_csv(project_id):
             
             # Get the recommended optimization solution with selection data for current project only
             cursor.execute("""
-                SELECT solution_id, capacity, roi, total_cost, annual_energy_kwh, solution_data
+                SELECT solution_id, capacity, roi, total_cost, annual_energy_kwh, selection_details
                 FROM optimization_results 
                 WHERE project_id = %s 
                 ORDER BY rank_position ASC 
@@ -66,13 +66,13 @@ def create_optimized_windows_csv(project_id):
                 
             # CRITICAL: Extract selected elements from optimization solution data
             selected_element_ids = []
-            if recommended_solution[5]:  # solution_data exists
+            if recommended_solution[5]:  # selection_details exists
                 try:
-                    solution_data = json.loads(recommended_solution[5]) if isinstance(recommended_solution[5], str) else recommended_solution[5]
-                    selected_element_ids = solution_data.get('selected_elements', [])
+                    selection_data = json.loads(recommended_solution[5]) if isinstance(recommended_solution[5], str) else recommended_solution[5]
+                    selected_element_ids = selection_data.get('selected_element_ids', [])
                     if not selected_element_ids:
-                        # Try alternative field names
-                        selected_element_ids = solution_data.get('selected_element_ids', [])
+                        # Try alternative field names from selection_details
+                        selected_element_ids = selection_data.get('selected_elements', [])
                 except (json.JSONDecodeError, TypeError):
                     pass
             
