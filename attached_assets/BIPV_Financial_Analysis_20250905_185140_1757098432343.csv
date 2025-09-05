@@ -1,0 +1,13 @@
+
+Financial Metrics
+npv,irr,payback_period,total_investment,annual_savings,lcoe
+-150500.85,0.02,-22.48,586027.4,30265.7,0.244
+
+
+Environmental Impact
+annual_co2_savings,lifetime_co2_savings,carbon_value,trees_equivalent,cars_equivalent
+45638.76,1140.97,57048.44,51,248
+
+
+Cash Flow Analysis
+

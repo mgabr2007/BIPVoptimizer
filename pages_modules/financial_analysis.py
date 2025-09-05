@@ -627,7 +627,25 @@ def render_financial_analysis():
                             'co2_savings_lifetime': lifetime_co2_savings,
                             'carbon_value': carbon_value,
                             'trees_equivalent': int(lifetime_co2_savings / 22),  # Approximate trees equivalent
-                            'cars_equivalent': int(lifetime_co2_savings / 4.6)   # Approximate cars equivalent
+                            'cars_equivalent': int(lifetime_co2_savings / 4.6),   # Approximate cars equivalent
+                            
+                            # CRITICAL: Include structured data for CSV export
+                            'cash_flow_analysis': annual_details,
+                            'sensitivity_analysis': sensitivity_results,
+                            'financial_metrics': {
+                                'npv': npv,
+                                'irr': irr * 100 if irr else None,
+                                'payback_period': payback_period,
+                                'total_investment': total_investment,
+                                'annual_savings': annual_savings,
+                                'lifetime_savings': sum(cash_flows[1:])
+                            },
+                            'environmental_impact': {
+                                'annual_co2_savings': annual_co2_savings,
+                                'lifetime_co2_savings': lifetime_co2_savings,
+                                'carbon_value': carbon_value,
+                                'grid_co2_factor': grid_co2_factor
+                            }
                         }
                         
                         # Save using database helper
