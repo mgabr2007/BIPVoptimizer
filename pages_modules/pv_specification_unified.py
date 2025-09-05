@@ -530,9 +530,57 @@ def render_pv_specification():
     
     # Streamlined data loading with combined query optimization
     try:
-        # Single database call to get all necessary data
+        # CRITICAL: Get selected window families from Step 4 first
+        selected_families = None
+        conn = db_manager.get_connection()
+        if not conn:
+            st.error("❌ Database connection failed")
+            return
+            
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT selected_families FROM selected_window_types 
+                    WHERE project_id = %s
+                """, (str(project_id),))
+                family_result = cursor.fetchone()
+                
+                if not family_result or not family_result[0]:
+                    st.error("❌ No window type selections found from Step 4. Step 6 requires completed window selection.")
+                    st.info("💡 Please complete Step 4 (Facade Extraction) and select specific window families for BIPV installation.")
+                    return
+                
+                selected_families = family_result[0]
+        finally:
+            conn.close()
+        
+        # Single database call to get data for SELECTED FAMILIES ONLY
         radiation_analysis_data = db_manager.get_radiation_analysis_data(project_id)
-        building_elements = db_manager.get_building_elements(project_id)
+        
+        # Get building elements filtered by selected families
+        building_elements = []
+        conn2 = db_manager.get_connection()
+        if not conn2:
+            st.error("❌ Database connection failed")
+            return
+            
+        try:
+            with conn2.cursor() as cursor:
+                cursor.execute("""
+                    SELECT DISTINCT element_id, element_type, orientation, azimuth, 
+                           glass_area, building_level, family, pv_suitable,
+                           wall_element_id
+                    FROM building_elements 
+                    WHERE project_id = %s 
+                    AND element_type IN ('Window', 'Windows')
+                    AND family = ANY(%s)
+                    ORDER BY element_id
+                """, (project_id, selected_families))
+                
+                results = cursor.fetchall()
+                building_elements = [dict(zip([desc[0] for desc in cursor.description], row)) for row in results]
+        finally:
+            conn2.close()
         
         # Validate prerequisites - handle both dict and list formats
         radiation_elements = []
@@ -569,18 +617,25 @@ def render_pv_specification():
     # Show facade orientation configuration
     include_north = False
     try:
-        with db_manager.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT include_north_facade FROM projects WHERE id = %s", (project_id,))
-                result = cursor.fetchone()
-                include_north = result[0] if result else False
-                
-                if include_north:
-                    st.info("📍 **All orientations** (N/S/E/W) included in analysis per project configuration")
-                    orientation_text = "all orientation"
-                else:
-                    st.info("📍 **Optimal orientations** (S/E/W) only per project configuration - North facades excluded")
-                    orientation_text = "South/East/West-facing"
+        conn3 = db_manager.get_connection()
+        if conn3:
+            try:
+                with conn3.cursor() as cursor:
+                    cursor.execute("SELECT include_north_facade FROM projects WHERE id = %s", (project_id,))
+                    result = cursor.fetchone()
+                    include_north = result[0] if result else False
+                    
+                    if include_north:
+                        st.info("📍 **All orientations** (N/S/E/W) included in analysis per project configuration")
+                        orientation_text = "all orientation"
+                    else:
+                        st.info("📍 **Optimal orientations** (S/E/W) only per project configuration - North facades excluded")
+                        orientation_text = "South/East/West-facing"
+            finally:
+                conn3.close()
+        else:
+            st.info("📍 **Default:** Analyzing South/East/West orientations only")
+            orientation_text = "South/East/West-facing"
     except Exception:
         st.info("📍 **Default:** Analyzing South/East/West orientations only")
         orientation_text = "South/East/West-facing"
