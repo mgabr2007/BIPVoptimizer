@@ -268,11 +268,12 @@ def render_welcome():
     
     with col1:
         # Step 2: scikit-learn for AI model training and demand prediction
-        st.markdown("""
-        <div style="height: 140px; background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center;">
-        """, unsafe_allow_html=True)
-        st.image("attached_assets/scikit_learn_logo.png", width=180)
-        st.markdown("</div>", unsafe_allow_html=True)
+        with st.container():
+            st.markdown("""
+            <div style="background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; text-align: center;">
+            """, unsafe_allow_html=True)
+            st.image("attached_assets/scikit_learn_logo.png", width=150)
+            st.markdown("</div>", unsafe_allow_html=True)
         
         st.caption("Step 2: AI model training and demand prediction")
         st.markdown("""
@@ -284,11 +285,12 @@ def render_welcome():
     
     with col2:
         # Steps 3,5,6,7: pvlib for solar energy modeling
-        st.markdown("""
-        <div style="height: 140px; background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center;">
-        """, unsafe_allow_html=True)
-        st.image("attached_assets/pvlib_powered_logo_horiz.png", width=180)
-        st.markdown("</div>", unsafe_allow_html=True)
+        with st.container():
+            st.markdown("""
+            <div style="background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; text-align: center;">
+            """, unsafe_allow_html=True)
+            st.image("attached_assets/pvlib_powered_logo_horiz.png", width=150)
+            st.markdown("</div>", unsafe_allow_html=True)
         
         st.caption("Steps 3,5,6,7: Solar radiation and PV modeling")
         st.markdown("""
@@ -301,8 +303,8 @@ def render_welcome():
     with col3:
         # Step 8: DEAP for multi-objective optimization
         st.markdown("""
-        <div style="height: 140px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; color: white;">
-            <div style="text-align: center;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 30px 20px; text-align: center; color: white; min-height: 140px; display: flex; align-items: center; justify-content: center;">
+            <div>
                 <div style="font-size: 2.5em; margin-bottom: 8px;">🧬</div>
                 <div style="font-size: 1.4em; font-weight: bold;">DEAP</div>
                 <div style="font-size: 0.85em; opacity: 0.9;">Evolutionary Algorithms</div>
