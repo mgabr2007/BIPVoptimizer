@@ -15,18 +15,33 @@ A comprehensive AI-powered platform for analyzing, optimizing, and visualizing B
 
 BIPV Optimizer is a cutting-edge platform developed as part of PhD research at **Technische Universität Berlin** that enables comprehensive analysis of Building-Integrated Photovoltaic systems. The platform models BIPV installations where semi-transparent PV cells replace existing window glass using exact building element data extracted from BIM models.
 
+## 🆕 Latest Updates (September 2025)
+
+### Enhanced Data Export & Financial Analysis
+- ✅ **Fixed Financial Analysis CSV Export**: Resolved export button functionality with complete 25-year cash flow data
+- ✅ **Optimized Window Selection**: CSV exports now show only optimization solution results (~13-15 selected windows)
+- ✅ **Complete Financial Data Integration**: Added sensitivity analysis, NPV variations, and structured data formats
+- ✅ **Database Schema Enhancement**: Updated PostgreSQL schema for complete workflow data persistence
+
+### Technical Improvements
+- ✅ **Clean Architecture Maintenance**: Streamlined codebase with essential components only
+- ✅ **Performance Optimization**: Enhanced data flow between optimization and financial analysis
+- ✅ **Data Validation**: Strengthened authentic data requirements with comprehensive error handling
+- ✅ **Export System Validation**: All CSV exports now include authentic data with proper filtering
+
 ### Key Features
 
 - 🗺️ **Interactive Location Selection** - Map-based project setup with weather station integration
 - 🤖 **AI-Powered Analysis** - Machine learning models for energy demand prediction and optimization
 - 🏢 **BIM Integration** - Direct processing of building element data from Revit/CAD models
 - ☀️ **ISO-Compliant Weather Modeling** - TMY generation following ISO 15927-4 standards
-- 🔬 **Multi-Objective Optimization** - NSGA-II genetic algorithms for Pareto-optimal solutions
-- 💰 **Financial Analysis** - NPV, IRR, payback period with real-time electricity rates
-- 🌍 **Environmental Impact** - CO₂ emissions analysis with official grid factors
-- 📊 **Comprehensive Reporting** - Scientific reports with real calculated values and methodology
-- 🔗 **Database Persistence** - PostgreSQL for reliable project data management
-- 🎯 **Consolidated Data Management** - Unified data flow system for accurate reporting
+- 🔬 **Multi-Objective Optimization** - NSGA-II genetic algorithms for Pareto-optimal solutions with complete solution traceability
+- 💰 **Financial Analysis** - NPV, IRR, payback analysis with 25-year cash flow projections and sensitivity analysis
+- 🌍 **Environmental Impact** - CO₂ emissions analysis with official grid factors and carbon value calculations
+- 📊 **Advanced Data Export** - Multi-format exports (CSV, HTML) with optimized window selection and complete financial data
+- 📋 **Comprehensive Reporting** - Scientific reports with authentic calculated values and complete methodology documentation
+- 🔗 **Database Persistence** - Enhanced PostgreSQL schema supporting all workflow steps with complete data relationships
+- 🎯 **Authentic Data Management** - Unified data flow system ensuring zero fallback data and complete audit trails
 
 ## 🚀 Quick Start
 
@@ -191,13 +206,38 @@ bipv-optimizer/
 ```
 
 ### Key Architecture Features
-- **Clean Modular Design**: Essential files only - 41 unused development files removed
+- **Clean Modular Design**: Essential files only with streamlined architecture
 - **10+1 Step Workflow**: Complete BIPV analysis (Steps 1-10) plus bonus AI research consultation (Step 11)
-- **Database-Driven**: PostgreSQL persistence with centralized project ID system
-- **Performance Optimized**: 8-second radiation analysis (82% faster than baseline)
-- **Authentic Data**: Real weather stations, electricity rates, building elements
-- **Professional Interface**: Clean navigation with matching sidebar icons
-- **Research Grade**: ISO standards compliance, academic references, peer-reviewed methodology
+- **Database-Driven**: Enhanced PostgreSQL persistence with comprehensive schema and centralized project ID system
+- **Performance Optimized**: High-speed radiation analysis with optimized data processing
+- **Authentic Data Pipeline**: Complete data traceability from source APIs to final reports with zero fallback values
+- **Advanced Export System**: Multi-format data export with optimized filtering and complete financial analysis integration
+- **Professional Interface**: Clean navigation with professional branding and user experience optimization
+- **Research Grade**: ISO standards compliance, academic references, and peer-reviewed methodology implementation
+
+### Workflow Dependencies & Data Flow
+
+The BIPV Optimizer follows a structured data flow across all workflow steps:
+
+#### **Data Dependencies Chain**:
+1. **Step 1** → Location data, electricity rates → **Used by all subsequent steps**
+2. **Step 2** → Historical energy data, AI model → **Required for Step 7 demand predictions**
+3. **Step 3** → TMY weather data → **Required for Steps 5, 6, 7**
+4. **Step 4** → BIM building elements → **Required for Steps 5, 6, 7, 8**
+5. **Step 5** → Radiation analysis → **Required for Steps 6, 7, 8**
+6. **Step 6** → BIPV specifications → **Required for Steps 7, 8, 9**
+7. **Step 7** → Yield vs demand analysis → **Required for Steps 8, 9**
+8. **Step 8** → Optimization results → **Required for Steps 9, 10, 11**
+9. **Step 9** → Financial analysis → **Required for Steps 10, 11**
+10. **Step 10** → Comprehensive reporting → **Data source for Step 11**
+11. **Step 11** → AI consultation using all previous data
+
+#### **Critical Data Validation Points**:
+- **Authentic Data Only**: Each step validates input data authenticity with ValueError exceptions
+- **Zero Fallback Policy**: No default or synthetic values allowed - requires real data sources
+- **Complete Traceability**: All calculations maintain full audit trails back to source data
+- **Optimization Integration**: Financial analysis exclusively uses optimization solution results (~13-15 selected windows)
+- **Database Persistence**: All step data stored in PostgreSQL with complete relationships and validation
 
 ## 🔬 Scientific Methodology
 
