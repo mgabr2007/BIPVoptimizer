@@ -269,14 +269,14 @@ def render_welcome():
     with col1:
         # Step 2: scikit-learn for AI model training and demand prediction
         st.markdown("""
-        <div style="text-align: center; height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+        <div style="height: 140px; background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center;">
         """, unsafe_allow_html=True)
-        st.image("attached_assets/scikit_learn_logo.png", 
-                caption="Step 2: AI model training and demand prediction", 
-                use_container_width=True)
+        st.image("attached_assets/scikit_learn_logo.png", width=180)
         st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.caption("Step 2: AI model training and demand prediction")
         st.markdown("""
-        <div style="text-align: center; margin-top: 10px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: 60px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="text-align: center; margin-top: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; min-height: 50px; display: flex; flex-direction: column; justify-content: center;">
             <strong>scikit-learn</strong><br>
             <small style="color: #666;">Machine Learning & AI Prediction</small>
         </div>
@@ -285,14 +285,14 @@ def render_welcome():
     with col2:
         # Steps 3,5,6,7: pvlib for solar energy modeling
         st.markdown("""
-        <div style="text-align: center; height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+        <div style="height: 140px; background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center;">
         """, unsafe_allow_html=True)
-        st.image("attached_assets/pvlib_powered_logo_horiz.png", 
-                caption="Steps 3,5,6,7: Solar radiation and PV modeling", 
-                use_container_width=True)
+        st.image("attached_assets/pvlib_powered_logo_horiz.png", width=180)
         st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.caption("Steps 3,5,6,7: Solar radiation and PV modeling")
         st.markdown("""
-        <div style="text-align: center; margin-top: 10px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: 60px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="text-align: center; margin-top: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; min-height: 50px; display: flex; flex-direction: column; justify-content: center;">
             <strong>pvlib</strong><br>
             <small style="color: #666;">Solar Energy Modeling & Analysis</small>
         </div>
@@ -301,17 +301,18 @@ def render_welcome():
     with col3:
         # Step 8: DEAP for multi-objective optimization
         st.markdown("""
-        <div style="text-align: center; height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; padding: 20px 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    border-radius: 10px; color: white;">
-            <div>
+        <div style="height: 140px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; color: white;">
+            <div style="text-align: center;">
                 <div style="font-size: 2.5em; margin-bottom: 8px;">🧬</div>
-                <div style="font-size: 1.5em; font-weight: bold;">DEAP</div>
+                <div style="font-size: 1.4em; font-weight: bold;">DEAP</div>
                 <div style="font-size: 0.85em; opacity: 0.9;">Evolutionary Algorithms</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
+        
+        st.caption("Step 8: Multi-objective optimization")
         st.markdown("""
-        <div style="text-align: center; margin-top: 10px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: 60px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="text-align: center; margin-top: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; min-height: 50px; display: flex; flex-direction: column; justify-content: center;">
             <strong>DEAP</strong><br>
             <small style="color: #666;">Distributed Evolutionary Algorithms (NSGA-II)</small>
         </div>
