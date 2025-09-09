@@ -257,78 +257,86 @@ def render_welcome():
     st.markdown("---")
     st.markdown("### 🚀 Powered by Leading Technologies")
     
-    # Display main BIPV logo
-    col_logo1, col_logo2, col_logo3 = st.columns([1, 1, 1])
-    with col_logo2:
-        st.image("attached_assets/BIPVOptiLogo_1751288770337.png", width=200, caption="BIPV Optimizer Platform")
-    
     st.markdown("""
     <div style="text-align: center; margin: 20px 0; background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
-        <h4 style="margin-bottom: 15px; color: #2E8B57;">Built with Professional-Grade Technologies</h4>
+        <h4 style="margin-bottom: 25px; color: #2E8B57;">Key Scientific Computing Libraries</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Display the three main technology logos in columns
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col1:
+        st.image("attached_assets/pvlib_powered_logo_horiz.png", 
+                caption="Professional solar position and irradiance modeling", 
+                use_container_width=True)
+        st.markdown("""
+        <div style="text-align: center; margin-top: 10px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <strong>pvlib</strong><br>
+            <small style="color: #666;">Solar Energy Modeling & Analysis</small>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.image("attached_assets/scikit_learn_logo.png", 
+                caption="Machine learning library for demand prediction models", 
+                use_container_width=True)
+        st.markdown("""
+        <div style="text-align: center; margin-top: 10px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <strong>scikit-learn</strong><br>
+            <small style="color: #666;">Machine Learning & AI Prediction</small>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        # Since DEAP doesn't have a logo, create a custom text-based design
+        st.markdown("""
+        <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    border-radius: 10px; margin-bottom: 10px; color: white;">
+            <div style="font-size: 2.5em; margin-bottom: 10px;">🧬</div>
+            <div style="font-size: 1.5em; font-weight: bold;">DEAP</div>
+            <div style="font-size: 0.9em; opacity: 0.9;">Evolutionary Algorithms</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("""
+        <div style="text-align: center; margin-top: 10px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <strong>DEAP</strong><br>
+            <small style="color: #666;">Distributed Evolutionary Algorithms (NSGA-II)</small>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Additional supporting technologies section
+    st.markdown("""
+    <div style="text-align: center; margin: 30px 0 20px 0; background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
+        <h5 style="margin-bottom: 15px; color: #2E8B57;">Supporting Technologies & APIs</h5>
         
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; align-items: center; margin: 20px 0;">
-            <!-- Core Technologies -->
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #FF4B4B;">🎯</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Streamlit</span>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; align-items: center; margin: 20px 0;">
+            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
+                <span style="margin-right: 6px;">🎯</span><strong>Streamlit</strong>
             </div>
-            
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #013220;">🐼</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Pandas</span>
+            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
+                <span style="margin-right: 6px;">🐼</span><strong>Pandas</strong>
             </div>
-            
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #4CAF50;">🔢</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">NumPy</span>
+            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
+                <span style="margin-right: 6px;">🔢</span><strong>NumPy</strong>
             </div>
-            
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #336791;">🗄️</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">PostgreSQL</span>
+            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
+                <span style="margin-right: 6px;">🗄️</span><strong>PostgreSQL</strong>
             </div>
-            
-            <!-- Scientific Computing -->
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #F7931E;">☀️</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">pvlib</span>
+            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
+                <span style="margin-right: 6px;">📊</span><strong>Plotly</strong>
             </div>
-            
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #F7931E;">🧬</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">DEAP</span>
+            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
+                <span style="margin-right: 6px;">🗺️</span><strong>Folium</strong>
             </div>
-            
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #FF6B6B;">🤖</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">scikit-learn</span>
+            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
+                <span style="margin-right: 6px;">🌤️</span><strong>OpenWeather API</strong>
             </div>
-            
-            <!-- Visualization & Data -->
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #3F7CFF;">📊</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Plotly</span>
+            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
+                <span style="margin-right: 6px;">🔮</span><strong>Perplexity AI</strong>
             </div>
-            
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #2ECC71;">🗺️</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Folium</span>
-            </div>
-            
-            <!-- External APIs -->
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #FF8C00;">🌤️</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">OpenWeather</span>
-            </div>
-            
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #7C4DFF;">🔮</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Perplexity AI</span>
-            </div>
-            
-            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <span style="font-weight: bold; color: #1976D2;">🏛️</span>
-                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">TU Berlin Portal</span>
+            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
+                <span style="margin-right: 6px;">🏛️</span><strong>TU Berlin Portal</strong>
             </div>
         </div>
         
