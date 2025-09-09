@@ -305,47 +305,6 @@ def render_welcome():
         </div>
         """, unsafe_allow_html=True)
     
-    # Additional supporting technologies section
-    st.markdown("""
-    <div style="text-align: center; margin: 30px 0 20px 0; background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
-        <h5 style="margin-bottom: 15px; color: #2E8B57;">Supporting Technologies & APIs</h5>
-        
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; align-items: center; margin: 20px 0;">
-            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
-                <span style="margin-right: 6px;">🎯</span><strong>Streamlit</strong>
-            </div>
-            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
-                <span style="margin-right: 6px;">🐼</span><strong>Pandas</strong>
-            </div>
-            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
-                <span style="margin-right: 6px;">🔢</span><strong>NumPy</strong>
-            </div>
-            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
-                <span style="margin-right: 6px;">🗄️</span><strong>PostgreSQL</strong>
-            </div>
-            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
-                <span style="margin-right: 6px;">📊</span><strong>Plotly</strong>
-            </div>
-            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
-                <span style="margin-right: 6px;">🗺️</span><strong>Folium</strong>
-            </div>
-            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
-                <span style="margin-right: 6px;">🌤️</span><strong>OpenWeather API</strong>
-            </div>
-            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
-                <span style="margin-right: 6px;">🔮</span><strong>Perplexity AI</strong>
-            </div>
-            <div style="display: flex; align-items: center; background: white; padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.85em;">
-                <span style="margin-right: 6px;">🏛️</span><strong>TU Berlin Portal</strong>
-            </div>
-        </div>
-        
-        <div style="margin-top: 15px; font-size: 0.85em; color: #666; font-style: italic;">
-            Professional research platform integrating leading open-source and commercial technologies<br>
-            for comprehensive BIPV analysis and optimization
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
     
     # Research attribution (footer)
     st.markdown("---")
