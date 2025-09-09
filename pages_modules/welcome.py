@@ -110,6 +110,73 @@ def render_welcome():
             help="Revit Dynamo script to extract building window data for BIPV analysis"
         )
     
+    # External Dependencies section
+    st.markdown("---")
+    st.subheader("🔧 External Dependencies & Technologies")
+    
+    st.markdown("""
+    The BIPV Optimizer platform is built on a comprehensive stack of leading technologies and external services 
+    to ensure professional-grade analysis and reliable data sources:
+    """)
+    
+    # Create tabs for different dependency categories
+    dep_tab1, dep_tab2, dep_tab3, dep_tab4 = st.tabs([
+        "🧮 Core Framework", "🔬 Scientific Computing", "🗄️ Data & APIs", "📊 Visualization & Reports"
+    ])
+    
+    with dep_tab1:
+        st.markdown("""
+        **Web Framework & Data Processing:**
+        - **Streamlit** - Interactive web application framework
+        - **Pandas** - High-performance data manipulation and analysis
+        - **NumPy** - Fundamental package for scientific computing
+        - **PostgreSQL** - Robust relational database for data persistence
+        
+        **Data Validation & Quality:**
+        - **Pydantic** - Data validation using Python type annotations
+        - **Pandera** - Statistical data testing toolkit
+        - **Great Expectations** - Data quality and validation framework
+        """)
+    
+    with dep_tab2:
+        st.markdown("""
+        **Solar Energy & Optimization:**
+        - **pvlib** - Professional solar position and irradiance modeling
+        - **DEAP** - Distributed Evolutionary Algorithms (NSGA-II genetic optimization)
+        - **scikit-learn** - Machine learning library for demand prediction models
+        
+        **Weather & Environmental:**
+        - **pytz** - World timezone definitions and conversions
+        - **ISO 15927-4** - International standards for climatic data
+        """)
+    
+    with dep_tab3:
+        st.markdown("""
+        **External Data Sources:**
+        - **OpenWeatherMap API** - Global weather data and forecasting
+        - **TU Berlin Climate Portal** - Academic-grade meteorological data for Germany
+        - **German SMARD** - Official electricity market data (Germany)
+        - **UK Ofgem** - UK electricity rates and grid information
+        - **US EIA** - U.S. Energy Information Administration data
+        - **EU Eurostat** - European Union statistical data
+        
+        **AI & Research Integration:**
+        - **Perplexity AI** - Advanced AI for research consultation and literature analysis
+        """)
+    
+    with dep_tab4:
+        st.markdown("""
+        **Interactive Visualization:**
+        - **Plotly** - Professional interactive charts and 3D visualizations
+        - **Folium** - Interactive maps and geographical analysis
+        - **Kaleido** - Static image export for scientific publications
+        
+        **Report Generation:**
+        - **ReportLab** - PDF generation with professional formatting
+        - **python-docx** - Microsoft Word document creation
+        - **openpyxl** - Excel spreadsheet processing and export
+        """)
+
     # Important notes section
     st.markdown("---")
     st.warning("""
@@ -183,6 +250,92 @@ def render_welcome():
     st.markdown("""
     <div style="text-align: center; margin-top: 10px; color: #666; font-size: 0.9em;">
         Each analysis creates a unique project ID for independent calculations
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Powered by section
+    st.markdown("---")
+    st.markdown("### 🚀 Powered by Leading Technologies")
+    
+    # Display main BIPV logo
+    col_logo1, col_logo2, col_logo3 = st.columns([1, 1, 1])
+    with col_logo2:
+        st.image("attached_assets/BIPVOptiLogo_1751288770337.png", width=200, caption="BIPV Optimizer Platform")
+    
+    st.markdown("""
+    <div style="text-align: center; margin: 20px 0; background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
+        <h4 style="margin-bottom: 15px; color: #2E8B57;">Built with Professional-Grade Technologies</h4>
+        
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; align-items: center; margin: 20px 0;">
+            <!-- Core Technologies -->
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #FF4B4B;">🎯</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Streamlit</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #013220;">🐼</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Pandas</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #4CAF50;">🔢</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">NumPy</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #336791;">🗄️</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">PostgreSQL</span>
+            </div>
+            
+            <!-- Scientific Computing -->
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #F7931E;">☀️</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">pvlib</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #F7931E;">🧬</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">DEAP</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #FF6B6B;">🤖</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">scikit-learn</span>
+            </div>
+            
+            <!-- Visualization & Data -->
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #3F7CFF;">📊</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Plotly</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #2ECC71;">🗺️</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Folium</span>
+            </div>
+            
+            <!-- External APIs -->
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #FF8C00;">🌤️</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">OpenWeather</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #7C4DFF;">🔮</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">Perplexity AI</span>
+            </div>
+            
+            <div style="display: flex; align-items: center; background: white; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span style="font-weight: bold; color: #1976D2;">🏛️</span>
+                <span style="margin-left: 8px; font-size: 0.9em; font-weight: 500;">TU Berlin Portal</span>
+            </div>
+        </div>
+        
+        <div style="margin-top: 15px; font-size: 0.85em; color: #666; font-style: italic;">
+            Professional research platform integrating leading open-source and commercial technologies<br>
+            for comprehensive BIPV analysis and optimization
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
