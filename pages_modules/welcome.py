@@ -420,18 +420,18 @@ def render_welcome():
     """, unsafe_allow_html=True)
     
     # Display the three main technology logos in columns ordered by workflow usage
-    col1, col2, col3 = st.columns([1, 1, 1])
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         # Step 2: scikit-learn for AI model training and demand prediction
         st.markdown("""
         <div style="background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-                    padding: 20px; text-align: center; min-height: 140px; display: flex; align-items: center; justify-content: center;">
+                    padding: 30px 20px; text-align: center; height: 180px; display: flex; align-items: center; 
+                    justify-content: center; margin-bottom: 15px;">
         """, unsafe_allow_html=True)
-        st.image("attached_assets/scikit_learn_logo.png", width=150)
+        st.image("attached_assets/scikit_learn_logo.png", width=140)
         st.markdown("</div>", unsafe_allow_html=True)
         
-        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
         <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #FF9A56 0%, #FF6B6B 100%); 
                     border-radius: 8px; color: white;">
@@ -445,12 +445,12 @@ def render_welcome():
         # Steps 3,5,6,7: pvlib for solar energy modeling
         st.markdown("""
         <div style="background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-                    padding: 20px; text-align: center; min-height: 140px; display: flex; align-items: center; justify-content: center;">
+                    padding: 30px 20px; text-align: center; height: 180px; display: flex; align-items: center; 
+                    justify-content: center; margin-bottom: 15px;">
         """, unsafe_allow_html=True)
-        st.image("attached_assets/pvlib_powered_logo_horiz.png", width=150)
+        st.image("attached_assets/pvlib_powered_logo_horiz.png", width=140)
         st.markdown("</div>", unsafe_allow_html=True)
         
-        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
         <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #56CCF2 0%, #2F80ED 100%); 
                     border-radius: 8px; color: white;">
@@ -464,7 +464,8 @@ def render_welcome():
         # Step 8: DEAP for multi-objective optimization
         st.markdown("""
         <div style="background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-                    padding: 30px 20px; text-align: center; min-height: 140px; display: flex; align-items: center; justify-content: center;">
+                    padding: 30px 20px; text-align: center; height: 180px; display: flex; align-items: center; 
+                    justify-content: center; margin-bottom: 15px;">
             <div>
                 <div style="font-size: 3em; margin-bottom: 5px;">🧬</div>
                 <div style="font-size: 1.6em; font-weight: bold; color: #764ba2;">DEAP</div>
@@ -473,7 +474,6 @@ def render_welcome():
         </div>
         """, unsafe_allow_html=True)
         
-        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
         <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                     border-radius: 8px; color: white;">
