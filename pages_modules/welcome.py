@@ -11,60 +11,182 @@ from services.database_state_manager import db_state_manager
 def render_welcome():
     """Render the welcome and introduction page"""
     
-    # Main banner
+    # Main banner with enhanced styling
     st.markdown("""
     <div style="background: linear-gradient(135deg, #2E8B57 0%, #228B22 50%, #32CD32 100%); 
-                padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-        <h1 style="color: white; margin: 0; font-size: 2.2em;">
-            BIPV Optimizer Platform
+                padding: 30px 20px; border-radius: 15px; text-align: center; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h1 style="color: white; margin: 0; font-size: 2.5em; font-weight: 700;">
+            ☀️ BIPV Optimizer Platform
         </h1>
-        <p style="color: white; font-size: 1.1em; margin: 5px 0 0 0;">
+        <p style="color: #e6ffe6; font-size: 1.2em; margin: 10px 0 0 0; font-weight: 400;">
             Building-Integrated Photovoltaics Analysis & Optimization
+        </p>
+        <p style="color: #ccffcc; font-size: 0.95em; margin: 8px 0 0 0;">
+            Research Platform | Technische Universität Berlin
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("""
-    ### What is BIPV?
+    # Introduction section with better formatting
+    col1, col2 = st.columns([3, 2])
     
-    **Building-Integrated Photovoltaics (BIPV)** replaces conventional windows with semi-transparent 
-    photovoltaic glass that generates electricity while maintaining natural lighting. This platform 
-    analyzes building geometry to identify suitable window types for BIPV installation, considering 
-    historical significance and architectural constraints. Project configuration allows analysis of 
-    optimal orientations (South/East/West) or all orientations including North-facing facades.
+    with col1:
+        st.markdown("""
+        ### 🏢 What is BIPV?
+        
+        **Building-Integrated Photovoltaics (BIPV)** replaces conventional windows with semi-transparent 
+        photovoltaic glass that generates electricity while maintaining natural lighting. This platform 
+        analyzes building geometry to identify suitable window types for BIPV installation, considering 
+        historical significance and architectural constraints.
+        
+        **Intelligent Window Selection:** Project configuration allows analysis of optimal orientations 
+        (South/East/West) or all orientations including North-facing facades based on your building's 
+        specific requirements.
+        """)
     
-    ### Key Platform Features
+    with col2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 25px; border-radius: 12px; color: white; margin-top: 20px;">
+            <h4 style="color: white; margin-top: 0;">🎯 Platform Capabilities</h4>
+            <ul style="margin: 0; padding-left: 20px;">
+                <li>AI-powered energy prediction</li>
+                <li>Multi-objective optimization</li>
+                <li>Real TMY weather data</li>
+                <li>25-year financial analysis</li>
+                <li>ISO/ASHRAE compliance</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
     
-    • **AI-Powered Analysis** - Machine learning for energy demand prediction  
-    • **Multi-Objective Optimization** - Genetic algorithms for optimal BIPV placement  
-    • **Real Weather Data** - TMY generation from actual meteorological stations  
-    • **BIM Integration** - Direct Revit model processing with Dynamo scripts  
-    • **Financial Modeling** - 25-year NPV, IRR, and payback analysis  
-    • **Standards Compliance** - ISO 15927-4, ASHRAE 90.1, IEC 61853  
-    
-    ### Complete 11-Step Analysis Workflow
-    
-    **1. Project Setup** - Location selection and project configuration  
-    **2. Historical Data** - Energy consumption analysis and AI model training  
-    **3. Weather Integration** - TMY data generation and climate analysis  
-    **4. Window Selection** - BIM extraction and window type filtering for BIPV suitability  
-    **5. Radiation Analysis** - Solar irradiance and shading calculations for selected windows  
-    **6. PV Specification** - BIPV technology selection for selected window types  
-    **7. Yield vs Demand** - Energy balance analysis for selected windows  
-    **8. Optimization** - Multi-objective genetic algorithm optimization  
-    **9. Financial Analysis** - Economic viability analysis for selected windows  
-    **10. Reporting** - Comprehensive analysis reports and data export  
-    **11. AI Consultation** - Expert analysis and optimization recommendations
-    """)
-    
-    # Sample Files Section
+    # Key Features with enhanced visual cards
     st.markdown("---")
-    st.subheader("📁 Sample Files for Your Analysis")
+    st.markdown("### ⚡ Key Platform Features")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div style="background: #f0f7ff; padding: 20px; border-radius: 10px; border-left: 4px solid #2196F3; height: 180px;">
+            <h4 style="color: #1976D2; margin-top: 0;">🤖 AI-Powered Analysis</h4>
+            <p style="margin: 0; font-size: 0.9em;">Machine learning for energy demand prediction using RandomForestRegressor with R² performance tracking</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style="background: #fff3e0; padding: 20px; border-radius: 10px; border-left: 4px solid #FF9800; height: 180px;">
+            <h4 style="color: #F57C00; margin-top: 0;">🧬 Multi-Objective Optimization</h4>
+            <p style="margin: 0; font-size: 0.9em;">NSGA-II genetic algorithms optimize cost, energy yield, and ROI for optimal BIPV placement</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style="background: #e8f5e9; padding: 20px; border-radius: 10px; border-left: 4px solid #4CAF50; height: 180px;">
+            <h4 style="color: #388E3C; margin-top: 0;">☁️ Real Weather Data</h4>
+            <p style="margin: 0; font-size: 0.9em;">ISO 15927-4 compliant TMY generation from actual meteorological stations with multi-source validation</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div style="background: #fce4ec; padding: 20px; border-radius: 10px; border-left: 4px solid #E91E63; height: 180px;">
+            <h4 style="color: #C2185B; margin-top: 0;">🏗️ BIM Integration</h4>
+            <p style="margin: 0; font-size: 0.9em;">Direct Revit model processing with Dynamo scripts for accurate building element extraction</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; border-left: 4px solid #9C27B0; height: 180px;">
+            <h4 style="color: #7B1FA2; margin-top: 0;">💰 Financial Modeling</h4>
+            <p style="margin: 0; font-size: 0.9em;">Comprehensive 25-year NPV, IRR, payback analysis with sensitivity testing and cash flow projections</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div style="background: #e0f2f1; padding: 20px; border-radius: 10px; border-left: 4px solid #009688; height: 180px;">
+            <h4 style="color: #00796B; margin-top: 0;">✅ Standards Compliance</h4>
+            <p style="margin: 0; font-size: 0.9em;">ISO 15927-4, ASHRAE 90.1, IEC 61853 certified methodologies for research-grade accuracy</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Complete 11-Step Workflow with enhanced visual presentation
+    st.markdown("---")
+    st.markdown("### 🔄 Complete 11-Step Analysis Workflow")
+    
+    st.markdown("""
+    <div style="background: linear-gradient(to right, #f8f9fa, #e9ecef); padding: 25px; border-radius: 12px; margin: 20px 0;">
+    """, unsafe_allow_html=True)
+    
+    # Display workflow steps in organized sections
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        **📍 Steps 1-6: Setup & Analysis**
+        
+        **1. Project Setup**  
+        🗺️ Location selection and project configuration
+        
+        **2. Historical Data**  
+        📊 Energy consumption analysis and AI model training
+        
+        **3. Weather Integration**  
+        ☁️ TMY data generation and climate analysis
+        
+        **4. Window Selection**  
+        🪟 BIM extraction and window type filtering for BIPV suitability
+        
+        **5. Radiation Analysis**  
+        ☀️ Solar irradiance and shading calculations for selected windows
+        
+        **6. PV Specification**  
+        ⚡ BIPV technology selection for selected window types
+        """)
+    
+    with col2:
+        st.markdown("""
+        **📈 Steps 7-11: Optimization & Results**
+        
+        **7. Yield vs Demand**  
+        📉 Energy balance analysis for selected windows
+        
+        **8. Optimization**  
+        🧬 Multi-objective genetic algorithm optimization
+        
+        **9. Financial Analysis**  
+        💰 Economic viability analysis for selected windows
+        
+        **10. Reporting**  
+        📄 Comprehensive analysis reports and data export
+        
+        **11. AI Consultation** ✨  
+        🤖 Expert analysis and optimization recommendations
+        """)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Sample Files Section with enhanced styling
+    st.markdown("---")
+    st.markdown("### 📁 Sample Files for Your Analysis")
+    st.markdown("Download these templates to get started with your BIPV analysis")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**Historical Energy Data Sample**")
+        st.markdown("""
+        <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+            <h4 style="color: #1565C0; margin-top: 0;">📊 Historical Energy Data Sample</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.info("""
         **For Step 2 - Historical Data Upload**
         
@@ -79,15 +201,21 @@ def render_welcome():
             csv_data = f.read()
         
         st.download_button(
-            label="📊 Download Sample Energy Data",
+            label="📥 Download Sample Energy Data",
             data=csv_data,
             file_name="Sample_Building_Energy_Data.csv",
             mime="text/csv",
-            help="Use this as a template for your building's historical energy consumption data"
+            help="Use this as a template for your building's historical energy consumption data",
+            use_container_width=True
         )
     
     with col2:
-        st.markdown("**Building Elements Extraction**")
+        st.markdown("""
+        <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+            <h4 style="color: #6A1B9A; margin-top: 0;">🔧 Building Elements Extraction</h4>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.info("""
         **For Step 4 - Window Selection & BIM Data Upload**
         
@@ -103,21 +231,24 @@ def render_welcome():
             dyn_data = f.read()
         
         st.download_button(
-            label="🔧 Download Dynamo Script",
+            label="📥 Download Dynamo Script",
             data=dyn_data,
             file_name="Extract_Window_Metadata.dyn",
             mime="application/json",
-            help="Revit Dynamo script to extract building window data for BIPV analysis"
+            help="Revit Dynamo script to extract building window data for BIPV analysis",
+            use_container_width=True
         )
     
-    # External Dependencies section
+    # External Dependencies section with improved tabs
     st.markdown("---")
-    st.subheader("🔧 External Dependencies & Technologies")
+    st.markdown("### 🔧 External Dependencies & Technologies")
     
     st.markdown("""
-    The BIPV Optimizer platform is built on a comprehensive stack of leading technologies and external services 
-    to ensure professional-grade analysis and reliable data sources:
-    """)
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        The BIPV Optimizer platform is built on a comprehensive stack of leading technologies and external services 
+        to ensure professional-grade analysis and reliable data sources.
+    </div>
+    """, unsafe_allow_html=True)
     
     # Create tabs for different dependency categories
     dep_tab1, dep_tab2, dep_tab3, dep_tab4 = st.tabs([
@@ -126,76 +257,106 @@ def render_welcome():
     
     with dep_tab1:
         st.markdown("""
-        **Web Framework & Data Processing:**
-        - **Streamlit** - Interactive web application framework
-        - **Pandas** - High-performance data manipulation and analysis
-        - **NumPy** - Fundamental package for scientific computing
-        - **PostgreSQL** - Robust relational database for data persistence
+        #### Web Framework & Data Processing
         
-        **Data Validation & Quality:**
-        - **Pydantic** - Data validation using Python type annotations
-        - **Pandera** - Statistical data testing toolkit
-        - **Great Expectations** - Data quality and validation framework
+        - **Streamlit (1.46.0+)** - Interactive web application framework with enhanced UI components
+        - **Pandas (2.0.3)** - High-performance data manipulation and analysis
+        - **NumPy (1.24.4)** - Fundamental package for scientific computing with stable version compatibility
+        - **PostgreSQL (16)** - Robust relational database for comprehensive data persistence
+        
+        #### Data Validation & Quality Assurance
+        
+        - **Pydantic (2.11.7+)** - Data validation using Python type annotations
+        - **Pandera (0.25.0+)** - Statistical data testing toolkit for DataFrame validation
+        - **Great Expectations (0.18.22+)** - Data quality validation and monitoring framework
+        - **Loguru (0.7.3+)** - Advanced logging with structured output for debugging
         """)
     
     with dep_tab2:
         st.markdown("""
-        **Solar Energy & Optimization:**
-        - **pvlib** - Professional solar position and irradiance modeling
-        - **DEAP** - Distributed Evolutionary Algorithms (NSGA-II genetic optimization)
-        - **scikit-learn** - Machine learning library for demand prediction models
+        #### Solar Energy & Optimization
         
-        **Weather & Environmental:**
-        - **pytz** - World timezone definitions and conversions
-        - **ISO 15927-4** - International standards for climatic data
+        - **pvlib (0.13.0+)** - Professional solar position and irradiance modeling for BIPV analysis
+        - **DEAP (1.4.3+)** - Distributed Evolutionary Algorithms (NSGA-II genetic optimization)
+        - **scikit-learn (1.7.0+)** - Machine learning library with RandomForestRegressor for demand prediction
+        
+        #### Weather & Environmental Analysis
+        
+        - **pytz (2025.2+)** - Comprehensive world timezone definitions and conversions
+        - **ISO 15927-4** - International standards compliance for climatic data analysis
+        - **ASHRAE 90.1** - Energy standards for building design and analysis
+        - **IEC 61853** - PV module performance testing and energy rating standards
         """)
     
     with dep_tab3:
         st.markdown("""
-        **External Data Sources:**
-        - **OpenWeatherMap API** - Global weather data and forecasting
+        #### External Data Sources
+        
+        **Weather & Climate Data:**
+        - **OpenWeatherMap API** - Global weather data and meteorological forecasting
         - **TU Berlin Climate Portal** - Academic-grade meteorological data for Germany
+        
+        **Electricity Market Data:**
         - **German SMARD** - Official electricity market data (Germany)
         - **UK Ofgem** - UK electricity rates and grid information
         - **US EIA** - U.S. Energy Information Administration data
-        - **EU Eurostat** - European Union statistical data
+        - **EU Eurostat** - European Union statistical data for energy markets
         
-        **AI & Research Integration:**
-        - **Perplexity AI** - Advanced AI for research consultation and literature analysis
+        #### AI & Research Integration
+        
+        - **Perplexity AI** - Advanced AI for research consultation and academic literature analysis
+        - **Web Scraping Tools** - Trafilatura & BeautifulSoup4 for data extraction
         """)
     
     with dep_tab4:
         st.markdown("""
-        **Interactive Visualization:**
-        - **Plotly** - Professional interactive charts and 3D visualizations
-        - **Folium** - Interactive maps and geographical analysis
-        - **Kaleido** - Static image export for scientific publications
+        #### Interactive Visualization
         
-        **Report Generation:**
-        - **ReportLab** - PDF generation with professional formatting
-        - **python-docx** - Microsoft Word document creation
-        - **openpyxl** - Excel spreadsheet processing and export
+        - **Plotly (6.1.2+)** - Professional interactive charts and 3D visualizations
+        - **Folium (0.20.0+)** - Interactive maps and geographical analysis
+        - **Streamlit-Folium (0.25.0+)** - Seamless integration of Folium maps in Streamlit
+        - **Kaleido (1.0.0+)** - Static image export for scientific publications
+        
+        #### Report Generation & Export
+        
+        - **ReportLab (4.4.3+)** - PDF generation with professional formatting
+        - **python-docx (1.2.0+)** - Microsoft Word document creation for comprehensive reports
+        - **openpyxl (3.1.5+)** - Excel spreadsheet processing and export capabilities
+        - **Streamlit-Extras (0.7.5+)** - Extended Streamlit components for enhanced reporting
         """)
 
-    # Important notes section
+    # Important notes section with better formatting
     st.markdown("---")
-    st.warning("""
-    **Important Workflow Requirements:**
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); 
+                padding: 25px; border-radius: 12px; border-left: 5px solid #ffc107;">
+        <h4 style="color: #856404; margin-top: 0;">⚠️ Important Workflow Requirements</h4>
+        <ul style="color: #856404; margin: 0;">
+            <li><strong>Step 1 (Project Setup)</strong> - Configure facade orientation analysis (optimal S/E/W or all orientations including North)</li>
+            <li><strong>Step 4 (Window Selection) is MANDATORY</strong> - Window type filtering for BIPV suitability is required before radiation analysis</li>
+            <li><strong>Historical significance filtering</strong> - Some windows cannot be replaced due to heritage constraints</li>
+            <li><strong>Sequential workflow</strong> - Each step builds on previous results; complete steps in order for accurate analysis</li>
+            <li><strong>Use sample files above</strong> as templates for your data uploads to ensure compatibility</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
     
-    • **Step 1 (Project Setup)** - Configure facade orientation analysis (optimal S/E/W or all orientations)
-    • **Step 4 (Window Selection) is MANDATORY** - Window type filtering for BIPV suitability is required
-    • **Historical significance filtering** - Some windows cannot be replaced due to heritage constraints
-    • **Steps must be completed in sequence** - Each step builds on previous results  
-    • **Use sample files above** as templates for your data uploads
-    """)
-    
-    # Ready to start section
+    # Ready to start section with enhanced CTA
     st.markdown("---")
-    st.markdown("### 🚀 Start Your BIPV Analysis")
+    st.markdown("### 🚀 Ready to Start Your BIPV Analysis?")
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 20px;">
+            <p style="font-size: 1.05em; color: #555;">
+                Begin your comprehensive BIPV analysis with a new project. Each analysis creates a unique project ID 
+                for independent calculations and data persistence.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         if st.button("🔬 Start New Analysis", key="start_analysis_btn", use_container_width=True, type="primary"):
             # Generate unique project name with timestamp
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -247,18 +408,13 @@ def render_welcome():
             else:
                 st.error("Failed to create project in database. Please try again.")
     
-    st.markdown("""
-    <div style="text-align: center; margin-top: 10px; color: #666; font-size: 0.9em;">
-        Each analysis creates a unique project ID for independent calculations
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Powered by section
+    # Powered by section with technology logos
     st.markdown("---")
     st.markdown("### 🚀 Powered by Leading Technologies")
     
     st.markdown("""
-    <div style="text-align: center; margin: 20px 0; background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
+    <div style="text-align: center; margin: 25px 0; background: linear-gradient(to right, #f8f9fa, #e9ecef); 
+                padding: 20px; border-radius: 10px;">
         <h4 style="margin-bottom: 25px; color: #2E8B57;">Key Scientific Computing Libraries</h4>
     </div>
     """, unsafe_allow_html=True)
@@ -268,67 +424,83 @@ def render_welcome():
     
     with col1:
         # Step 2: scikit-learn for AI model training and demand prediction
-        with st.container():
-            st.markdown("""
-            <div style="background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; text-align: center;">
-            """, unsafe_allow_html=True)
-            st.image("attached_assets/scikit_learn_logo.png", width=150)
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.caption("Step 2: AI model training and demand prediction")
         st.markdown("""
-        <div style="text-align: center; margin-top: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; min-height: 50px; display: flex; flex-direction: column; justify-content: center;">
-            <strong>scikit-learn</strong><br>
-            <small style="color: #666;">Machine Learning & AI Prediction</small>
+        <div style="background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+                    padding: 20px; text-align: center; min-height: 140px; display: flex; align-items: center; justify-content: center;">
+        """, unsafe_allow_html=True)
+        st.image("attached_assets/scikit_learn_logo.png", width=150)
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #FF9A56 0%, #FF6B6B 100%); 
+                    border-radius: 8px; color: white;">
+            <strong style="font-size: 1.1em;">scikit-learn</strong><br>
+            <small>Machine Learning & AI Prediction</small><br>
+            <small style="opacity: 0.9;">Step 2: Energy Demand Forecasting</small>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         # Steps 3,5,6,7: pvlib for solar energy modeling
-        with st.container():
-            st.markdown("""
-            <div style="background: white; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; text-align: center;">
-            """, unsafe_allow_html=True)
-            st.image("attached_assets/pvlib_powered_logo_horiz.png", width=150)
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.caption("Steps 3,5,6,7: Solar radiation and PV modeling")
         st.markdown("""
-        <div style="text-align: center; margin-top: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; min-height: 50px; display: flex; flex-direction: column; justify-content: center;">
-            <strong>pvlib</strong><br>
-            <small style="color: #666;">Solar Energy Modeling & Analysis</small>
+        <div style="background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+                    padding: 20px; text-align: center; min-height: 140px; display: flex; align-items: center; justify-content: center;">
+        """, unsafe_allow_html=True)
+        st.image("attached_assets/pvlib_powered_logo_horiz.png", width=150)
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #56CCF2 0%, #2F80ED 100%); 
+                    border-radius: 8px; color: white;">
+            <strong style="font-size: 1.1em;">pvlib</strong><br>
+            <small>Solar Energy Modeling & Analysis</small><br>
+            <small style="opacity: 0.9;">Steps 3,5,6,7: Solar Radiation & PV</small>
         </div>
         """, unsafe_allow_html=True)
     
     with col3:
         # Step 8: DEAP for multi-objective optimization
         st.markdown("""
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 30px 20px; text-align: center; color: white; min-height: 140px; display: flex; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+                    padding: 30px 20px; text-align: center; min-height: 140px; display: flex; align-items: center; justify-content: center;">
             <div>
-                <div style="font-size: 2.5em; margin-bottom: 8px;">🧬</div>
-                <div style="font-size: 1.4em; font-weight: bold;">DEAP</div>
-                <div style="font-size: 0.85em; opacity: 0.9;">Evolutionary Algorithms</div>
+                <div style="font-size: 3em; margin-bottom: 5px;">🧬</div>
+                <div style="font-size: 1.6em; font-weight: bold; color: #764ba2;">DEAP</div>
+                <div style="font-size: 0.9em; color: #666;">Evolutionary Algorithms</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        st.caption("Step 8: Multi-objective optimization")
+        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
-        <div style="text-align: center; margin-top: 10px; padding: 12px; background: #f8f9fa; border-radius: 8px; min-height: 50px; display: flex; flex-direction: column; justify-content: center;">
-            <strong>DEAP</strong><br>
-            <small style="color: #666;">Distributed Evolutionary Algorithms (NSGA-II)</small>
+        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    border-radius: 8px; color: white;">
+            <strong style="font-size: 1.1em;">DEAP</strong><br>
+            <small>Distributed Evolutionary Algorithms (NSGA-II)</small><br>
+            <small style="opacity: 0.9;">Step 8: Multi-Objective Optimization</small>
         </div>
         """, unsafe_allow_html=True)
     
-    
-    # Research attribution (footer)
+    # Research attribution (footer) with enhanced design
     st.markdown("---")
     st.markdown("""
-    <div style="text-align: center; padding: 10px; background-color: #f0f2f6; border-radius: 5px; margin-top: 20px;">
-        <small>
-        <strong>Research Platform</strong><br>
-        Developed by Mostafa Gabr | Technische Universität Berlin<br>
-        <a href="https://www.researchgate.net/profile/Mostafa-Gabr-4" target="_blank">ResearchGate Profile</a>
-        </small>
+    <div style="text-align: center; padding: 25px; background: linear-gradient(135deg, #f0f2f6 0%, #e6e9ef 100%); 
+                border-radius: 10px; margin-top: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <h4 style="color: #2E8B57; margin-top: 0;">🎓 Academic Research Platform</h4>
+        <p style="margin: 10px 0; color: #555;">
+            <strong>Developed by Mostafa Gabr, PhD Candidate</strong><br>
+            Technische Universität Berlin | Faculty of Architecture
+        </p>
+        <p style="margin: 10px 0;">
+            <a href="https://www.researchgate.net/profile/Mostafa-Gabr-4" target="_blank" 
+               style="color: #2E8B57; text-decoration: none; font-weight: 500;">
+                📚 ResearchGate Profile →
+            </a>
+        </p>
+        <p style="margin: 15px 0 0 0; font-size: 0.85em; color: #777;">
+            Platform Version: 2.0 | Last Updated: October 2025
+        </p>
     </div>
     """, unsafe_allow_html=True)
