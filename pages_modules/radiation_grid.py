@@ -497,9 +497,6 @@ def render_radiation_grid():
                         progress_bar.progress(1.0)
                         status_text.text("✅ Analysis completed and saved successfully!")
                         
-                        # Wait a moment for user to see the success message
-                        time.sleep(1)
-                        
                         # Trigger page refresh to show results
                         st.rerun()
                         
