@@ -251,9 +251,48 @@ def render_radiation_grid():
     
     st.info("💡 **Note**: Window types are selected in Step 4 based on historical significance. This step performs radiation analysis only on the selected window types suitable for BIPV installation.")
     
-    # Check for existing analysis
+    # Check for existing analysis with enhanced debug info
     existing_data = db_manager.get_radiation_analysis_data(project_id)
     has_existing_analysis = existing_data and existing_data.get('element_radiation')
+    
+    # Add database check button for debugging
+    if st.button("🔍 Check Database for Existing Results", key="check_db_results", help="Check if there are any radiation analysis results in the database"):
+        st.info("🔎 **Checking database for radiation analysis results...**")
+        
+        conn = db_manager.get_connection()
+        if conn:
+            try:
+                with conn.cursor() as cursor:
+                    # Check radiation_analysis table
+                    cursor.execute("SELECT COUNT(*), MAX(created_at) FROM radiation_analysis WHERE project_id = %s", (project_id,))
+                    analysis_result = cursor.fetchone()
+                    
+                    # Check element_radiation table
+                    cursor.execute("SELECT COUNT(*), MIN(annual_radiation), AVG(annual_radiation), MAX(annual_radiation) FROM element_radiation WHERE project_id = %s", (project_id,))
+                    elements_result = cursor.fetchone()
+                    
+                    if analysis_result and analysis_result[0] > 0:
+                        st.success(f"✅ Found {analysis_result[0]} radiation analysis record(s) | Last updated: {analysis_result[1]}")
+                    else:
+                        st.warning("⚠️ No radiation_analysis records found in database")
+                    
+                    if elements_result and elements_result[0] > 0:
+                        st.success(f"✅ Found {elements_result[0]} element radiation records")
+                        st.info(f"📊 Radiation range: {elements_result[1]:.0f} - {elements_result[3]:.0f} kWh/m²/year | Average: {elements_result[2]:.0f} kWh/m²/year")
+                        
+                        # Trigger display of results
+                        st.info("🔄 Results found! Refreshing page to display them...")
+                        st.rerun()
+                    else:
+                        st.warning("⚠️ No element_radiation records found. Analysis may not have completed or saved properly.")
+                        st.info("💡 **Try running the analysis again with these settings:**")
+                        st.write("- Use 'Simple' calculation mode for fastest results")
+                        st.write("- Select 'Yearly Average' precision for quick analysis")
+                        st.write("- Ensure both window elements and wall data are present")
+            except Exception as e:
+                st.error(f"❌ Database check error: {str(e)}")
+            finally:
+                conn.close()
     
     # Enhanced data availability dashboard
     st.markdown("---")
@@ -415,61 +454,94 @@ def render_radiation_grid():
                 else:
                     st.info("🔬 **Research-Grade Analysis** - Maximum accuracy for selected window types, longer processing time")
                 
-                # Execute the complete analysis flow
-                with st.spinner("Running comprehensive radiation analysis on selected window types..."):
-                    execution_result = executor.run_complete_analysis(project_id, analysis_config)
+                # Execute the complete analysis flow with enhanced error handling
+                execution_result = {}
+                try:
+                    # Add detailed progress updates
+                    status_text.text("🔍 Step 1/5: Validating prerequisites...")
+                    progress_bar.progress(0.1)
+                    
+                    with st.spinner("Running comprehensive radiation analysis on selected window types..."):
+                        execution_result = executor.run_complete_analysis(project_id, analysis_config)
+                    
+                    # Process execution results
+                    if execution_result and execution_result.get('success'):
+                        # Show success message with performance metrics
+                        metrics = execution_result.get('performance_metrics', {})
+                        elements_count = metrics.get('elements_processed', 0)
+                        total_time = metrics.get('total_execution_time', 0)
+                        calc_per_sec = metrics.get('calculations_per_second', 0)
+                        
+                        analysis_type = execution_result.get('analysis_type', 'standard')
+                        analysis_type_name = {
+                            'ultra_fast': 'Ultra-Fast',
+                            'optimized': 'High-Performance', 
+                            'advanced': 'Research-Grade'
+                        }.get(analysis_type, 'Standard')
+                        
+                        st.success(f"✅ **{analysis_type_name} Analysis Complete!**\n"
+                                 f"- Elements: {elements_count:,}\n"
+                                 f"- Total Time: {total_time:.1f} seconds\n"
+                                 f"- Method: {precision}\n" + 
+                                 (f"- Speed: {calc_per_sec:.0f} calculations/second" if calc_per_sec > 0 else ""))
+                        
+                        # Show validation summary
+                        validation_summary = execution_result.get('validation_summary', {})
+                        suitable_elements = validation_summary.get('suitable_elements', 0)
+                        total_elements = validation_summary.get('total_elements', 0)
+                        
+                        if suitable_elements and total_elements:
+                            suitability_rate = (suitable_elements / total_elements) * 100
+                            st.info(f"📊 **Analysis Summary**: {suitable_elements:,} suitable elements ({suitability_rate:.1f}% suitability rate)")
+                        
+                        progress_bar.progress(1.0)
+                        status_text.text("✅ Analysis completed and saved successfully!")
+                        
+                        # Wait a moment for user to see the success message
+                        time.sleep(1)
+                        
+                        # Trigger page refresh to show results
+                        st.rerun()
+                        
+                    else:
+                        # Enhanced error handling with recovery suggestions
+                        error_msg = execution_result.get('error', 'Unknown error occurred')
+                        st.error(f"❌ **Analysis Failed**: {error_msg}")
+                        
+                        # Show validation errors if available
+                        if 'validation_errors' in execution_result:
+                            st.error("**Validation Errors:**")
+                            for error in execution_result['validation_errors']:
+                                st.error(f"- {error}")
+                        
+                        # Show warnings if available
+                        if 'validation_warnings' in execution_result:
+                            st.warning("**Warnings:**")
+                            for warning in execution_result['validation_warnings']:
+                                st.warning(f"- {warning}")
+                        
+                        # Provide recovery suggestions
+                        st.info("💡 **Recovery Suggestions:**")
+                        st.write("1. **Try simpler settings**: Use 'Simple' calculation mode and 'Yearly Average' precision")
+                        st.write("2. **Check data**: Click 'Check Database for Existing Results' button above")
+                        st.write("3. **Verify prerequisites**: Ensure TMY weather data (Step 3) and window elements (Step 4) exist")
+                        st.write("4. **Retry analysis**: Sometimes a second attempt succeeds if first was interrupted")
                 
-                # Process execution results
-                if execution_result['success']:
-                    # Show success message with performance metrics
-                    metrics = execution_result.get('performance_metrics', {})
-                    elements_count = metrics.get('elements_processed', 0)
-                    total_time = metrics.get('total_execution_time', 0)
-                    calc_per_sec = metrics.get('calculations_per_second', 0)
-                    
-                    analysis_type_name = {
-                        'ultra_fast': 'Ultra-Fast',
-                        'optimized': 'High-Performance', 
-                        'advanced': 'Research-Grade'
-                    }.get(execution_result['analysis_type'], 'Standard')
-                    
-                    st.success(f"✅ **{analysis_type_name} Analysis Complete!**\n"
-                             f"- Elements: {elements_count:,}\n"
-                             f"- Total Time: {total_time:.1f} seconds\n"
-                             f"- Method: {precision}\n" + 
-                             (f"- Speed: {calc_per_sec:.0f} calculations/second" if calc_per_sec > 0 else ""))
-                    
-                    # Show validation summary
-                    validation_summary = execution_result.get('validation_summary', {})
-                    suitable_elements = validation_summary.get('suitable_elements', 0)
-                    total_elements = validation_summary.get('total_elements', 0)
-                    
-                    if suitable_elements and total_elements:
-                        suitability_rate = (suitable_elements / total_elements) * 100
-                        st.info(f"📊 **Analysis Summary**: {suitable_elements:,} suitable elements ({suitability_rate:.1f}% suitability rate)")
-                    
-                    progress_bar.progress(1.0)
-                    status_text.text("Analysis completed successfully!")
-                    
-                    # Trigger page refresh to show results
-                    st.rerun()
-                    
-                else:
-                    # Show error message
-                    error_msg = execution_result.get('error', 'Unknown error occurred')
-                    st.error(f"❌ **Analysis Failed**: {error_msg}")
-                    
-                    # Show validation errors if available
-                    if 'validation_errors' in execution_result:
-                        st.error("**Validation Errors:**")
-                        for error in execution_result['validation_errors']:
-                            st.error(f"- {error}")
-                    
-                    # Show warnings if available
-                    if 'validation_warnings' in execution_result:
-                        st.warning("**Warnings:**")
-                        for warning in execution_result['validation_warnings']:
-                            st.warning(f"- {warning}")
+                except TimeoutError:
+                    st.error("⏱️ **Analysis Timeout**: The analysis took too long to complete.")
+                    st.info("💡 **Solutions:**")
+                    st.write("- Use 'Simple' calculation mode instead of 'Advanced'")
+                    st.write("- Select 'Yearly Average' or 'Monthly Average' precision instead of 'Hourly'")
+                    st.write("- The analysis is processing too many elements - this usually completes in under 5 minutes")
+                
+                except Exception as analysis_error:
+                    st.error(f"💥 **Unexpected Error**: {str(analysis_error)}")
+                    st.error("**Error Details:**")
+                    st.code(str(analysis_error))
+                    st.info("💡 **What to do:**")
+                    st.write("1. Click 'Check Database for Existing Results' to see if partial data was saved")
+                    st.write("2. Try restarting the analysis with simpler settings")
+                    st.write("3. If the error persists, check that all prerequisites (Steps 1-4) are completed")
                     
                     # Show traceback for debugging if available
                     if 'traceback' in execution_result:
@@ -1175,6 +1247,7 @@ def display_existing_results(project_id):
 
 def save_walls_data_to_database(project_id, walls_df):
     """Save wall data to database for shading calculations."""
+    conn = None
     try:
         conn = db_manager.get_connection()
         if not conn:

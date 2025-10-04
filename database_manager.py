@@ -776,17 +776,17 @@ class BIPVDatabaseManager:
             conn.close()
     
     def get_radiation_analysis_data(self, project_id):
-        """Get radiation analysis data from database - fully database-driven"""
+        """Get radiation analysis data from database - shows both complete and partial results"""
         conn = self.get_connection()
         if not conn:
             return None
         
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                # Get radiation analysis summary
+                # Get radiation analysis summary - removed analysis_complete requirement to show partial results
                 cursor.execute("""
                     SELECT * FROM radiation_analysis 
-                    WHERE project_id = %s AND analysis_complete = TRUE
+                    WHERE project_id = %s
                     ORDER BY created_at DESC LIMIT 1
                 """, (project_id,))
                 
@@ -812,10 +812,12 @@ class BIPVDatabaseManager:
                 
                 element_radiation = cursor.fetchall()
                 
+                # Return results even if analysis_complete flag is missing
                 return {
                     'radiation_summary': dict(radiation_summary) if radiation_summary else None,
                     'element_radiation': [dict(row) for row in element_radiation],
-                    'total_elements': len(element_radiation)
+                    'total_elements': len(element_radiation),
+                    'is_complete': radiation_summary.get('analysis_complete', False) if radiation_summary else False
                 }
                 
         except Exception as e:
