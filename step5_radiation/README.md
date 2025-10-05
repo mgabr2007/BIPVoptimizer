@@ -2,451 +2,367 @@
 
 ## Overview
 
-This module provides high-performance solar radiation analysis for BIPV (Building Integrated Photovoltaics) optimization. It calculates solar irradiance on building surfaces using authentic meteorological data and geometric analysis with multiple analyzer options for different performance needs.
+This module provides high-performance solar radiation analysis for BIPV (Building Integrated Photovoltaics) optimization. It calculates solar irradiance on building surfaces using authentic meteorological data from Step 3 (TMY) and geometric analysis with multiple analyzer options for different performance needs.
 
 ## Key Features
 
-### Multiple Analyzer Options
-- **UltraFastRadiationAnalyzer**: 8-second processing for quick analysis (82% faster)
-- **OptimizedRadiationAnalyzer**: Standard analysis with TMY data integration
-- **AdvancedRadiationAnalyzer**: Comprehensive analysis with detailed atmospheric modeling
+### Three Analyzer Engines
+The module includes three specialized radiation analyzers, each optimized for different use cases:
 
-### Performance Optimizations
-- **TMY Data Integration**: Uses authentic meteorological data from Step 3
-- **Vectorized Processing**: Efficient batch calculations for multiple building elements
-- **Database Integration**: Stores results in element_radiation table for Step 6 access
-- **Progress Tracking**: Real-time analysis monitoring with completion status
+1. **UltraFastRadiationAnalyzer** (`services/ultra_fast_radiation_analyzer.py`)
+   - **Processing Time**: 8-15 seconds
+   - **Use Case**: Quick preliminary analysis and rapid iterations
+   - **Performance**: 82% faster than standard analysis
+   - **Method**: Pre-loads all data, vectorized batch processing
+   - **Best For**: Yearly Average precision mode
+
+2. **OptimizedRadiationAnalyzer** (`services/optimized_radiation_analyzer.py`)
+   - **Processing Time**: 3-5 minutes
+   - **Use Case**: Standard production analysis with TMY integration
+   - **Performance**: Balanced speed and accuracy
+   - **Method**: Precision-based sampling with calculation cache
+   - **Best For**: Daily Peak and Monthly Average modes
+
+3. **AdvancedRadiationAnalyzer** (`services/advanced_radiation_analyzer.py`)
+   - **Processing Time**: 10-15 minutes
+   - **Use Case**: Research-grade comprehensive analysis
+   - **Performance**: Maximum accuracy with detailed atmospheric modeling
+   - **Method**: Complete hourly calculations with full TMY integration
+   - **Best For**: Hourly precision mode (4,015 calculations per element)
+
+### Precision Levels
+
+The module supports four precision levels with different calculation intensities:
+
+| Precision Level | Calculations/Element | Description | Processing Time |
+|----------------|---------------------|-------------|-----------------|
+| **Hourly** | 4,015 | 11 hours × 365 days - Research grade | 10-15 min |
+| **Daily Peak** | 365 | Noon analysis for each day | 3-5 min |
+| **Monthly Average** | 12 | Representative day per month | 1-2 min |
+| **Yearly Average** | 4 | Seasonal representatives | 8-15 sec |
 
 ### Analysis Capabilities
-- **Solar Position Calculations**: Accurate sun elevation and azimuth calculations
+
+- **Solar Position Calculations**: Accurate sun elevation and azimuth using astronomical algorithms
 - **Irradiance Modeling**: DNI, DHI, GHI decomposition with atmospheric corrections
 - **Shading Analysis**: Building self-shading and environmental factors
 - **Height-Dependent Effects**: Ground reflectance and elevation adjustments
-- **Timeline Components**: Progress visualization using Streamlit Extras
-- **Polar Visualizations**: Interactive Plotly charts for orientation analysis
-- **Persistent Progress**: Session state management for analysis resumption
-- **Dashboard Route**: Lightweight results view with cached aggregations
+- **TMY Integration**: Authentic meteorological data from Step 3 weather analysis
+- **Database Persistence**: Results stored in `element_radiation` table for downstream steps
 
-### 5. Validation & Quality Control
-- **Great Expectations**: Data quality validation for building elements
-- **Unit Detection**: Automatic detection and conversion of degrees vs radians
-- **Range Validation**: Expected value range checking with warnings
-- **Pytest Suite**: Comprehensive unit and integration tests
+### User Interface Features
 
-### 6. Logging & Observability
-- **Structured Logging**: Loguru with JSON output for production environments
-- **Sentry Integration**: Automatic error reporting and performance monitoring
-- **Live Log Viewer**: Streamlit component showing real-time analysis logs
-- **Performance Metrics**: Database operation timing and success rates
+- **Three Calculation Modes**: Simple, Advanced, Auto (intelligent mode selection)
+- **Progress Tracking**: Real-time analysis monitoring with completion percentage
+- **Results Visualization**: Interactive Plotly charts for orientation analysis
+- **Database Check**: Quick validation button to review existing analysis results
+- **Performance Metrics**: Display of processing time, elements analyzed, and calculation count
 
-### 7. Security & Operations
-- **File Validation**: Size and MIME type checking for uploads
-- **Environment Variables**: Secure configuration management
-- **RBAC Framework**: Role-based access control for project ownership
-- **Rate Limiting**: Protection against analysis abuse
+## Module Structure
 
-### 8. Documentation & Deliverables
-- **Architecture Diagrams**: Complete system design documentation
-- **API Documentation**: Auto-generated docs with mkdocs-material
-- **Migration Scripts**: Database schema setup and upgrade scripts
-- **CI/CD Integration**: GitHub Actions workflow for testing
-
-## 📦 Installation
-
-### Prerequisites
-- Python 3.11+
-- PostgreSQL 12+
-- Streamlit 1.28+
-
-### Quick Setup
-```bash
-# Install dependencies
-pip install -r step5_radiation/requirements.txt
-
-# Apply database migrations
-psql -h localhost -U postgres -d bipv_db -f step5_radiation/migrations/001_create_radiation_tables.sql
-
-# Install package in development mode
-pip install -e .
+```
+step5_radiation/
+├── __init__.py                 # Module exports and interface
+├── config.py                   # Analysis configuration and settings
+├── models.py                   # Data models for radiation analysis
+├── ui.py                       # Streamlit UI components
+├── README.md                   # This file
+├── requirements.txt            # Python dependencies
+│
+├── db/                         # Database operations
+│   ├── __init__.py
+│   └── queries.py             # SQL queries for radiation data
+│
+├── models/                     # Data models
+│   ├── __init__.py
+│   └── radiation_models.py    # Pydantic models for validation
+│
+├── services/                   # Analysis services
+│   ├── __init__.py
+│   └── analysis_orchestrator.py  # Coordinates analyzer execution
+│
+├── migrations/                 # Database migrations
+│   └── 001_create_radiation_tables.sql
+│
+└── tests/                     # Test files
+    ├── __init__.py
+    └── test_radiation_analysis.py
 ```
 
-### Environment Configuration
-Create `.env` file with required settings:
-```env
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_DATABASE=bipv_db
-DB_USERNAME=postgres
-DB_PASSWORD=your_password
+## Database Schema
 
-# Analysis Settings
-ANALYSIS_DEFAULT_PRECISION=daily_peak
-ANALYSIS_MAX_WORKERS=4
-ANALYSIS_CHUNK_SIZE=50
-
-# Logging Configuration
-LOG_LEVEL=INFO
-LOG_FORMAT=json
-SENTRY_DSN=your_sentry_dsn
-
-# Security Settings
-SECURITY_ENABLE_RBAC=true
-SECURITY_MAX_CONCURRENT_ANALYSES=3
+### `radiation_analysis` Table
+Stores project-level radiation analysis summary:
+```sql
+CREATE TABLE radiation_analysis (
+    project_id INTEGER PRIMARY KEY,
+    avg_irradiance DECIMAL(10,2),
+    peak_irradiance DECIMAL(10,2),
+    shading_factor DECIMAL(5,2),
+    grid_points INTEGER,
+    analysis_complete BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-## 🔧 Usage
+### `element_radiation` Table
+Stores individual building element radiation results:
+```sql
+CREATE TABLE element_radiation (
+    project_id INTEGER NOT NULL,
+    element_id VARCHAR(50) NOT NULL,
+    annual_radiation DECIMAL(10,2),
+    irradiance DECIMAL(10,2),
+    orientation_multiplier DECIMAL(5,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (project_id, element_id)
+);
+```
 
-### Basic Usage
+## Usage
+
+### Basic Usage in Streamlit Application
+
+The module is integrated into the main BIPV Optimizer workflow as Step 5:
+
 ```python
-from step5_radiation import render_radiation_grid_enhanced
+from pages_modules.radiation_grid import render_radiation_grid
 
-# Render enhanced radiation analysis interface
-render_radiation_grid_enhanced(project_id=1)
+# Render radiation analysis interface (called from app.py)
+render_radiation_grid()
 ```
 
-### Advanced Configuration
+### Execution Flow
+
+The analysis is orchestrated by `services/step5_execution_flow.py`:
+
 ```python
-from step5_radiation import (
-    AnalysisConfiguration, PrecisionLevel, 
-    get_precision_preset, analysis_orchestrator
-)
+from services.step5_execution_flow import Step5ExecutionFlow
 
-# Configure custom analysis
-config = AnalysisConfiguration(
-    precision_preset=get_precision_preset(PrecisionLevel.HOURLY),
-    enable_self_shading=True,
-    parallel_processing=True,
-    max_workers=8,
-    chunk_size=100
-)
+# Initialize execution flow
+flow = Step5ExecutionFlow(project_id=1)
 
-# Run analysis programmatically
-results = await analysis_orchestrator.run_analysis(
+# Configure analysis
+config = {
+    'analysis_type': 'optimized',  # 'ultra_fast', 'optimized', or 'advanced'
+    'precision': 'Daily Peak',      # Precision level
+    'apply_corrections': True,      # Apply atmospheric corrections
+    'include_shading': True,        # Include shading analysis
+    'calculation_mode': 'auto'      # Auto-select best analyzer
+}
+
+# Execute analysis
+result = flow.run_analysis(config)
+
+if result['success']:
+    print(f"Analyzed {result['results']['total_elements']} elements")
+    print(f"Processing time: {result['results']['calculation_time']:.2f} seconds")
+```
+
+### Direct Analyzer Usage
+
+You can also use analyzers directly for specialized workflows:
+
+```python
+from services.ultra_fast_radiation_analyzer import UltraFastRadiationAnalyzer
+
+# Initialize analyzer
+analyzer = UltraFastRadiationAnalyzer()
+
+# Run analysis
+results = analyzer.analyze_project_radiation(
     project_id=1,
-    configuration=config,
-    progress_callback=lambda p: print(f"Progress: {p.progress_percentage:.1f}%")
+    precision="Simple",
+    apply_corrections=True,
+    include_shading=True
 )
+
+# Access results
+for element in results['element_radiation']:
+    print(f"Element {element['element_id']}: {element['annual_radiation']} kWh/m²/year")
 ```
 
-### Database Operations
-```python
-from step5_radiation.db.queries import radiation_queries
+## Prerequisites
 
-# Get analysis summary
-summary = await radiation_queries.get_radiation_summary_async(project_id=1)
+### Required Steps
+Before running radiation analysis, these workflow steps must be completed:
+1. **Step 1 - Project Setup**: Location and project data
+2. **Step 3 - Weather Integration**: TMY data generation
+3. **Step 4 - BIM Extraction**: Building elements with PV suitability flags
 
-# Get detailed results
-elements = await radiation_queries.get_suitable_elements_async(project_id=1)
-```
-
-## 📊 Precision Levels
-
-### Available Precision Presets
-
-| Level | Calculations | Description | Use Case |
-|-------|-------------|-------------|----------|
-| **Hourly** | 4,015 per element | Complete hourly analysis (11 hours × 365 days) | Research-grade accuracy |
-| **Daily Peak** | 365 per element | Noon analysis for each day | Production analysis |
-| **Monthly Average** | 12 per element | Representative day per month | Quick assessment |
-| **Yearly Average** | 4 per element | Seasonal representatives | Preliminary study |
-
-### Custom Precision Configuration
-```python
-from step5_radiation.models import PrecisionPreset, PrecisionLevel
-
-custom_preset = PrecisionPreset(
-    level=PrecisionLevel.DAILY_PEAK,
-    calc_count=365,
-    label="Custom Daily",
-    description="Custom daily analysis",
-    time_samples=[10, 12, 14],  # 10 AM, noon, 2 PM
-    day_samples=list(range(1, 366, 5)),  # Every 5th day
-    scaling_factor=8.0
-)
-```
-
-## 🗄️ Database Schema
-
-### Core Tables
-
-#### `element_radiation`
-Stores individual element analysis results:
-- `project_id`, `element_id` (composite primary key)
-- `orientation`, `azimuth`, `glass_area`
-- `annual_radiation`, `monthly_radiation` (JSONB)
-- `shading_factor`, `processing_time`
-- `calculated_at`, timestamps
-
-#### `radiation_analysis_sessions`
-Tracks analysis execution:
-- `project_id`, `session_key`
-- `precision_level`, `configuration` (JSONB)
-- `status`, `progress`, timing data
-
-### Optimized Views
-
-#### `radiation_orientation_stats`
-```sql
-SELECT project_id, orientation, 
-       COUNT(*) as element_count,
-       AVG(annual_radiation) as avg_radiation,
-       SUM(annual_radiation * glass_area) as total_energy_potential
-FROM element_radiation 
-GROUP BY project_id, orientation;
-```
-
-#### `radiation_performance_ranking`
-```sql
-SELECT project_id, element_id, orientation,
-       RANK() OVER (PARTITION BY project_id ORDER BY annual_radiation DESC) as radiation_rank,
-       PERCENT_RANK() OVER (...) as radiation_percentile
-FROM element_radiation;
-```
-
-## 🧪 Testing
-
-### Test Structure
-```
-tests/
-├── test_models.py      # Pydantic model validation
-├── test_queries.py     # Database operations
-├── test_analysis.py    # Analysis workflows
-├── test_ui.py         # UI components
-└── conftest.py        # Test fixtures
-```
-
-### Running Tests
+### Python Dependencies
 ```bash
-# Unit tests
-pytest step5_radiation/tests/ -v
+# Core dependencies (from main project)
+streamlit >= 1.46.0
+pandas >= 2.0.3
+numpy >= 1.24.4
+plotly >= 6.1.2
+pvlib >= 0.13.0
+psycopg2-binary >= 2.9.10
+pytz >= 2025.2
 
-# With coverage
-pytest step5_radiation/tests/ --cov=step5_radiation --cov-report=html
-
-# Integration tests (requires database)
-pytest step5_radiation/tests/ -m integration
-
-# Performance tests
-pytest step5_radiation/tests/ -m performance --benchmark-only
+# Scientific computing
+scikit-learn >= 1.7.0
 ```
 
-### Test Configuration
+## Configuration
+
+The module uses `config.py` for analysis settings:
+
 ```python
-# conftest.py fixtures
-@pytest.fixture
-async def test_db():
-    """Test database with sample data."""
-    # Setup test database
-    yield connection
-    # Cleanup
-
-@pytest.fixture
-def sample_elements():
-    """Sample building elements for testing."""
-    return [
-        {"element_id": "W001", "orientation": "South", "glass_area": 2.5},
-        {"element_id": "W002", "orientation": "East", "glass_area": 1.8}
-    ]
+# Analysis precision configurations
+PRECISION_CONFIGS = {
+    "Hourly": {
+        "sample_hours": list(range(8, 19)),  # 8 AM to 6 PM
+        "days_per_month": 365,
+        "accuracy": "Maximum",
+        "sample_size": 4015
+    },
+    "Daily Peak": {
+        "sample_hours": [12],  # Noon only
+        "days_per_month": 365,
+        "accuracy": "High",
+        "sample_size": 365
+    },
+    "Monthly Average": {
+        "sample_hours": [12],
+        "days_per_month": 12,
+        "accuracy": "Standard",
+        "sample_size": 12
+    },
+    "Yearly Average": {
+        "sample_hours": [12],
+        "days_per_month": 4,
+        "accuracy": "Fast",
+        "sample_size": 4
+    }
+}
 ```
 
-## 📈 Performance Optimization
-
-### Database Performance
-- **Connection Pooling**: AsyncPG pool with configurable min/max connections
-- **Bulk Operations**: Batch inserts with configurable batch sizes
-- **Query Optimization**: EXPLAIN ANALYZE integration for query performance monitoring
-- **Materialized Views**: Pre-computed aggregations for dashboard queries
+## Performance Optimization
 
 ### Memory Management
-- **Chunked Processing**: Large datasets processed in configurable chunks
-- **Lazy Loading**: Progressive data loading to manage memory usage
-- **Cleanup Procedures**: Automatic cleanup of temporary data and old results
+- **Pre-loading**: All project data loaded once to minimize database calls
+- **Vectorized Processing**: NumPy batch operations instead of loops
+- **Cache System**: Calculation results cached to avoid redundant computations
 
-### Parallel Processing
+### Database Optimization
+- **Bulk Operations**: Batch inserts for element radiation data
+- **Connection Pooling**: Efficient database connection management
+- **Indexed Queries**: Optimized indices on `project_id` and `element_id`
+
+### Processing Speed Comparison
+Based on 756 building elements:
+- **UltraFast**: ~8 seconds (Yearly Average mode)
+- **Optimized**: ~180 seconds (Daily Peak mode)
+- **Advanced**: ~600 seconds (Hourly mode)
+
+## Data Flow
+
+### Input Requirements
+1. **Project Location**: Latitude, longitude from Step 1
+2. **TMY Data**: Hourly meteorological data from Step 3
+3. **Building Elements**: Window/facade data with orientations from Step 4
+
+### Output Data
+The analysis produces:
+1. **Element Radiation**: Annual radiation for each building element (kWh/m²/year)
+2. **Summary Statistics**: Average/peak irradiance, shading factors
+3. **Orientation Analysis**: Performance breakdown by facade orientation
+4. **Performance Metrics**: Processing time, calculation count, elements analyzed
+
+### Downstream Usage
+Step 5 results are used by:
+- **Step 6**: BIPV glass specification (requires radiation data)
+- **Step 7**: Yield vs demand analysis (requires radiation data)
+- **Step 8**: Multi-objective optimization (requires radiation data)
+- **Step 9**: Financial analysis (indirectly through optimization results)
+
+## Error Handling
+
+The module implements comprehensive error handling:
+
 ```python
-# Configurable parallel execution
-config = AnalysisConfiguration(
-    parallel_processing=True,
-    max_workers=8,  # CPU cores
-    chunk_size=50,  # Elements per chunk
-    timeout_seconds=300
-)
+# Validation checks performed:
+- Project ID validation
+- TMY data availability check
+- Building elements existence check
+- PV-suitable elements validation
+- Orientation data completeness
+- Glass area data validation
+
+# Error scenarios:
+- Missing TMY data → Clear error message with Step 3 guidance
+- No building elements → Redirect to Step 4
+- No PV-suitable elements → Guidance on facade selection
+- Database connection issues → Graceful failure with retry option
 ```
 
-## 🔍 Monitoring & Debugging
+## Calculation Methodology
 
-### Structured Logging
+### Solar Position
+- **Algorithm**: NREL Solar Position Algorithm (SPA)
+- **Inputs**: Latitude, longitude, date/time, timezone
+- **Outputs**: Solar elevation, azimuth angles
+
+### Irradiance Components
+- **GHI**: Global Horizontal Irradiance from TMY data
+- **DNI**: Direct Normal Irradiance (decomposed from GHI)
+- **DHI**: Diffuse Horizontal Irradiance (calculated residual)
+
+### Surface Irradiance
+- **Orientation Factor**: Cosine of incidence angle
+- **Shading Factor**: Environmental and self-shading effects
+- **Ground Reflectance**: Albedo-based reflected radiation
+- **Atmospheric Corrections**: Air mass and elevation adjustments
+
+### Annual Integration
 ```python
-from step5_radiation.config import logging_config
-import loguru
-
-# Configure structured logging
-logger.configure(
-    handlers=[
-        {"sink": sys.stdout, "format": logging_config.format},
-        {"sink": "radiation_analysis.log", "rotation": "10 MB"}
-    ]
-)
-
-# Usage in code
-logger.info("Analysis started", project_id=1, precision="daily_peak")
-logger.error("Element processing failed", element_id="W001", error=str(e))
+# Calculation formula
+annual_radiation = sum(
+    hourly_irradiance * orientation_factor * shading_factor
+    for each_timestamp in year
+) * scaling_factor
 ```
 
-### Performance Monitoring
-```python
-from step5_radiation.db.queries import index_manager
+## Known Limitations
 
-# Analyze query performance
-performance = index_manager.analyze_query_performance(
-    "SELECT * FROM element_radiation WHERE project_id = %s",
-    (project_id,)
-)
-```
+1. **TMY Dependency**: Requires completed Step 3 weather analysis
+2. **Element Filtering**: Only analyzes PV-suitable elements (pv_suitable=true)
+3. **Orientation Range**: Optimized for South/East/West facades (configurable)
+4. **Processing Time**: Hourly precision mode can take 10-15 minutes for large buildings
+5. **Database Storage**: Large result sets may require database optimization
 
-### Error Tracking
-```python
-import sentry_sdk
-from step5_radiation.config import logging_config
+## Troubleshooting
 
-# Initialize Sentry integration
-sentry_sdk.init(
-    dsn=logging_config.sentry_dsn,
-    environment=logging_config.sentry_environment,
-    traces_sample_rate=0.1
-)
-```
+### "No TMY data found"
+**Solution**: Complete Step 3 (Weather Integration) first to generate TMY data.
 
-## 🔒 Security Features
+### "No PV-suitable elements found"
+**Solution**: Upload BIM data in Step 4 and ensure elements are marked as PV-suitable.
 
-### Access Control
-```python
-from step5_radiation.config import security_config
+### Analysis taking too long
+**Solution**: Switch to lower precision mode (Monthly Average or Yearly Average) for faster results.
 
-# Project ownership validation
-def validate_project_access(user_id: int, project_id: int) -> bool:
-    if security_config.require_project_ownership:
-        return check_project_ownership(user_id, project_id)
-    return True
-```
+### Memory errors with large buildings
+**Solution**: Process in smaller batches or increase system memory allocation.
 
-### Rate Limiting
-```python
-# Built-in rate limiting
-MAX_CONCURRENT = security_config.max_concurrent_analyses
-active_analyses = {}  # Track active analysis sessions
-
-def can_start_analysis(project_id: int) -> bool:
-    return len(active_analyses) < MAX_CONCURRENT
-```
-
-## 🚀 Deployment
-
-### Production Checklist
-- [ ] Database indexes created and optimized
-- [ ] Environment variables configured
-- [ ] Sentry error tracking enabled
-- [ ] Log rotation configured
-- [ ] Resource limits set (memory, CPU)
-- [ ] Backup procedures established
-
-### Docker Configuration
-```dockerfile
-FROM python:3.11-slim
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y postgresql-client
-
-# Install Python dependencies
-COPY step5_radiation/requirements.txt .
-RUN pip install -r requirements.txt
-
-# Copy application
-COPY step5_radiation/ /app/step5_radiation/
-WORKDIR /app
-
-# Run migrations on startup
-CMD ["python", "-m", "step5_radiation.migrations"]
-```
-
-### Monitoring Setup
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  radiation-analysis:
-    build: .
-    environment:
-      - DB_HOST=postgres
-      - SENTRY_DSN=${SENTRY_DSN}
-      - LOG_LEVEL=INFO
-    depends_on:
-      - postgres
-      - redis
-    
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: bipv_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
-```
-
-## 🤝 Contributing
-
-### Development Workflow
-1. Fork repository and create feature branch
-2. Install development dependencies: `pip install -r requirements-dev.txt`
-3. Set up pre-commit hooks: `pre-commit install`
-4. Make changes and add tests
-5. Run test suite: `pytest`
-6. Submit pull request
-
-### Code Quality Standards
-- **Black**: Code formatting with line length 88
-- **Ruff**: Linting and import sorting
-- **MyPy**: Type checking with strict mode
-- **Coverage**: Minimum 85% test coverage required
-
-### Documentation Updates
-- Update docstrings for new functions
-- Add examples for new features
-- Update architecture diagrams if needed
-- Keep README.md current with changes
-
-## 📄 License
+## License
 
 This module is part of the BIPV Optimizer platform developed for academic research at Technische Universität Berlin.
 
-## 📞 Contact
+**Research Context**: PhD research by Mostafa Gabr  
+**Institution**: Technische Universität Berlin, Faculty VI - Planning Building Environment  
+**ResearchGate**: https://www.researchgate.net/profile/Mostafa-Gabr-4
 
-- **Development Team**: BIPV Optimizer Team
+## Contact
+
+For technical questions or research collaboration:
+- **Developer**: BIPV Optimizer Development Team
 - **Institution**: Technische Universität Berlin
 - **Faculty**: Planning Building Environment (VI)
-- **Research Contact**: Mostafa Gabr - https://www.researchgate.net/profile/Mostafa-Gabr-4
+- **Primary Researcher**: Mostafa Gabr
 
-## 🔄 Migration from Legacy
+---
 
-### Backward Compatibility
-The new module maintains full compatibility with the existing `pages_modules/radiation_grid.py`:
-
-```python
-# Legacy usage continues to work
-from pages_modules.radiation_grid import render_radiation_grid
-render_radiation_grid()  # Uses enhanced backend automatically
-
-# New enhanced usage
-from step5_radiation import render_radiation_grid_enhanced
-render_radiation_grid_enhanced(project_id=1)  # Full feature set
-```
-
-### Migration Benefits
-- **10x Performance**: Parallel processing and optimized database operations
-- **Scalability**: Handles 10,000+ building elements efficiently
-- **Reliability**: Comprehensive error handling and recovery
-- **Maintainability**: Clean architecture with 85%+ test coverage
-- **Observability**: Production-grade logging and monitoring
+**Part of BIPV Optimizer - Building-Integrated Photovoltaics Analysis Platform**
