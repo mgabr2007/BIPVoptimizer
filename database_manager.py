@@ -12,22 +12,50 @@ import json
 
 class BIPVDatabaseManager:
     def __init__(self):
-        self.connection_params = {
-            'host': os.getenv('PGHOST'),
-            'port': os.getenv('PGPORT'),
-            'database': os.getenv('PGDATABASE'),
-            'user': os.getenv('PGUSER'),
-            'password': os.getenv('PGPASSWORD')
-        }
+        # Use DATABASE_URL for more reliable connection handling
+        self.database_url = os.getenv('DATABASE_URL')
+        # Fallback to individual params if DATABASE_URL not available
+        if not self.database_url:
+            self.connection_params = {
+                'host': os.getenv('PGHOST'),
+                'port': os.getenv('PGPORT'),
+                'database': os.getenv('PGDATABASE'),
+                'user': os.getenv('PGUSER'),
+                'password': os.getenv('PGPASSWORD'),
+                'sslmode': 'require'
+            }
+        else:
+            self.connection_params = None
     
     def get_connection(self):
-        """Get database connection"""
-        try:
-            conn = psycopg2.connect(**self.connection_params)
-            return conn
-        except Exception as e:
-            st.error(f"Database connection failed: {str(e)}")
-            return None
+        """Get database connection with automatic retry for Neon wake-up"""
+        import time
+        max_retries = 3
+        retry_delay = 2  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                if self.database_url:
+                    conn = psycopg2.connect(self.database_url)
+                else:
+                    conn = psycopg2.connect(**self.connection_params)
+                return conn
+            except Exception as e:
+                error_msg = str(e)
+                # Check if it's a Neon suspend error
+                if "endpoint has been disabled" in error_msg.lower() or "suspended" in error_msg.lower():
+                    if attempt < max_retries - 1:
+                        # Database is waking up, wait and retry
+                        time.sleep(retry_delay)
+                        continue
+                    else:
+                        st.error(f"Database connection failed: {error_msg}")
+                        st.info("💡 The database is starting up. Please refresh the page in a few seconds.")
+                        return None
+                else:
+                    st.error(f"Database connection failed: {error_msg}")
+                    return None
+        return None
     
     def save_project(self, project_data):
         """Save or update project data"""
