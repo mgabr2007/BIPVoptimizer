@@ -3,9 +3,16 @@
 ## Overview
 BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optimization platform built with Streamlit for academic research at Technische Universität Berlin. It provides a complete 10-step workflow, with a bonus AI consultation (10+1), for analyzing and optimizing BIPV system installations where semi-transparent PV cells replace existing window glass using exact building element data. The platform features intelligent window type selection based on historical significance and architectural constraints, ensuring only suitable windows are analyzed throughout the workflow. It covers interactive map-based location selection, AI model training, ISO-compliant TMY generation, BIM data processing with window filtering, radiation analysis on selected windows, BIPV glass specification, multi-objective optimization, financial analysis, and AI-powered research consultation. Its business vision is to accelerate the adoption of BIPV technologies by providing a robust, research-backed tool for precise performance and financial forecasting of viable window installations.
 
-## Recent Changes & Updates (September 2025)
+## Recent Changes & Updates (October 2025)
 
-### Data Export & Financial Analysis Enhancements
+### BIPV Manufacturer Database Update (2025-10-10)
+- **Replaced Legacy Manufacturers**: Updated all 5 BIPV glass manufacturers with verified 2025 commercial and research options
+- **New Manufacturers**: Polysolar PS-CT (UK, 13.5%), Climacy CLI400M10 (Switzerland, 17.25%), UbiQD WENDOW (US, 4.3%), CitySolar Tandem (EU, 12.3%), Tohoku Ultra-Clear (Japan, 2%)
+- **Verified Specifications**: All efficiency, transparency, and cost data verified against 2025 European market research
+- **Market-Aligned Pricing**: Costs range from €225-420/m² based on current BIPV glass market pricing
+- **Technology Diversity**: Includes monocrystalline, quantum dot, perovskite-organic tandem, and ultra-transparent options
+
+### Data Export & Financial Analysis Enhancements (September 2025)
 - **Fixed Financial Analysis CSV Export**: Resolved issue where financial analysis export button showed "ready" status but failed to trigger downloads
 - **Complete Cash Flow Integration**: Added comprehensive 25-year cash flow projections, sensitivity analysis, and structured financial data to CSV exports
 - **Optimized Window Selection Export**: Fixed CSV export to show only optimization solution results (~13-15 selected windows) instead of all analyzed elements (146 windows)
