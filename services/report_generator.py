@@ -30,7 +30,7 @@ class BIPVReportGenerator:
         try:
             conn = db_manager.get_connection()
             if not conn:
-                return None
+                return None, None
             cursor = conn.cursor()
             
             # Get all data from database
@@ -40,6 +40,17 @@ class BIPVReportGenerator:
                 FROM projects WHERE id = %s
             """, (self.project_id,))
             project_info = cursor.fetchone()
+            
+            # CRITICAL: Get selected families FIRST before any queries that use it
+            from pages_modules.comprehensive_dashboard import get_dashboard_data
+            dashboard_data = get_dashboard_data(self.project_id)
+            
+            # Ensure we have selected families for authentic final data only
+            if not dashboard_data or 'selected_families' not in dashboard_data:
+                conn.close()
+                return None, None  # Return tuple to match expected return type
+            
+            selected_families = dashboard_data['selected_families']
             
             # Building elements summary - ONLY SELECTED FAMILIES  
             cursor.execute("""
@@ -129,23 +140,6 @@ class BIPVReportGenerator:
                         bipv_specs = (spec_count, total_capacity, total_energy, avg_energy, pv_data[0], pv_data[1], pv_data[2])
                 except:
                     bipv_specs = None
-            
-            # CRITICAL: Get comprehensive dashboard data with selected families filter to mirror Step 10
-            from pages_modules.comprehensive_dashboard import get_dashboard_data
-            dashboard_data = get_dashboard_data(self.project_id)
-            
-            # Ensure we have selected families for authentic final data only
-            if not dashboard_data or 'selected_families' not in dashboard_data:
-                return f"""
-                <html><body>
-                <h1>BIPV Report Generation Error</h1>
-                <p><strong>Error:</strong> No window type selections found from Step 4.</p>
-                <p><strong>Required:</strong> Complete Step 4 window selection before generating reports.</p>
-                <p><strong>Note:</strong> This report only includes authentic final analyzed data from selected window families.</p>
-                </body></html>
-                """
-            
-            selected_families = dashboard_data['selected_families']
             
             # Start building HTML content - mirroring Step 10 dashboard exactly
             html_content = f"""
