@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import json
 from datetime import datetime
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from database_manager import db_manager
 from services.io import get_current_project_id
 from utils.database_helper import db_helper
@@ -2353,20 +2354,10 @@ def render_comprehensive_dashboard():
     st.markdown("---")
     create_report_generation_section(project_id, dashboard_data)
     
-    # Navigation
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
-    with col2:
-        if st.button("🔄 Refresh Dashboard Data", type="secondary", key="refresh_dashboard"):
-            st.rerun()
-        
-        if st.button("🤖 Continue to Step 11: AI Consultation →", type="primary", key="nav_step11"):
-            st.query_params['step'] = 'ai_consultation'
-            st.rerun()
-        
-        st.markdown("**Analysis Complete!** 🎉")
-        st.markdown("All workflow steps have been completed and results are displayed above.")
+    # Standardized Navigation
+    st.markdown("**Analysis Complete!** 🎉")
+    st.markdown("All workflow steps have been completed and results are displayed above.")
+    render_navigation_buttons('comprehensive_dashboard', show_previous=True, show_next=True)
     
     # Mark reporting step as completed
     db_state.save_step_completion('reporting', {

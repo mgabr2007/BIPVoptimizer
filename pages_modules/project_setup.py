@@ -8,6 +8,7 @@ from streamlit_folium import st_folium
 import requests
 import os
 from datetime import datetime
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from services.io import get_current_project_id
 from utils.database_helper import db_helper
 from services.weather_stations import find_nearest_stations
@@ -906,8 +907,7 @@ def save_project_configuration(project_name):
 
 def render_project_setup():
     """Main function to render the complete project setup page"""
-    st.title("🏢 Project Setup")
-    st.markdown("Configure your BIPV optimization project with precise location and weather data.")
+    render_step_header('project_setup', subtitle="Configure your BIPV optimization project with precise location and weather data")
     
     # Initialize session state
     initialize_session_state()
@@ -978,10 +978,5 @@ def render_project_setup():
         else:
             save_project_configuration(project_name)
     
-    # Navigation - Single Continue Button
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("📊 Continue to Step 2: Historical Data →", type="primary", key="nav_step2"):
-            st.query_params['step'] = 'historical_data'
-            st.rerun()
+    # Standard navigation buttons
+    render_navigation_buttons('project_setup', show_previous=True, show_next=True)

@@ -9,6 +9,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from services.io import get_current_project_id
 from database_manager import BIPVDatabaseManager
 from utils.database_helper import db_helper
@@ -892,10 +893,5 @@ def render_pv_specification():
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"BIPV_Specifications_{timestamp}.csv"
 
-    # Navigation - Single Continue Button
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("🔋 Continue to Step 7: Yield vs Demand →", type="primary", key="nav_step7"):
-            st.query_params['step'] = 'yield_demand'
-            st.rerun()
+    # Standardized Navigation
+    render_navigation_buttons('pv_specification', show_previous=True, show_next=True)

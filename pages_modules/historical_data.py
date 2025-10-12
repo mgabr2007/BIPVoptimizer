@@ -2,6 +2,7 @@
 Historical Data Analysis page for BIPV Optimizer
 """
 import streamlit as st
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from core.solar_math import SimpleMath
 from services.io import parse_csv_content, save_project_data
 from utils.database_helper import db_helper
@@ -303,8 +304,7 @@ def render_historical_data():
     # Add OptiSunny character header image
     st.image("attached_assets/step02_1751436847829.png", width=400)
     
-    st.header("Step 2: Historical Data Analysis & AI Model Training")
-    st.markdown("Upload and analyze historical energy consumption data to train demand prediction models.")
+    render_step_header('historical_data', subtitle="Upload and analyze historical energy consumption data to train demand prediction models")
     
     # Data Usage Information
     with st.expander("📊 How This Data Will Be Used", expanded=False):
@@ -1419,14 +1419,8 @@ def render_historical_data():
         from utils.individual_step_reports import create_step_download_button
         create_step_download_button(2, "Historical Data", "Download Historical Data Analysis Report")
         
-        st.markdown("---")
-        
-        # Navigation - Single Continue Button
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("🌤️ Continue to Step 3: Weather Integration →", type="primary", key="nav_step3"):
-                st.query_params['step'] = 'weather_environment'
-                st.rerun()
+        # Standard navigation buttons
+        render_navigation_buttons('historical_data', show_previous=True, show_next=True)
     
     else:
         st.info("Please upload a CSV file with historical energy consumption data to continue.")

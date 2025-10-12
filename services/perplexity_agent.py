@@ -6,6 +6,7 @@ Analyzes all workflow results and provides research conclusions with optimizatio
 import streamlit as st
 import requests
 import json
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from services.io import get_project_report_data
 from core.solar_math import safe_divide
 
@@ -868,11 +869,14 @@ def render_perplexity_consultation():
     - Uses 100% authentic data from completed workflow steps
     """)
     
+    # Standardized Navigation (Step 11 is the final step)
+    render_navigation_buttons('ai_consultation', show_previous=True, show_next=False)
+    
     # Add finish button for workflow completion
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🎯 Finish & New Calculation", key="finish_restart_ai", use_container_width=True):
+        if st.button("🎯 Finish & New Calculation", key="finish_restart_ai", use_container_width=True, type="primary"):
             # Reset all session state for new calculation
             for key in list(st.session_state.keys()):
                 if key != 'current_step':

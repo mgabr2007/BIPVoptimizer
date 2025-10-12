@@ -8,6 +8,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from database_manager import db_manager
 from utils.database_helper import db_helper
 from core.solar_math import safe_divide
@@ -951,16 +952,11 @@ def render_financial_analysis():
             
             with col2:
                 st.info("Financial analysis complete - ready for final reporting")
-                
-
-                
-                # Navigation - Single Continue Button
-                st.markdown("---")
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col2:
-                    if st.button("📄 Continue to Step 10: Comprehensive Dashboard →", type="primary", key="nav_step10"):
-                        st.query_params['step'] = 'reporting'
-                        st.rerun()
+        
+        # Standardized Navigation
+        render_navigation_buttons('financial_analysis', show_previous=True, show_next=True)
         
         else:
             st.warning("No financial analysis results available. Please run the analysis.")
+            # Show navigation even without results
+            render_navigation_buttons('financial_analysis', show_previous=True, show_next=False)

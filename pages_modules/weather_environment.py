@@ -13,6 +13,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # Core imports
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from core.solar_math import calculate_solar_position_iso, SimpleMath
 from services.io import get_current_project_id, find_nearest_wmo_station
 from database_manager import BIPVDatabaseManager
@@ -443,8 +444,7 @@ def create_monthly_solar_chart(monthly_stats: Dict) -> go.Figure:
 
 def render_weather_environment():
     """Render the complete Step 3: Weather & Environment Integration page"""
-    st.header("☀️ Step 3: Weather & Environment Integration")
-    st.markdown("Generate **ISO 15927-4 compliant** TMY data and environmental analysis")
+    render_step_header('weather_environment', subtitle="Generate ISO 15927-4 compliant TMY data and environmental analysis")
     
     # Initialize controller
     controller = WeatherEnvironmentController()
@@ -663,16 +663,8 @@ def render_weather_environment():
                         'environmental_factors': environmental_factors
                     })
     
-    # Navigation - Single Continue Button
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if step_data and step_data.get('tmy_data'):
-            if st.button("🏢 Continue to Step 4: Facade Extraction →", type="primary", key="nav_step4"):
-                st.query_params['step'] = 'facade_extraction'
-                st.rerun()
-        else:
-            st.button("Complete TMY Generation First", disabled=True)
+    # Standard navigation buttons
+    render_navigation_buttons('weather_environment', show_previous=True, show_next=True)
 
 
 if __name__ == "__main__":

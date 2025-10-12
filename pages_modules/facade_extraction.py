@@ -6,6 +6,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from database_manager import BIPVDatabaseManager
 from utils.consolidated_data_manager import ConsolidatedDataManager
 from utils.session_state_standardizer import BIPVSessionStateManager
@@ -481,8 +482,7 @@ def render_facade_extraction():
         st.error("Project ID not found. Please complete Step 1 first.")
         return
     
-    st.header("Step 4: Integrated BIM Data Extraction")
-    st.markdown("Upload both window elements and wall self-shading data for comprehensive BIPV analysis.")
+    render_step_header('facade_extraction', subtitle="Upload both window elements and wall self-shading data for comprehensive BIPV analysis")
     
     # Data Usage Information
     with st.expander("📊 How This Integrated Data Will Be Used", expanded=False):
@@ -1235,7 +1235,8 @@ def render_facade_extraction():
     else:
         st.info("📋 **Ready to Upload**: Please upload both window and wall CSV files to proceed")
     
-
+    # Standardized Navigation
+    render_navigation_buttons('facade_extraction', show_previous=True, show_next=True)
 
 
 def render_step4_facade_extraction():

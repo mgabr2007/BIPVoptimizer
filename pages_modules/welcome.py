@@ -5,6 +5,7 @@ import streamlit as st
 import uuid
 import datetime
 from utils.color_schemes import get_emoji, create_colored_html, YELLOW_SCHEME
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from services.database_state_manager import db_state_manager
 from pages_modules.logo_assets import SCIKIT_LEARN_LOGO, PVLIB_LOGO
 
@@ -12,21 +13,8 @@ from pages_modules.logo_assets import SCIKIT_LEARN_LOGO, PVLIB_LOGO
 def render_welcome():
     """Render the welcome and introduction page"""
     
-    # Main banner with enhanced styling
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #2E8B57 0%, #228B22 50%, #32CD32 100%); 
-                padding: 30px 20px; border-radius: 15px; text-align: center; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <h1 style="color: white; margin: 0; font-size: 2.5em; font-weight: 700;">
-            ☀️ BIPV Optimizer Platform
-        </h1>
-        <p style="color: #e6ffe6; font-size: 1.2em; margin: 10px 0 0 0; font-weight: 400;">
-            Building-Integrated Photovoltaics Analysis & Optimization
-        </p>
-        <p style="color: #ccffcc; font-size: 0.95em; margin: 8px 0 0 0;">
-            Research Platform | Technische Universität Berlin
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Standard step header
+    render_step_header('welcome', subtitle="Building-Integrated Photovoltaics Analysis & Optimization | Research Platform | Technische Universität Berlin")
     
     # Introduction section with better formatting
     col1, col2 = st.columns([3, 2])
@@ -506,3 +494,6 @@ def render_welcome():
         </p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Navigation buttons
+    render_navigation_buttons('welcome', show_previous=False, show_next=True)

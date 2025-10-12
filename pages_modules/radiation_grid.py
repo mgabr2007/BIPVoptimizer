@@ -8,6 +8,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from database_manager import db_manager, BIPVDatabaseManager
 from services.advanced_radiation_analyzer import AdvancedRadiationAnalyzer
 from services.optimized_radiation_analyzer import OptimizedRadiationAnalyzer
@@ -18,15 +19,7 @@ import time
 def render_radiation_grid():
     """Render the radiation and shading grid analysis module - DATABASE-DRIVEN ONLY."""
     
-    # Enhanced header with visual branding
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 10px; margin-bottom: 2rem;">
-        <h1 style="color: white; margin: 0; text-align: center;">☀️ Step 5: Solar Radiation & Shading Analysis</h1>
-        <p style="color: #e6f3ff; margin: 0.5rem 0 0 0; text-align: center; font-size: 1.1em;">
-            Analyzing Selected Window Types from Step 4 with High-Performance Computing
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    render_step_header('radiation_analysis', subtitle="Analyzing Selected Window Types from Step 4 with High-Performance Computing")
     
     # Get current project ID from database - centralized architecture
     from services.io import get_current_project_id
@@ -597,6 +590,9 @@ def render_radiation_grid():
         - Location-specific performance affects payback period calculations
         - Environmental impact calculations use accurate energy yield estimates
         """)
+    
+    # Standardized Navigation
+    render_navigation_buttons('radiation_analysis', show_previous=True, show_next=True)
 
 def check_dependencies():
     """Check if required data is available for radiation analysis."""

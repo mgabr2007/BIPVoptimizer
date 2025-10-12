@@ -4,6 +4,7 @@ Yield vs Demand Analysis page for BIPV Optimizer - Simplified to fix refresh loo
 
 import streamlit as st
 from datetime import datetime as dt
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from database_manager import db_manager
 from services.io import get_current_project_id
 
@@ -11,7 +12,7 @@ from services.io import get_current_project_id
 def render_yield_demand():
     """Simplified Step 7 to eliminate refresh loop issues."""
     
-    st.header("⚖️ Energy Yield vs Demand Analysis for Selected Windows")
+    render_step_header('yield_demand')
     
     st.markdown("""
     ### What This Step Does
@@ -315,13 +316,8 @@ def render_yield_demand():
         except:
             st.info("Report download functionality temporarily unavailable.")
         
-        # Navigation - Single Continue Button
-        st.markdown("---")
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("🎯 Continue to Step 8: Optimization →", type="primary", key="nav_step8"):
-                st.query_params['step'] = 'optimization'
-                st.rerun()
+        # Standardized Navigation
+        render_navigation_buttons('yield_demand', show_previous=True, show_next=True)
         
     except Exception as e:
         st.error(f"Error accessing project data: {str(e)}")

@@ -9,6 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import random
+from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from database_manager import db_manager
 from utils.database_helper import db_helper
 from core.solar_math import safe_divide
@@ -1607,13 +1608,10 @@ def render_optimization():
         
         # Section removed per user request
         
-        # Navigation - Single Continue Button
-        st.markdown("---")
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button("💰 Continue to Step 9: Financial Analysis →", type="primary", key="nav_step9"):
-                st.query_params['step'] = 'financial_analysis'
-                st.rerun()
+        # Standardized Navigation
+        render_navigation_buttons('optimization', show_previous=True, show_next=True)
     
     else:
         st.warning("No optimization results available. Please run the optimization.")
+        # Show navigation even without results
+        render_navigation_buttons('optimization', show_previous=True, show_next=False)
