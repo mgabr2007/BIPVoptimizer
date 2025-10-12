@@ -955,8 +955,8 @@ def render_financial_analysis():
         
         # Standardized Navigation
         render_navigation_buttons('financial_analysis', show_previous=True, show_next=True)
-        
-        else:
-            st.warning("No financial analysis results available. Please run the analysis.")
-            # Show navigation even without results
-            render_navigation_buttons('financial_analysis', show_previous=True, show_next=False)
+    
+    else:
+        st.warning("No financial analysis results available. Please run the analysis.")
+        # Show navigation even without results
+        render_navigation_buttons('financial_analysis', show_previous=True, show_next=False)

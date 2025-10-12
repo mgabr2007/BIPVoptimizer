@@ -5,6 +5,14 @@ BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optim
 
 ## Recent Changes & Updates (October 2025)
 
+### UI Standardization & Navigation Enhancement (2025-10-12)
+- **Centralized UI Standards Module**: Created `utils/ui_standards.py` with reusable components for headers, navigation, and status messages
+- **Consistent Step Headers**: All 11 workflow steps now use `render_step_header()` for uniform formatting with step numbers, emojis, and titles
+- **Standardized Navigation System**: Implemented `render_navigation_buttons()` across all 12 pages (welcome + 11 steps) with bidirectional Previous/Next navigation
+- **Fixed Navigation Bug**: Corrected navigation to use `st.query_params['step']` instead of `st.session_state['current_page']` for proper routing
+- **E2E Validation**: Playwright testing confirmed bidirectional navigation works correctly across Steps 1-4 with consistent button styling
+- **Professional Appearance**: Uniform navigation layout with yellow primary buttons, consistent spacing, and responsive design
+
 ### BIPV Manufacturer Database Update (2025-10-10)
 - **Replaced Legacy Manufacturers**: Updated all 5 BIPV glass manufacturers with verified 2025 commercial and research options
 - **New Manufacturers**: Polysolar PS-CT (UK, 13.5%), Climacy CLI400M10 (Switzerland, 17.25%), UbiQD WENDOW (US, 4.3%), CitySolar Tandem (EU, 12.3%), Tohoku Ultra-Clear (Japan, 2%)
@@ -56,7 +64,12 @@ BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optim
 
 ### Frontend Architecture
 - **Framework**: Streamlit web application with a clean, professional UI.
-- **Navigation**: 11-step workflow system with dynamic progress tracking.
+- **Navigation**: 11-step workflow system with dynamic progress tracking using st.query_params routing.
+- **UI Standards Module (2025-10-12)**: Centralized `utils/ui_standards.py` provides reusable components:
+  - `render_step_header()` - Consistent headers with step numbers, emojis, and titles
+  - `render_navigation_buttons()` - Standardized Previous/Next navigation using st.query_params
+  - `render_status_message()` - Uniform success/warning/error/info messages
+  - `render_metric_card()`, `render_info_box()`, and other UI helpers
 - **Visualization**: Plotly for interactive charts, maps (Folium), and dashboards.
 - **State Management**: Streamlit session state with PostgreSQL persistence.
 - **UI Components**: Professional BIPV Optimizer branding with OptiSunny character.

@@ -81,7 +81,7 @@ def render_navigation_buttons(current_step_key, show_previous=True, show_next=Tr
         if show_previous and previous_step and current_number > 0:
             prev_label = custom_previous_label or f"← Step {previous_step['number']}"
             if st.button(prev_label, use_container_width=True, key=f"nav_prev_{current_step_key}"):
-                st.session_state['current_page'] = previous_step['key']
+                st.query_params['step'] = previous_step['key']
                 st.rerun()
     
     with col2:
@@ -92,7 +92,7 @@ def render_navigation_buttons(current_step_key, show_previous=True, show_next=Tr
         if show_next and next_step:
             next_label = custom_next_label or f"Step {next_step['number']} →"
             if st.button(next_label, use_container_width=True, key=f"nav_next_{current_step_key}", type="primary"):
-                st.session_state['current_page'] = next_step['key']
+                st.query_params['step'] = next_step['key']
                 st.rerun()
 
 def render_status_message(message, status_type='info'):

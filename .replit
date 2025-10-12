@@ -38,8 +38,12 @@ localPort = 35337
 externalPort = 3001
 
 [[ports]]
-localPort = 39043
+localPort = 36765
 externalPort = 3000
+
+[[ports]]
+localPort = 43653
+externalPort = 3002
 
 [agent]
 integrations = ["perplexity_v0==1.0.0", "web_scraper==1.0.0", "flask_supabase==1.0.0"]
