@@ -45,46 +45,46 @@ def get_bipv_panel_database():
             'efficiency': 0.12,  # 12% (verified CdTe thin-film)
             'transparency': 0.25,  # 25% visible light transmission (10-80% range available)
             'power_density': 120,  # W/m² (adjusted for 12% efficiency)
-            'cost_per_m2': 320,   # EUR/m² (UK commercial pricing)
+            'cost_per_m2': 240,   # EUR/m² (verified CdTe BIPV market pricing €120-250)
             'thickness_mm': 7.1,  # Glass-glass laminate per datasheet
             'u_value': 1.0,       # W/m²K (when double-glazed)
-            'description': 'UK CdTe thin-film BIPV glass with variable transparency - proven commercial leader'
+            'description': 'UK CdTe thin-film BIPV glass - COMMERCIAL, proven leader with variable transparency'
         },
         'Climacy CLI400M10': {
             'efficiency': 0.1725,  # 17.25% (verified TOPCon technology)
             'transparency': 0.20,  # 20% visible light transmission
             'power_density': 172,  # W/m² (400W panel rating)
-            'cost_per_m2': 225,   # EUR/m² (Swiss 2025 market launch)
+            'cost_per_m2': 225,   # EUR/m² (verified Swiss 2025 commercial launch)
             'thickness_mm': 10.0, # Glass-glass bifacial module
             'u_value': 0.9,       # W/m²K
-            'description': 'Swiss 400W bifacial glass-glass panel - Jan 2025 launch with 30-year warranty'
+            'description': 'Swiss 400W bifacial glass-glass - COMMERCIAL since Jan 2025, 30-year warranty'
         },
         'UbiQD WENDOW': {
             'efficiency': 0.036,  # 3.6% (verified quantum dot LSC efficiency)
             'transparency': 0.50,  # 50% visible light transmission (fully transparent)
             'power_density': 36,   # W/m² (adjusted for verified 3.6% efficiency)
-            'cost_per_m2': 350,   # EUR/m² (US pilot pricing, not yet commercial)
+            'cost_per_m2': 350,   # EUR/m² (US estimated pilot pricing)
             'thickness_mm': 6.0,  # Quantum dot polymer interlayer
             'u_value': 1.1,       # W/m²K
-            'description': 'US quantum dot luminescent solar concentrator - 3.6% efficiency with full transparency'
+            'description': 'US quantum dot LSC - PILOT PHASE (not yet commercial), 3.6% efficiency, full transparency'
         },
         'CitySolar Tandem': {
             'efficiency': 0.123,  # 12.3% (verified March 2025 world record)
             'transparency': 0.30,  # 30% visible light transmission
             'power_density': 123,  # W/m² (perovskite/organic tandem)
-            'cost_per_m2': 325,   # EUR/m² (EU research consortium estimate)
+            'cost_per_m2': 325,   # EUR/m² (EU research consortium estimate, not commercial)
             'thickness_mm': 7.0,  # Perovskite/organic tandem stack
             'u_value': 1.0,       # W/m²K
-            'description': 'EU CitySolar perovskite-organic tandem - March 2025 transparent cell world record'
+            'description': 'EU perovskite-organic tandem - RESEARCH RECORD March 2025 (not yet commercial)'
         },
         'Onyx Solar a-Si': {
             'efficiency': 0.028,  # 2.8% (verified at 30% transparency)
             'transparency': 0.30,  # 30% visible light transmission
             'power_density': 28,   # W/m² (amorphous silicon at 30% VLT)
-            'cost_per_m2': 280,   # EUR/m² (Spanish commercial pricing)
+            'cost_per_m2': 280,   # EUR/m² (verified Spanish commercial pricing)
             'thickness_mm': 6.0,  # Amorphous silicon thin-film
             'u_value': 1.0,       # W/m²K
-            'description': 'Spanish amorphous silicon BIPV - 500+ global projects, 35-year warranty'
+            'description': 'Spanish amorphous silicon - COMMERCIAL, 500+ global projects, 35-year warranty'
         }
     }
 

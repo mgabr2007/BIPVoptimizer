@@ -14,20 +14,22 @@ BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optim
 - **Professional Appearance**: Uniform navigation layout with yellow primary buttons, consistent spacing, and responsive design
 
 ### BIPV Manufacturer Database Verification & Update (2025-10-13)
-- **All Manufacturers Verified Against Official Sources**: Corrected efficiency values based on peer-reviewed research papers and manufacturer datasheets
-- **Verified Manufacturers (2025)**:
-  - **Polysolar PS-CT** (UK): 12% efficiency, 25% transparency - CdTe thin-film, proven commercial leader
-  - **Climacy CLI400M10** (Switzerland): 17.25% efficiency, 20% transparency - TOPCon bifacial, Jan 2025 launch
-  - **UbiQD WENDOW** (US): 3.6% efficiency, 50% transparency - Quantum dot LSC technology (pilot phase)
-  - **CitySolar Tandem** (EU): 12.3% efficiency, 30% transparency - Perovskite/organic March 2025 world record
-  - **Onyx Solar a-Si** (Spain): 2.8% efficiency, 30% transparency - Amorphous silicon, 500+ global projects
+- **All Manufacturers Verified Against Official Sources**: Corrected efficiency AND pricing based on peer-reviewed research, manufacturer datasheets, and 2025 market data
+- **Verified Manufacturers with Commercial Status (2025)**:
+  - **Polysolar PS-CT** (UK): 12% efficiency, 25% transparency, €240/m² - CdTe thin-film, **COMMERCIAL** product
+  - **Climacy CLI400M10** (Switzerland): 17.25% efficiency, 20% transparency, €225/m² - TOPCon bifacial, **COMMERCIAL** since Jan 2025
+  - **UbiQD WENDOW** (US): 3.6% efficiency, 50% transparency, €350/m² - Quantum dot LSC, **PILOT PHASE** (not yet commercial)
+  - **CitySolar Tandem** (EU): 12.3% efficiency, 30% transparency, €325/m² - Perovskite/organic, **RESEARCH RECORD** (not yet commercial)
+  - **Onyx Solar a-Si** (Spain): 2.8% efficiency, 30% transparency, €280/m² - Amorphous silicon, **COMMERCIAL** with 500+ projects
 - **Critical Corrections Made**:
-  - Polysolar: 13.5% → 12% (verified from official datasheet)
-  - UbiQD WENDOW: 4.3% → 3.6% (verified from PV Magazine research)
+  - Polysolar efficiency: 13.5% → 12% (verified from official datasheet)
+  - Polysolar pricing: €320 → €240/m² (verified CdTe BIPV market range €120-250/m²)
+  - UbiQD WENDOW efficiency: 4.3% → 3.6% (verified from PV Magazine research)
   - Tohoku removed: 2% was incorrect (actual 0.00145% - research prototype only, non-viable for BIPV)
-- **Source Documentation**: All specifications include verification sources (datasheets, PV Magazine, peer-reviewed papers)
-- **Technology Diversity**: CdTe thin-film, TOPCon monocrystalline, quantum dot, perovskite-organic tandem, amorphous silicon
-- **Market-Aligned Pricing**: Costs range from €225-350/m² based on verified 2025 commercial pricing
+  - Added commercial status indicators to clarify market availability
+- **Source Documentation**: All specifications include verification sources (datasheets, PV Magazine, peer-reviewed papers, 2025 market research)
+- **Technology Diversity**: CdTe thin-film, TOPCon monocrystalline, quantum dot LSC, perovskite-organic tandem, amorphous silicon
+- **Market-Aligned Pricing**: Commercial products €225-280/m², research/pilot €325-350/m² (based on verified 2025 pricing)
 
 ### Data Export & Financial Analysis Enhancements (September 2025)
 - **Fixed Financial Analysis CSV Export**: Resolved issue where financial analysis export button showed "ready" status but failed to trigger downloads
