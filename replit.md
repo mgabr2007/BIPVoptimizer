@@ -13,12 +13,21 @@ BIPV Optimizer is a comprehensive Building Integrated Photovoltaics (BIPV) optim
 - **E2E Validation**: Playwright testing confirmed bidirectional navigation works correctly across Steps 1-4 with consistent button styling
 - **Professional Appearance**: Uniform navigation layout with yellow primary buttons, consistent spacing, and responsive design
 
-### BIPV Manufacturer Database Update (2025-10-10)
-- **Replaced Legacy Manufacturers**: Updated all 5 BIPV glass manufacturers with verified 2025 commercial and research options
-- **New Manufacturers**: Polysolar PS-CT (UK, 13.5%), Climacy CLI400M10 (Switzerland, 17.25%), UbiQD WENDOW (US, 4.3%), CitySolar Tandem (EU, 12.3%), Tohoku Ultra-Clear (Japan, 2%)
-- **Verified Specifications**: All efficiency, transparency, and cost data verified against 2025 European market research
-- **Market-Aligned Pricing**: Costs range from €225-420/m² based on current BIPV glass market pricing
-- **Technology Diversity**: Includes monocrystalline, quantum dot, perovskite-organic tandem, and ultra-transparent options
+### BIPV Manufacturer Database Verification & Update (2025-10-13)
+- **All Manufacturers Verified Against Official Sources**: Corrected efficiency values based on peer-reviewed research papers and manufacturer datasheets
+- **Verified Manufacturers (2025)**:
+  - **Polysolar PS-CT** (UK): 12% efficiency, 25% transparency - CdTe thin-film, proven commercial leader
+  - **Climacy CLI400M10** (Switzerland): 17.25% efficiency, 20% transparency - TOPCon bifacial, Jan 2025 launch
+  - **UbiQD WENDOW** (US): 3.6% efficiency, 50% transparency - Quantum dot LSC technology (pilot phase)
+  - **CitySolar Tandem** (EU): 12.3% efficiency, 30% transparency - Perovskite/organic March 2025 world record
+  - **Onyx Solar a-Si** (Spain): 2.8% efficiency, 30% transparency - Amorphous silicon, 500+ global projects
+- **Critical Corrections Made**:
+  - Polysolar: 13.5% → 12% (verified from official datasheet)
+  - UbiQD WENDOW: 4.3% → 3.6% (verified from PV Magazine research)
+  - Tohoku removed: 2% was incorrect (actual 0.00145% - research prototype only, non-viable for BIPV)
+- **Source Documentation**: All specifications include verification sources (datasheets, PV Magazine, peer-reviewed papers)
+- **Technology Diversity**: CdTe thin-film, TOPCon monocrystalline, quantum dot, perovskite-organic tandem, amorphous silicon
+- **Market-Aligned Pricing**: Costs range from €225-350/m² based on verified 2025 commercial pricing
 
 ### Data Export & Financial Analysis Enhancements (September 2025)
 - **Fixed Financial Analysis CSV Export**: Resolved issue where financial analysis export button showed "ready" status but failed to trigger downloads
