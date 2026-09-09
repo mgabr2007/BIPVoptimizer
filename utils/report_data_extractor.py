@@ -61,7 +61,7 @@ def get_step2_data(project_data):
         historical_data = {}
     
     return {
-        'r2_score': safe_float(project_data.get('r2_score', project_data.get('model_r2_score', 0)), 0),
+        'r2_score': project_data.get('r2_score', project_data.get('model_r2_score')),
         'rmse': safe_float(project_data.get('rmse', project_data.get('model_rmse', 0)), 0),
         'building_area': safe_float(project_data.get('building_floor_area', project_data.get('building_area', 5000)), 5000),
         'energy_intensity': safe_float(project_data.get('energy_intensity', 0), 0),
@@ -393,8 +393,4 @@ def get_step9_data(project_data):
         'annual_co2_savings': annual_co2 if annual_co2 is not None else 0,
         'lifetime_co2_savings': lifetime_co2 if lifetime_co2 is not None else 0,
         'system_capacity': system_capacity if system_capacity is not None else 0
-    }
-        'installation_cost': safe_float(financial.get('installation_cost', 0), 0),
-        'annual_co2_savings': safe_float(financial.get('annual_co2_savings', 0), 0),
-        'lifetime_co2_savings': safe_float(financial.get('lifetime_co2_savings', 0), 0)
     }

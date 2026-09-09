@@ -423,7 +423,10 @@ def generate_step2_section_fixed(data):
     historical_data = safe_get(data, 'historical_data', {})
     
     # AI Model performance
-    r2_score = safe_float(safe_get(data, 'model_r2_score'), 0.85)
+    if safe_get(data, 'model_r2_score') is None:
+        from core.scenario_report import render_unevaluated_demand
+        return render_unevaluated_demand(data)
+    r2_score = safe_float(safe_get(data, 'model_r2_score'), 0.0)
     rmse = safe_float(safe_get(historical_data, 'rmse'), 0)
     
     # Building characteristics

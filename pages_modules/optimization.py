@@ -17,342 +17,9 @@ from utils.color_schemes import CHART_COLORS, get_chart_color
 # Removed ConsolidatedDataManager - using database-only approach
 # Removed session state dependency - using database-only approach
 
-def create_individual(n_elements):
-    """Create a random individual for genetic algorithm."""
-    return [random.randint(0, 1) for _ in range(n_elements)]
-
-def evaluate_individual(individual, pv_specs, energy_balance, financial_params, radiation_lookup=None):
-    """Evaluate fitness of an individual solution using weighted multi-objective approach."""
-    
-    try:
-        # Convert individual to selection mask
-        selection_mask = np.array(individual, dtype=bool)
-        
-        if not any(selection_mask):
-            return (0.0,)  # No systems selected - return single fitness value
-        
-        # Calculate selected systems metrics
-        selected_specs = pv_specs[selection_mask]
-        
-        # Calculate total metrics using ONLY authentic standardized data
-        if 'total_cost_eur' in selected_specs.columns:
-            total_cost = selected_specs['total_cost_eur'].sum()
-        else:
-            raise ValueError("Optimization requires authentic cost data with 'total_cost_eur' field from Step 6")
-            
-        # Calculate authentic annual yield using Step 5 radiation data ONLY
-        if not radiation_lookup:
-            # CRITICAL: No fallback data allowed - require authentic Step 5 radiation data
-            raise ValueError("Optimization requires authentic radiation data from Step 5. Please complete radiation analysis first.")
-        
-        total_annual_yield = 0
-        for idx in selected_specs.index:
-            element_id = str(selected_specs.loc[idx, 'element_id'])
-            if element_id in radiation_lookup:
-                # Use ONLY authentic radiation data from Step 5
-                annual_radiation = radiation_lookup[element_id]
-                glass_area = selected_specs.loc[idx, 'glass_area_m2']
-                efficiency = selected_specs.loc[idx, 'efficiency_percent'] / 100 if selected_specs.loc[idx, 'efficiency_percent'] > 1 else selected_specs.loc[idx, 'efficiency_percent']
-                authentic_yield = glass_area * annual_radiation * efficiency
-                total_annual_yield += authentic_yield
-            else:
-                # Element missing radiation data - optimization cannot proceed
-                raise ValueError(f"Element {element_id} missing authentic radiation data from Step 5")
-        
-        # Calculate net import reduction with proper data handling
-        if energy_balance is not None and len(energy_balance) > 0:
-            if hasattr(energy_balance, 'columns') and 'predicted_demand' in energy_balance.columns:
-                total_annual_demand = energy_balance['predicted_demand'].sum()
-            elif isinstance(energy_balance, list) and len(energy_balance) > 0:
-                total_annual_demand = energy_balance[0].get('predicted_demand', 0)
-            else:
-                total_annual_demand = 0
-            net_import_reduction = min(total_annual_yield, total_annual_demand) if total_annual_demand > 0 else total_annual_yield
-        else:
-            net_import_reduction = total_annual_yield
-        
-        # Calculate annual savings and ROI using authentic electricity rates
-        electricity_price = financial_params.get('electricity_price')
-        if electricity_price is None:
-            raise ValueError("Optimization requires authentic electricity rates from project configuration")
-        annual_savings = net_import_reduction * electricity_price
-        
-        # Include maintenance costs if enabled
-        include_maintenance = financial_params.get('include_maintenance', True)
-        if include_maintenance:
-            # Apply typical BIPV maintenance cost (1-2% of investment annually)
-            annual_maintenance = total_cost * 0.015  # 1.5% annual maintenance
-            net_annual_savings = annual_savings - annual_maintenance
-        else:
-            net_annual_savings = annual_savings
-        
-        if net_annual_savings > 0 and total_cost > 0:
-            roi = (net_annual_savings / total_cost) * 100  # ROI as percentage
-        else:
-            roi = 0
-        
-        # Get objective weights
-        weight_cost = financial_params.get('weight_cost', 33) / 100.0
-        weight_yield = financial_params.get('weight_yield', 33) / 100.0
-        weight_roi = financial_params.get('weight_roi', 34) / 100.0
-        
-        # Normalize objectives (0-1 scale)
-        # For cost: lower is better, so use 1/(1+normalized_cost)
-        # Use ONLY standardized field names - no fallbacks allowed
-        if 'total_cost_eur' in pv_specs.columns:
-            max_possible_cost = pv_specs['total_cost_eur'].sum()
-        else:
-            raise ValueError("Optimization requires authentic cost data with 'total_cost_eur' field from Step 6")
-            
-        normalized_cost = total_cost / max_possible_cost if max_possible_cost > 0 else 0
-        cost_fitness = 1 / (1 + normalized_cost)  # Higher is better
-        
-        # For yield: higher is better
-        max_possible_yield = pv_specs['annual_energy_kwh'].sum()  # If all systems selected
-        yield_fitness = total_annual_yield / max_possible_yield if max_possible_yield > 0 else 0
-        
-        # For ROI: higher is better (already normalized as percentage)
-        roi_fitness = min(roi / 50.0, 1.0)  # Cap at 50% ROI for normalization
-        
-        # Apply advanced optimization preferences
-        bonus_factor = 1.0
-        
-        # Orientation preference bonus
-        orientation_preference = financial_params.get('orientation_preference', 'None')
-        if orientation_preference != 'None' and 'orientation' in selected_specs.columns:
-            preferred_count = (selected_specs['orientation'] == orientation_preference).sum()
-            total_selected = len(selected_specs)
-            if total_selected > 0:
-                orientation_bonus = (preferred_count / total_selected) * 0.1  # 10% max bonus
-                bonus_factor += orientation_bonus
-        
-        # System size preference bonus
-        system_size_preference = financial_params.get('system_size_preference', 'Balanced')
-        if 'capacity_kw' in selected_specs.columns:
-            avg_capacity = selected_specs['capacity_kw'].mean()
-            if system_size_preference == 'Favor Large' and avg_capacity > 2.0:  # Above 2kW average
-                bonus_factor += 0.05  # 5% bonus for large systems
-            elif system_size_preference == 'Favor Small' and avg_capacity < 1.0:  # Below 1kW average
-                bonus_factor += 0.05  # 5% bonus for small systems
-        
-        # ROI prioritization adjustment
-        prioritize_roi = financial_params.get('prioritize_roi', True)
-        if prioritize_roi:
-            # Increase ROI weight relative to others
-            roi_fitness *= 1.2  # 20% boost to ROI fitness
-        
-        # Calculate weighted fitness (single objective) 
-        # Ensure all fitness components are properly calculated
-        if total_cost == 0 or total_annual_yield == 0:
-            return (0.0,)  # Invalid solution
-            
-        weighted_fitness = (
-            weight_cost * cost_fitness +
-            weight_yield * yield_fitness + 
-            weight_roi * roi_fitness
-        ) * bonus_factor
-        
-        # Apply minimum coverage constraint with proper data handling
-        min_coverage = financial_params.get('min_coverage', 0.3)  # Default 30%
-        if energy_balance is not None and len(energy_balance) > 0:
-            if hasattr(energy_balance, 'columns') and 'predicted_demand' in energy_balance.columns:
-                total_annual_demand = energy_balance['predicted_demand'].sum()
-            elif isinstance(energy_balance, list) and len(energy_balance) > 0:
-                total_annual_demand = energy_balance[0].get('predicted_demand', 0)
-            else:
-                total_annual_demand = 0
-                
-            if total_annual_demand > 0:
-                coverage_ratio = total_annual_yield / total_annual_demand
-                if coverage_ratio < min_coverage:
-                    weighted_fitness *= 0.5  # Reduce penalty to allow more solutions
-        
-        # Ensure positive fitness value
-        return (max(weighted_fitness, 0.001),)  # Minimum positive value
-    
-    except Exception as e:
-        return (0.0,)
-
-def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_params, radiation_lookup=None):
-    """Run optimized genetic algorithm with enhanced performance."""
-    
-    n_elements = len(pv_specs)
-    # Optimize population size for better performance vs quality balance
-    population_size = min(ga_params['population_size'], max(50, n_elements * 2))  # Cap at reasonable size
-    generations = ga_params['generations']
-    mutation_rate = ga_params['mutation_rate']
-    
-    # Performance optimization: Early convergence detection
-    convergence_threshold = 0.001  # Stop if improvement < 0.1%
-    stagnation_limit = 10  # Stop if no improvement for 10 generations
-    
-    # Initialize population
-    population = [create_individual(n_elements) for _ in range(population_size)]
-    
-    # Evolution tracking
-    best_individuals = []
-    fitness_history = []
-    
-    for generation in range(generations):
-        # Evaluate population
-        fitness_scores = []
-        for individual in population:
-            fitness = evaluate_individual(individual, pv_specs, energy_balance, financial_params, radiation_lookup)
-            fitness_scores.append(fitness)
-        
-        # Find best individuals (handle single fitness values)
-        pareto_front = []
-        for i, fitness in enumerate(fitness_scores):
-            # Handle single fitness value (weighted score)
-            if isinstance(fitness, tuple) and len(fitness) == 1:
-                fitness_value = fitness[0]
-            elif isinstance(fitness, (int, float)):
-                fitness_value = fitness
-            else:
-                fitness_value = 0
-            
-            pareto_front.append((i, fitness_value, fitness_value, population[i]))
-        
-        # Store best individuals
-        if pareto_front:
-            best_individuals.extend(pareto_front)
-            avg_fitness = np.mean([fitness_val for _, fitness_val, _, _ in pareto_front])
-            fitness_history.append({'generation': generation, 'avg_fitness': avg_fitness})
-        
-        # Selection for next generation (simple tournament selection)
-        new_population = []
-        
-        # Keep best individuals
-        elite_size = max(1, population_size // 10)
-        elite_indices = sorted(range(len(fitness_scores)), key=lambda i: fitness_scores[i], reverse=True)[:elite_size]
-        for idx in elite_indices:
-            new_population.append(population[idx][:])
-        
-        # Generate offspring
-        while len(new_population) < population_size:
-            # Tournament selection
-            parent1 = population[random.choice(range(len(population)))]
-            parent2 = population[random.choice(range(len(population)))]
-            
-            # Simple crossover
-            crossover_point = random.randint(1, n_elements - 1)
-            child = parent1[:crossover_point] + parent2[crossover_point:]
-            
-            # Mutation
-            for i in range(len(child)):
-                if random.random() < mutation_rate:
-                    child[i] = 1 - child[i]  # Flip bit
-            
-            new_population.append(child)
-        
-        population = new_population
-    
-    return best_individuals, fitness_history
-
-def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, financial_params, radiation_lookup=None):
-    """Analyze optimization results and generate solution alternatives."""
-    
-    solutions = []
-    
-    for i, (idx, fitness_value, _, individual) in enumerate(pareto_solutions):
-        selection_mask = np.array(individual, dtype=bool)
-        selected_specs = pv_specs[selection_mask]
-        
-        if len(selected_specs) > 0:
-            # Calculate solution metrics with debugging
-            # Use standardized field names with fallback support
-            if 'capacity_kw' in selected_specs.columns:
-                total_power_kw = selected_specs['capacity_kw'].sum()
-            elif 'system_power_kw' in selected_specs.columns:
-                total_power_kw = selected_specs['system_power_kw'].sum()
-            elif 'power_density' in selected_specs.columns and 'glass_area' in selected_specs.columns:
-                # Calculate capacity from power density and glass area
-                total_power_kw = (selected_specs['power_density'] * selected_specs['glass_area'] / 1000).sum()
-            else:
-                total_power_kw = 0
-                
-            # Handle different cost column names
-            # Use standardized field names with fallback support  
-            if 'total_cost_eur' in selected_specs.columns:
-                total_cost = selected_specs['total_cost_eur'].sum()
-            elif 'total_installation_cost' in selected_specs.columns:
-                total_cost = selected_specs['total_installation_cost'].sum()  # Fixed: was using wrong column
-            elif 'total_cost' in selected_specs.columns:
-                total_cost = selected_specs['total_cost'].sum()
-            else:
-                total_cost = 0
-                
-            # Note: This analyze function uses PV spec values for display
-            # The optimization fitness calculation now uses authentic Step 5 radiation data
-            # Handle field name mapping for annual energy from Step 6 PV specifications
-            if 'annual_energy_kwh' in selected_specs.columns:
-                total_annual_yield = selected_specs['annual_energy_kwh'].sum()
-            else:
-                # Debug: Show available columns if field is missing
-                st.error(f"Missing 'annual_energy_kwh' field in PV specifications. Available columns: {selected_specs.columns.tolist()}")
-                st.error("⚠️ Step 6 (PV Specifications) must be completed first with authentic energy calculations.")
-                return pd.DataFrame()  # Return empty DataFrame to prevent further errors
-            selected_elements = selected_specs['element_id'].tolist() if 'element_id' in selected_specs.columns else [f"Element_{j}" for j in range(len(selected_specs))]
-            
-            # Calculate net import reduction
-            if energy_balance is not None and len(energy_balance) > 0:
-                total_annual_demand = energy_balance['predicted_demand'].sum()
-                net_import = max(0, total_annual_demand - total_annual_yield)
-            else:
-                net_import = 0
-            
-            # Calculate ROI with proper demand handling
-            electricity_price = financial_params.get('electricity_price', 0.25)
-            
-            # Get proper total annual demand
-            if energy_balance is not None and len(energy_balance) > 0:
-                if hasattr(energy_balance, 'columns') and 'predicted_demand' in energy_balance.columns:
-                    total_annual_demand = energy_balance['predicted_demand'].sum()
-                elif isinstance(energy_balance, list) and len(energy_balance) > 0:
-                    total_annual_demand = energy_balance[0].get('predicted_demand', 0)
-                else:
-                    total_annual_demand = total_annual_yield
-            else:
-                total_annual_demand = total_annual_yield
-                
-            # Calculate annual savings (grid import reduction)
-            energy_offset = min(total_annual_yield, total_annual_demand) if total_annual_demand > 0 else total_annual_yield
-            gross_annual_savings = energy_offset * electricity_price
-            
-            # Include realistic maintenance and operational costs
-            include_maintenance = financial_params.get('include_maintenance', True)
-            if include_maintenance:
-                # Apply realistic BIPV maintenance cost (2-3% of investment annually)
-                annual_maintenance = total_cost * 0.025  # 2.5% annual maintenance
-                net_annual_savings = gross_annual_savings - annual_maintenance
-            else:
-                net_annual_savings = gross_annual_savings
-            
-            # Calculate ROI with net savings (after maintenance)
-            roi = (net_annual_savings / total_cost * 100) if total_cost > 0 and net_annual_savings > 0 else 0
-            
-            # Store both gross and net savings for transparency
-            annual_savings = net_annual_savings
-            
-            solution = {
-                'solution_id': f"Solution_{i+1}",
-                'total_power_kw': float(total_power_kw),  # Ensure float conversion
-                'total_investment': float(total_cost),    # Ensure float conversion
-                'annual_energy_kwh': float(total_annual_yield),  # Ensure float conversion
-                'annual_savings': float(annual_savings),  # Net annual savings after maintenance
-                'gross_annual_savings': float(gross_annual_savings),  # Gross savings before maintenance
-                'roi': float(roi),                        # Ensure float conversion
-                'net_import_kwh': float(net_import),     # Ensure float conversion
-                'selected_elements': selected_elements,
-                'n_selected_elements': len(selected_elements),
-                'investment_per_kw': float(safe_divide(total_cost, total_power_kw, 0)),
-                'energy_cost_per_kwh': float(safe_divide(total_cost, total_annual_yield * 25, 0)),  # 25-year lifetime
-                'selection_mask': individual
-            }
-            
-            solutions.append(solution)
-    
-    return pd.DataFrame(solutions)
+from core.optimization_engine import (
+    create_individual, evaluate_individual, simple_genetic_algorithm, analyze_optimization_results,
+)
 
 def render_optimization():
     """Render the genetic algorithm optimization module."""
@@ -389,7 +56,7 @@ def render_optimization():
         ### Genetic Algorithm BIPV Selection Process:
         
         **🧬 Individual Solutions (Chromosomes):**
-        - Each solution is a binary selection mask for all 759 suitable window elements
+        - Each solution is a binary selection mask for the eligible window elements in this project
         - Example: [1,0,1,0,1,...] means select windows 1,3,5... skip windows 2,4...
         - **Does NOT use all windows** - selects optimal subset based on performance criteria
         
@@ -411,9 +78,9 @@ def render_optimization():
         - Prioritizes South/East/West-facing elements (North excluded for poor solar performance)
         
         **🔄 Evolution Process (30 generations default):**
-        - Population of 50 random solutions evolves through crossover and mutation
+        - Configured population of candidate solutions evolves through crossover and mutation
         - Elite solutions preserved, offspring created through genetic operators
-        - Converges toward Pareto-optimal window selection combinations
+        - Ranks candidates by weighted fitness; this is not a Pareto-front solver
         """)
         
         st.info("🎯 **Key Point**: Optimization selects the BEST SUBSET of windows, not all windows. It finds cost-effective combinations that maximize performance per investment euro.")
@@ -534,7 +201,7 @@ def render_optimization():
     
     # Success confirmation after data conversion
     st.success(f"✅ Database verification complete: {len(pv_specs)} BIPV systems ready for optimization")
-    st.info("💡 Using 100% authentic database data - no session state or fallback dependencies")
+    st.info("💡 Using saved project inputs; results depend on the recorded calculation assumptions")
     st.info("🎯 Optimization includes only South/East/West-facing elements for realistic solar performance")
     
 
@@ -727,6 +394,7 @@ def render_optimization():
         'electricity_price': electricity_price,
         'prioritize_roi': prioritize_roi,
         'include_maintenance': include_maintenance,
+                    'maintenance_rate': 0.015,
         'orientation_preference': orientation_preference,
         'system_size_preference': system_size_preference,
         'weights': {'cost': weight_cost, 'yield': weight_yield, 'roi': weight_roi}
@@ -737,29 +405,18 @@ def render_optimization():
     col1, col2 = st.columns(2)
     
     with col1:
-        run_optimization = st.button("🚀 Run Multi-Objective Optimization", key="run_optimization")
+        run_optimization = st.button("🚀 Run Weighted Optimization", key="run_optimization")
     
     with col2:
-        clear_and_rerun = st.button("🗑️ Clear Results & Rerun", 
+        clear_and_rerun = st.button("🔄 Rerun Optimization",
                                    type="secondary", 
-                                   help="Clear existing results and run fresh optimization with complete CSV export tracking",
+                                   help="Recompute; retain saved results if the new run fails",
                                    key="clear_rerun_btn")
     
-    # Handle clear and rerun action
+    # Preserve saved results until a successful replacement is ready.
     if clear_and_rerun:
-        try:
-            conn = db_manager.get_connection()
-            if conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("DELETE FROM optimization_results WHERE project_id = %s", (project_id,))
-                    conn.commit()
-                conn.close()
-                st.success("✅ Previous results cleared. Running fresh optimization with CSV export capability...")
-                run_optimization = True  # Trigger optimization after clearing
-        except Exception as e:
-            st.error(f"Error clearing results: {str(e)}")
-            run_optimization = False
-    
+        run_optimization = True
+
     if run_optimization:
         with st.spinner("Running genetic algorithm optimization..."):
             try:
@@ -767,7 +424,8 @@ def render_optimization():
                 ga_params = {
                     'population_size': population_size,
                     'generations': generations,
-                    'mutation_rate': mutation_rate / 100
+                    'mutation_rate': mutation_rate / 100,
+                    'seed': 42
                 }
                 
                 financial_params = {
@@ -778,6 +436,7 @@ def render_optimization():
                     'weight_roi': weight_roi,
                     'prioritize_roi': prioritize_roi,
                     'include_maintenance': include_maintenance,
+                    'maintenance_rate': 0.015,
                     'orientation_preference': orientation_preference,
                     'system_size_preference': system_size_preference
                 }
@@ -819,6 +478,7 @@ def render_optimization():
                 optimization_results = {
                     'solutions': solutions_df,
                     'fitness_history': fitness_history,
+                    'model_version': 'weighted-genetic-v2',
                     'optimization_config': {
                         'ga_params': ga_params,
                         'financial_params': financial_params,
@@ -841,9 +501,14 @@ def render_optimization():
                             _, _, _, individual = pareto_solutions[i]
                             solution['selection_mask'] = individual
                     
-                    db_manager.save_optimization_results(project_id, {
-                        'solutions': solutions_dict
+                    saved = db_manager.save_optimization_results(project_id, {
+                        'solutions': solutions_dict,
+                        'optimization_config': optimization_results['optimization_config'],
+                        'model_version': 'weighted-genetic-v2'
                     })
+                    if not saved:
+                        st.error("Results could not be saved. Previous committed results remain available.")
+                        return
                     st.success("✅ Optimization results with selection details saved to database")
                 except Exception as db_error:
                     st.error(f"Database save error: {str(db_error)}")
@@ -1111,7 +776,7 @@ def render_optimization():
         ))
         
         fig3.update_layout(
-            title="Pareto Front: Investment vs ROI Trade-off Analysis",
+            title="Weighted Candidates: Investment vs ROI",
             xaxis_title="Total Investment Cost (€)",
             yaxis_title="Return on Investment (%)",
             height=500

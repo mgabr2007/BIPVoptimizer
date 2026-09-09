@@ -16,60 +16,9 @@ from core.carbon_factors import get_grid_carbon_factor, display_carbon_factor_in
 # Removed ConsolidatedDataManager - using database-only approach
 # Removed session state dependency - using database-only approach
 
-def calculate_npv(cash_flows, discount_rate):
-    """Calculate Net Present Value of cash flows."""
-    npv = 0
-    for i, cash_flow in enumerate(cash_flows):
-        npv += cash_flow / ((1 + discount_rate) ** i)
-    return npv
-
-def calculate_irr(cash_flows, max_iterations=1000, tolerance=1e-6):
-    """Calculate Internal Rate of Return using Newton-Raphson method."""
-    if len(cash_flows) < 2:
-        return None
-    
-    # Initial guess
-    rate = 0.1
-    
-    for _ in range(max_iterations):
-        # Calculate NPV and its derivative
-        npv = sum(cf / ((1 + rate) ** i) for i, cf in enumerate(cash_flows))
-        npv_derivative = sum(-i * cf / ((1 + rate) ** (i + 1)) for i, cf in enumerate(cash_flows))
-        
-        if abs(npv) < tolerance:
-            return rate
-        
-        if abs(npv_derivative) < tolerance:
-            break
-        
-        # Newton-Raphson iteration
-        rate = rate - npv / npv_derivative
-        
-        # Ensure rate stays reasonable
-        if rate < -0.99 or rate > 10:
-            return None
-    
-    return rate if abs(npv) < tolerance else None
-
-def calculate_payback_period(cash_flows):
-    """Calculate simple payback period."""
-    if len(cash_flows) < 2:
-        return None
-    
-    cumulative = 0
-    for i, cash_flow in enumerate(cash_flows):
-        cumulative += cash_flow
-        if cumulative >= 0:
-            if i == 0:
-                return 0
-            else:
-                # Interpolate between years with zero check
-                denominator = cash_flows[i-1] - cash_flow
-                if abs(denominator) < 1e-10:  # Near zero check
-                    return i - 1
-                return i - 1 + (cash_flows[i-1] / denominator)
-    
-    return None  # Never pays back
+from core.financial_math import (
+    calculate_npv, calculate_irr, calculate_payback_period, MODEL_VERSION,
+)
 
 def calculate_co2_savings(annual_energy_kwh, grid_co2_factor, system_lifetime):
     """Calculate CO2 emissions savings."""
@@ -563,9 +512,10 @@ def render_financial_analysis():
                 annual_savings = solution_dict.get('annual_savings', annual_energy_kwh * electricity_price)
                 
                 financial_analysis_results = {
+                    'model_version': MODEL_VERSION,
                     'financial_metrics': {
                         'npv': npv,
-                        'irr': irr * 100 if irr else None,
+                        'irr': irr * 100 if irr is not None else None,
                         'payback_period': payback_period,
                         'total_investment': total_investment,
                         'annual_savings': annual_savings,
@@ -597,7 +547,7 @@ def render_financial_analysis():
                     },
                     'economic_metrics': {
                         'npv': npv,
-                        'irr': irr * 100 if irr else None,
+                        'irr': irr * 100 if irr is not None else None,
                         'payback_period': payback_period,
                         'total_investment': total_investment,
                         'annual_savings': annual_savings,
@@ -619,7 +569,7 @@ def render_financial_analysis():
                             'annual_om_cost': total_investment * financial_params['maintenance_cost_rate'],
                             'net_annual_benefit': annual_savings,
                             'npv': npv,
-                            'irr': irr,
+                            'irr': irr * 100 if irr is not None else None,
                             'payback_period': payback_period,
                             'lcoe': safe_divide(total_investment, annual_energy_kwh * system_lifetime, 0),
                             'analysis_complete': True,
@@ -633,9 +583,10 @@ def render_financial_analysis():
                             # CRITICAL: Include structured data for CSV export
                             'cash_flow_analysis': annual_details,
                             'sensitivity_analysis': sensitivity_results,
+                            'model_version': MODEL_VERSION,
                             'financial_metrics': {
                                 'npv': npv,
-                                'irr': irr * 100 if irr else None,
+                                'irr': irr * 100 if irr is not None else None,
                                 'payback_period': payback_period,
                                 'total_investment': total_investment,
                                 'annual_savings': annual_savings,
@@ -667,12 +618,16 @@ def render_financial_analysis():
                 # Store calculated data in session state for immediate tab display
                 st.session_state['current_financial_analysis'] = financial_analysis_results
                 st.session_state['current_solution_dict'] = solution_dict
+                st.session_state['financial_project_id'] = project_id
                 
             except Exception as e:
                 st.error(f"Error during financial analysis: {str(e)}")
                 return
     
     # Display results if available - use current analysis if just calculated, otherwise from database
+    if st.session_state.get('financial_project_id') != project_id:
+        st.session_state.pop('current_financial_analysis', None)
+        st.session_state.pop('current_solution_dict', None)
     financial_data = st.session_state.get('current_financial_analysis') or db_manager.get_financial_analysis(project_id)
     current_solution = st.session_state.get('current_solution_dict') or (selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution)
     
@@ -693,12 +648,12 @@ def render_financial_analysis():
             
             with col2:
                 irr = metrics.get('irr')
-                irr_display = f"{irr:.1f}%" if irr else "N/A"
+                irr_display = f"{irr:.1f}%" if irr is not None else "N/A"
                 st.metric("Internal Rate of Return", irr_display)
             
             with col3:
                 payback = metrics.get('payback_period')
-                payback_display = f"{payback:.1f} years" if payback else "N/A"
+                payback_display = f"{payback:.1f} years" if payback is not None else "N/A"
                 st.metric("Payback Period", payback_display)
             
             with col4:

@@ -483,7 +483,10 @@ class BIPVDatabaseManager:
                     selection_details = {
                         'selection_mask': selection_mask,
                         'selected_element_ids': selected_elements,
-                        'optimization_parameters': solution.get('optimization_params', {})
+                        'optimization_parameters': optimization_data.get('optimization_config', solution.get('optimization_params', {})),
+                        'model_version': optimization_data.get('model_version'),
+                        'optimization_method': solution.get('optimization_method'),
+                        'fitness_score': solution.get('fitness_score')
                     }
                     
                     cursor.execute("""
@@ -1019,7 +1022,7 @@ class BIPVDatabaseManager:
                 """, (
                     project_id,
                     model_data.get('model_type', 'RandomForestRegressor'),
-                    model_data.get('r_squared_score', 0.92),
+                    model_data.get('r_squared_score'),
                     model_data.get('training_data_size', 12),
                     model_data.get('forecast_years', 25),
                     forecast_data,
@@ -1126,7 +1129,7 @@ class BIPVDatabaseManager:
                     temperature_data,
                     occupancy_data,
                     date_data,
-                    historical_data.get('model_accuracy', 0.92),
+                    historical_data.get('model_accuracy'),
                     historical_data.get('energy_intensity', 0),
                     historical_data.get('peak_load_factor', 0),
                     historical_data.get('seasonal_variation', 0)
@@ -1644,7 +1647,7 @@ class BIPVDatabaseManager:
                 """, (
                     project_id,
                     model_data.get('model_type', 'RandomForestRegressor'),
-                    model_data.get('r_squared_score', 0.92),
+                    model_data.get('r_squared_score'),
                     model_data.get('training_data_size', 12),
                     model_data.get('forecast_years', 25)
                 ))

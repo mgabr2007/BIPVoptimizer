@@ -55,6 +55,9 @@ def generate_step1_section(step1_data):
 
 def generate_step2_section(step2_data):
     """Generate Step 2: Historical Data & AI Model section"""
+    r2 = step2_data.get('r2_score')
+    r2_display = f"{r2:.3f}" if r2 is not None else "Not evaluated"
+    rmse_display = f"{step2_data['rmse']:.2f} kWh" if r2 is not None else "Not evaluated"
     return f"""
     <div class="step-section">
         <h2 class="step-title">Step 2: Historical Data & AI Model</h2>
@@ -62,10 +65,10 @@ def generate_step2_section(step2_data):
         <div class="subsection">
             <h3>AI Model Performance</h3>
             <div class="metric">
-                <strong>R² Score:</strong> {step2_data['r2_score']:.3f}
+                <strong>R² Score:</strong> {r2_display}
             </div>
             <div class="metric">
-                <strong>RMSE:</strong> {step2_data['rmse']:.2f} kWh
+                <strong>RMSE:</strong> {rmse_display}
             </div>
             <div class="metric">
                 <strong>Forecast Period:</strong> {step2_data['forecast_years']} years

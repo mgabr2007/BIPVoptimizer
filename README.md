@@ -1,3 +1,5 @@
+> **Implementation status (September 2026 repair branch):** The executable optimizer is weighted genetic search, not NSGA-II. The historical-data page uses an unevaluated trend/seasonal scenario, not a fitted RandomForest. See [repair notes](docs/REPAIR_NOTES_2026-09-09.md) for changes, validation limits and remaining work. Older method descriptions below require reconciliation.
+
 # BIPV Optimizer 🌟
 
 ![BIPV Optimizer Logo](attached_assets/logo_1751541516828.png)

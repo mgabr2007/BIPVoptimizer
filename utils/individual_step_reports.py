@@ -721,6 +721,12 @@ def generate_step2_report():
     project_data = st.session_state.get('project_data', {})
     historical_data = safe_get(project_data, 'historical_data', {})
     
+    performance = historical_data.get('model_performance') or {} if isinstance(historical_data, dict) else {}
+    if performance.get('r2_score') is None:
+        from core.scenario_report import render_unevaluated_demand
+        return (get_base_html_template("Historical Demand and Scenarios", 2)
+                + render_unevaluated_demand(project_data) + get_footer_html())
+
     html = get_base_html_template("Historical Data Analysis & AI Model Training", 2)
     
     if not historical_data:

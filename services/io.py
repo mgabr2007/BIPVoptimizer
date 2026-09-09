@@ -10,94 +10,9 @@ from database_manager import db_manager
 
 
 def get_current_project_id():
-    """Get current project ID from session state or database"""
-    
-    try:
-        # First, check if project_id is directly set in project_data (from project switching)
-        if 'project_data' in st.session_state and st.session_state.project_data.get('project_id'):
-            return st.session_state.project_data['project_id']
-        
-        # Second, check if project_id is directly in session state
-        if 'project_id' in st.session_state:
-            return st.session_state.project_id
-        
-        # Third, try to get from project_name in session state
-        project_name = st.session_state.get('project_name')
-        if project_name:
-            try:
-                conn = db_manager.get_connection()
-                if conn:
-                    with conn.cursor() as cursor:
-                        cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_name,))
-                        result = cursor.fetchone()
-                        if result:
-                            return result[0]
-                    conn.close()
-            except Exception as e:
-                # Don't show error to user here, just continue to next method
-                pass
-        
-        # Fourth, try to get from project_name in project_data
-        if 'project_data' in st.session_state and st.session_state.project_data.get('project_name'):
-            project_name = st.session_state.project_data['project_name']
-            try:
-                conn = db_manager.get_connection()
-                if conn:
-                    with conn.cursor() as cursor:
-                        cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_name,))
-                        result = cursor.fetchone()
-                        if result:
-                            return result[0]
-                    conn.close()
-            except Exception as e:
-                # Don't show error to user here, just continue to next method
-                pass
-    
-    except Exception as e:
-        # Catch any KeyError or other issues with session state access
-        pass
-    
-    # Simple fallback: use any available project with data
-    try:
-        conn = db_manager.get_connection()
-        if conn:
-            with conn.cursor() as cursor:
-                # First try to find project with complete workflow data (AI model + building elements + radiation)
-                cursor.execute("""
-                    SELECT DISTINCT be.project_id 
-                    FROM building_elements be
-                    INNER JOIN ai_models am ON be.project_id = am.project_id
-                    INNER JOIN element_radiation er ON be.project_id = er.project_id
-                    WHERE am.r_squared_score IS NOT NULL AND am.r_squared_score > 0
-                    ORDER BY be.project_id DESC LIMIT 1
-                """)
-                result = cursor.fetchone()
-                if result:
-                    fallback_project_id = result[0]
-                    st.session_state.current_project_id = fallback_project_id
-                    return fallback_project_id
-                
-                # Fallback: find project with building elements only
-                cursor.execute("""
-                    SELECT DISTINCT project_id FROM building_elements 
-                    ORDER BY project_id DESC LIMIT 1
-                """)
-                result = cursor.fetchone()
-                if result:
-                    fallback_project_id = result[0]
-                    st.session_state.current_project_id = fallback_project_id
-                    return fallback_project_id
-                
-                # If no building elements, find any project
-                cursor.execute("SELECT id FROM projects ORDER BY id DESC LIMIT 1")
-                result = cursor.fetchone()
-                if result:
-                    return result[0]
-            conn.close()
-    except Exception as e:
-        pass
-    
-    return None
+    """Return only an unambiguous, explicitly selected project ID."""
+    from core.project_context import selected_project_id
+    return selected_project_id(st.session_state)
 
 
 def load_project_data_from_database(project_id):
@@ -112,8 +27,10 @@ def load_project_data_from_database(project_id):
             return False
         
         # Initialize session state project_data if not exists
-        if 'project_data' not in st.session_state:
+        if st.session_state.get('project_data', {}).get('project_id') != project_id:
             st.session_state.project_data = {}
+            for key in ('current_financial_analysis', 'current_solution_dict', 'financial_project_id'):
+                st.session_state.pop(key, None)
         
         # Update session state with database data
         st.session_state.project_data.update({
@@ -157,7 +74,7 @@ def ensure_project_data_loaded():
         current_project_id = st.session_state.get('project_data', {}).get('project_id')
         if current_project_id != project_id:
             # Project changed, reload from database
-            load_project_data_from_database(project_id)
+            return load_project_data_from_database(project_id)
         return True
     return False
 

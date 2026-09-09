@@ -646,7 +646,7 @@ try:
         # Add "No Project Selected" option but set smart default
         project_options = {"🔽 Select a Project...": None, **project_options}
         
-        # Determine default index - prefer current project, fallback to most recent
+        # Determine default index - retain explicit selection only
         default_index = 0  # Default to "Select a Project..."
         if current_project_id is not None:
             # Find index of current project
@@ -654,9 +654,6 @@ try:
                 (i for i, key in enumerate(project_options.keys()) 
                  if project_options[key] == current_project_id), 0
             )
-        elif len(project_options) > 1:
-            # If no current project but projects exist, select the most recent (second item, first being "Select a Project...")
-            default_index = 1
         
         # Project selector
         selected_project_display = st.sidebar.selectbox(

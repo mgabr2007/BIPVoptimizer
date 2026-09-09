@@ -278,6 +278,9 @@ def generate_step2_section(project_data):
     # AI model metrics - check multiple possible locations
     model_performance = historical_data.get('model_performance', {})
     r2_score = model_performance.get('r2_score', project_data.get('r2_score', project_data.get('model_r2_score', 0)))
+    if r2_score is None:
+        from core.scenario_report import render_unevaluated_demand
+        return render_unevaluated_demand(project_data)
     rmse = model_performance.get('rmse', project_data.get('rmse', project_data.get('model_rmse', 0)))
     
     # Building characteristics - check database fields

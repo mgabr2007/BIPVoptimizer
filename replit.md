@@ -1,3 +1,7 @@
+## September 2026 repair status
+
+The current repair branch supersedes older claims below about validated RandomForest forecasting, NSGA-II execution, universal fallback removal, and live tariff integration. Read [repair notes](docs/REPAIR_NOTES_2026-09-09.md) before changing or deploying this version. Run `python -m unittest discover -s tests -v`. End-to-end Replit/database validation remains required.
+
 # BIPV Optimizer
 
 ## Overview
