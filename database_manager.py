@@ -354,7 +354,7 @@ class BIPVDatabaseManager:
                 cursor.execute('SELECT id FROM projects WHERE id=%s FOR UPDATE',(project_id,))
                 if cursor.fetchone() is None:
                     raise PermissionError('Project not found or access denied')
-                from services.run_store import append_run, archive_legacy_before_replacement
+                from services.run_store import append_run, archive_legacy_before_replacement, canonical
                 archive_legacy_before_replacement(conn,project_id,'optimization')
                 run_id=append_run(conn,project_id,'optimization',optimization_data.get('method','weighted'),
                                   optimization_data.get('optimization_config',{}),optimization_data,
@@ -394,7 +394,7 @@ class BIPVDatabaseManager:
                         'selection_mask': selection_mask,
                         'run_id': run_id,
                         'selected_element_ids': selected_elements,
-                        'optimization_parameters': optimization_data.get('optimization_config', solution.get('optimization_params', {})),
+                        'optimization_parameters': {k:v for k,v in optimization_data.get('optimization_config', solution.get('optimization_params', {})).items() if k!='input_snapshot'},
                         'model_version': optimization_data.get('model_version'),
                         'optimization_method': solution.get('optimization_method'),
                         'fitness_score': solution.get('fitness_score'),
@@ -422,7 +422,7 @@ class BIPVDatabaseManager:
                         float(annual_energy) if annual_energy is not None else 0,
                         i + 1,
                         solution.get('pareto_optimal', False),
-                        json.dumps(selection_details)
+                        canonical(selection_details)
                     ))
                 
                 conn.commit()
@@ -1248,11 +1248,11 @@ class BIPVDatabaseManager:
             if not required.issubset(financial_data):
                 raise ValueError('Incomplete financial result payload')
             with conn.cursor() as cursor:
-                # Serialize writers for one project; this is not immutable run history.
+                # Serialize current-result writes and append evidence in the same transaction.
                 cursor.execute("SELECT id FROM projects WHERE id = %s FOR UPDATE", (project_id,))
                 if cursor.fetchone() is None:
                     raise ValueError('Project does not exist')
-                from services.run_store import append_run, archive_legacy_before_replacement
+                from services.run_store import append_run, archive_legacy_before_replacement, canonical
                 archive_legacy_before_replacement(conn,project_id,'financial')
                 metadata=financial_data['analysis_metadata']
                 run_id=append_run(conn,project_id,'financial','cash-flow',metadata,financial_data,
@@ -1263,8 +1263,8 @@ class BIPVDatabaseManager:
                 
                 # Store detailed analysis data as JSON
                 import json
-                cash_flow_json = json.dumps({'rows': financial_data['cash_flow_analysis'],
-                                            'metadata': financial_data['analysis_metadata']}, allow_nan=False)
+                cash_flow_json = canonical({'rows': financial_data['cash_flow_analysis'],
+                                            'metadata': financial_data['analysis_metadata']})
                 sensitivity_json = json.dumps(financial_data.get('sensitivity_analysis', {}))
                 
                 # Insert financial analysis

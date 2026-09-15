@@ -80,3 +80,14 @@ class OwnershipTests(PostgresFixture):
         with self.connect() as c:
             with self.assertRaises(psycopg2.errors.ForeignKeyViolation):
                 append_run(c,self.other_project_id,'fixture','fixture',{}, {},'v1',first)
+
+    def test_old_permissive_policies_cannot_reopen_foreign_projects(self):
+        with self.admin() as c:
+            with c.cursor() as cur:
+                cur.execute('CREATE POLICY legacy_open ON projects USING(true) WITH CHECK(true)')
+                cur.execute('CREATE POLICY legacy_open ON historical_data USING(true) WITH CHECK(true)')
+        with self.connect_as(Principal('https://test.example','b')) as c:
+            with c.cursor() as cur:
+                cur.execute('SELECT id FROM projects');self.assertEqual(cur.fetchall(),[])
+                with self.assertRaises(psycopg2.errors.InsufficientPrivilege):
+                    cur.execute('INSERT INTO historical_data(project_id) VALUES(%s)',(self.project_id,))

@@ -1,5 +1,7 @@
 # PR #1 review follow-up
 
+> Historical record of the first repair. The subsequent multi-user implementation, NSGA-II comparison, immutable evidence and measured research studies supersede several remaining-work items below. See [current setup and validation scope](MULTIUSER_RESEARCH_SETUP.md).
+
 This extends commit `597e2ade88994a574b87032f40815241efc6be4c`. It remains an experimental repair, not a validated research release. No production database migration, data rewrite, merge or deployment is part of this change.
 
 ## Implemented

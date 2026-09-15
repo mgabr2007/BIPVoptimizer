@@ -87,3 +87,29 @@ DO $$ BEGIN
    FOREIGN KEY(parent_run_id,project_id) REFERENCES analysis_runs(id,project_id);
  END IF;
 END $$;
+
+-- Bulk adapters need a per-project conflict target. Duplicate legacy IDs stop
+-- migration for explicit review; no evidence is silently deduplicated.
+CREATE UNIQUE INDEX IF NOT EXISTS building_elements_project_element_unique ON building_elements(project_id,element_id);
+CREATE UNIQUE INDEX IF NOT EXISTS building_walls_project_element_unique ON building_walls(project_id,element_id);
+CREATE UNIQUE INDEX IF NOT EXISTS element_radiation_project_element_unique ON element_radiation(project_id,element_id);
+
+-- Restrictive guards intersect with any pre-existing permissive policy.
+DROP POLICY IF EXISTS owner_guard ON projects;
+CREATE POLICY owner_guard ON projects AS RESTRICTIVE
+ USING(owner_id=nullif(current_setting('app.user_id',true),'')::bigint)
+ WITH CHECK(owner_id=nullif(current_setting('app.user_id',true),'')::bigint);
+DROP POLICY IF EXISTS identity_guard ON app_users;
+CREATE POLICY identity_guard ON app_users AS RESTRICTIVE
+ USING(identity_key=current_setting('app.identity_key',true))
+ WITH CHECK(identity_key=current_setting('app.identity_key',true));
+DO $$ DECLARE t record; BEGIN
+ FOR t IN SELECT table_name FROM information_schema.columns
+  WHERE table_schema=current_schema() AND column_name='project_id'
+   AND table_name IN (SELECT tablename FROM pg_tables WHERE schemaname=current_schema()) LOOP
+   EXECUTE format('DROP POLICY IF EXISTS project_owner_guard ON %I',t.table_name);
+   EXECUTE format('CREATE POLICY project_owner_guard ON %I AS RESTRICTIVE USING
+    (EXISTS(SELECT 1 FROM projects p WHERE p.id=project_id)) WITH CHECK
+    (EXISTS(SELECT 1 FROM projects p WHERE p.id=project_id))',t.table_name);
+ END LOOP;
+END $$;

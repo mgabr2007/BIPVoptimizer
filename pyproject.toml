@@ -25,7 +25,7 @@ dependencies = [
     "pytest>=8.4.1",
     "pytest-asyncio>=1.0.0",
     "pydantic>=2.11.7",
-    "pandera>=0.25.0",
+    "pandera==0.20.4",
     "asyncpg>=0.30.0",
     "loguru>=0.7.3",
     "streamlit-extras>=0.7.5",

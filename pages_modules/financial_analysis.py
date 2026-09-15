@@ -459,6 +459,8 @@ def render_financial_analysis():
                         'input_fingerprint': current_fingerprint, 'balance_method': BALANCE_METHOD,
                         'analysis_parameters': financial_params, 'solution_id': solution_dict['solution_id'],
                         'optimization_run_id': solution_dict.get('run_id'),
+                        'solution_snapshot': solution_dict, 'upstream_snapshot': upstream,
+                        'system_lifetime': system_lifetime, 'carbon_price': carbon_price,
                         'lifetime_savings': sum(cash_flows[1:]),
                         'grid_co2_factor': grid_co2_factor,
                     }

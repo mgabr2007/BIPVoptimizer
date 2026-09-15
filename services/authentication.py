@@ -70,6 +70,9 @@ def bind_connection(conn, principal=None):
         cur.execute('SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user')
         if any(cur.fetchone()):
             raise PermissionError('Use a database runtime role without SUPERUSER or BYPASSRLS')
+        cur.execute("SELECT pg_has_role(current_user, relowner, 'USAGE') FROM pg_class WHERE oid='projects'::regclass")
+        if cur.fetchone()[0]:
+            raise PermissionError('The application role must not own project tables or inherit their owner role')
         cur.execute("SELECT version FROM app_migrations WHERE version = '002_multiuser'")
         if cur.fetchone() is None:
             raise PermissionError('The multi-user database migration is required')
@@ -90,6 +93,8 @@ async def bind_async_connection(conn, principal=None):
     role = await conn.fetchrow('SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname=current_user')
     if role['rolsuper'] or role['rolbypassrls']:
         raise PermissionError('Privileged database roles are not allowed for application access')
+    if await conn.fetchval("SELECT pg_has_role(current_user,relowner,'USAGE') FROM pg_class WHERE oid='projects'::regclass"):
+        raise PermissionError('The application role must not own project tables')
     if not await conn.fetchval("SELECT version FROM app_migrations WHERE version='002_multiuser'"):
         raise PermissionError('The multi-user database migration is required')
     await conn.execute("SELECT set_config('app.identity_key', $1, false)", principal.key)

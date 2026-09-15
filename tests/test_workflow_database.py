@@ -23,13 +23,13 @@ class WorkflowDatabaseTests(PostgresFixture):
         self.assertTrue(self.db.save_yield_demand_data(p,{'total_annual_yield':1500,'annual_demand':3000,'active_area_m2':10}))
         comparison=compare_searches(*search_tests.SearchTests().inputs())
         data={'method':'nsga-ii-v1','model_version':'dual-search-v1','solutions':comparison['nsga2'].to_dict('records'),
-              'optimization_config':{'input_snapshot':{'fixture':'explicit'}},'comparison':comparison}
+              'optimization_config':{'input_snapshot':{'fixture':'explicit','project':self.db.get_project_by_id(p)}},'comparison':comparison}
         self.assertTrue(self.db.save_optimization_results(p,data))
         first=self.db.get_optimization_results(p)['solutions'].iloc[0]['run_id']
         self.assertTrue(self.db.save_optimization_results(p,data))
         with self.connect() as c:
             self.assertEqual(len(list_runs(c,p)),2)
-            self.assertEqual(get_run(c,first)['inputs']['input_snapshot'],{'fixture':'explicit'})
+            self.assertEqual(get_run(c,first)['inputs']['input_snapshot']['fixture'],'explicit')
             with c.cursor() as cur:
                 cur.execute('SELECT project_id FROM project_report_view');self.assertTrue(cur.fetchall())
         with self.connect_as(Principal('https://test.example','b')) as c:

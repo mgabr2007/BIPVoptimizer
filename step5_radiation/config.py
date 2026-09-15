@@ -5,7 +5,7 @@ Configuration constants and settings for radiation analysis module.
 import os
 from typing import Dict, Any
 from pathlib import Path
-from pydantic import BaseSettings, Field
+from pydantic.v1 import BaseSettings, Field
 
 
 class DatabaseConfig(BaseSettings):
