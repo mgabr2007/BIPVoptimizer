@@ -10,14 +10,14 @@ from core.optimization_engine import (
 class OptimizationTests(unittest.TestCase):
     def setUp(self):
         self.specs = pd.DataFrame([
-            {'element_id': 'A', 'glass_area_m2': 2, 'efficiency_percent': 10,
+            {'element_id': 'A', 'glass_area_m2': 2, 'bipv_area_m2': 2, 'efficiency': .1,
              'total_cost_eur': 100, 'annual_energy_kwh': 200, 'capacity_kw': 0.2},
-            {'element_id': 'B', 'glass_area_m2': 3, 'efficiency_percent': 10,
+            {'element_id': 'B', 'glass_area_m2': 3, 'bipv_area_m2': 3, 'efficiency': .1,
              'total_cost_eur': 200, 'annual_energy_kwh': 300, 'capacity_kw': 0.3},
         ])
         self.radiation = {'A': 1000, 'B': 1000}
         self.demand = pd.DataFrame({'predicted_demand': [250, 250]})
-        self.finance = {'electricity_price': 0.2, 'min_coverage': 0.3,
+        self.finance = {'electricity_price': 0.2, 'export_rate': 0.0, 'min_coverage': 0.3,
                         'maintenance_rate': 0.015, 'prioritize_roi': False}
         self.ga = {'population_size': 30, 'generations': 3, 'mutation_rate': 0.1, 'seed': 42}
 

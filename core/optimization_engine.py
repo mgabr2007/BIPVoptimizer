@@ -2,6 +2,7 @@
 import random
 import numpy as np
 import pandas as pd
+from core.energy_contracts import annual_element_yield, annual_netting, BALANCE_METHOD, ENERGY_MODEL_VERSION
 
 def safe_divide(numerator, denominator, default=0.0):
     return numerator / denominator if denominator else default
@@ -35,20 +36,9 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params, 
             # CRITICAL: No fallback data allowed - require authentic Step 5 radiation data
             raise ValueError("Optimization requires authentic radiation data from Step 5. Please complete radiation analysis first.")
         
-        total_annual_yield = 0
-        for idx in selected_specs.index:
-            element_id = str(selected_specs.loc[idx, 'element_id'])
-            if element_id in radiation_lookup:
-                # Use ONLY authentic radiation data from Step 5
-                annual_radiation = radiation_lookup[element_id]
-                glass_area = selected_specs.loc[idx, 'glass_area_m2']
-                efficiency = selected_specs.loc[idx, 'efficiency_percent'] / 100 if selected_specs.loc[idx, 'efficiency_percent'] > 1 else selected_specs.loc[idx, 'efficiency_percent']
-                authentic_yield = glass_area * annual_radiation * efficiency
-                total_annual_yield += authentic_yield
-            else:
-                # Element missing radiation data - optimization cannot proceed
-                raise ValueError(f"Element {element_id} missing authentic radiation data from Step 5")
-        
+        total_annual_yield = sum(annual_element_yield(row, radiation_lookup[str(row['element_id'])])
+                                 for _, row in selected_specs.iterrows())
+
         # Calculate net import reduction with proper data handling
         if energy_balance is not None and len(energy_balance) > 0:
             if hasattr(energy_balance, 'columns') and 'predicted_demand' in energy_balance.columns:
@@ -65,7 +55,8 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params, 
         electricity_price = financial_params.get('electricity_price')
         if electricity_price is None:
             raise ValueError("Optimization requires authentic electricity rates from project configuration")
-        annual_savings = net_import_reduction * electricity_price
+        annual_savings = annual_netting(total_annual_yield, total_annual_demand,
+                                        electricity_price, financial_params['export_rate'])['gross_benefit']
         
         # Include maintenance costs if enabled
         include_maintenance = financial_params.get('include_maintenance', True)
@@ -98,7 +89,8 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params, 
         cost_fitness = 1 / (1 + normalized_cost)  # Higher is better
         
         # For yield: higher is better
-        max_possible_yield = pv_specs['annual_energy_kwh'].sum()  # If all systems selected
+        max_possible_yield = sum(annual_element_yield(row, radiation_lookup[str(row['element_id'])])
+                                 for _, row in pv_specs.iterrows())
         yield_fitness = total_annual_yield / max_possible_yield if max_possible_yield > 0 else 0
         
         # For ROI: higher is better (already normalized as percentage)
@@ -169,7 +161,7 @@ def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_para
     n_elements = len(pv_specs)
     if n_elements < 1:
         raise ValueError("At least one eligible PV element is required")
-    required = {'element_id', 'glass_area_m2', 'efficiency_percent', 'total_cost_eur', 'annual_energy_kwh'}
+    required = {'element_id', 'glass_area_m2', 'efficiency', 'bipv_area_m2', 'total_cost_eur'}
     if not required.issubset(pv_specs.columns):
         raise ValueError(f"Missing PV fields: {sorted(required - set(pv_specs.columns))}")
     if pv_specs['element_id'].astype(str).duplicated().any():
@@ -181,6 +173,9 @@ def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_para
         raise ValueError("Step 5 radiation is required for every PV element")
     if any(not np.isfinite(float(v)) or float(v) < 0 for v in radiation_lookup.values()):
         raise ValueError("Radiation must be finite and nonnegative")
+    for _, row in pv_specs.iterrows():
+        annual_element_yield(row, radiation_lookup[str(row['element_id'])])
+    annual_netting(0, 0, financial_params['electricity_price'], financial_params['export_rate'])
     if financial_params.get('electricity_price') is None:
         raise ValueError("An explicit electricity price is required")
     if energy_balance is None or len(energy_balance) == 0:
@@ -308,12 +303,8 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
             else:
                 total_cost = 0
                 
-            total_annual_yield = sum(
-                float(row['glass_area_m2']) * float(radiation_lookup[str(row['element_id'])])
-                * (float(row['efficiency_percent']) / 100 if float(row['efficiency_percent']) > 1
-                   else float(row['efficiency_percent']))
-                for _, row in selected_specs.iterrows()
-            )
+            total_annual_yield = sum(annual_element_yield(row, radiation_lookup[str(row['element_id'])])
+                                     for _, row in selected_specs.iterrows())
             selected_elements = selected_specs['element_id'].tolist() if 'element_id' in selected_specs.columns else [f"Element_{j}" for j in range(len(selected_specs))]
             
             # Calculate net import reduction
@@ -340,7 +331,8 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
                 
             # Calculate annual savings (grid import reduction)
             energy_offset = min(total_annual_yield, total_annual_demand) if total_annual_demand > 0 else total_annual_yield
-            gross_annual_savings = energy_offset * electricity_price
+            gross_annual_savings = annual_netting(total_annual_yield, total_annual_demand,
+                                                  electricity_price, financial_params['export_rate'])['gross_benefit']
             
             # Include realistic maintenance and operational costs
             include_maintenance = financial_params.get('include_maintenance', True)
@@ -359,7 +351,10 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
             
             solution = {
                 'solution_id': f"Solution_{i+1}",
-                'optimization_method': 'weighted-genetic-v2',
+                'optimization_method': 'weighted-genetic-v3',
+                'energy_model_version': ENERGY_MODEL_VERSION,
+                'annual_demand_kwh': float(total_annual_demand),
+                'balance_method': BALANCE_METHOD,
                 'fitness_score': float(fitness_value),
                 'total_power_kw': float(total_power_kw),  # Ensure float conversion
                 'total_investment': float(total_cost),    # Ensure float conversion

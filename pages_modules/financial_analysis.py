@@ -17,8 +17,12 @@ from core.carbon_factors import get_grid_carbon_factor, display_carbon_factor_in
 # Removed session state dependency - using database-only approach
 
 from core.financial_math import (
-    calculate_npv, calculate_irr, calculate_payback_period, MODEL_VERSION,
+    calculate_npv, calculate_irr, calculate_payback_period,
 )
+
+from core.financial_scenario import create_cash_flow_analysis, input_fingerprint, MODEL_VERSION
+from core.energy_contracts import BALANCE_METHOD
+from services.analysis_inputs import upstream_snapshot
 
 def calculate_co2_savings(annual_energy_kwh, grid_co2_factor, system_lifetime):
     """Calculate CO2 emissions savings."""
@@ -29,83 +33,6 @@ def calculate_co2_savings(annual_energy_kwh, grid_co2_factor, system_lifetime):
     lifetime_co2_savings = (annual_co2_savings * system_lifetime) / 1000
     
     return annual_co2_savings, lifetime_co2_savings
-
-def create_cash_flow_analysis(solution_data, financial_params, system_lifetime):
-    """Create detailed cash flow analysis for a solution."""
-    
-    # CRITICAL: Require authentic solution data - no fallback keys
-    initial_cost = solution_data.get('total_cost')
-    if initial_cost is None:
-        raise ValueError("Financial analysis requires authentic 'total_cost' data from optimization")
-    
-    annual_energy = solution_data.get('annual_energy_kwh')
-    if annual_energy is None:
-        raise ValueError("Financial analysis requires authentic 'annual_energy_kwh' data from optimization")
-    
-    # Financial parameters
-    discount_rate = financial_params['discount_rate']
-    electricity_price = financial_params['electricity_price']
-    # CRITICAL: Require explicit financial parameters - no defaults allowed
-    price_escalation = financial_params.get('price_escalation')
-    if price_escalation is None:
-        raise ValueError("Financial analysis requires explicit 'price_escalation' parameter")
-        
-    maintenance_cost_rate = financial_params.get('maintenance_cost_rate')
-    if maintenance_cost_rate is None:
-        raise ValueError("Financial analysis requires explicit 'maintenance_cost_rate' parameter")
-        
-    inverter_replacement_year = financial_params.get('inverter_replacement_year')
-    if inverter_replacement_year is None:
-        raise ValueError("Financial analysis requires explicit 'inverter_replacement_year' parameter")
-        
-    inverter_replacement_cost = financial_params.get('inverter_replacement_cost_ratio')
-    if inverter_replacement_cost is None:
-        raise ValueError("Financial analysis requires explicit 'inverter_replacement_cost_ratio' parameter")
-    
-    # Incentives - explicit configuration required
-    tax_credit = financial_params.get('tax_credit')
-    if tax_credit is None:
-        raise ValueError("Financial analysis requires explicit 'tax_credit' parameter")
-        
-    rebate_amount = financial_params.get('rebate_amount')
-    if rebate_amount is None:
-        raise ValueError("Financial analysis requires explicit 'rebate_amount' parameter")
-    
-    cash_flows = []
-    annual_details = []
-    
-    for year in range(system_lifetime + 1):
-        if year == 0:
-            # Initial investment with incentives
-            net_investment = initial_cost - rebate_amount - (initial_cost * tax_credit)
-            cash_flow = -net_investment
-        else:
-            # Annual benefits
-            escalated_price = electricity_price * ((1 + price_escalation) ** (year - 1))
-            annual_savings = annual_energy * escalated_price
-            
-            # Annual costs
-            maintenance_cost = initial_cost * maintenance_cost_rate
-            
-            # Inverter replacement
-            inverter_cost = 0
-            if year == inverter_replacement_year:
-                inverter_cost = initial_cost * inverter_replacement_cost
-            
-            cash_flow = annual_savings - maintenance_cost - inverter_cost
-        
-        cash_flows.append(cash_flow)
-        
-        annual_details.append({
-            'year': year,
-            'cash_flow': cash_flow,
-            'cumulative_cash_flow': sum(cash_flows),
-            'annual_savings': annual_savings if year > 0 else 0,
-            'maintenance_cost': maintenance_cost if year > 0 else 0,
-            'inverter_cost': inverter_cost if year > 0 else 0
-        })
-    
-    return cash_flows, annual_details
 
 def render_financial_analysis():
     """Render the financial and environmental analysis module."""
@@ -123,27 +50,6 @@ def render_financial_analysis():
         return
     
     project_id = get_current_project_id()
-    
-    # AI Model Performance Impact Notice
-    # Get project data from database only
-    project_data = db_manager.get_project_by_id(project_id) or {}
-    if project_data.get('model_r2_score') is not None:
-        r2_score = project_data['model_r2_score']
-        status = project_data.get('model_performance_status', 'Unknown')
-        
-        if r2_score >= 0.85:
-            color = "green"
-            icon = "🟢"
-        elif r2_score >= 0.70:
-            color = "orange"
-            icon = "🟡"
-        else:
-            color = "red"
-            icon = "🔴"
-        
-        st.info(f"{icon} Financial analysis uses AI demand predictions (R² score: **{r2_score:.3f}** - {status} performance)")
-        
-        # Removed persistent warning message
     
     # Check dependencies - check database for optimization results
     optimization_data = db_manager.get_optimization_results(project_id)
@@ -163,15 +69,20 @@ def render_financial_analysis():
     # Load project data for other settings
     project_data = db_manager.get_project_by_id(project_id) or {}
     
-    # Check if solution is selected - for now use the best solution (highest ROI)
+    # Check if solution is selected - for now use the highest weighted-fitness solution
     if hasattr(solutions, 'iloc') and len(solutions) > 0:
-        # Use the best solution (first one, sorted by ROI in Step 8)
+        # Use the first solution, ranked by weighted fitness in Step 8
         selected_solution = solutions.iloc[0]
-        st.success(f"✅ Using best optimization solution: {selected_solution['solution_id']}")
+        st.success(f"Using highest weighted-fitness solution: {selected_solution['solution_id']}")
     else:
         st.error("⚠️ No optimization solutions available.")
         return
     
+    if selected_solution.get('balance_method') != BALANCE_METHOD:
+        st.error('Regenerate Step 8 to use explicit annual-netting and active-area metadata.')
+        return
+    st.info('Experimental annual-netting scenario: these are not time-matched self-consumption results. Demand is held constant; both tariffs use the selected escalation.')
+
     st.success(f"✅ Analyzing financial performance of {selected_solution['solution_id']} for selected window types")
     st.info("💡 Financial analysis based on selected window types from Step 4 for accurate ROI calculations")
     
@@ -193,34 +104,6 @@ def render_financial_analysis():
     # CRITICAL: No session state fallback allowed - require authentic project rates only
     if not electricity_rates or not electricity_rates.get('import_rate'):
         raise ValueError("No authentic electricity rates found in project configuration")
-    
-    # Add manual override option if rates don't match expected values
-    st.subheader("⚙️ Electricity Rate Override")
-    
-    current_rate = electricity_rates.get('import_rate')
-    if current_rate is None:
-        raise ValueError("No valid import_rate found in authentic electricity rates")
-    
-    # Allow manual override
-    override_rate = st.number_input(
-        "Override Electricity Rate (€/kWh)",
-        min_value=0.01,
-        max_value=1.00,
-        value=current_rate,
-        step=0.001,
-        format="%.3f",
-        help="If the auto-loaded rate is incorrect, you can override it here. This will be used for all financial calculations.",
-        key="override_electricity_rate"
-    )
-    
-    # Update electricity_rates if overridden
-    if override_rate != current_rate:
-        electricity_rates = {
-            'import_rate': override_rate,
-            'source': f'Manual Override (was {current_rate:.3f})',
-            'timestamp': 'now'
-        }
-        st.success(f"✅ Using override rate: {override_rate:.3f} €/kWh")
     
     # Show automatically loaded data
     st.subheader("📊 Auto-Loaded Project Data")
@@ -277,7 +160,7 @@ def render_financial_analysis():
         )
         
         # Get electricity price from Step 1 project setup (database only) - already loaded above
-        default_price = electricity_rates.get('import_rate', 0.25)
+        default_price = float(electricity_rates['import_rate'])
         
         electricity_price = st.number_input(
             "Financial Analysis Electricity Price (€/kWh)",
@@ -305,7 +188,7 @@ def render_financial_analysis():
         
         maintenance_cost_rate = st.slider(
             "Annual Maintenance Cost (%)",
-            0.5, 3.0, 1.0, 0.1,
+            0.0, 3.0, float(selected_solution.get('maintenance_rate', 0.015)) * 100, 0.1,
             help="Maintenance cost as % of initial investment",
             key="maintenance_cost_fin"
         )
@@ -317,6 +200,9 @@ def render_financial_analysis():
             key="degradation_fin"
         )
     
+    export_rate = st.number_input('Export tariff scenario (€/kWh)', min_value=0.0,
+                                  value=float(selected_solution.get('export_rate', 0.0)), format='%.3f', key='export_rate_fin')
+    st.caption('Zero export tariff assumes no export revenue. Changing financial assumptions here does not rerun optimization.')
     # Incentives and costs
     with st.expander("💸 Incentives & Additional Costs", expanded=False):
         inc_col1, inc_col2 = st.columns(2)
@@ -405,7 +291,7 @@ def render_financial_analysis():
         
         **💰 Financial Calculations:**
         - **NPV**: Net Present Value using discounted cash flows over system lifetime
-        - **IRR**: Internal Rate of Return using Newton-Raphson method
+        - **IRR**: Conventional investment IRR; unavailable for non-conventional cash flows
         - **Payback Period**: Simple payback based on annual savings
         - **Cash Flow**: Year-by-year financial projections with maintenance and replacement costs
         
@@ -422,23 +308,37 @@ def render_financial_analysis():
         - **Database**: All calculations saved for project persistence and comparison
         """)
     
+    # Fingerprint the current solution, upstream inputs, and all displayed assumptions.
+    financial_params = {
+        'discount_rate': discount_rate / 100,
+        'electricity_price': electricity_price,
+        'price_escalation': price_escalation / 100,
+        'maintenance_cost_rate': maintenance_cost_rate / 100,
+        'inverter_replacement_year': inverter_replacement_year,
+        'inverter_replacement_cost_ratio': inverter_replacement_cost_ratio / 100,
+        'tax_credit': tax_credit / 100,
+        'rebate_amount': rebate_amount,
+        'system_degradation': system_degradation / 100,
+        'export_rate': export_rate
+    }
+
+
+    solution_for_hash = selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution
+    try:
+        upstream = upstream_snapshot(db_manager, project_id)
+    except ValueError as exc:
+        st.error(str(exc))
+        return
+    if selected_solution.get('upstream_fingerprint') != input_fingerprint(project_id, {}, {}, 0, upstream):
+        st.error('Upstream inputs changed or the optimization has no input fingerprint. Rerun Step 8 in a test project before financial analysis.')
+        return
+    upstream = {**upstream, 'grid_co2_factor': grid_co2_factor, 'carbon_price': carbon_price}
+    current_fingerprint = input_fingerprint(project_id, solution_for_hash, financial_params, system_lifetime, upstream)
+
     # Analysis execution
     if st.button("🚀 Run Financial & Environmental Analysis", key="run_financial_analysis"):
         with st.spinner("Calculating financial performance and environmental impact..."):
             try:
-                # Setup financial parameters
-                financial_params = {
-                    'discount_rate': discount_rate / 100,
-                    'electricity_price': electricity_price,
-                    'price_escalation': price_escalation / 100,
-                    'maintenance_cost_rate': maintenance_cost_rate / 100,
-                    'inverter_replacement_year': inverter_replacement_year,
-                    'inverter_replacement_cost_ratio': inverter_replacement_cost_ratio / 100,
-                    'tax_credit': tax_credit / 100,
-                    'rebate_amount': rebate_amount,
-                    'system_degradation': system_degradation / 100
-                }
-                
                 # Create cash flow analysis - convert Series to dict
                 solution_dict = selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution
                 cash_flows, annual_details = create_cash_flow_analysis(
@@ -471,6 +371,7 @@ def render_financial_analysis():
                 annual_co2_savings, lifetime_co2_savings = calculate_co2_savings(
                     annual_energy_kwh, grid_co2_factor, system_lifetime
                 )
+                lifetime_co2_savings = sum(row['annual_generation'] for row in annual_details[1:]) * grid_co2_factor / 1000
                 
                 # Calculate carbon value
                 carbon_value = lifetime_co2_savings * carbon_price
@@ -509,10 +410,13 @@ def render_financial_analysis():
                 
                 # Save results
                 total_investment = solution_dict.get('total_cost', solution_dict.get('total_investment', 0))
-                annual_savings = solution_dict.get('annual_savings', annual_energy_kwh * electricity_price)
+                annual_savings = annual_details[1]['cash_flow']
                 
                 financial_analysis_results = {
                     'model_version': MODEL_VERSION,
+                    'input_fingerprint': current_fingerprint,
+                    'balance_method': BALANCE_METHOD,
+                    'irr_unit': 'percent',
                     'financial_metrics': {
                         'npv': npv,
                         'irr': irr * 100 if irr is not None else None,
@@ -532,87 +436,35 @@ def render_financial_analysis():
                     'analysis_parameters': financial_params
                 }
                 
-                # Save financial analysis to database only
-                db_manager.save_financial_analysis(project_id, financial_analysis_results)
-                
-                # Database save completed above
-                step9_data = {
-                    'financial_analysis': financial_analysis_results,
+                # One checked transaction; no intermediate incomplete result is committed.
+                db_financial_data = {
+                    'initial_investment': total_investment,
+                    'annual_savings': annual_details[1]['annual_savings'],
+                    'annual_generation': annual_energy_kwh,
+                    'annual_export_revenue': annual_details[1]['export_revenue'],
+                    'annual_om_cost': annual_details[1]['maintenance_cost'],
+                    'net_annual_benefit': annual_savings,
+                    'npv': npv, 'irr': irr * 100 if irr is not None else None,
+                    'payback_period': payback_period,
+                    # No simplified capital/energy ratio presented as a validated LCOE.
+                    'lcoe': None, 'analysis_complete': True,
+                    'co2_savings_annual': annual_co2_savings,
+                    'co2_savings_lifetime': lifetime_co2_savings,
+                    'carbon_value': carbon_value,
                     'cash_flow_analysis': annual_details,
-                    'environmental_impact': {
-                        'annual_co2_savings': annual_co2_savings,
-                        'lifetime_co2_savings': lifetime_co2_savings,
-                        'carbon_value': carbon_value,
-                        'grid_co2_factor': grid_co2_factor
-                    },
-                    'economic_metrics': {
-                        'npv': npv,
-                        'irr': irr * 100 if irr is not None else None,
-                        'payback_period': payback_period,
-                        'total_investment': total_investment,
-                        'annual_savings': annual_savings,
-                        'lifetime_savings': sum(cash_flows[1:])  # Exclude initial investment
-                    },
-                    'financial_complete': True
+                    'sensitivity_analysis': sensitivity_results,
+                    'analysis_metadata': {
+                        'model_version': MODEL_VERSION, 'irr_unit': 'percent',
+                        'input_fingerprint': current_fingerprint, 'balance_method': BALANCE_METHOD,
+                        'analysis_parameters': financial_params, 'solution_id': solution_dict['solution_id'],
+                        'lifetime_savings': sum(cash_flows[1:]),
+                        'grid_co2_factor': grid_co2_factor,
+                    }
                 }
-                # Data saved to database above - no consolidated manager needed
-                
-                # Save to database
-                if project_id:
-                    try:
-                        # Prepare database-compatible financial data structure
-                        db_financial_data = {
-                            'initial_investment': total_investment,
-                            'annual_savings': annual_savings,
-                            'annual_generation': annual_energy_kwh,
-                            'annual_export_revenue': 0,  # Calculate based on feed-in tariff if available
-                            'annual_om_cost': total_investment * financial_params['maintenance_cost_rate'],
-                            'net_annual_benefit': annual_savings,
-                            'npv': npv,
-                            'irr': irr * 100 if irr is not None else None,
-                            'payback_period': payback_period,
-                            'lcoe': safe_divide(total_investment, annual_energy_kwh * system_lifetime, 0),
-                            'analysis_complete': True,
-                            # Environmental impact data for database
-                            'co2_savings_annual': annual_co2_savings,
-                            'co2_savings_lifetime': lifetime_co2_savings,
-                            'carbon_value': carbon_value,
-                            'trees_equivalent': int(lifetime_co2_savings / 22),  # Approximate trees equivalent
-                            'cars_equivalent': int(lifetime_co2_savings / 4.6),   # Approximate cars equivalent
-                            
-                            # CRITICAL: Include structured data for CSV export
-                            'cash_flow_analysis': annual_details,
-                            'sensitivity_analysis': sensitivity_results,
-                            'model_version': MODEL_VERSION,
-                            'financial_metrics': {
-                                'npv': npv,
-                                'irr': irr * 100 if irr is not None else None,
-                                'payback_period': payback_period,
-                                'total_investment': total_investment,
-                                'annual_savings': annual_savings,
-                                'lifetime_savings': sum(cash_flows[1:])
-                            },
-                            'environmental_impact': {
-                                'annual_co2_savings': annual_co2_savings,
-                                'lifetime_co2_savings': lifetime_co2_savings,
-                                'carbon_value': carbon_value,
-                                'grid_co2_factor': grid_co2_factor
-                            }
-                        }
-                        
-                        # Save using database helper
-                        db_helper.save_step_data("financial_analysis", db_financial_data)
-                        
-                        # Legacy save method for compatibility
-                        db_manager.save_financial_analysis(
-                            project_id,
-                            db_financial_data
-                        )
-                    except Exception as db_error:
-                        st.warning(f"Database save failed: {str(db_error)}")
-                else:
-                    st.warning("Project ID not found - results saved to session only")
-                
+                if not db_manager.save_financial_analysis(project_id, db_financial_data):
+                    st.error('Financial results were not saved. Previous committed results remain available.')
+                    return
+
                 st.success("✅ Financial and environmental analysis completed successfully!")
                 
                 # Store calculated data in session state for immediate tab display
@@ -625,10 +477,14 @@ def render_financial_analysis():
                 return
     
     # Display results if available - use current analysis if just calculated, otherwise from database
-    if st.session_state.get('financial_project_id') != project_id:
+    if (st.session_state.get('financial_project_id') != project_id
+            or (st.session_state.get('current_financial_analysis') or {}).get('input_fingerprint') != current_fingerprint):
         st.session_state.pop('current_financial_analysis', None)
         st.session_state.pop('current_solution_dict', None)
     financial_data = st.session_state.get('current_financial_analysis') or db_manager.get_financial_analysis(project_id)
+    if financial_data and financial_data.get('input_fingerprint') != current_fingerprint:
+        st.info('Saved analysis does not match current inputs or has no provenance. Run analysis again in a test project; archive research results first.')
+        financial_data = None
     current_solution = st.session_state.get('current_solution_dict') or (selected_solution.to_dict() if hasattr(selected_solution, 'to_dict') else selected_solution)
     
     if financial_data:
@@ -820,17 +676,17 @@ def render_financial_analysis():
                         'Annual Energy Production',
                         'First Year Savings',
                         'Net Present Value',
-                        'Return on Investment',
-                        'Energy Cost per kWh',
+                        'NPV / Initial Investment',
+                        'LCOE',
                         'CO₂ Savings Value'
                     ],
                     'Value': [
                         f"€{solution_dict.get('total_cost', 0):,.0f}",
                         f"{solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0)):,.0f} kWh",
-                        f"€{solution_dict.get('annual_savings', 0):,.0f}",
+                        f"€{metrics['annual_savings']:,.0f}",
                         f"€{metrics.get('npv', 0):,.0f}",
                         f"{safe_divide(metrics.get('npv', 0), solution_dict.get('total_cost', 1), 0) * 100:.1f}%",
-                        f"€{safe_divide(solution_dict.get('total_cost', 0), solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 1)) * system_lifetime, 0):.3f}",
+                        'Not evaluated',
                         f"€{env_data.get('carbon_value', 0):,.0f}"
                     ]
                 }
@@ -849,23 +705,16 @@ def render_financial_analysis():
                 total_investment = solution_dict.get('total_cost', 0)
                 annual_production = solution_dict.get('annual_energy_kwh', solution_dict.get('annual_energy', 0))
                 
-                # Calculate annual savings if not provided
-                electricity_price = financial_data.get('analysis_parameters', {}).get('electricity_price', 0.25)
-                calculated_annual_savings = annual_production * electricity_price
-                annual_savings = solution_dict.get('annual_savings', calculated_annual_savings)
-                
-                cost_per_kwh_installed = safe_divide(total_investment, annual_production * system_lifetime, 0)
+                annual_savings = metrics['annual_savings']
                 capacity_factor = safe_divide(annual_production, solution_dict.get('capacity', 1) * 8760, 0)
-                
                 comparison_metrics = {
-                    'Cost per kWh (Lifetime)': f"€{cost_per_kwh_installed:.3f}",
+                    'LCOE': 'Not evaluated',
                     'Cost per kW Installed': f"€{safe_divide(total_investment, solution_dict.get('capacity', 1), 0):,.0f}",
-                    'Capacity Factor': f"{capacity_factor * 100:.1f}%",
-                    'Annual Yield per €1000': f"{safe_divide(annual_production, total_investment / 1000, 0):.0f} kWh",
-                    'ROI (Simple)': f"{safe_divide(annual_savings, total_investment, 0) * 100:.1f}%",
-                    'Energy Independence': f"{min(100, safe_divide(annual_production * 100, 10000, 0)):.1f}%"  # Assume 10,000 kWh annual demand
+                    'Scenario capacity factor (before loss validation)': f"{capacity_factor * 100:.1f}%",
+                    'First-year net benefit / capital cost': f"{safe_divide(annual_savings, total_investment, 0) * 100:.1f}%",
+                    'Annual generation / reference demand': f"{safe_divide(annual_production, solution_dict['annual_demand_kwh'], 0) * 100:.1f}%",
                 }
-                
+
                 metrics_df = pd.DataFrame(list(comparison_metrics.items()), columns=['Metric', 'Value'])
                 st.dataframe(metrics_df, use_container_width=True, hide_index=True)
             
@@ -878,6 +727,7 @@ def render_financial_analysis():
                 if st.button("📊 Prepare Financial Report (CSV)", key="prepare_financial_csv"):
                     # Combine all financial data
                     export_data = {
+                        'Analysis Provenance': pd.DataFrame([{key: financial_data.get(key) for key in ('model_version', 'irr_unit', 'input_fingerprint', 'balance_method')}]),
                         'Financial Metrics': pd.DataFrame([metrics]),
                         'Environmental Impact': pd.DataFrame([env_data]),
                         'Cash Flow Analysis': pd.DataFrame(cash_flow_data) if cash_flow_data else pd.DataFrame()

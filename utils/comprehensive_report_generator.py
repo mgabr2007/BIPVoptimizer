@@ -268,86 +268,8 @@ def generate_step1_section(step1_data):
     """
 
 def generate_step2_section(project_data):
-    """Generate Step 2: Historical Data & AI Model section"""
-    
-    # Handle both nested and direct database structure
-    historical_data = project_data.get('historical_data', {})
-    if isinstance(historical_data, str):
-        historical_data = {}
-    
-    # AI model metrics - check multiple possible locations
-    model_performance = historical_data.get('model_performance', {})
-    r2_score = model_performance.get('r2_score', project_data.get('r2_score', project_data.get('model_r2_score', 0)))
-    if r2_score is None:
-        from core.scenario_report import render_unevaluated_demand
-        return render_unevaluated_demand(project_data)
-    rmse = model_performance.get('rmse', project_data.get('rmse', project_data.get('model_rmse', 0)))
-    
-    # Building characteristics - check database fields
-    building_area = (
-        historical_data.get('building_floor_area', 0) or 
-        project_data.get('building_floor_area', 0) or 
-        project_data.get('building_area', 5000)
-    )
-    energy_intensity = (
-        historical_data.get('energy_intensity', 0) or 
-        project_data.get('energy_intensity', 0)
-    )
-    peak_load = (
-        historical_data.get('peak_load_factor', 0) or 
-        project_data.get('peak_load_factor', 0)
-    )
-    
-    # Forecast data
-    forecast_data = historical_data.get('forecast_data', project_data.get('forecast_data', []))
-    
-    return f"""
-    <div class="step-section">
-        <h2 class="step-title">Step 2: Historical Data Analysis & AI Model Training</h2>
-        
-        <div class="subsection">
-            <h3>AI Model Performance</h3>
-            <div class="metric">
-                <strong>R² Score:</strong> {r2_score:.3f}
-            </div>
-            <div class="metric">
-                <strong>RMSE:</strong> {rmse:.2f} kWh
-            </div>
-            <div class="metric">
-                <strong>Model Type:</strong> Random Forest Regressor
-            </div>
-            
-            {"<div class='warning'>Model performance below 0.7 R² may affect forecast accuracy</div>" if r2_score < 0.7 else ""}
-        </div>
-        
-        <div class="subsection">
-            <h3>Building Characteristics</h3>
-            <div class="metric">
-                <strong>Building Floor Area:</strong> {building_area:,.0f} m²
-            </div>
-            <div class="metric">
-                <strong>Energy Intensity:</strong> {energy_intensity:.1f} kWh/m²/year
-            </div>
-            <div class="metric">
-                <strong>Peak Load Factor:</strong> {peak_load:.2f}
-            </div>
-        </div>
-        
-        <div class="subsection">
-            <h3>25-Year Demand Forecast</h3>
-            <p><strong>Forecast Period:</strong> {len(forecast_data)} years</p>
-            <p><strong>Model Features:</strong> Historical consumption, temperature, occupancy patterns</p>
-            <p><strong>Educational Building Standards:</strong> ASHRAE 90.1 compliance integrated</p>
-        </div>
-        
-        <div class="subsection">
-            <h3>Data Usage in Subsequent Steps</h3>
-            <p>• <strong>Step 7:</strong> Demand forecast compared with PV generation</p>
-            <p>• <strong>Step 8:</strong> Optimization uses demand patterns for sizing</p>
-            <p>• <strong>Step 9:</strong> Financial analysis based on predicted consumption</p>
-        </div>
-    </div>
-    """
+    from core.research_reports import demand_section
+    return demand_section(project_data)
 
 def generate_step3_section(project_data):
     """Generate Step 3: Weather & Environment Integration section"""
@@ -799,87 +721,8 @@ def generate_step8_section(project_data):
     """
 
 def generate_step9_section(project_data):
-    """Generate Step 9: Financial & Environmental Analysis section"""
-    
-    # Use step9_data extractor for consistent data access
-    step9_data = get_step9_data(project_data)
-    
-    # Financial metrics
-    npv = step9_data.get('npv', 0)
-    irr = step9_data.get('irr', 0)
-    payback_period = step9_data.get('payback_period', 0)
-    annual_savings = step9_data.get('annual_savings', 0)
-    investment_cost = step9_data.get('investment_cost', 0)
-    
-    # Environmental metrics
-    co2_savings = step9_data.get('annual_co2_savings', 0)
-    lifetime_co2 = step9_data.get('lifetime_co2_savings', 0)
-    
-    # System parameters
-    system_capacity = step9_data.get('system_capacity', 0)
-    
-    return f"""
-    <div class="step-section">
-        <h2 class="step-title">Step 9: Financial & Environmental Analysis</h2>
-        
-        <div class="subsection">
-            <h3>Financial Performance Metrics</h3>
-            <div class="metric">
-                <strong>Net Present Value (NPV):</strong> €{npv:,.0f}
-            </div>
-            <div class="metric">
-                <strong>Internal Rate of Return (IRR):</strong> {irr:.1f}%
-            </div>
-            <div class="metric">
-                <strong>Payback Period:</strong> {payback_period:.1f} years
-            </div>
-            <div class="metric">
-                <strong>Annual Savings:</strong> €{annual_savings:,.0f}
-            </div>
-        </div>
-        
-        <div class="subsection">
-            <h3>Investment Summary</h3>
-            <div class="metric">
-                <strong>System Capacity:</strong> {system_capacity:.1f} kW
-            </div>
-            <div class="metric">
-                <strong>Total Installation Cost:</strong> €{investment_cost:,.0f}
-            </div>
-            <div class="metric">
-                <strong>Cost per kW:</strong> €{investment_cost/system_capacity if system_capacity > 0 else 0:,.0f}/kW
-            </div>
-            <div class="metric">
-                <strong>25-Year Total Savings:</strong> €{annual_savings * 25:,.0f}
-            </div>
-        </div>
-        
-        <div class="subsection">
-            <h3>Environmental Impact</h3>
-            <div class="metric">
-                <strong>Annual CO₂ Savings:</strong> {co2_savings:,.0f} kg CO₂
-            </div>
-            <div class="metric">
-                <strong>25-Year CO₂ Savings:</strong> {lifetime_co2/1000:,.0f} Tons CO₂
-            </div>
-            <div class="metric">
-                <strong>Equivalent Trees Planted:</strong> {lifetime_co2/22:,.0f} trees
-            </div>
-        </div>
-        
-        <div class="subsection">
-            <h3>Investment Viability Assessment</h3>
-            {"<div class='metric'>✅ Excellent investment - High NPV and IRR</div>" if npv > 0 and irr > 8 else ""}
-            {"<div class='warning'>⚠️ Moderate investment - Positive but low returns</div>" if npv > 0 and irr <= 8 else ""}
-            {"<div class='error'>❌ Poor investment - Negative returns</div>" if npv <= 0 else ""}
-        </div>
-        
-        <div class="subsection">
-            <h3>Final Analysis Summary</h3>
-            <p>The BIPV system demonstrates {"strong" if npv > 0 and irr > 8 else "moderate" if npv > 0 else "poor"} financial viability with significant environmental benefits. The integration of semi-transparent PV glass provides both energy generation and building envelope functionality.</p>
-        </div>
-    </div>
-    """
+    from core.research_reports import financial_section
+    return financial_section(project_data)
 
 # Helper functions for table generation
 def get_orientation_table_rows(orientation_counts, total):

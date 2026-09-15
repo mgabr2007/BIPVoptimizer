@@ -1,5 +1,7 @@
 # Research-integrity repair branch
 
+Subsequent review repairs and current validation status: [PR1_REVIEW_FOLLOWUP.md](PR1_REVIEW_FOLLOWUP.md). The original validation record below describes the first repair commit.
+
 Baseline: `00475a22d7248ee7f4ec6cc5bfbcac1d909b0a18` (main).
 This is a development repair, not a production release or a scientific validation of the complete application.
 

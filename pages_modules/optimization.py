@@ -17,6 +17,9 @@ from utils.color_schemes import CHART_COLORS, get_chart_color
 # Removed ConsolidatedDataManager - using database-only approach
 # Removed session state dependency - using database-only approach
 
+from services.analysis_inputs import upstream_snapshot
+from core.financial_scenario import input_fingerprint
+from core.energy_contracts import reference_year, ENERGY_MODEL_VERSION
 from core.optimization_engine import (
     create_individual, evaluate_individual, simple_genetic_algorithm, analyze_optimization_results,
 )
@@ -98,7 +101,7 @@ def render_optimization():
                 
                 result = cursor.fetchone()
                 if result:
-                    st.info("🟢 Optimization uses AI demand predictions from authentic database analysis")
+                    st.info("Optimization uses a historical annual-demand baseline, not a validated AI forecast")
             conn.close()
     except Exception:
         pass  # No fallback display if database unavailable
@@ -199,6 +202,17 @@ def render_optimization():
             if col in energy_balance.columns:
                 energy_balance[col] = pd.to_numeric(energy_balance[col], errors='coerce').fillna(0.0)
     
+    try:
+        if 'energy_model_version' not in pv_specs or not (pv_specs['energy_model_version'] == ENERGY_MODEL_VERSION).all():
+            raise ValueError('Regenerate Step 6 specifications to use explicit active area and efficiency units')
+        historical = db_manager.get_historical_data(project_id)
+        baseline = reference_year(historical['consumption_data'], historical.get('date_data'))
+        energy_balance = pd.DataFrame({'predicted_demand': [baseline['annual_demand_kwh']]})
+    except (ValueError, KeyError, TypeError) as exc:
+        st.error(str(exc))
+        return
+    st.info('Experimental annual-netting scenario; time-matched energy balance and physics validation remain pending.')
+
     # Success confirmation after data conversion
     st.success(f"✅ Database verification complete: {len(pv_specs)} BIPV systems ready for optimization")
     st.info("💡 Using saved project inputs; results depend on the recorded calculation assumptions")
@@ -316,6 +330,10 @@ def render_optimization():
         st.error("⚠️ Electricity rate not found in database. Please complete Step 1 (Project Setup) first.")
         return
     
+    export_rate = st.number_input('Export tariff scenario (€/kWh)', min_value=0.0,
+                                  value=float((db_manager.get_project_by_id(project_id).get('electricity_rates') or {}).get('export_rate', 0.0)),
+                                  format='%.3f', key='export_rate_opt')
+    st.caption('Zero export tariff assumes no export revenue. ROI here is first-year net benefit / capital cost, not IRR.')
     col3, col4 = st.columns(2)
     
     with col3:
@@ -392,6 +410,7 @@ def render_optimization():
 
         'min_coverage': min_coverage,
         'electricity_price': electricity_price,
+                    'export_rate': export_rate,
         'prioritize_roi': prioritize_roi,
         'include_maintenance': include_maintenance,
                     'maintenance_rate': 0.015,
@@ -430,6 +449,7 @@ def render_optimization():
                 
                 financial_params = {
                     'electricity_price': electricity_price,
+                    'export_rate': export_rate,
                     'min_coverage': min_coverage / 100,
                     'weight_cost': weight_cost,
                     'weight_yield': weight_yield,
@@ -457,6 +477,7 @@ def render_optimization():
                         st.info(f"🔍 Using authentic Step 5 radiation data for {len(radiation_lookup)} elements in optimization")
                     conn.close()
                 
+                upstream_hash = input_fingerprint(project_id, {}, {}, 0, upstream_snapshot(db_manager, project_id))
                 # Run genetic algorithm with authentic radiation data
                 pareto_solutions, fitness_history = simple_genetic_algorithm(
                     pv_specs, energy_balance, financial_params, ga_params, radiation_lookup
@@ -471,15 +492,16 @@ def render_optimization():
                     pareto_solutions, pv_specs, energy_balance, financial_params, radiation_lookup
                 )
                 
-                # Sort by ROI
-                solutions_df = solutions_df.sort_values('roi', ascending=False).reset_index(drop=True)
+                # Preserve the objective the user asked the solver to optimize.
+                solutions_df = solutions_df.sort_values('fitness_score', ascending=False, kind='stable').reset_index(drop=True)
                 
                 # Save results
                 optimization_results = {
                     'solutions': solutions_df,
                     'fitness_history': fitness_history,
-                    'model_version': 'weighted-genetic-v2',
+                    'model_version': 'weighted-genetic-v3',
                     'optimization_config': {
+                        'upstream_fingerprint': upstream_hash,
                         'ga_params': ga_params,
                         'financial_params': financial_params,
                         'constraints': {
@@ -501,10 +523,12 @@ def render_optimization():
                             _, _, _, individual = pareto_solutions[i]
                             solution['selection_mask'] = individual
                     
+                    if upstream_hash != input_fingerprint(project_id, {}, {}, 0, upstream_snapshot(db_manager, project_id)):
+                        raise ValueError('Upstream inputs changed during optimization; rerun before saving')
                     saved = db_manager.save_optimization_results(project_id, {
                         'solutions': solutions_dict,
                         'optimization_config': optimization_results['optimization_config'],
-                        'model_version': 'weighted-genetic-v2'
+                        'model_version': 'weighted-genetic-v3'
                     })
                     if not saved:
                         st.error("Results could not be saved. Previous committed results remain available.")

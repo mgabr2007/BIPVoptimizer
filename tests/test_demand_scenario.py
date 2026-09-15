@@ -8,11 +8,11 @@ class DemandScenarioTests(unittest.TestCase):
         values = [100 + month for month in range(12)]
         np.random.seed(123)
         before = np.random.get_state()
-        first = generate_demand_forecast(values, [], [], ['2024-12-01'])
+        first = generate_demand_forecast(values, [], [], [f'2024-{month:02d}-01' for month in range(1, 13)])
         after = np.random.get_state()
         np.testing.assert_array_equal(before[1], after[1])
         self.assertEqual(before[2:], after[2:])
-        second = generate_demand_forecast(values, [], [], ['2024-12-01'])
+        second = generate_demand_forecast(values, [], [], [f'2024-{month:02d}-01' for month in range(1, 13)])
         self.assertEqual(first['monthly_predictions'], second['monthly_predictions'])
         self.assertIsNone(first['model_parameters']['accuracy'])
         self.assertEqual(first['model_parameters']['evaluation_status'], 'not_evaluated')

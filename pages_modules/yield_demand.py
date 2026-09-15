@@ -7,6 +7,7 @@ from datetime import datetime as dt
 from utils.ui_standards import render_step_header, render_navigation_buttons, render_status_message, WORKFLOW_STEPS
 from database_manager import db_manager
 from services.io import get_current_project_id
+from core.energy_contracts import reference_year, annual_netting, ENERGY_MODEL_VERSION
 
 
 def render_yield_demand():
@@ -14,19 +15,9 @@ def render_yield_demand():
     
     render_step_header('yield_demand')
     
-    st.markdown("""
-    ### What This Step Does
-    
-    This analysis compares the energy your BIPV systems will generate from selected window types with your building's actual energy needs. 
-    We calculate how much of your electricity demand can be met by solar energy from the chosen windows and identify potential cost savings.
-    
-    **Key Outputs:**
-    - Monthly energy balance (generation from selected windows vs consumption)
-    - Self-consumption percentage from selected BIPV windows
-    - Grid electricity savings from selected window installations
-    - Feed-in revenue from excess energy from selected windows
-    """)
-    
+    st.info("Experimental annual-netting scenario. Annual totals do not establish "
+            "time-matched self-consumption, grid imports or exports. Physics validation is pending.")
+
     # Check prerequisites and ensure project data is loaded
     from services.io import ensure_project_data_loaded
     
@@ -128,6 +119,9 @@ def render_yield_demand():
                 help=f"Electricity rate (Source: {rate_source})"
             )
         
+        export_rate = st.number_input("Export tariff scenario (€/kWh)", min_value=0.0,
+                                      value=float(rates.get('export_rate', 0.0)), format="%.3f")
+        st.caption("Zero export tariff means no export revenue is assumed; supply your contract tariff when available.")
         # Comprehensive analysis button
         if st.button("🚀 Run Analysis", type="primary"):
             with st.spinner("Running yield vs demand analysis..."):
@@ -170,6 +164,8 @@ def render_yield_demand():
                     total_cost_eur = 0
                     
                     for spec in bipv_specs:
+                        if spec.get('energy_model_version') != ENERGY_MODEL_VERSION:
+                            raise ValueError('Regenerate Step 6 specifications with explicit active area and efficiency units')
                         try:
                             total_capacity_kw += float(spec.get('capacity_kw', 0))
                             total_annual_yield += float(spec.get('annual_energy_kwh', 0))
@@ -178,38 +174,10 @@ def render_yield_demand():
                             st.warning(f"Error parsing spec data: {e}")
                             continue
                     
-                    # Get annual demand from historical data with safe conversion
-                    annual_demand = 0
-                    try:
-                        if isinstance(historical_data, dict):
-                            # Try multiple possible field names for annual consumption
-                            possible_fields = ['annual_consumption', 'total_annual_consumption', 'base_consumption']
-                            for field in possible_fields:
-                                if field in historical_data and historical_data[field]:
-                                    annual_demand = float(historical_data[field])
-                                    break
-                            
-                            # If still no annual demand, try to calculate from consumption data
-                            if annual_demand == 0 and 'consumption_data' in historical_data:
-                                consumption_data = historical_data['consumption_data']
-                                if isinstance(consumption_data, list) and len(consumption_data) > 0:
-                                    annual_demand = sum(float(x) for x in consumption_data if x is not None)
-                                    # Annual demand calculated from consumption data
-                                elif isinstance(consumption_data, dict):
-                                    annual_demand = sum(float(v) for v in consumption_data.values() if v is not None)
-                                    # Annual demand calculated from consumption dict
-                                    
-                            if annual_demand == 0:
-                                st.error("No annual consumption data found in historical data")
-                                st.write(f"Available fields: {list(historical_data.keys())}")
-                                return
-                        else:
-                            st.error(f"Historical data format unexpected: {type(historical_data)}")
-                            return
-                    except (ValueError, TypeError) as e:
-                        st.error(f"Error parsing annual demand: {e}")
-                        return
-                    
+                    demand_reference = reference_year(historical_data['consumption_data'], historical_data.get('date_data'))
+                    annual_demand = demand_reference['annual_demand_kwh']
+                    st.caption(f"Demand baseline: {demand_reference['start']} to {demand_reference['end']}")
+
                     # Validate calculations before proceeding (silent processing)
                     
                     # Calculate key metrics with validation
@@ -226,14 +194,14 @@ def render_yield_demand():
                         st.warning("Total capacity is zero - cannot calculate specific yield")
                     
                     # Calculate savings
-                    annual_savings = total_annual_yield * electricity_price
+                    annual_savings = annual_netting(total_annual_yield, annual_demand, electricity_price, export_rate)['gross_benefit']
                     
                     # Validate all calculations are reasonable
                     if total_capacity_kw == 0 or total_annual_yield == 0 or total_cost_eur == 0:
                         st.error("Some calculated values are zero - check BIPV specifications data")
                         return
                     
-                    st.success("✅ Analysis completed successfully!")
+
                     
                     # Display real results
                     st.subheader("📊 Analysis Results")
@@ -256,7 +224,7 @@ def render_yield_demand():
                     
                     with col7:
                         st.metric(
-                            "Annual Savings", 
+                            "Annual-netting benefit scenario",
                             f"€{annual_savings:,.0f}",
                             f"€{annual_savings/12:,.0f}/month"
                         )
@@ -281,12 +249,17 @@ def render_yield_demand():
                         'annual_demand': annual_demand,
                         'coverage_ratio': coverage_ratio,
                         'total_capacity_kw': total_capacity_kw,
+                        'active_area_m2': sum(float(spec['bipv_area_m2']) for spec in bipv_specs),
                         'total_cost_eur': total_cost_eur,
                         'annual_savings': annual_savings,
-                        'specific_yield': specific_yield
+                        'specific_yield': specific_yield,
+                        'balance_method': 'annual-netting-scenario-v1',
+                        'demand_reference': {k: demand_reference[k] for k in ('start', 'end', 'method')}
                     }
                     
-                    db_manager.save_yield_demand_data(project_id, yield_data)
+                    if not db_manager.save_yield_demand_data(project_id, yield_data):
+                        raise RuntimeError('Energy analysis was not saved')
+                    st.success('Annual-netting scenario saved.')
                     
                 except Exception as e:
                     st.error(f"Analysis failed: {str(e)}")

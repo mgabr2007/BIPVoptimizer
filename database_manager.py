@@ -378,19 +378,11 @@ class BIPVDatabaseManager:
                 annual_demand = yield_demand_data.get('annual_demand', 0)
                 net_energy_balance = total_annual_yield - annual_demand
                 
-                # Calculate self-consumption rate
-                self_consumption_rate = 0
-                if annual_demand > 0:
-                    consumed_energy = min(total_annual_yield, annual_demand)
-                    self_consumption_rate = (consumed_energy / annual_demand) * 100
-                
-                # Calculate energy yield per m2 if building area available
-                energy_yield_per_m2 = 0
-                if 'analysis_config' in yield_demand_data:
-                    building_area = yield_demand_data['analysis_config'].get('building_area', 0)
-                    if building_area > 0:
-                        energy_yield_per_m2 = total_annual_yield / building_area
-                
+                # Annual totals cannot establish a time-matched self-consumption rate.
+                self_consumption_rate = None
+                active_area = yield_demand_data.get('active_area_m2')
+                energy_yield_per_m2 = total_annual_yield / active_area if active_area and active_area > 0 else None
+
                 # Check if record exists for this project
                 cursor.execute("SELECT id FROM energy_analysis WHERE project_id = %s", (project_id,))
                 existing = cursor.fetchone()
@@ -486,7 +478,15 @@ class BIPVDatabaseManager:
                         'optimization_parameters': optimization_data.get('optimization_config', solution.get('optimization_params', {})),
                         'model_version': optimization_data.get('model_version'),
                         'optimization_method': solution.get('optimization_method'),
-                        'fitness_score': solution.get('fitness_score')
+                        'fitness_score': solution.get('fitness_score'),
+                        'upstream_fingerprint': optimization_data.get('optimization_config', {}).get('upstream_fingerprint'),
+                        'energy_model_version': solution.get('energy_model_version'),
+                        'annual_demand_kwh': solution.get('annual_demand_kwh'),
+                        'balance_method': solution.get('balance_method'),
+                        'maintenance_rate': (optimization_data.get('optimization_config', {}).get('financial_params', {}).get('maintenance_rate', 0.015)
+                                             if optimization_data.get('optimization_config', {}).get('financial_params', {}).get('include_maintenance', True) else 0.0),
+                        'export_rate': optimization_data.get('optimization_config', {}).get('financial_params', {}).get('export_rate'),
+                        'electricity_price': optimization_data.get('optimization_config', {}).get('financial_params', {}).get('electricity_price')
                     }
                     
                     cursor.execute("""
@@ -526,7 +526,7 @@ class BIPVDatabaseManager:
             import pandas as pd
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute("""
-                    SELECT solution_id, capacity, roi, net_import, total_cost, annual_energy_kwh, rank_position, pareto_optimal
+                    SELECT solution_id, capacity, roi, net_import, total_cost, annual_energy_kwh, rank_position, pareto_optimal, selection_details
                     FROM optimization_results 
                     WHERE project_id = %s 
                     ORDER BY rank_position
@@ -542,6 +542,12 @@ class BIPVDatabaseManager:
                         for key in ['capacity', 'roi', 'net_import', 'total_cost', 'annual_energy_kwh']:
                             if solution[key] is not None:
                                 solution[key] = float(solution[key])
+                        details = solution.pop('selection_details', None) or {}
+                        if isinstance(details, str):
+                            details = json.loads(details)
+                        for key in ('model_version', 'optimization_method', 'fitness_score', 'energy_model_version',
+                                    'annual_demand_kwh', 'balance_method', 'maintenance_rate', 'export_rate', 'electricity_price', 'upstream_fingerprint'):
+                            solution[key] = details.get(key)
                         solutions_data.append(solution)
                     
                     solutions_df = pd.DataFrame(solutions_data)
@@ -1073,17 +1079,17 @@ class BIPVDatabaseManager:
                     
                     # Parse JSON fields
                     try:
-                        if historical_data.get('consumption_data'):
+                        if isinstance(historical_data.get('consumption_data'), str):
                             historical_data['consumption_data'] = json.loads(historical_data['consumption_data'])
-                        if historical_data.get('temperature_data'):
+                        if isinstance(historical_data.get('temperature_data'), str):
                             historical_data['temperature_data'] = json.loads(historical_data['temperature_data'])
-                        if historical_data.get('occupancy_data'):
+                        if isinstance(historical_data.get('occupancy_data'), str):
                             historical_data['occupancy_data'] = json.loads(historical_data['occupancy_data'])
-                        if historical_data.get('date_data'):
+                        if isinstance(historical_data.get('date_data'), str):
                             historical_data['date_data'] = json.loads(historical_data['date_data'])
-                        if historical_data.get('forecast_data'):
+                        if isinstance(historical_data.get('forecast_data'), str):
                             historical_data['forecast_data'] = json.loads(historical_data['forecast_data'])
-                        if historical_data.get('demand_predictions'):
+                        if isinstance(historical_data.get('demand_predictions'), str):
                             historical_data['demand_predictions'] = json.loads(historical_data['demand_predictions'])
                     except json.JSONDecodeError as e:
                         st.warning(f"Error parsing JSON data: {str(e)}")
@@ -1297,7 +1303,9 @@ class BIPVDatabaseManager:
                 
                 if result and result['specification_data']:
                     # Parse the JSON specification data
-                    pv_data = json.loads(result['specification_data'])
+                    pv_data = result['specification_data']
+                    if isinstance(pv_data, str):
+                        pv_data = json.loads(pv_data)
                     return pv_data
                 
                 return None
@@ -1315,13 +1323,23 @@ class BIPVDatabaseManager:
             return False
         
         try:
+            required = {'initial_investment', 'annual_savings', 'annual_generation', 'annual_export_revenue',
+                        'annual_om_cost', 'net_annual_benefit', 'npv', 'irr', 'payback_period', 'cash_flow_analysis',
+                        'analysis_metadata'}
+            if not required.issubset(financial_data):
+                raise ValueError('Incomplete financial result payload')
             with conn.cursor() as cursor:
+                # Serialize writers for one project; this is not immutable run history.
+                cursor.execute("SELECT id FROM projects WHERE id = %s FOR UPDATE", (project_id,))
+                if cursor.fetchone() is None:
+                    raise ValueError('Project does not exist')
                 # Delete existing financial analysis for this project
                 cursor.execute("DELETE FROM financial_analysis WHERE project_id = %s", (project_id,))
                 
                 # Store detailed analysis data as JSON
                 import json
-                cash_flow_json = json.dumps(financial_data.get('cash_flow_analysis', []))
+                cash_flow_json = json.dumps({'rows': financial_data['cash_flow_analysis'],
+                                            'metadata': financial_data['analysis_metadata']}, allow_nan=False)
                 sensitivity_json = json.dumps(financial_data.get('sensitivity_analysis', {}))
                 
                 # Insert financial analysis
@@ -1420,26 +1438,37 @@ class BIPVDatabaseManager:
                 # Parse detailed analysis JSON data
                 cash_flow_analysis = []
                 sensitivity_analysis = {}
+                analysis_metadata = {}
                 
                 if detailed_result:
                     try:
                         import json
                         if detailed_result['cash_flow_data']:
-                            cash_flow_analysis = json.loads(detailed_result['cash_flow_data'])
+                            cash_flow_analysis = detailed_result['cash_flow_data']
+                            if isinstance(cash_flow_analysis, str):
+                                cash_flow_analysis = json.loads(cash_flow_analysis)
+                            if isinstance(cash_flow_analysis, dict):
+                                analysis_metadata = cash_flow_analysis.get('metadata', {})
+                                cash_flow_analysis = cash_flow_analysis.get('rows', [])
                         if detailed_result['sensitivity_data']:
-                            sensitivity_analysis = json.loads(detailed_result['sensitivity_data'])
+                            sensitivity_analysis = detailed_result['sensitivity_data']
+                            if isinstance(sensitivity_analysis, str):
+                                sensitivity_analysis = json.loads(sensitivity_analysis)
                     except json.JSONDecodeError:
                         pass  # Use empty defaults
                 
                 # Format data structure similar to what the UI expects
                 financial_data = {
+                    **analysis_metadata,
                     'financial_metrics': {
                         'npv': float(financial_result['npv']) if financial_result['npv'] else 0,
-                        'irr': float(financial_result['irr']) if financial_result['irr'] else 0,
-                        'payback_period': float(financial_result['payback_period']) if financial_result['payback_period'] else 0,
+                        'irr': (float(financial_result['irr']) if financial_result['irr'] is not None
+                                and analysis_metadata.get('irr_unit') == 'percent' else None),
+                        'payback_period': float(financial_result['payback_period']) if financial_result['payback_period'] is not None else None,
                         'total_investment': float(financial_result['initial_investment']) if financial_result['initial_investment'] else 0,
-                        'annual_savings': float(financial_result['annual_savings']) if financial_result['annual_savings'] else 0,
-                        'lcoe': float(financial_result['lcoe']) if financial_result['lcoe'] else 0
+                        'annual_savings': float(financial_result['net_annual_benefit']) if financial_result['net_annual_benefit'] is not None else None,
+                        'lifetime_savings': analysis_metadata.get('lifetime_savings'),
+                        'lcoe': float(financial_result['lcoe']) if financial_result['lcoe'] is not None else None
                     },
                     'environmental_impact': {},
                     'cash_flow_analysis': cash_flow_analysis,

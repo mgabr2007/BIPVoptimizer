@@ -11,6 +11,7 @@ import pandas as pd
 
 
 
+from core.energy_contracts import reference_year
 from core.demand_scenario import get_forecast_start_date, generate_demand_forecast
 
 def create_forecast_csv(forecast_data):
@@ -450,6 +451,13 @@ def render_historical_data():
             # Calculate statistics
             avg_consumption = SimpleMath.mean(consumption_data)
             total_consumption = sum(consumption_data)
+            try:
+                demand_reference = reference_year(consumption_data, date_data)
+            except ValueError as exc:
+                st.error(str(exc))
+                return
+            annual_consumption = demand_reference['annual_demand_kwh']
+            st.caption(f"Annual baseline: {demand_reference['start']} to {demand_reference['end']}")
             max_consumption = max(consumption_data) if consumption_data else 0
             min_consumption = min(consumption_data) if consumption_data else 0
             
@@ -515,7 +523,7 @@ def render_historical_data():
                 save_project_data(st.session_state.project_data)
                 # Save to historical_data table with correct field references
                 historical_data_to_save = {
-                    'annual_consumption': total_consumption,
+                    'annual_consumption': annual_consumption,
                     'model_accuracy': r_squared_score,
                     'consumption_data': st.session_state.project_data.get('historical_data', {}),
                     'ai_model_data': st.session_state.project_data.get('ai_model_data', {}),
@@ -529,7 +537,7 @@ def render_historical_data():
                 
                 # Save historical data first
                 historical_data_complete = {
-                    'annual_consumption': total_consumption,
+                    'annual_consumption': annual_consumption,
                     'consumption_data': consumption_data,
                     'temperature_data': temperature_data or [],
                     'occupancy_data': occupancy_data or [],
@@ -550,7 +558,7 @@ def render_historical_data():
                     'forecast_data': forecast_data if 'forecast_data' in locals() else {},
                     'demand_predictions': forecast_data.get('annual_predictions', []) if 'forecast_data' in locals() else [],
                     'growth_rate': forecast_data.get('growth_rate', 0.01) if 'forecast_data' in locals() else 0.01,
-                    'base_consumption': total_consumption,
+                    'base_consumption': annual_consumption,
                     'peak_demand': max_consumption,
                     'building_area': building_area,
                     'occupancy_pattern': occupancy_pattern,

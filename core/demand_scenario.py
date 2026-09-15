@@ -1,29 +1,13 @@
 """Legacy trend/seasonal projection, explicitly unevaluated; no fitted ML estimator."""
 from datetime import datetime, timedelta
 
+from core.energy_contracts import reference_year
+
 def get_forecast_start_date(date_data):
-    """Determine the forecast start date based on historical data dates."""
     if not date_data:
-        return datetime.now().replace(day=1) + timedelta(days=32)
-    
-    try:
-        # Parse the last date in historical data
-        last_date_str = date_data[-1]
-        if '-' in last_date_str:
-            # Parse YYYY-MM-DD format
-            last_date = datetime.strptime(last_date_str, '%Y-%m-%d')
-        else:
-            # Fallback to current date
-            return datetime.now().replace(day=1) + timedelta(days=32)
-        
-        # Start forecast from next month after last historical data
-        if last_date.month == 12:
-            return datetime(last_date.year + 1, 1, 1)
-        else:
-            return datetime(last_date.year, last_date.month + 1, 1)
-    except:
-        # Fallback to current date
-        return datetime.now().replace(day=1) + timedelta(days=32)
+        raise ValueError('Explicit historical dates are required')
+    last = datetime.strptime(str(date_data[-1]), '%Y-%m-%d')
+    return datetime(last.year + (last.month == 12), last.month % 12 + 1, 1)
 
 
 def generate_demand_forecast(consumption_data, temperature_data, occupancy_data, date_data=None, occupancy_modifiers=None, building_type=None):
@@ -37,12 +21,13 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
     if values.sum() <= 0:
         raise ValueError("At least one positive consumption observation is required")
     consumption_data = values.tolist()
+    reference = reference_year(consumption_data, date_data)
 
     # Calculate base consumption - use annual total, not monthly average
     if consumption_data:
         if len(consumption_data) >= 12:
             # Use full year data
-            base_consumption = sum(consumption_data[:12])  # Annual total
+            base_consumption = sum(consumption_data[-12:])  # Annual total
         else:
             # Extrapolate to annual from available months
             monthly_avg = sum(consumption_data) / len(consumption_data)
@@ -79,9 +64,9 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
     seasonal_factors = []
     if len(consumption_data) >= 12:
         # Use actual monthly distribution from historical data
-        total_annual = sum(consumption_data[:12])
+        total_annual = sum(consumption_data[-12:])
         monthly_avg = total_annual / 12
-        base_seasonal_factors = [c / monthly_avg for c in consumption_data[:12]]
+        base_seasonal_factors = [c / monthly_avg for c in consumption_data[-12:]]
         
         # For existing historical data, use actual patterns without heavy modification
         # Educational building patterns are already reflected in the historical consumption
@@ -92,9 +77,9 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
                 # Apply mild seasonal adjustments (reduced impact for historical data)
                 adjustment_strength = 0.1  # Only 10% adjustment strength
                 
-                if month_idx in [5, 6, 7]:  # Summer months (Jun-Aug)
+                if reference['dates'][month_idx].month in [6, 7, 8]:  # Summer months (Jun-Aug)
                     modifier = 1.0 + (occupancy_modifiers['summer_factor'] - 1.0) * adjustment_strength
-                elif month_idx in [11, 0, 1]:  # Winter months (Dec-Feb) 
+                elif reference['dates'][month_idx].month in [12, 1, 2]:  # Winter months (Dec-Feb)
                     modifier = 1.0 + (occupancy_modifiers['winter_factor'] - 1.0) * adjustment_strength
                 else:  # Transition months (Mar-May, Sep-Nov)
                     modifier = 1.0 + (occupancy_modifiers['transition_factor'] - 1.0) * adjustment_strength
@@ -120,9 +105,9 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
             
             # Apply seasonal modifiers
             for month_idx in range(12):
-                if month_idx in [5, 6, 7]:  # Summer months (Jun-Aug)
+                if reference['dates'][month_idx].month in [6, 7, 8]:  # Summer months (Jun-Aug)
                     base_pattern[month_idx] *= occupancy_modifiers['summer_factor']
-                elif month_idx in [11, 0, 1]:  # Winter months (Dec-Feb)
+                elif reference['dates'][month_idx].month in [12, 1, 2]:  # Winter months (Dec-Feb)
                     base_pattern[month_idx] *= occupancy_modifiers['winter_factor']
                 else:  # Transition months
                     base_pattern[month_idx] *= occupancy_modifiers['transition_factor']
@@ -178,7 +163,10 @@ def generate_demand_forecast(consumption_data, temperature_data, occupancy_data,
             'features': ['seasonality', 'historical_trend', 'educational_modifiers'],
             'accuracy': None,
             'evaluation_status': 'not_evaluated',
-            'model_version': 'trend-scenario-v2',
+            'model_version': 'trend-scenario-v3',
+            'reference_start': reference['start'],
+            'reference_end': reference['end'],
+            'annualization_method': reference['method'],
             'excluded_features': ['temperature', 'occupancy_data'],
             'building_type': building_type if building_type else 'Educational',
             'occupancy_pattern': occupancy_modifiers.get('description', 'Standard') if occupancy_modifiers else 'Standard',
