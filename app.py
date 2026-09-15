@@ -27,6 +27,9 @@ st.set_page_config(
     }
 )
 
+from services.authentication import require_login
+require_login()
+
 # Inject Open Graph meta tags for social media sharing
 st.markdown("""
 <meta property="og:title" content="BIPV Optimizer – Building Integrated Photovoltaics Analysis Platform">
@@ -605,6 +608,7 @@ from pages_modules.yield_demand import render_yield_demand
 from pages_modules.optimization import render_optimization
 from pages_modules.financial_analysis import render_financial_analysis
 from pages_modules.reporting import render_reporting
+from pages_modules.run_history import render_run_history
 from services.perplexity_agent import render_perplexity_consultation
 
 # Import workflow visualization
@@ -940,6 +944,7 @@ def main():
         ("optimization", "🎯 Optimization", "Multi-objective optimization"),
         ("financial_analysis", "💰 Financial Analysis", "Economic analysis for selected windows"),
         ("reporting", "📄 Reporting", "Comprehensive results and export"),
+        ("run_history", "🗂️ Run History", "Immutable inputs and results"),
         ("ai_consultation", "🤖 AI Consultation", "Expert analysis and recommendations")
     ]
     
@@ -1060,6 +1065,8 @@ def main():
             render_optimization()
         elif current_step == 'financial_analysis':
             render_financial_analysis()
+        elif current_step == 'run_history':
+            render_run_history()
         elif current_step == 'reporting':
             render_reporting()
         elif current_step == 'ai_consultation':

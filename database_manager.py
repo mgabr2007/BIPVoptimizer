@@ -39,8 +39,12 @@ class BIPVDatabaseManager:
                     conn = psycopg2.connect(self.database_url)
                 else:
                     conn = psycopg2.connect(**self.connection_params)
+                from services.authentication import bind_connection
+                bind_connection(conn)
                 return conn
             except Exception as e:
+                if 'conn' in locals() and conn:
+                    conn.close()
                 error_msg = str(e)
                 # Check if it's a Neon suspend error
                 if "endpoint has been disabled" in error_msg.lower() or "suspended" in error_msg.lower():
@@ -76,8 +80,9 @@ class BIPVDatabaseManager:
                         (project_data['project_id'],)
                     )
                     existing = cursor.fetchone()
-                    if existing:
-                        project_id_to_update = existing[0]
+                    if not existing:
+                        raise PermissionError('Project not found or access denied')
+                    project_id_to_update = existing[0]
                 else:
                     # For new projects without ID, check by name to avoid duplicates
                     cursor.execute(
@@ -238,102 +243,7 @@ class BIPVDatabaseManager:
             # Treat as project ID
             return self.get_project_by_id(project_identifier)
     
-    def save_weather_data(self, project_identifier, weather_data):
-        """Save weather and TMY data"""
-        conn = self.get_connection()
-        if not conn:
-            return False
-        
-        try:
-            with conn.cursor() as cursor:
-                # Get project_id if identifier is a string (project name)
-                if isinstance(project_identifier, str):
-                    cursor.execute("SELECT id FROM projects WHERE project_name = %s", (project_identifier,))
-                    result = cursor.fetchone()
-                    if not result:
-                        st.error(f"Project '{project_identifier}' not found in database")
-                        return False
-                    project_id = result[0]
-                else:
-                    project_id = int(project_identifier)
-                
-                # Delete existing weather data for this project
-                cursor.execute("DELETE FROM weather_data WHERE project_id = %s", (project_id,))
-                
-                # Prepare data with proper type conversion
-                temperature = weather_data.get('temperature')
-                humidity = weather_data.get('humidity') 
-                description = weather_data.get('description', '')
-                annual_ghi = weather_data.get('annual_ghi', 0)
-                annual_dni = weather_data.get('annual_dni', 0)
-                annual_dhi = weather_data.get('annual_dhi', 0)
-                
-                # Convert to proper types
-                temperature = float(temperature) if temperature is not None else None
-                humidity = float(humidity) if humidity is not None else None
-                annual_ghi = float(annual_ghi) if annual_ghi is not None else 0.0
-                annual_dni = float(annual_dni) if annual_dni is not None else 0.0
-                annual_dhi = float(annual_dhi) if annual_dhi is not None else 0.0
-                
-                # Insert new weather data
-                cursor.execute("""
-                    INSERT INTO weather_data 
-                    (project_id, temperature, humidity, description, annual_ghi, annual_dni, annual_dhi)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (
-                    project_id,
-                    float(temperature) if temperature is not None else 15.0,
-                    float(humidity) if humidity is not None else 65.0,
-                    description,
-                    float(annual_ghi) if annual_ghi is not None else 0.0,
-                    float(annual_dni) if annual_dni is not None else 0.0,
-                    float(annual_dhi) if annual_dhi is not None else 0.0
-                ))
-                
-                conn.commit()
-                return True
-                
-        except Exception as e:
-            conn.rollback()
-            st.error(f"Error saving weather data: {str(e)}")
-            return False
-        finally:
-            conn.close()
     
-    def save_historical_data(self, project_id, historical_data):
-        """Save historical energy consumption and AI model data"""
-        conn = self.get_connection()
-        if not conn:
-            return False
-        
-        try:
-            with conn.cursor() as cursor:
-                # Store historical data analysis results in energy_analysis table
-                cursor.execute("DELETE FROM energy_analysis WHERE project_id = %s", (project_id,))
-                
-                annual_consumption = historical_data.get('annual_consumption', 0)
-                model_accuracy = historical_data.get('model_accuracy', 0)
-                
-                cursor.execute("""
-                    INSERT INTO energy_analysis 
-                    (project_id, annual_demand, self_consumption_rate, energy_yield_per_m2)
-                    VALUES (%s, %s, %s, %s)
-                """, (
-                    project_id,
-                    annual_consumption,
-                    model_accuracy,
-                    0  # energy_yield_per_m2 will be calculated later
-                ))
-                
-                conn.commit()
-                return True
-                
-        except Exception as e:
-            conn.rollback()
-            st.error(f"Error saving historical data: {str(e)}")
-            return False
-        finally:
-            conn.close()
     
     def get_historical_data_basic(self, project_id):
         """Get basic historical data analysis results from energy_analysis table"""
@@ -441,7 +351,15 @@ class BIPVDatabaseManager:
         
         try:
             with conn.cursor() as cursor:
-                # Delete existing optimization results
+                cursor.execute('SELECT id FROM projects WHERE id=%s FOR UPDATE',(project_id,))
+                if cursor.fetchone() is None:
+                    raise PermissionError('Project not found or access denied')
+                from services.run_store import append_run, archive_legacy_before_replacement
+                archive_legacy_before_replacement(conn,project_id,'optimization')
+                run_id=append_run(conn,project_id,'optimization',optimization_data.get('method','weighted'),
+                                  optimization_data.get('optimization_config',{}),optimization_data,
+                                  optimization_data.get('model_version','unknown'))
+                # Delete current cache rows; the previous immutable runs remain.
                 cursor.execute("DELETE FROM optimization_results WHERE project_id = %s", (project_id,))
                 
                 # Save optimization solutions with proper field mapping
@@ -474,6 +392,7 @@ class BIPVDatabaseManager:
                     
                     selection_details = {
                         'selection_mask': selection_mask,
+                        'run_id': run_id,
                         'selected_element_ids': selected_elements,
                         'optimization_parameters': optimization_data.get('optimization_config', solution.get('optimization_params', {})),
                         'model_version': optimization_data.get('model_version'),
@@ -546,7 +465,7 @@ class BIPVDatabaseManager:
                         if isinstance(details, str):
                             details = json.loads(details)
                         for key in ('model_version', 'optimization_method', 'fitness_score', 'energy_model_version',
-                                    'annual_demand_kwh', 'balance_method', 'maintenance_rate', 'export_rate', 'electricity_price', 'upstream_fingerprint'):
+                                    'annual_demand_kwh', 'balance_method', 'maintenance_rate', 'export_rate', 'electricity_price', 'upstream_fingerprint', 'run_id'):
                             solution[key] = details.get(key)
                         solutions_data.append(solution)
                     
@@ -1333,7 +1252,13 @@ class BIPVDatabaseManager:
                 cursor.execute("SELECT id FROM projects WHERE id = %s FOR UPDATE", (project_id,))
                 if cursor.fetchone() is None:
                     raise ValueError('Project does not exist')
-                # Delete existing financial analysis for this project
+                from services.run_store import append_run, archive_legacy_before_replacement
+                archive_legacy_before_replacement(conn,project_id,'financial')
+                metadata=financial_data['analysis_metadata']
+                run_id=append_run(conn,project_id,'financial','cash-flow',metadata,financial_data,
+                                  metadata['model_version'],metadata.get('optimization_run_id'))
+                financial_data={**financial_data,'analysis_metadata':{**metadata,'run_id':run_id}}
+                # Replace only the mutable current-result cache. for this project
                 cursor.execute("DELETE FROM financial_analysis WHERE project_id = %s", (project_id,))
                 
                 # Store detailed analysis data as JSON
@@ -1522,43 +1447,6 @@ class BIPVDatabaseManager:
     
 
     
-    def get_weather_data(self, project_id):
-        """Get weather data for a project (already exists but added for completeness)"""
-        conn = self.get_connection()
-        if not conn:
-            return None
-        
-        try:
-            import json
-            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("""
-                    SELECT * FROM weather_data 
-                    WHERE project_id = %s
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """, (project_id,))
-                
-                result = cursor.fetchone()
-                if result:
-                    weather_data = dict(result)
-                    # Parse JSON fields if they exist
-                    try:
-                        if weather_data.get('tmy_data'):
-                            weather_data['tmy_data'] = json.loads(weather_data['tmy_data'])
-                        if weather_data.get('monthly_profiles'):
-                            weather_data['monthly_profiles'] = json.loads(weather_data['monthly_profiles'])
-                        if weather_data.get('environmental_factors'):
-                            weather_data['environmental_factors'] = json.loads(weather_data['environmental_factors'])
-                    except json.JSONDecodeError:
-                        pass  # Keep original values if JSON parsing fails
-                    return weather_data
-                return None
-                
-        except Exception as e:
-            st.error(f"Error getting weather data: {str(e)}")
-            return None
-        finally:
-            conn.close()
     
     def get_project_report_data(self, project_name):
         """Get comprehensive project data for reports"""
@@ -1657,38 +1545,6 @@ class BIPVDatabaseManager:
         finally:
             conn.close()
 
-    def save_ai_model_data(self, project_id, model_data):
-        """Save AI model performance data and training metrics"""
-        conn = self.get_connection()
-        if not conn:
-            return False
-        
-        try:
-            with conn.cursor() as cursor:
-                # Delete existing AI model data for this project
-                cursor.execute("DELETE FROM ai_models WHERE project_id = %s", (project_id,))
-                
-                # Insert new AI model data
-                cursor.execute("""
-                    INSERT INTO ai_models 
-                    (project_id, model_type, r_squared_score, training_data_size, forecast_years, created_at)
-                    VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                """, (
-                    project_id,
-                    model_data.get('model_type', 'RandomForestRegressor'),
-                    model_data.get('r_squared_score'),
-                    model_data.get('training_data_size', 12),
-                    model_data.get('forecast_years', 25)
-                ))
-                
-                conn.commit()
-                return True
-                
-        except Exception as e:
-            st.error(f"Error saving AI model data: {str(e)}")
-            return False
-        finally:
-            conn.close()
 
 # Global database manager instance
 db_manager = BIPVDatabaseManager()

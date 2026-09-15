@@ -72,8 +72,9 @@ def render_financial_analysis():
     # Check if solution is selected - for now use the highest weighted-fitness solution
     if hasattr(solutions, 'iloc') and len(solutions) > 0:
         # Use the first solution, ranked by weighted fitness in Step 8
-        selected_solution = solutions.iloc[0]
-        st.success(f"Using highest weighted-fitness solution: {selected_solution['solution_id']}")
+        selected_id=st.selectbox('Solution for financial analysis',solutions['solution_id'].tolist(),key='financial_solution_id')
+        selected_solution=solutions.loc[solutions['solution_id']==selected_id].iloc[0]
+        st.caption('Candidates retain their search ranking; select the trade-off to evaluate.')
     else:
         st.error("⚠️ No optimization solutions available.")
         return
@@ -457,6 +458,7 @@ def render_financial_analysis():
                         'model_version': MODEL_VERSION, 'irr_unit': 'percent',
                         'input_fingerprint': current_fingerprint, 'balance_method': BALANCE_METHOD,
                         'analysis_parameters': financial_params, 'solution_id': solution_dict['solution_id'],
+                        'optimization_run_id': solution_dict.get('run_id'),
                         'lifetime_savings': sum(cash_flows[1:]),
                         'grid_co2_factor': grid_co2_factor,
                     }

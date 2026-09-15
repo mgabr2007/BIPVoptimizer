@@ -19,6 +19,7 @@ from utils.color_schemes import CHART_COLORS, get_chart_color
 
 from services.analysis_inputs import upstream_snapshot
 from core.financial_scenario import input_fingerprint
+from core.multiobjective import compare_searches, nsga2
 from core.energy_contracts import reference_year, ENERGY_MODEL_VERSION
 from core.optimization_engine import (
     create_individual, evaluate_individual, simple_genetic_algorithm, analyze_optimization_results,
@@ -419,12 +420,16 @@ def render_optimization():
         'weights': {'cost': weight_cost, 'yield': weight_yield, 'roi': weight_roi}
     }
     
+    method_mode=st.selectbox('Search method',['Compare both','Weighted genetic search','NSGA-II'])
+    continuation=st.selectbox('Method to use for financial analysis',['Weighted genetic search','NSGA-II']) if method_mode=='Compare both' else method_mode
+    seed=st.number_input('Random seed',min_value=0,max_value=2147483647,value=42,step=1)
+    st.caption('NSGA-II returns a nondominated set among evaluated candidates. Weighted preference orders that set for display; it is not a global optimality certificate.')
     # Run optimization buttons side by side
     st.subheader("🚀 Run Optimization")
     col1, col2 = st.columns(2)
     
     with col1:
-        run_optimization = st.button("🚀 Run Weighted Optimization", key="run_optimization")
+        run_optimization = st.button("🚀 Run Optimization", key="run_optimization")
     
     with col2:
         clear_and_rerun = st.button("🔄 Rerun Optimization",
@@ -444,7 +449,7 @@ def render_optimization():
                     'population_size': population_size,
                     'generations': generations,
                     'mutation_rate': mutation_rate / 100,
-                    'seed': 42
+                    'seed': int(seed)
                 }
                 
                 financial_params = {
@@ -478,20 +483,25 @@ def render_optimization():
                     conn.close()
                 
                 upstream_hash = input_fingerprint(project_id, {}, {}, 0, upstream_snapshot(db_manager, project_id))
-                # Run genetic algorithm with authentic radiation data
-                pareto_solutions, fitness_history = simple_genetic_algorithm(
-                    pv_specs, energy_balance, financial_params, ga_params, radiation_lookup
-                )
-                
-                if not pareto_solutions:
-                    st.error("Optimization failed to find viable solutions.")
+                comparison_payload=None
+                if method_mode=='Compare both':
+                    comparison_payload=compare_searches(pv_specs,energy_balance,financial_params,ga_params,radiation_lookup)
+                    st.dataframe(comparison_payload['comparison'],hide_index=True)
+                    st.write('NSGA-II front')
+                    st.dataframe(comparison_payload['nsga2'],hide_index=True)
+                    solutions_df=comparison_payload['nsga2' if continuation=='NSGA-II' else 'weighted']
+                    fitness_history=comparison_payload['metadata']
+                    pareto_solutions=[]
+                elif method_mode=='NSGA-II':
+                    solutions_df,fitness_history=nsga2(pv_specs,energy_balance,financial_params,ga_params,radiation_lookup)
+                    pareto_solutions=[]
+                else:
+                    pareto_solutions,fitness_history=simple_genetic_algorithm(pv_specs,energy_balance,financial_params,ga_params,radiation_lookup)
+                    solutions_df=analyze_optimization_results(pareto_solutions,pv_specs,energy_balance,financial_params,radiation_lookup)
+                if solutions_df.empty:
+                    st.error('No feasible candidates satisfy the configured coverage constraint.')
                     return
-                
-                # Analyze optimization results
-                solutions_df = analyze_optimization_results(
-                    pareto_solutions, pv_specs, energy_balance, financial_params, radiation_lookup
-                )
-                
+
                 # Preserve the objective the user asked the solver to optimize.
                 solutions_df = solutions_df.sort_values('fitness_score', ascending=False, kind='stable').reset_index(drop=True)
                 
@@ -499,9 +509,11 @@ def render_optimization():
                 optimization_results = {
                     'solutions': solutions_df,
                     'fitness_history': fitness_history,
-                    'model_version': 'weighted-genetic-v3',
+                    'model_version': 'dual-search-v1',
+                    'method': continuation,
                     'optimization_config': {
                         'upstream_fingerprint': upstream_hash,
+                        'input_snapshot': upstream_snapshot(db_manager,project_id),
                         'ga_params': ga_params,
                         'financial_params': financial_params,
                         'constraints': {
@@ -528,7 +540,10 @@ def render_optimization():
                     saved = db_manager.save_optimization_results(project_id, {
                         'solutions': solutions_dict,
                         'optimization_config': optimization_results['optimization_config'],
-                        'model_version': 'weighted-genetic-v3'
+                        'model_version': 'dual-search-v1',
+                        'method': continuation,
+                        'comparison': comparison_payload,
+                        'search_metadata': fitness_history
                     })
                     if not saved:
                         st.error("Results could not be saved. Previous committed results remain available.")
@@ -555,7 +570,7 @@ def render_optimization():
                     SELECT solution_id, capacity, roi, net_import, total_cost, annual_energy_kwh 
                     FROM optimization_results 
                     WHERE project_id = %s 
-                    ORDER BY roi DESC
+                    ORDER BY rank_position
                 """, (project_id,))
                 
                 results = cursor.fetchall()

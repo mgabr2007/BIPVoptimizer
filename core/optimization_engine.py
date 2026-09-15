@@ -155,9 +155,7 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params, 
     except (KeyError, TypeError, ValueError) as e:
         raise ValueError(f"Invalid optimization input: {e}") from e
 
-def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_params, radiation_lookup=None):
-    """Run optimized genetic algorithm with enhanced performance."""
-    
+def validate_search_inputs(pv_specs, energy_balance, financial_params, ga_params, radiation_lookup):
     n_elements = len(pv_specs)
     if n_elements < 1:
         raise ValueError("At least one eligible PV element is required")
@@ -192,6 +190,13 @@ def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_para
         raise ValueError("Population size and generations must be positive")
     if not 0 <= ga_params['mutation_rate'] <= 1:
         raise ValueError("Mutation rate must be between 0 and 1")
+    return n_elements
+
+
+def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_params, radiation_lookup=None):
+    """Run optimized genetic algorithm with enhanced performance."""
+    
+    n_elements = validate_search_inputs(pv_specs, energy_balance, financial_params, ga_params, radiation_lookup)
     rng = random.Random(ga_params.get('seed', 42))
     # Optimize population size for better performance vs quality balance
     population_size = min(ga_params['population_size'], max(50, n_elements * 2))  # Cap at reasonable size

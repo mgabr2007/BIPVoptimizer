@@ -61,6 +61,8 @@ class DatabaseConnectionManager:
         
         try:
             conn = psycopg2.connect(**params)
+            from services.authentication import bind_connection
+            bind_connection(conn)
             conn.autocommit = False
             self.logger.debug("Database connection established")
             yield conn
@@ -89,6 +91,8 @@ class DatabaseConnectionManager:
                 user=params['user'],
                 password=params['password']
             )
+            from services.authentication import bind_async_connection
+            await bind_async_connection(conn)
             self.logger.debug("Async database connection established")
             yield conn
             

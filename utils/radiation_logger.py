@@ -21,6 +21,8 @@ class RadiationLogger:
             database_url = os.environ.get('DATABASE_URL')
             if database_url:
                 conn = psycopg2.connect(database_url)
+                from services.authentication import bind_connection
+                bind_connection(conn)
                 return conn
         except Exception as e:
             if self.EMIT_CONSOLE:

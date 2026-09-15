@@ -9,53 +9,17 @@ import psycopg2
 from psycopg2 import sql
 from database_manager import BIPVDatabaseManager
 
-URL=os.getenv('BIPV_TEST_DATABASE_URL')
+from tests.postgres_fixture import PostgresFixture
 
-@unittest.skipUnless(URL,'BIPV_TEST_DATABASE_URL not configured; PostgreSQL integration not exercised')
-class PostgresFinancialTests(unittest.TestCase):
+class PostgresFinancialTests(PostgresFixture):
     def setUp(self):
-        if urlparse(URL).hostname not in ('localhost','127.0.0.1'):
-            self.fail('Only a loopback disposable test database is allowed')
-        self.schema='bipv_test_'+uuid.uuid4().hex
-        with psycopg2.connect(URL) as c:
-            with c.cursor() as cur:
-                cur.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
-        self.addCleanup(self.drop_schema)
-        self.db=BIPVDatabaseManager()
-        self.db.get_connection=self.connect
-        with self.connect() as c:
-            with c.cursor() as cur:
-                cur.execute('''
-                CREATE TABLE projects(id integer PRIMARY KEY);
-                INSERT INTO projects VALUES(1),(2);
-                CREATE TABLE financial_analysis(id serial, project_id integer REFERENCES projects(id),
-                  initial_investment numeric, annual_savings numeric, annual_generation numeric,
-                  annual_export_revenue numeric, annual_om_cost numeric, net_annual_benefit numeric,
-                  npv numeric, irr numeric, payback_period numeric, lcoe numeric,
-                  analysis_complete boolean, created_at timestamp DEFAULT now());
-                CREATE TABLE detailed_financial_analysis(project_id integer REFERENCES projects(id),
-                  cash_flow_data text, sensitivity_data text, created_at timestamp DEFAULT now());
-                CREATE TABLE environmental_impact(project_id integer REFERENCES projects(id),
-                  co2_savings_annual numeric, co2_savings_lifetime numeric, carbon_value numeric,
-                  trees_equivalent integer, cars_equivalent integer, created_at timestamp DEFAULT now());
-                CREATE TABLE optimization_results(project_id integer REFERENCES projects(id),solution_id text,
-                  capacity numeric,roi numeric,net_import numeric,total_cost numeric,annual_energy_kwh numeric,
-                  rank_position integer,pareto_optimal boolean,selection_details jsonb);
-                ''')
+        super().setUp()
         self.payload=dict(initial_investment=100,annual_savings=10,annual_generation=100,
                           annual_export_revenue=0,annual_om_cost=1,net_annual_benefit=9,npv=-20,
                           irr=None,payback_period=None,lcoe=None,analysis_complete=True,
                           cash_flow_analysis=[{'year':0,'cash_flow':-100}],sensitivity_analysis={},
                           analysis_metadata={'irr_unit':'percent','input_fingerprint':'fixture','model_version':'financial-scenario-v3'},
                           co2_savings_annual=1,co2_savings_lifetime=2,carbon_value=3)
-
-    def connect(self):
-        return psycopg2.connect(URL,options=f'-c search_path={self.schema}')
-
-    def drop_schema(self):
-        with psycopg2.connect(URL) as c:
-            with c.cursor() as cur:
-                cur.execute(sql.SQL('DROP SCHEMA {} CASCADE').format(sql.Identifier(self.schema)))
 
     def test_missing_zero_and_percent_roundtrip(self):
         for irr in (None,0,10):
