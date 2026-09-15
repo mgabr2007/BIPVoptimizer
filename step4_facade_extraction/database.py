@@ -48,7 +48,7 @@ class DatabaseConnectionManager:
                     'user': secrets.get('user', params['user']),
                     'password': secrets.get('password', params['password'])
                 })
-        except ImportError:
+        except (ImportError, FileNotFoundError):
             pass  # Streamlit not available
         
         return params
@@ -60,7 +60,7 @@ class DatabaseConnectionManager:
         conn = None
         
         try:
-            conn = psycopg2.connect(**params)
+            conn = psycopg2.connect(os.environ['DATABASE_URL']) if os.getenv('DATABASE_URL') else psycopg2.connect(**params)
             from services.authentication import bind_connection
             bind_connection(conn)
             conn.autocommit = False

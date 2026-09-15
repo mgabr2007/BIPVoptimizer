@@ -10,7 +10,13 @@ def migrate(conn):
         with conn.cursor() as cur:
             cur.execute("SELECT pg_advisory_xact_lock(7152026)")
             cur.execute((root/'database_schema.sql').read_text())
+            # PostgreSQL cannot widen financial columns while this view depends on them.
+            # Preserve and restore the repository view in the same transaction. No CASCADE.
+            cur.execute("SELECT pg_get_viewdef('project_report_view'::regclass,true)")
+            view_sql=cur.fetchone()[0]
+            cur.execute('DROP VIEW project_report_view')
             cur.execute((root/'migrations/002_multiuser.sql').read_text())
+            cur.execute('CREATE VIEW project_report_view WITH (security_invoker=true) AS '+view_sql)
 
 
 def grant_runtime(conn, role):

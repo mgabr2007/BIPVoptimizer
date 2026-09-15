@@ -26,6 +26,22 @@ class IntervalTests(unittest.TestCase):
         f.timestamp=pd.date_range('2024-01-01',periods=3,freq='h',tz='UTC')
         with self.assertRaises(ValueError):matched_balance(f,.3,.1,require_year=True)
 
+    def test_hourly_finance_rebalances_degraded_generation_and_replacement(self):
+        from core.financial_scenario import create_cash_flow_analysis
+        from core.time_series_research import BALANCE_VERSION
+        f=pd.DataFrame({'timestamp':pd.date_range('2024-01-01',periods=8784,freq='h',tz='UTC'),
+                        'generation_kwh':np.tile([2.,0.],4392),'demand_kwh':np.tile([0.,1.],4392)})
+        solution={'total_cost':1000,'annual_energy_kwh':8784,'annual_demand_kwh':4392,'balance_method':BALANCE_VERSION}
+        params={'system_degradation':.5,'tax_credit':0,'maintenance_cost_rate':.01,
+                'inverter_replacement_cost_ratio':.1,'inverter_replacement_year':2,'rebate_amount':0,
+                'price_escalation':0,'electricity_price':.3,'export_rate':.1}
+        flows,details=create_cash_flow_analysis(solution,params,2,interval_profile=f)
+        np.testing.assert_allclose(flows,[-1000,868.4,329.2])
+        self.assertEqual(details[1]['offset_kwh'],0)
+        self.assertEqual(details[2]['net_import_kwh'],4392)
+        with self.assertRaises(ValueError):
+            create_cash_flow_analysis(dict(solution,annual_energy_kwh=1000),params,2,interval_profile=f)
+
     def test_horizontal_diffuse_benchmark_and_half_hour_energy(self):
         f=pd.DataFrame({'timestamp':pd.date_range('2024-03-20T11:00Z',periods=2,freq='30min'),
                         'ghi':100.,'dni':0.,'dhi':100.,'temp_air':25.,'wind_speed':1.})

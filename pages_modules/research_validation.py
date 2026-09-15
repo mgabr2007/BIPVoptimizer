@@ -61,7 +61,8 @@ def render_research_validation():
         st.error('Limit each study CSV to 20 MB.');return
     try:frame=pd.read_csv(upload)
     except Exception as exc:st.error(f'Could not read CSV: {exc}');return
-    fingerprint=input_fingerprint(project_id,mode,params,0,{'source':source,'data':frame})
+    try:fingerprint=input_fingerprint(project_id,mode,params,0,{'source':source,'data':frame})
+    except (ValueError,TypeError) as exc:st.error(f'Invalid study values: {exc}');return
     if st.button('Evaluate and save study',type='primary'):
         if not source.strip():st.error('Provide input provenance before saving.');return
         try:

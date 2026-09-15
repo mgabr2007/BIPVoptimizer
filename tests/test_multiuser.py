@@ -55,3 +55,28 @@ class OwnershipTests(PostgresFixture):
         with patch.object(self.db,'get_connection',lambda:self.connect_as(Principal('https://test.example','user-b'))),patch('database_manager.st.error'):
             self.assertIsNone(self.db.save_project({'project_id':self.project_id,'project_name':'stolen'}))
             self.assertEqual(self.db.list_projects(),[])
+
+    def test_async_rebinding_cannot_reuse_the_previous_users_scope(self):
+        import asyncio
+        import asyncpg
+        from tests.postgres_fixture import URL
+        from services.authentication import bind_async_connection
+        async def check():
+            c=await asyncpg.connect(URL,server_settings={'search_path':self.schema})
+            try:
+                await c.execute('SET ROLE '+self.role)
+                await bind_async_connection(c,self.principal)
+                self.assertEqual(await c.fetchval('SELECT count(*) FROM projects'),2)
+                await bind_async_connection(c,Principal('https://test.example','b'))
+                self.assertEqual(await c.fetchval('SELECT count(*) FROM projects'),0)
+                await c.execute('RESET ALL')
+                self.assertEqual(await c.fetchval('SELECT count(*) FROM '+self.schema+'.projects'),0)
+            finally:await c.close()
+        asyncio.run(check())
+
+    def test_parent_run_must_belong_to_the_same_project(self):
+        with self.connect() as c:
+            first=append_run(c,self.project_id,'fixture','fixture',{}, {},'v1')
+        with self.connect() as c:
+            with self.assertRaises(psycopg2.errors.ForeignKeyViolation):
+                append_run(c,self.other_project_id,'fixture','fixture',{}, {},'v1',first)

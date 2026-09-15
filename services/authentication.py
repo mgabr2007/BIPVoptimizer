@@ -18,7 +18,7 @@ class Principal:
 
 
 def current_principal():
-    if not st.user.is_logged_in:
+    if not getattr(st.user,'is_logged_in',False):
         raise PermissionError('Sign in to access projects')
     issuer, subject = st.user.get('iss'), st.user.get('sub')
     if not issuer or not subject:
@@ -29,7 +29,7 @@ def current_principal():
 
 
 def require_login():
-    if not st.user.is_logged_in:
+    if not getattr(st.user,'is_logged_in',False):
         st.title('BIPV research workspace')
         st.write('Sign in to access your projects and saved analysis runs.')
         try:

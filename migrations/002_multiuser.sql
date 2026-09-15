@@ -78,3 +78,12 @@ DROP POLICY IF EXISTS run_author_policy ON analysis_runs;
 CREATE POLICY run_author_policy ON analysis_runs AS RESTRICTIVE
  USING(owner_id=nullif(current_setting('app.user_id',true),'')::bigint)
  WITH CHECK(owner_id=nullif(current_setting('app.user_id',true),'')::bigint);
+
+-- A parent run must belong to the same project, even for hand-written SQL.
+CREATE UNIQUE INDEX IF NOT EXISTS analysis_runs_id_project_idx ON analysis_runs(id,project_id);
+DO $$ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='analysis_runs'::regclass AND conname='same_project_parent') THEN
+  ALTER TABLE analysis_runs ADD CONSTRAINT same_project_parent
+   FOREIGN KEY(parent_run_id,project_id) REFERENCES analysis_runs(id,project_id);
+ END IF;
+END $$;
