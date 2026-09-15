@@ -118,10 +118,10 @@ def compare_searches(specs,demand,params,settings,radiation):
     comparison=pd.DataFrame([
         {'method':'Weighted genetic search','solutions':len(weighted_report),'runtime_seconds':weighted_time,
          'best_weighted_fitness':float(weighted_report['fitness_score'].max()) if len(weighted_report) else None,
-         'scope':'weighted candidates'},
+         'evaluations':int(settings['population_size'])*int(settings['generations']), 'scope':'weighted candidates'},
         {'method':'NSGA-II','solutions':len(pareto),'runtime_seconds':nsga_time,
          'best_weighted_fitness':float(pareto['fitness_score'].max()) if len(pareto) else None,
-         'scope':'evaluated Pareto front'}])
+         'evaluations':nsga_metadata['evaluations'], 'scope':'evaluated Pareto front'}])
     return {'weighted':weighted_report,'nsga2':pareto,'comparison':comparison,
             'metadata':{'seed':settings.get('seed',42),'settings':dict(settings),
                         'weighted_history':weighted_history,'nsga2':nsga_metadata,

@@ -1,3 +1,4 @@
+from contextlib import closing
 import os
 import unittest
 import uuid
@@ -22,7 +23,7 @@ class PostgresFixture(unittest.TestCase):
                 cur.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
                 cur.execute(sql.SQL('CREATE ROLE {} NOLOGIN NOSUPERUSER NOBYPASSRLS').format(sql.Identifier(self.role)))
         self.addCleanup(self.cleanup_database)
-        with self.admin() as c:
+        with closing(self.admin()) as c:
             migrate(c);grant_runtime(c,self.role)
         self.db=BIPVDatabaseManager();self.db.get_connection=self.connect
         self.project_id=self.db.save_project({'project_name':'Test project','location':'Berlin'})

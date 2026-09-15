@@ -67,7 +67,7 @@ def evaluate_individual(individual, pv_specs, energy_balance, financial_params, 
         else:
             net_annual_savings = annual_savings
         
-        if net_annual_savings > 0 and total_cost > 0:
+        if total_cost > 0:
             roi = (net_annual_savings / total_cost) * 100  # ROI as percentage
         else:
             roi = 0
@@ -186,8 +186,13 @@ def validate_search_inputs(pv_specs, energy_balance, financial_params, ga_params
         raise ValueError("Electricity price must be finite")
     if not 0 <= financial_params.get('min_coverage', 0.3) <= 1:
         raise ValueError("Minimum coverage must be a fraction between 0 and 1")
-    if ga_params['population_size'] < 1 or ga_params['generations'] < 1:
-        raise ValueError("Population size and generations must be positive")
+    for key in ('population_size','generations'):
+        value=ga_params[key]
+        if isinstance(value,bool) or not np.isfinite(value) or value<1 or int(value)!=value:
+            raise ValueError('Population size and generations must be positive integers')
+    for key in ('maintenance_rate','weight_cost','weight_yield','weight_roi'):
+        if not np.isfinite(financial_params.get(key,0)) or financial_params.get(key,0)<0:
+            raise ValueError(f'{key} must be finite and nonnegative')
     if not 0 <= ga_params['mutation_rate'] <= 1:
         raise ValueError("Mutation rate must be between 0 and 1")
     return n_elements
@@ -199,7 +204,7 @@ def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_para
     n_elements = validate_search_inputs(pv_specs, energy_balance, financial_params, ga_params, radiation_lookup)
     rng = random.Random(ga_params.get('seed', 42))
     # Optimize population size for better performance vs quality balance
-    population_size = min(ga_params['population_size'], max(50, n_elements * 2))  # Cap at reasonable size
+    population_size = int(ga_params['population_size'])  # Cap at reasonable size
     generations = ga_params['generations']
     mutation_rate = ga_params['mutation_rate']
     
@@ -208,8 +213,7 @@ def simple_genetic_algorithm(pv_specs, energy_balance, financial_params, ga_para
     # Initialize population
     population = [create_individual(n_elements, rng) for _ in range(population_size)]
     
-    if n_elements == 1:
-        population[0] = [1]  # Evaluate the only nonempty candidate deterministically
+    population[0] = [1]*n_elements  # Shared feasibility witness for both search methods
 
     # Evolution tracking
     best_individuals = []
@@ -349,7 +353,7 @@ def analyze_optimization_results(pareto_solutions, pv_specs, energy_balance, fin
                 net_annual_savings = gross_annual_savings
             
             # Calculate ROI with net savings (after maintenance)
-            roi = (net_annual_savings / total_cost * 100) if total_cost > 0 and net_annual_savings > 0 else 0
+            roi = (net_annual_savings / total_cost * 100) if total_cost > 0 else 0
             
             # Store both gross and net savings for transparency
             annual_savings = net_annual_savings

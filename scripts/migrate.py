@@ -13,13 +13,6 @@ def migrate(conn):
             cur.execute((root/'migrations/002_multiuser.sql').read_text())
 
 
-if __name__=='__main__':
-    # A dedicated environment variable prevents accidental use of application credentials.
-    with psycopg2.connect(os.environ['BIPV_MIGRATION_DATABASE_URL']) as conn:
-        migrate(conn)
-    print('Schema migration complete. Legacy projects remain unassigned.')
-
-
 def grant_runtime(conn, role):
     """Grant data access, not schema ownership, migration writes or account admin."""
     from psycopg2 import sql
@@ -37,3 +30,16 @@ def grant_runtime(conn, role):
             cur.execute(sql.SQL('GRANT SELECT ON app_migrations TO {}').format(sql.Identifier(role)))
             cur.execute(sql.SQL('GRANT SELECT,INSERT ON analysis_runs TO {}').format(sql.Identifier(role)))
             cur.execute(sql.SQL('GRANT SELECT,INSERT(identity_key,display_name),UPDATE(display_name) ON app_users TO {}').format(sql.Identifier(role)))
+
+
+if __name__=='__main__':
+    import argparse
+    from contextlib import closing
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--runtime-role',required=True,help='Existing nonprivileged application login role')
+    args=parser.parse_args()
+    # Migration credentials are separate from the application DATABASE_URL.
+    with closing(psycopg2.connect(os.environ['BIPV_MIGRATION_DATABASE_URL'])) as conn:
+        migrate(conn)
+        grant_runtime(conn,args.runtime_role)
+    print('Migration and runtime grants complete. Legacy projects remain unassigned.')
