@@ -27,6 +27,9 @@ st.set_page_config(
     }
 )
 
+from services.authentication import require_login
+require_login()
+
 # Inject Open Graph meta tags for social media sharing
 st.markdown("""
 <meta property="og:title" content="BIPV Optimizer – Building Integrated Photovoltaics Analysis Platform">
@@ -605,6 +608,8 @@ from pages_modules.yield_demand import render_yield_demand
 from pages_modules.optimization import render_optimization
 from pages_modules.financial_analysis import render_financial_analysis
 from pages_modules.reporting import render_reporting
+from pages_modules.run_history import render_run_history
+from pages_modules.research_validation import render_research_validation
 from services.perplexity_agent import render_perplexity_consultation
 
 # Import workflow visualization
@@ -646,7 +651,7 @@ try:
         # Add "No Project Selected" option but set smart default
         project_options = {"🔽 Select a Project...": None, **project_options}
         
-        # Determine default index - prefer current project, fallback to most recent
+        # Determine default index - retain explicit selection only
         default_index = 0  # Default to "Select a Project..."
         if current_project_id is not None:
             # Find index of current project
@@ -654,9 +659,6 @@ try:
                 (i for i, key in enumerate(project_options.keys()) 
                  if project_options[key] == current_project_id), 0
             )
-        elif len(project_options) > 1:
-            # If no current project but projects exist, select the most recent (second item, first being "Select a Project...")
-            default_index = 1
         
         # Project selector
         selected_project_display = st.sidebar.selectbox(
@@ -943,6 +945,8 @@ def main():
         ("optimization", "🎯 Optimization", "Multi-objective optimization"),
         ("financial_analysis", "💰 Financial Analysis", "Economic analysis for selected windows"),
         ("reporting", "📄 Reporting", "Comprehensive results and export"),
+        ("research_validation", "🔬 Research Validation", "Hourly balance, PV and forecast evaluation"),
+        ("run_history", "🗂️ Run History", "Immutable inputs and results"),
         ("ai_consultation", "🤖 AI Consultation", "Expert analysis and recommendations")
     ]
     
@@ -1063,6 +1067,10 @@ def main():
             render_optimization()
         elif current_step == 'financial_analysis':
             render_financial_analysis()
+        elif current_step == 'research_validation':
+            render_research_validation()
+        elif current_step == 'run_history':
+            render_run_history()
         elif current_step == 'reporting':
             render_reporting()
         elif current_step == 'ai_consultation':

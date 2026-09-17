@@ -295,38 +295,19 @@ def calculate_financial_metrics(initial_investment, annual_cash_flows, discount_
         dict: Financial metrics
     """
     
-    # Net Present Value
-    npv = -initial_investment
-    for i, cash_flow in enumerate(annual_cash_flows):
-        npv += cash_flow / ((1 + discount_rate) ** (i + 1))
-    
-    # Simple Payback Period
-    cumulative_cash_flow = 0
-    payback_period = None
-    
-    for i, cash_flow in enumerate(annual_cash_flows):
-        cumulative_cash_flow += cash_flow
-        if cumulative_cash_flow >= initial_investment and payback_period is None:
-            if i == 0:
-                payback_period = initial_investment / cash_flow
-            else:
-                # Interpolate
-                prev_cumulative = cumulative_cash_flow - cash_flow
-                payback_period = i + (initial_investment - prev_cumulative) / cash_flow
-            break
-    
-    # Internal Rate of Return (simplified approximation)
-    irr = None
-    if len(annual_cash_flows) > 0:
-        avg_annual_return = sum(annual_cash_flows) / len(annual_cash_flows)
-        if avg_annual_return > 0:
-            irr = (avg_annual_return / initial_investment) * 100
-    
+    from core.financial_math import calculate_npv, calculate_irr, calculate_payback_period
+
+    investment = float(initial_investment)
+    if not math.isfinite(investment) or investment < 0:
+        raise ValueError("Initial investment must be finite and nonnegative")
+    cash_flows = [-investment, *annual_cash_flows]
+    irr = calculate_irr(cash_flows)
     return {
-        'npv': npv,
-        'irr': irr,
-        'payback_period': payback_period
+        'npv': calculate_npv(cash_flows, discount_rate),
+        'irr': irr * 100 if irr is not None else None,
+        'payback_period': calculate_payback_period(cash_flows),
     }
+
 
 def calculate_co2_emissions_avoided(annual_energy_kwh, grid_emission_factor, years=25):
     """

@@ -1,3 +1,7 @@
+> **PR #1 follow-up:** Explicit active-area/efficiency contracts, weighted ranking, dated annual-demand baselines and checked financial persistence are implemented. Results remain experimental annual-netting scenarios. See [follow-up validation and release gates](docs/PR1_REVIEW_FOLLOWUP.md).
+
+> **Implementation status (September 2026 repair branch):** The executable optimizer is weighted genetic search, not NSGA-II. The historical-data page uses an unevaluated trend/seasonal scenario, not a fitted RandomForest. See [repair notes](docs/REPAIR_NOTES_2026-09-09.md) for changes, validation limits and remaining work. Older method descriptions below require reconciliation.
+
 # BIPV Optimizer 🌟
 
 ![BIPV Optimizer Logo](attached_assets/logo_1751541516828.png)

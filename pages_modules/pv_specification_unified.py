@@ -16,6 +16,8 @@ from utils.database_helper import db_helper
 from core.solar_math import safe_divide
 
 # Standard field names used throughout workflow steps 7-10
+from core.energy_contracts import annual_element_yield, nonnegative, ENERGY_MODEL_VERSION
+
 STANDARD_FIELD_NAMES = {
     'element_id': 'element_id',
     'capacity_kw': 'capacity_kw', 
@@ -154,16 +156,18 @@ def standardize_field_names(df):
 
 def calculate_unified_bipv_specifications(building_elements, radiation_lookup, panel_specs, coverage_factor=0.85):
     """Calculate BIPV specifications with standardized field names for consistent dataflow"""
+    if not 0 < float(coverage_factor) <= 1:
+        raise ValueError('Coverage factor must be greater than zero and at most one')
     bipv_specifications = []
     
     for element in building_elements:
         element_id = element.get('element_id', element.get('Element ID'))
-        glass_area = float(element.get('glass_area', element.get('Glass Area (m²)', 1.5)))
+        glass_area = nonnegative(element.get('glass_area', element.get('Glass Area (m²)')), 'Glass area')
         orientation = element.get('orientation', element.get('Orientation', 'Unknown'))
         azimuth = float(element.get('azimuth', 180))  # Default South
         
         # Get radiation data (ensure float type)
-        annual_radiation = float(radiation_lookup.get(str(element_id), 1000))  # kWh/m²/year
+        annual_radiation = nonnegative(radiation_lookup[str(element_id)], 'Annual irradiation')
         
         # Calculate BIPV system parameters using standard field names (ensure all float types)
         bipv_area = float(glass_area) * float(coverage_factor)
@@ -171,7 +175,10 @@ def calculate_unified_bipv_specifications(building_elements, radiation_lookup, p
         
         # Calculate annual energy yield (ensure all float types)
         specific_yield_kwh_m2 = float(annual_radiation) * float(panel_specs['efficiency'])
-        annual_energy_kwh = float(bipv_area) * float(specific_yield_kwh_m2)
+        annual_energy_kwh = annual_element_yield({'bipv_area_m2': bipv_area,
+            'energy_model_version': ENERGY_MODEL_VERSION,
+            'efficiency_unit': 'fraction',
+            'glass_area_m2': glass_area, 'efficiency': panel_specs['efficiency']}, annual_radiation)
         
         # Calculate costs (ensure all float types)
         total_cost_eur = float(bipv_area) * float(panel_specs['cost_per_m2'])
@@ -190,9 +197,12 @@ def calculate_unified_bipv_specifications(building_elements, radiation_lookup, p
             STANDARD_FIELD_NAMES['power_density_w_m2']: panel_specs['power_density'],
             # Additional fields for comprehensive analysis
             'bipv_area_m2': bipv_area,
+            'energy_model_version': ENERGY_MODEL_VERSION,
+            'efficiency_unit': 'fraction',
             'azimuth': azimuth,
             'annual_radiation_kwh_m2': annual_radiation,
             'coverage_factor': coverage_factor,
+                    'energy_model_version': ENERGY_MODEL_VERSION,
             'panel_technology': panel_specs.get('technology_name', 'Custom'),
             'cost_per_kw_eur': total_cost_eur / capacity_kw if capacity_kw > 0 else 0
         }
@@ -815,6 +825,7 @@ def render_pv_specification():
                         'installation_factor': 1.2  # Default installation factor
                     },
                     'coverage_factor': coverage_factor,
+                    'energy_model_version': ENERGY_MODEL_VERSION,
                     'technology_used': panel_specs['technology_name'],
                     'calculation_date': datetime.now().isoformat(),
                     'total_elements': len(bipv_specifications)

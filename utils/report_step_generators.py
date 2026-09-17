@@ -54,38 +54,8 @@ def generate_step1_section(step1_data):
     """
 
 def generate_step2_section(step2_data):
-    """Generate Step 2: Historical Data & AI Model section"""
-    return f"""
-    <div class="step-section">
-        <h2 class="step-title">Step 2: Historical Data & AI Model</h2>
-        
-        <div class="subsection">
-            <h3>AI Model Performance</h3>
-            <div class="metric">
-                <strong>R² Score:</strong> {step2_data['r2_score']:.3f}
-            </div>
-            <div class="metric">
-                <strong>RMSE:</strong> {step2_data['rmse']:.2f} kWh
-            </div>
-            <div class="metric">
-                <strong>Forecast Period:</strong> {step2_data['forecast_years']} years
-            </div>
-        </div>
-        
-        <div class="subsection">
-            <h3>Building Characteristics</h3>
-            <div class="metric">
-                <strong>Building Floor Area:</strong> {step2_data['building_area']:,.0f} m²
-            </div>
-            <div class="metric">
-                <strong>Energy Intensity:</strong> {step2_data['energy_intensity']:.1f} kWh/m²/year
-            </div>
-            <div class="metric">
-                <strong>Peak Load Factor:</strong> {step2_data['peak_load_factor']:.2f}
-            </div>
-        </div>
-    </div>
-    """
+    from core.research_reports import demand_section
+    return demand_section(step2_data)
 
 def generate_step3_section(step3_data):
     """Generate Step 3: Weather & Environment Integration section"""
@@ -285,44 +255,8 @@ def generate_step8_section(step8_data):
     """
 
 def generate_step9_section(step9_data):
-    """Generate Step 9: Financial & Environmental Analysis section"""
-    return f"""
-    <div class="step-section">
-        <h2 class="step-title">Step 9: Financial & Environmental Analysis</h2>
-        
-        <div class="subsection">
-            <h3>Financial Metrics</h3>
-            <div class="metric">
-                <strong>Net Present Value (NPV):</strong> €{step9_data['npv']:,.0f}
-            </div>
-            <div class="metric">
-                <strong>Internal Rate of Return (IRR):</strong> {step9_data['irr']:.1f}%
-            </div>
-            <div class="metric">
-                <strong>Payback Period:</strong> {step9_data['payback_period']:.1f} years
-            </div>
-            <div class="metric">
-                <strong>Installation Cost:</strong> €{step9_data['installation_cost']:,.0f}
-            </div>
-        </div>
-        
-        <div class="subsection">
-            <h3>Environmental Impact</h3>
-            <div class="metric">
-                <strong>System Capacity:</strong> {step9_data['system_capacity']:.1f} kW
-            </div>
-            <div class="metric">
-                <strong>Annual CO₂ Savings:</strong> {step9_data['annual_co2_savings']:,.1f} kg CO₂
-            </div>
-            <div class="metric">
-                <strong>25-Year CO₂ Savings:</strong> {step9_data['lifetime_co2_savings']/1000:,.0f} Tons CO₂
-            </div>
-            <div class="metric">
-                <strong>Annual Energy Savings:</strong> €{step9_data['annual_savings']:,.0f}
-            </div>
-        </div>
-    </div>
-    """
+    from core.research_reports import financial_section
+    return financial_section(step9_data)
 
 def generate_orientation_table(orientation_counts):
     """Generate HTML table for orientation distribution"""

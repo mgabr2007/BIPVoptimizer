@@ -11,185 +11,8 @@ import pandas as pd
 
 
 
-def get_forecast_start_date(date_data):
-    """Determine the forecast start date based on historical data dates."""
-    if not date_data:
-        return datetime.now().replace(day=1) + timedelta(days=32)
-    
-    try:
-        # Parse the last date in historical data
-        last_date_str = date_data[-1]
-        if '-' in last_date_str:
-            # Parse YYYY-MM-DD format
-            last_date = datetime.strptime(last_date_str, '%Y-%m-%d')
-        else:
-            # Fallback to current date
-            return datetime.now().replace(day=1) + timedelta(days=32)
-        
-        # Start forecast from next month after last historical data
-        if last_date.month == 12:
-            return datetime(last_date.year + 1, 1, 1)
-        else:
-            return datetime(last_date.year, last_date.month + 1, 1)
-    except:
-        # Fallback to current date
-        return datetime.now().replace(day=1) + timedelta(days=32)
-
-
-def generate_demand_forecast(consumption_data, temperature_data, occupancy_data, date_data=None, occupancy_modifiers=None, building_type=None):
-    """Generate 25-year demand forecast based on historical data and educational building patterns."""
-    import numpy as np
-    from datetime import datetime, timedelta
-    
-    # Calculate base consumption - use annual total, not monthly average
-    if consumption_data:
-        if len(consumption_data) >= 12:
-            # Use full year data
-            base_consumption = sum(consumption_data[:12])  # Annual total
-        else:
-            # Extrapolate to annual from available months
-            monthly_avg = sum(consumption_data) / len(consumption_data)
-            base_consumption = monthly_avg * 12  # Estimate annual total
-    else:
-        base_consumption = 300000  # Default annual consumption in kWh
-    
-    # Calculate growth rate based on data trend
-    if len(consumption_data) >= 12:
-        # Linear trend analysis
-        x = list(range(len(consumption_data)))
-        y = consumption_data
-        n = len(x)
-        sum_x = sum(x)
-        sum_y = sum(y)
-        sum_xy = sum(x[i] * y[i] for i in range(n))
-        sum_x2 = sum(x[i] ** 2 for i in range(n))
-        
-        slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2) if (n * sum_x2 - sum_x ** 2) != 0 else 0
-        
-        # Calculate more conservative growth rate
-        if base_consumption > 0:
-            monthly_growth_rate = slope / base_consumption
-            annual_growth_rate = monthly_growth_rate * 12
-            
-            # Apply more conservative caps for educational buildings (typically 0.5-2% annual growth)
-            growth_rate = max(-0.005, min(0.02, annual_growth_rate))  # Cap between -0.5% and 2%
-        else:
-            growth_rate = 0.01  # Default 1% if no base consumption
-    else:
-        growth_rate = 0.015  # Default 1.5% annual growth
-    
-    # Generate seasonal patterns based on historical data and educational building patterns
-    seasonal_factors = []
-    if len(consumption_data) >= 12:
-        # Use actual monthly distribution from historical data
-        total_annual = sum(consumption_data[:12])
-        monthly_avg = total_annual / 12
-        base_seasonal_factors = [c / monthly_avg for c in consumption_data[:12]]
-        
-        # For existing historical data, use actual patterns without heavy modification
-        # Educational building patterns are already reflected in the historical consumption
-        if occupancy_modifiers:
-            # Apply gentle adjustments only, since historical data already shows building patterns
-            modified_factors = []
-            for month_idx, base_factor in enumerate(base_seasonal_factors):
-                # Apply mild seasonal adjustments (reduced impact for historical data)
-                adjustment_strength = 0.1  # Only 10% adjustment strength
-                
-                if month_idx in [5, 6, 7]:  # Summer months (Jun-Aug)
-                    modifier = 1.0 + (occupancy_modifiers['summer_factor'] - 1.0) * adjustment_strength
-                elif month_idx in [11, 0, 1]:  # Winter months (Dec-Feb) 
-                    modifier = 1.0 + (occupancy_modifiers['winter_factor'] - 1.0) * adjustment_strength
-                else:  # Transition months (Mar-May, Sep-Nov)
-                    modifier = 1.0 + (occupancy_modifiers['transition_factor'] - 1.0) * adjustment_strength
-                
-                modified_factor = base_factor * modifier
-                modified_factors.append(modified_factor)
-            
-            # For Year-Round Operation, maintain continuity with historical data
-            if 'Year-Round' in occupancy_modifiers.get('description', ''):
-                # Minimal adjustment for year-round operations
-                seasonal_factors = modified_factors
-            else:
-                # Apply gentle annual operation factor for other patterns
-                annual_factor = 1.0 + (occupancy_modifiers.get('annual_factor', 1.0) - 1.0) * 0.05
-                seasonal_factors = [f * annual_factor for f in modified_factors]
-        else:
-            seasonal_factors = base_seasonal_factors
-    else:
-        # Use educational building pattern from occupancy modifiers or defaults
-        if occupancy_modifiers:
-            # Create pattern based on educational building type
-            base_pattern = [1.0] * 12  # Start with uniform distribution
-            
-            # Apply seasonal modifiers
-            for month_idx in range(12):
-                if month_idx in [5, 6, 7]:  # Summer months (Jun-Aug)
-                    base_pattern[month_idx] *= occupancy_modifiers['summer_factor']
-                elif month_idx in [11, 0, 1]:  # Winter months (Dec-Feb)
-                    base_pattern[month_idx] *= occupancy_modifiers['winter_factor']
-                else:  # Transition months
-                    base_pattern[month_idx] *= occupancy_modifiers['transition_factor']
-            
-            # Apply annual operation factor
-            annual_factor = occupancy_modifiers.get('annual_factor', 1.0)
-            seasonal_factors = [f * annual_factor for f in base_pattern]
-        else:
-            # Default seasonal pattern for educational buildings
-            seasonal_factors = [1.1, 1.05, 1.0, 0.95, 0.9, 0.8, 0.75, 0.8, 0.95, 1.0, 1.05, 1.1]
-    
-    # Generate 25 years of monthly predictions with proper calendar alignment
-    monthly_predictions = []
-    annual_predictions = []
-    
-    # Use a fixed seed for consistent results
-    np.random.seed(42)
-    
-    for year in range(25):
-        # Fixed: Proper annual growth calculation
-        annual_consumption = base_consumption * (1 + growth_rate) ** year
-        
-        # Ensure reasonable bounds - cap at 5x original consumption to prevent astronomical values
-        if annual_consumption > base_consumption * 5:
-            annual_consumption = base_consumption * 5
-        
-        year_monthly = []
-        
-        for month_index in range(12):
-            # Calendar months: 0=Jan, 1=Feb, ..., 11=Dec
-            seasonal_factor = seasonal_factors[month_index]
-            monthly_value = (annual_consumption / 12) * seasonal_factor
-            
-            # Add controlled randomness for realism but keep predictable patterns
-            noise_factor = 1 + (np.random.random() - 0.5) * 0.05  # ±2.5% variation
-            monthly_value *= noise_factor
-            
-            final_value = max(0, monthly_value)
-            monthly_predictions.append(final_value)
-            year_monthly.append(final_value)
-        
-        annual_predictions.append(sum(year_monthly))
-    
-    return {
-        'monthly_predictions': monthly_predictions,
-        'annual_predictions': annual_predictions,
-        'growth_rate': growth_rate,
-        'base_consumption': base_consumption,
-        'seasonal_factors': seasonal_factors,
-        'forecast_start_date': get_forecast_start_date(date_data),
-        'model_parameters': {
-            'algorithm': 'RandomForest with Educational Building Patterns',
-            'features': ['seasonality', 'temperature', 'occupancy', 'historical_trend', 'educational_modifiers'],
-            'accuracy': 0.92,
-            'building_type': building_type if building_type else 'Educational',
-            'occupancy_pattern': occupancy_modifiers.get('description', 'Standard') if occupancy_modifiers else 'Standard',
-            'seasonal_adjustments': {
-                'summer_factor': occupancy_modifiers.get('summer_factor', 1.0) if occupancy_modifiers else 1.0,
-                'winter_factor': occupancy_modifiers.get('winter_factor', 1.0) if occupancy_modifiers else 1.0,
-                'annual_factor': occupancy_modifiers.get('annual_factor', 1.0) if occupancy_modifiers else 1.0
-            }
-        }
-    }
-
+from core.energy_contracts import reference_year
+from core.demand_scenario import get_forecast_start_date, generate_demand_forecast
 
 def create_forecast_csv(forecast_data):
     """Create CSV content for forecast data download."""
@@ -244,7 +67,7 @@ def create_forecast_summary_report(forecast_data, consumption_data):
         "-" * 20,
         f"Algorithm: {forecast_data['model_parameters']['algorithm']}",
         f"Features: {', '.join(forecast_data['model_parameters']['features'])}",
-        f"Model Accuracy (R²): {forecast_data['model_parameters']['accuracy']:.3f}",
+        "Model validation: Not evaluated (scenario projection; no measured R²)",
         f"Historical Data Points: {len(consumption_data)} months",
         "",
         "SEASONAL PATTERNS",
@@ -277,12 +100,12 @@ def create_forecast_summary_report(forecast_data, consumption_data):
         "",
         "METHODOLOGY NOTES",
         "-" * 20,
-        "• Forecast based on RandomForest regression analysis of historical consumption patterns",
+        "• Scenario based on historical trend, seasonal factors and selected schedule modifiers",
         "• Growth rate calculated from linear trend analysis of provided data",
         "• Seasonal factors derived from monthly consumption variations",
-        "• Model accounts for temperature effects, occupancy patterns, and building characteristics",
-        "• Predictions include controlled stochastic variation for realistic modeling",
-        "• Annual growth rate capped at 3% to ensure conservative estimates",
+        "• Uploaded temperature and occupancy series are not fitted or used by this scenario function",
+        "• Includes legacy seeded ±2.5% perturbation; this is not a prediction interval",
+        "• Legacy annual growth bounds: -0.5% to 2% with 12+ months; shorter series assume 1.5%",
         "",
         "USAGE RECOMMENDATIONS",
         "-" * 25,
@@ -299,114 +122,24 @@ def create_forecast_summary_report(forecast_data, consumption_data):
 
 
 def render_historical_data():
-    """Render the historical data analysis and AI model training module."""
+    """Render the historical data analysis and demand scenario module."""
     
     # Add OptiSunny character header image
     st.image("attached_assets/step02_1751436847829.png", width=400)
     
-    render_step_header('historical_data', subtitle="Upload and analyze historical energy consumption data to train demand prediction models")
+    render_step_header('historical_data', subtitle="Upload historical energy consumption and inspect demand scenarios")
     
-    # Data Usage Information
-    with st.expander("📊 How This Data Will Be Used", expanded=False):
+    with st.expander("Demand scenario method and limitations", expanded=True):
         st.markdown("""
-        ### Data Flow Through BIPV Analysis Workflow:
-        
-        **Step 2 → Step 7 (Yield vs Demand):**
-        - **Historical consumption patterns** → AI model predictions for 25-year energy demand forecasting
-        - **Seasonal variations** → Monthly energy balance calculations and grid interaction analysis
-        - **Building characteristics** → Demand profile optimization for self-consumption maximization
-        
-        **Step 2 → Step 8 (Optimization):**
-        - **Trained AI model** → Genetic algorithm inputs for realistic demand scenarios
-        - **Peak load patterns** → BIPV system sizing constraints and capacity optimization
-        - **Growth rate predictions** → Long-term performance and ROI calculations
-        
-        **Step 2 → Step 9 (Financial Analysis):**
-        - **Energy consumption forecasts** → NPV and IRR calculations over 25-year system lifetime
-        - **Demand growth trends** → Electricity cost savings projections and payback analysis
-        - **Occupancy patterns** → Building-specific energy intensity metrics for economic modeling
-        
-        **Step 2 → Step 10 (Reporting):**
-        - **Model performance metrics (R²)** → Analysis accuracy indicators and reliability assessment
-        - **Baseline consumption data** → Before/after BIPV impact quantification
-        - **Forecast methodology** → Technical documentation and validation framework
+        This page summarizes uploaded consumption and projects a **trend and seasonal scenario**.
+        It does not fit a RandomForest model. R², cross-validation scores and feature
+        importance have not been evaluated and are not reported as measured results.
+
+        The legacy scenario uses historical consumption, selected schedule modifiers,
+        bounded growth and seeded variation. Uploaded temperature and occupancy series
+        are retained for inspection but are not fitted by this method. The variation
+        is not a statistical uncertainty interval. Long-term values are scenarios.
         """)
-    
-    # AI Model Purpose Explanation
-    with st.expander("🤖 Why AI Model Training is Essential for BIPV Optimization", expanded=False):
-        st.markdown("""
-        **The AI model training serves critical purposes in the BIPV optimization process:**
-        
-        **1. Future Energy Demand Prediction**
-        - Predicts building energy consumption patterns for the next 20-25 years (PV system lifetime)
-        - Accounts for seasonal variations, occupancy changes, and building aging effects
-        - Essential for accurate yield vs demand analysis in Step 7
-        
-        **2. Optimization Algorithm Input**
-        - Provides realistic demand profiles for genetic algorithm optimization in Step 8
-        - Enables calculation of energy independence and self-consumption rates
-        - Supports accurate financial modeling by predicting future electricity costs
-        
-        **3. System Sizing and Selection**
-        - Determines optimal PV capacity to match building consumption patterns
-        - Identifies peak demand periods for battery storage sizing
-        - Minimizes over-sizing or under-sizing of BIPV installations
-        
-        **4. Economic Viability Assessment**
-        - Calculates accurate payback periods based on predicted consumption
-        - Estimates long-term savings and return on investment
-        - Supports feed-in tariff revenue calculations for surplus generation
-        
-        **The trained RandomForest model captures complex relationships between:**
-        - Weather conditions (temperature, humidity, solar irradiance)
-        - Occupancy patterns (academic schedules, seasonal variations)
-        - Building characteristics (type, age, efficiency improvements)
-        - Historical consumption trends and growth patterns
-        
-        **Without accurate demand prediction, the optimization would rely on simplified assumptions, 
-        potentially leading to sub-optimal BIPV system configurations and inaccurate financial projections.**
-        """)
-    
-    # Data Sources and Assumptions Explanation
-    with st.expander("📊 Data Sources and Model Assumptions in Step 2", expanded=False):
-        st.markdown("""
-        **Where the AI Model Gets Its Data:**
-        
-        **1. Weather Conditions:**
-        - **Source**: Optional columns in your uploaded CSV file (Temperature, Humidity, Solar_Irradiance)
-        - **If Not Provided**: Uses weather data from Step 3 (OpenWeatherMap API) based on your location
-        - **Assumption**: If neither available, assumes typical climate patterns for your geographic region
-        
-        **2. Occupancy Patterns:**
-        - **Source**: Optional 'Occupancy' column in your CSV file (building occupancy percentage 0-100)
-        - **Building Type Selection**: Your choice from dropdown (University, K-12 School, Research Facility, etc.)
-        - **Occupancy Pattern**: Your selection (Academic Year, Year-Round, Summer Programs)
-        - **Assumption**: If occupancy data missing, applies standard patterns based on building type and schedule
-        
-        **3. Building Characteristics:**
-        - **Source**: Building type and occupancy pattern selections you make in this step
-        - **Building Area**: Currently assumes 5,000 m² for energy intensity calculations
-        - **Age and Efficiency**: Inferred from consumption patterns and building type
-        - **Assumption**: Typical educational building characteristics applied if specific data unavailable
-        
-        **4. Historical Consumption Trends:**
-        - **Source**: Required 'Date' and 'Consumption' columns in your uploaded CSV file
-        - **Must Have**: At least 12 months of actual energy consumption data in kWh
-        - **Growth Patterns**: Calculated from your historical data trends
-        - **No Assumption**: This is the only required authentic data - no synthetic alternatives
-        
-        **Key Assumptions Made by the AI Model:**
-        - Building area of 5,000 m² for benchmark calculations (affects energy intensity metrics only)
-        - Standard educational building efficiency ratings when specific building data unavailable
-        - Typical academic calendar patterns if occupancy data not provided
-        - Regional climate averages if weather data columns missing from CSV
-        - 25-year system lifetime for demand projections
-        - 2% annual energy consumption growth rate if not evident from historical data
-        
-        **Critical Requirement:**
-        The Date and Consumption columns with real historical data are mandatory - the AI model cannot function with synthetic consumption data as this would invalidate all subsequent optimization calculations.
-        """)
-    
     st.divider()
     
     # Check prerequisites and ensure project data is loaded
@@ -458,27 +191,13 @@ def render_historical_data():
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    r2_score = existing_ai_model.get('r_squared_score', 0)
-                    if r2_score >= 0.85:
-                        status_color = "🟢"
-                        status_text = "Excellent"
-                    elif r2_score >= 0.70:
-                        status_color = "🟡"
-                        status_text = "Good"
-                    else:
-                        status_color = "🔴"
-                        status_text = "Needs Improvement"
-                    
-                    st.metric(
-                        "AI Model Performance (R²)",
-                        f"{r2_score:.3f}",
-                        f"{status_color} {status_text}"
-                    )
-                
+                    st.metric("Model validation", "Not verified")
+                    st.caption("Saved scores lack evaluation provenance. Historical records are retained.")
+
                 with col2:
                     training_size = existing_ai_model.get('training_data_size', 0)
                     st.metric(
-                        "Training Data Points",
+                        "Historical Observations",
                         f"{training_size} months"
                     )
                 
@@ -661,7 +380,7 @@ def render_historical_data():
         - `Date`: YYYY-MM-DD format (e.g., 2023-01-01)
         - `Consumption`: Monthly energy consumption in kWh (numeric values only)
         
-        **Optional Columns (improve AI model accuracy):**
+        **Optional Columns (retained for inspection):**
         - `Temperature`: Average monthly temperature in °C
         - `Humidity`: Average monthly humidity percentage (0-100)
         - `Solar_Irradiance`: Monthly solar irradiance in kWh/m²
@@ -679,7 +398,7 @@ def render_historical_data():
     uploaded_file = st.file_uploader(
         "Upload Historical Energy Data (CSV)",
         type=['csv'],
-        help="📊 Upload a CSV file containing at least 12 months of historical energy consumption data. Required: Date (YYYY-MM-DD) and Consumption (kWh) columns. Optional: Temperature, Humidity, Occupancy data improves AI model accuracy. File size limit: 10MB.",
+        help="📊 Upload a CSV file containing at least 12 months of historical energy consumption data. Required: Date (YYYY-MM-DD) and Consumption (kWh) columns. Optional temperature and occupancy columns are retained for inspection. File size limit: 10MB.",
         key="historical_data_upload"
     )
     
@@ -690,7 +409,7 @@ def render_historical_data():
         content = uploaded_file.getvalue().decode('utf-8')
         headers, data = parse_csv_content(content)
         
-        with st.spinner("Processing historical data and training AI model..."):
+        with st.spinner("Processing historical consumption data..."):
             # Process data using pure Python
             consumption_data = []
             temperature_data = []
@@ -724,9 +443,21 @@ def render_historical_data():
                     except ValueError:
                         continue
             
+            import math
+            if not consumption_data or not all(math.isfinite(v) and v >= 0 for v in consumption_data) or sum(consumption_data) <= 0:
+                st.error("Upload finite, nonnegative monthly consumption with at least one positive value.")
+                return
+
             # Calculate statistics
             avg_consumption = SimpleMath.mean(consumption_data)
             total_consumption = sum(consumption_data)
+            try:
+                demand_reference = reference_year(consumption_data, date_data)
+            except ValueError as exc:
+                st.error(str(exc))
+                return
+            annual_consumption = demand_reference['annual_demand_kwh']
+            st.caption(f"Annual baseline: {demand_reference['start']} to {demand_reference['end']}")
             max_consumption = max(consumption_data) if consumption_data else 0
             min_consumption = min(consumption_data) if consumption_data else 0
             
@@ -745,13 +476,13 @@ def render_historical_data():
                 'total_consumption': total_consumption,
                 'max_consumption': max_consumption,
                 'min_consumption': min_consumption,
-                'model_accuracy': 0.92,
+                'model_accuracy': None,
                 'building_area': building_area,
                 'energy_intensity': energy_intensity,
                 'consumption_data': consumption_data,
                 'model_performance': {
-                    'r2_score': 0.92,
-                    'algorithm': 'RandomForest'
+                    'r2_score': None,
+                    'algorithm': 'Trend and seasonal scenario'
                 },
                 'demand_forecast': {
                     'baseline_annual': total_consumption,
@@ -764,9 +495,10 @@ def render_historical_data():
             # Store historical data using standardized structure
             st.session_state.project_data['historical_data'] = sample_data
             st.session_state.project_data['ai_model_data'] = {
-                'r2_score': sample_data.get('model_performance', {}).get('r2_score', 0.92),
-                'algorithm': sample_data.get('model_performance', {}).get('algorithm', 'RandomForest'),
-                'training_complete': True
+                'r2_score': sample_data.get('model_performance', {}).get('r2_score'),
+                'algorithm': sample_data.get('model_performance', {}).get('algorithm', 'Trend and seasonal scenario'),
+                'training_complete': False,
+                'evaluation_status': 'not_evaluated'
             }
             st.session_state.project_data['demand_forecast'] = sample_data.get('demand_forecast', {})
             st.session_state.project_data['ui_metrics'] = {
@@ -784,14 +516,14 @@ def render_historical_data():
             from services.io import get_current_project_id
             project_id = get_current_project_id()
             
-            # Calculate R² score based on forecast accuracy (simulated AI model performance)
-            r_squared_score = 0.92  # High accuracy for educational building pattern recognition
+            # No held-out evaluation exists for this scenario method.
+            r_squared_score = None
             
             if project_id:
                 save_project_data(st.session_state.project_data)
                 # Save to historical_data table with correct field references
                 historical_data_to_save = {
-                    'annual_consumption': total_consumption,
+                    'annual_consumption': annual_consumption,
                     'model_accuracy': r_squared_score,
                     'consumption_data': st.session_state.project_data.get('historical_data', {}),
                     'ai_model_data': st.session_state.project_data.get('ai_model_data', {}),
@@ -805,7 +537,7 @@ def render_historical_data():
                 
                 # Save historical data first
                 historical_data_complete = {
-                    'annual_consumption': total_consumption,
+                    'annual_consumption': annual_consumption,
                     'consumption_data': consumption_data,
                     'temperature_data': temperature_data or [],
                     'occupancy_data': occupancy_data or [],
@@ -819,14 +551,14 @@ def render_historical_data():
                 
                 # Save AI model data with forecast predictions for Step 7
                 ai_model_complete = {
-                    'model_type': 'RandomForestRegressor',
+                    'model_type': 'TrendSeasonalScenario-v2',
                     'r_squared_score': r_squared_score,
                     'training_data_size': len(consumption_data),
                     'forecast_years': 25,
                     'forecast_data': forecast_data if 'forecast_data' in locals() else {},
                     'demand_predictions': forecast_data.get('annual_predictions', []) if 'forecast_data' in locals() else [],
                     'growth_rate': forecast_data.get('growth_rate', 0.01) if 'forecast_data' in locals() else 0.01,
-                    'base_consumption': total_consumption,
+                    'base_consumption': annual_consumption,
                     'peak_demand': max_consumption,
                     'building_area': building_area,
                     'occupancy_pattern': occupancy_pattern,
@@ -835,7 +567,7 @@ def render_historical_data():
                 db_manager.save_ai_model_data(project_id, ai_model_complete)
         
         # Display analysis results
-        st.success("Historical data processed and AI model trained successfully!")
+        st.success("Historical data processed. Demand scenario is not statistically evaluated.")
         
         # Key metrics
         col1, col2, col3, col4 = st.columns(4)
@@ -1056,7 +788,7 @@ def render_historical_data():
                     'actual_growth_rate': actual_growth_rate,
                     'peak_demand': peak_demand,
                     'total_demand': total_demand,
-                    'r2_score': 0.92,  # Use base R² score
+                    'r2_score': None,  # Not evaluated
                     'building_area': building_area,
                     'baseline_annual': base_consumption,
                     'annual_predictions': annual_predictions,
@@ -1076,175 +808,12 @@ def render_historical_data():
         else:
             st.warning("Forecast generation failed. Please check your historical data and try again.")
 
-        # AI Model Training Results with R² Score Analysis
-        st.subheader("🎯 AI Model Performance & R² Score Analysis")
-        
-        # Calculate R² score based on data quality and completeness
-        r2_score = 0.92  # Base score
-        data_quality_factors = []
-        
-        # Adjust R² based on data completeness
-        if len(consumption_data) < 12:
-            r2_score -= 0.15
-            data_quality_factors.append("Insufficient historical data (< 12 months)")
-        
-        if not temperature_data or all(t == 0 for t in temperature_data):
-            r2_score -= 0.10
-            data_quality_factors.append("Missing temperature data")
-        
-        if not occupancy_data or all(o == 0 for o in occupancy_data):
-            r2_score -= 0.08
-            data_quality_factors.append("Missing occupancy patterns")
-        
-        # Ensure R² doesn't go below 0.4
-        r2_score = max(0.4, r2_score)
-        
-        # Visual R² Score Display
-        col1, col2, col3 = st.columns([1, 2, 1])
-        
-        with col2:
-            # Create R² score gauge
-            if r2_score >= 0.85:
-                color = "green"
-                status = "Excellent"
-                icon = "🟢"
-            elif r2_score >= 0.70:
-                color = "orange" 
-                status = "Good"
-                icon = "🟡"
-            else:
-                color = "red"
-                status = "Needs Improvement"
-                icon = "🔴"
-            
-            st.markdown(f"""
-            <div style="text-align: center; padding: 20px; border: 3px solid {color}; border-radius: 15px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                <h2 style="color: {color}; margin: 0;">{icon} R² Score: {r2_score:.3f}</h2>
-                <h3 style="color: {color}; margin: 5px 0;">{status} Model Performance</h3>
-                <p style="margin: 0; font-size: 14px;">Prediction Accuracy: {r2_score*100:.1f}%</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        # Detailed Performance Analysis
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**📊 Model Performance Metrics:**")
-            st.markdown(f"""
-            - **R² Score:** {r2_score:.3f} ({status})
-            - **Algorithm:** RandomForest Regression
-            - **Cross-validation:** {max(0.4, r2_score - 0.03):.3f}
-            - **Data Points:** {len(consumption_data)} months
-            - **Feature Quality:** {len([f for f in [temperature_data, occupancy_data] if f and any(x != 0 for x in f)])}/2 complete
-            """)
-        
-        with col2:
-            st.markdown("**🔍 Feature Importance Analysis:**")
-            temp_importance = 45 if temperature_data and any(t != 0 for t in temperature_data) else 25
-            occ_importance = 35 if occupancy_data and any(o != 0 for o in occupancy_data) else 20
-            season_importance = 100 - temp_importance - occ_importance
-            
-            st.markdown(f"""
-            - **Temperature:** {temp_importance}%
-            - **Occupancy:** {occ_importance}%
-            - **Seasonal Patterns:** {season_importance}%
-            - **Base Load:** Detected
-            """)
-        
-        # R² Score Improvement Recommendations
-        if r2_score < 0.85:
-            st.warning("⚠️ Model performance can be improved. See recommendations below.")
-            
-            with st.expander("🚀 How to Improve R² Score - Detailed Recommendations", expanded=False):
-                st.markdown("### 📈 Specific Actions to Improve Model Performance:")
-                
-                improvement_recommendations = []
-                
-                if len(consumption_data) < 12:
-                    improvement_recommendations.append({
-                        "issue": "Insufficient Historical Data",
-                        "impact": "High (-0.15 R² points)",
-                        "solution": "Collect at least 12-24 months of consumption data",
-                        "steps": [
-                            "Contact building management for complete utility bills",
-                            "Request data from energy management systems", 
-                            "Include sub-meter data if available",
-                            "Ensure data covers full seasonal cycles"
-                        ]
-                    })
-                
-                if not temperature_data or all(t == 0 for t in temperature_data):
-                    improvement_recommendations.append({
-                        "issue": "Missing Temperature Data",
-                        "impact": "Medium (-0.10 R² points)", 
-                        "solution": "Add monthly temperature data to CSV uploads",
-                        "steps": [
-                            "Include 'Temperature' column in CSV with average monthly °C",
-                            "Use local weather station data if building data unavailable",
-                            "Correlate with HVAC energy consumption patterns",
-                            "Consider outdoor temperature and internal gains"
-                        ]
-                    })
-                
-                if not occupancy_data or all(o == 0 for o in occupancy_data):
-                    improvement_recommendations.append({
-                        "issue": "Missing Occupancy Patterns",
-                        "impact": "Medium (-0.08 R² points)",
-                        "solution": "Add occupancy data reflecting building usage",
-                        "steps": [
-                            "Include 'Occupancy' column in CSV (0-100% capacity)",
-                            "Account for academic calendar (semester breaks, holidays)",
-                            "Consider variable schedules (exams, events, summer programs)",
-                            "Use access card data or scheduling systems if available"
-                        ]
-                    })
-                
-                if len(consumption_data) >= 12 and r2_score < 0.85:
-                    improvement_recommendations.append({
-                        "issue": "Data Quality and Consistency",
-                        "impact": "Variable",
-                        "solution": "Enhance data quality and add more features",
-                        "steps": [
-                            "Check for outliers or data entry errors",
-                            "Add humidity and solar irradiance data",
-                            "Include equipment schedules and maintenance records",
-                            "Segment by building zones or end-use categories"
-                        ]
-                    })
-                
-                # Display recommendations in organized format
-                for i, rec in enumerate(improvement_recommendations, 1):
-                    st.markdown(f"#### {i}. {rec['issue']} ({rec['impact']})")
-                    st.markdown(f"**Solution:** {rec['solution']}")
-                    st.markdown("**Action Steps:**")
-                    for step in rec['steps']:
-                        st.markdown(f"• {step}")
-                    st.markdown("---")
-                
-                # Expected improvements
-                st.markdown("### 🎯 Expected R² Score Improvements:")
-                potential_r2 = 0.92
-                if len(consumption_data) >= 12:
-                    potential_r2 += 0.0
-                else:
-                    potential_r2 = 0.92
-                
-                st.markdown(f"""
-                - **Current R² Score:** {r2_score:.3f}
-                - **Potential with improvements:** {min(0.95, potential_r2):.3f}
-                - **Performance gain:** +{min(0.95, potential_r2) - r2_score:.3f} points
-                - **Prediction accuracy gain:** +{(min(0.95, potential_r2) - r2_score)*100:.1f}%
-                """)
-                
-        else:
-            st.success("✅ Excellent model performance! R² score above 0.85 indicates reliable predictions.")
-        
-        # Store R² score for use in other steps
-        st.session_state.project_data['model_r2_score'] = r2_score
-        st.session_state.project_data['model_performance_status'] = status
-        
+        st.subheader("Demand scenario validation")
+        st.info("Not evaluated: this scenario has no fitted estimator, held-out R², "
+                "cross-validation score or measured feature importance.")
+        st.session_state.project_data['model_r2_score'] = None
+        st.session_state.project_data['model_performance_status'] = 'Not evaluated'
+
         # Educational building standards compliance
         st.subheader("Educational Building Standards Analysis")
         
@@ -1414,7 +983,7 @@ def render_historical_data():
         # Add step-specific download button
         st.markdown("---")
         st.markdown("### 📄 Step 2 Analysis Report")
-        st.markdown("Download detailed AI model training and historical data analysis report:")
+        st.markdown("Download historical data and demand scenario report:")
         
         from utils.individual_step_reports import create_step_download_button
         create_step_download_button(2, "Historical Data", "Download Historical Data Analysis Report")

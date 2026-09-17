@@ -5,7 +5,7 @@ Data validation utilities using Pandera for facade extraction.
 import pandas as pd
 import pandera as pa
 from pandera import Check
-from pandera.api.pandas import Column, DataFrameSchema
+from pandera import Column, DataFrameSchema
 from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
 from .models import ValidationError, WindowRecord, WallRecord

@@ -64,7 +64,7 @@ class RadiationAnalysisOrchestrator:
     
     def __init__(self, analyzer: Optional[AdvancedRadiationAnalyzer] = None):
         """Initialize with dependency injection for testing."""
-        self.analyzer = analyzer or AdvancedRadiationAnalyzer()
+        self.analyzer = analyzer  # Never construct a project-less global analyzer
         self.config = analysis_config
         self.queries = radiation_queries
         self._active_analyses: Dict[int, bool] = {}
@@ -134,66 +134,11 @@ class RadiationAnalysisOrchestrator:
     ) -> List[ElementRadiationResult]:
         """Run complete radiation analysis with progress tracking."""
         
-        # Mark analysis as active
-        self._active_analyses[project_id] = True
-        
-        try:
-            logger.info(f"Starting radiation analysis for project {project_id}")
-            
-            # Validate prerequisites
-            validation = await self.validate_prerequisites(project_id)
-            if not validation.is_valid:
-                raise ValueError(f"Prerequisites not met: {validation.errors}")
-            
-            # Get elements to analyze
-            elements = await execute_with_fallback(
-                self.queries.get_suitable_elements_async,
-                self.queries.get_suitable_elements_sync,
-                project_id
-            )
-            
-            if not elements:
-                raise ValueError(ERROR_MESSAGES["no_elements"])
-            
-            # Get wall data for shading calculations
-            walls = await execute_with_fallback(
-                self.queries.get_wall_data_async,
-                self.queries.get_wall_data_sync,
-                project_id
-            )
-            
-            # Setup progress tracking
-            progress_tracker = ProgressCallback(
-                total_elements=len(elements),
-                update_interval=self.config.max_workers
-            )
-            
-            if progress_callback:
-                progress_tracker.add_callback(progress_callback)
-            
-            # Choose execution strategy based on configuration
-            if configuration.parallel_processing and len(elements) > configuration.chunk_size:
-                results = await self._run_parallel_analysis(
-                    project_id, elements, walls, configuration, progress_tracker
-                )
-            else:
-                results = await self._run_sequential_analysis(
-                    project_id, elements, walls, configuration, progress_tracker
-                )
-            
-            # Store results in database
-            await self._store_results(project_id, results)
-            
-            logger.info(f"Completed radiation analysis for {len(results)} elements")
-            return results
-            
-        except Exception as e:
-            logger.error(f"Analysis failed: {e}")
-            raise
-        finally:
-            # Mark analysis as inactive
-            self._active_analyses[project_id] = False
-    
+        raise NotImplementedError(
+            'This legacy adapter only supplied placeholder radiation and is disabled. '
+            'Use Research Validation with timestamped weather for the explicit PV model.'
+        )
+
     async def _run_parallel_analysis(
         self,
         project_id: int,
@@ -341,27 +286,7 @@ class RadiationAnalysisOrchestrator:
     
     def _calculate_placeholder_radiation(self, element: Dict[str, Any]) -> float:
         """Calculate placeholder radiation based on orientation."""
-        orientation = element.get("orientation", "Unknown").lower()
-        azimuth = element.get("azimuth", 0.0)
-        
-        # Simple orientation-based calculation
-        base_radiation = 1200.0  # kWh/m²/year baseline
-        
-        if orientation == "south":
-            return base_radiation * 1.0
-        elif orientation in ["southeast", "southwest"]:
-            return base_radiation * 0.85
-        elif orientation in ["east", "west"]:
-            return base_radiation * 0.70
-        elif orientation == "north":
-            return base_radiation * 0.30
-        else:
-            # Use azimuth for unknown orientations
-            if 135 <= azimuth <= 225:  # South-facing
-                return base_radiation * 0.90
-            else:
-                return base_radiation * 0.60
-    
+        raise NotImplementedError('The legacy radiation adapter has no physical model. Use Research Validation with timestamped weather inputs.')
     def _calculate_shading_factor(self, element: Dict[str, Any], walls: List[Dict[str, Any]]) -> float:
         """Calculate shading factor based on nearby walls."""
         if not walls:

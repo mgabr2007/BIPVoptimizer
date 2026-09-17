@@ -40,6 +40,8 @@ class DatabaseConnectionManager:
             )
         
         async with self._async_pool.acquire() as connection:
+            from services.authentication import bind_async_connection
+            await bind_async_connection(connection)
             yield connection
     
     @contextmanager
@@ -54,6 +56,8 @@ class DatabaseConnectionManager:
                 password=self.config.password,
                 database=self.config.database
             )
+            from services.authentication import bind_connection
+            bind_connection(conn)
             conn.autocommit = False
             yield conn
         except Exception as e:

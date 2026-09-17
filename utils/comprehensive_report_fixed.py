@@ -419,67 +419,8 @@ def generate_step1_section_fixed(data):
 """
 
 def generate_step2_section_fixed(data):
-    """Generate Step 2 section with robust data extraction"""
-    historical_data = safe_get(data, 'historical_data', {})
-    
-    # AI Model performance
-    r2_score = safe_float(safe_get(data, 'model_r2_score'), 0.85)
-    rmse = safe_float(safe_get(historical_data, 'rmse'), 0)
-    
-    # Building characteristics
-    building_area = safe_float(safe_get(data, 'building_floor_area'), 5000)
-    avg_consumption = safe_float(safe_get(historical_data, 'avg_consumption'), 0)
-    total_consumption = safe_float(safe_get(historical_data, 'total_consumption'), 0)
-    
-    # Calculate energy intensity
-    energy_intensity = (total_consumption / building_area) if building_area > 0 and total_consumption > 0 else 0
-    peak_load_factor = safe_float(safe_get(historical_data, 'peak_load_factor'), 0)
-    
-    return f"""
-<div class="step-section">
-    <h2 class="step-title">Step 2: Historical Data & AI Model Training</h2>
-    
-    <div class="subsection">
-        <h3>🤖 AI Model Performance</h3>
-        <div class="metric">
-            <strong>R² Score:</strong>
-            <span class="metric-value">{r2_score:.3f}</span>
-        </div>
-        <div class="metric">
-            <strong>RMSE:</strong>
-            <span class="metric-value">{rmse:.2f} kWh</span>
-        </div>
-        <div class="metric">
-            <strong>Forecast Period:</strong>
-            <span class="metric-value">25 years</span>
-        </div>
-    </div>
-    
-    <div class="subsection">
-        <h3>🏢 Building Characteristics</h3>
-        <div class="metric">
-            <strong>Building Floor Area:</strong>
-            <span class="metric-value">{building_area:,.0f} m²</span>
-        </div>
-        <div class="metric">
-            <strong>Average Monthly Consumption:</strong>
-            <span class="metric-value">{avg_consumption:,.0f} kWh</span>
-        </div>
-        <div class="metric">
-            <strong>Annual Consumption:</strong>
-            <span class="metric-value">{total_consumption:,.0f} kWh</span>
-        </div>
-        <div class="metric">
-            <strong>Energy Intensity:</strong>
-            <span class="metric-value">{energy_intensity:.1f} kWh/m²/year</span>
-        </div>
-        <div class="metric">
-            <strong>Peak Load Factor:</strong>
-            <span class="metric-value">{peak_load_factor:.2f}</span>
-        </div>
-    </div>
-</div>
-"""
+    from core.research_reports import demand_section
+    return demand_section(data)
 
 def generate_step3_section_fixed(data):
     """Generate Step 3 section with robust data extraction"""
@@ -894,63 +835,5 @@ def generate_step8_section_fixed(data):
 """
 
 def generate_step9_section_fixed(data):
-    """Generate Step 9 section with robust data extraction"""
-    # Financial analysis data
-    financial = safe_get(data, 'financial_analysis', {})
-    
-    npv = safe_float(safe_get(financial, 'npv'), 0)
-    irr = safe_float(safe_get(financial, 'irr'), 0) * 100  # Convert to percentage
-    payback_period = safe_float(safe_get(financial, 'payback_period'), 0)
-    annual_savings = safe_float(safe_get(financial, 'annual_savings'), 0)
-    system_capacity = safe_float(safe_get(financial, 'system_capacity'), 0)
-    installation_cost = safe_float(safe_get(financial, 'installation_cost'), 0)
-    
-    # Environmental impact
-    annual_co2_savings = safe_float(safe_get(financial, 'annual_co2_savings'), 0)
-    lifetime_co2_savings = safe_float(safe_get(financial, 'lifetime_co2_savings'), 0)
-    
-    return f"""
-<div class="step-section">
-    <h2 class="step-title">Step 9: Financial & Environmental Analysis</h2>
-    
-    <div class="subsection">
-        <h3>💰 Financial Metrics</h3>
-        <div class="metric">
-            <strong>Net Present Value (NPV):</strong>
-            <span class="metric-value">€{npv:,.0f}</span>
-        </div>
-        <div class="metric">
-            <strong>Internal Rate of Return (IRR):</strong>
-            <span class="metric-value">{irr:.1f}%</span>
-        </div>
-        <div class="metric">
-            <strong>Payback Period:</strong>
-            <span class="metric-value">{payback_period:.1f} years</span>
-        </div>
-        <div class="metric">
-            <strong>Annual Savings:</strong>
-            <span class="metric-value">€{annual_savings:,.0f}</span>
-        </div>
-    </div>
-    
-    <div class="subsection">
-        <h3>🌱 Environmental Impact</h3>
-        <div class="metric">
-            <strong>Annual CO₂ Savings:</strong>
-            <span class="metric-value">{annual_co2_savings:,.1f} tonnes</span>
-        </div>
-        <div class="metric">
-            <strong>25-Year CO₂ Savings:</strong>
-            <span class="metric-value">{lifetime_co2_savings:,.1f} tonnes</span>
-        </div>
-        <div class="metric">
-            <strong>Installation Cost:</strong>
-            <span class="metric-value">€{installation_cost:,.0f}</span>
-        </div>
-        <div class="metric">
-            <strong>System Capacity:</strong>
-            <span class="metric-value">{system_capacity:,.1f} kW</span>
-        </div>
-    </div>
-</div>
-"""
+    from core.research_reports import financial_section
+    return financial_section(data)
